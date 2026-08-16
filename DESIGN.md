@@ -16,7 +16,7 @@
 
 | 层级 | 来源 | 用途 |
 |---|---|---|
-| L1 实测 | 本报告 §3 探针 P1–P8（临时 `DSH_HOME=/tmp/citeciter-dsh-home`，真实浏览器 headless 渲染，0 次真实模型调用） | 挂载、渲染、侧边栏、选中菜单、fork 隔离、富媒体、注册冲突 |
+| L1 实测 | 本报告 §3 探针 P1–P8（临时 `DSH_HOME=/tmp/citeciter-dsh-home`，真实浏览器 headless 渲染，0 次成功模型调用（无 key 临时环境）） | 挂载、渲染、侧边栏、选中菜单、fork 隔离、富媒体、注册冲突 |
 | L1 只读 | 本机安装树 `node_modules/@deepseek-ai/dsh-*/lib/**` 与 `cordis.patch.yml`、README | 机制级源码取证 |
 | L1 只读 | 通过 jsDelivr 镜像取到的 master 分支文档（保存于 `.refs/docs/`，只读）：`AGENTS.md`、`CONTRIBUTING.zh.md`、`docs/architecture.zh.md`、`docs/development.zh.md`、`docs/cordis-primer.zh.md`、`docs/cordis-tutorial/01-first-plugin.zh.md`、`docs/user/develop/basic/index.zh.md`、`docs/subsystems/{client-modules,session,subagent,session-reference,session-projection}.zh.md`、`docs/cookbook/extension-cookbook.zh.md` | 编码规范、平台语义 |
 | L2 前序调研 | `<prior-workspace>/whoami-cordis-{phase1,phase2,audit}-report.md` | 仅作线索；本报告结论全部重新取证 |
@@ -216,7 +216,7 @@ seq/type 完全一致；子会话历史 = 父前缀逐事件一致 + 自己的�
 | P7 | 进程级 Host provider 重复注册抛错？ | 是（复核既有陷阱） | `Host Cordis inspect provider ... is already registered` |
 | P8 | `ctx.connection.api` 官方创建/读会话？ | 是 | `session.create` ok；`session.history` 3 事件 |
 
-所有探针 0 次真实模型调用（P4/P5 的 prompt 在无 key 临时环境里被接受并产生
+所有探针 0 次成功模型调用（P4/P5 的 prompt 在无 key 临时环境里被接受、LLM 请求随即失败并产生
 `turn-error`，仍足以验证日志写边界与流行为）。探针没有修改主 session 与本机 DSH，
 没有写入 `~/.dsh` 配置或会话。
 
