@@ -1,0 +1,4 @@
+# Probe P3: selection + context menu client plugin.
+- insert:
+    - id: citeciter-probe-p3
+      name: citeciter-probe-p3
