@@ -1,0 +1,4 @@
+.refs/
+node_modules/
+*.log
+/tmp/
