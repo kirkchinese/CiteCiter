@@ -1,0 +1,4 @@
+# Probe P8: official wire client access from a static client plugin.
+- insert:
+    - id: citeciter-probe-p8
+      name: citeciter-probe-p8

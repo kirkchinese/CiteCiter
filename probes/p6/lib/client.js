@@ -12,24 +12,29 @@ window.__ModuleLoader__.load({
     const jsx = require('react/jsx-runtime').jsx
     const MarkdownText = require('@deepseek-ai/dsh-client-ui-primitives').MarkdownText
 
-    exports.inject = ['layout', 'sessions']
+    exports.inject = ['layout', 'sessions', 'slots']
 
     exports.apply = function apply(ctx) {
       ctx.slots.inject('details', () => ctx.slots.register({
         name: 'details',
         priority: -1,
       }, function RichMediaPanel() {
-        return jsx('div', { 'data-citeciter-probe': 'p6-panel', style: { padding: 16 } }, [
-          jsx(MarkdownText, {
-            key: 'md',
-            text: '数学公式 $E=mc^2$ 与代码：\n```js\nconsole.log("demo")\n```\n',
-          }),
-          jsx('svg', {
-            key: 'svg',
-            'data-citeciter-probe': 'p6-svg',
-            width: 120, height: 40, viewBox: '0 0 120 40',
-          }, jsx('circle', { cx: 20, cy: 20, r: 14, fill: 'var(--dsw-static-deepseek-500, #4d6bfe)' })),
-        ])
+        return jsx('div', {
+          'data-citeciter-probe': 'p6-panel',
+          style: { padding: 16 },
+          children: [
+            jsx(MarkdownText, {
+              key: 'md',
+              text: '数学公式 $E=mc^2$ 与代码：\n```js\nconsole.log("demo")\n```\n',
+            }),
+            jsx('svg', {
+              key: 'svg',
+              'data-citeciter-probe': 'p6-svg',
+              width: 120, height: 40, viewBox: '0 0 120 40',
+              children: jsx('circle', { cx: 20, cy: 20, r: 14, fill: 'var(--dsw-static-deepseek-500, #4d6bfe)' }),
+            }),
+          ],
+        })
       }))
 
       window.__citeciterProbeP6 = {

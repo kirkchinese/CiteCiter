@@ -1,0 +1,14 @@
+# Probe P7: re-verify the process-global host-service registration trap.
+- id: headless-startup
+  disabled: true
+- id: headless-runner
+  disabled: true
+- insert:
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: 'standard'
+    - id: cordis-host-runner
+      name: '@deepseek-ai/dsh-cordis-host-runner'
+    - id: citeciter-probe-p7
+      name: <repo>/probes/p7.mjs
