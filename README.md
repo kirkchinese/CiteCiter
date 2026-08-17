@@ -11,6 +11,14 @@
 
 *Selection-scoped explanations for DeepSeek Harness conversations, rendered in a resizable sidebar without writing to the parent session.*
 
+## 别让 AI 跑得太快，把你落在身后
+
+AI 很会冲刺，却不总记得回头看你。代码和答案喷薄而出时，新框架、新术语、新抽象也会像浪一样迎面拍来。对学生、新入行的开发者和初级工程师来说，最危险的往往不是「AI 不会」，而是它看起来什么都会——于是你一边点头，一边悄悄错过了真正理解和持续成长的机会。
+
+遇到看不懂的地方，不用复制粘贴，不用另开窗口，更不用假装已经懂了。选中那句话，右键 `Citer!`：鲸鱼娘会把疑问轻轻“捞”出来，从那一刻的真实会话上下文中分出一条只读支线，带着此前讨论过的代码、约束与目标，就地为你耐心解释；主会话继续向前，你的疑问留在侧栏慢慢消化。
+
+**CiteCiter 不替你跳过思考，而是帮你追上 AI 的脚步。** 让 AI 不只是替你交付答案的高速引擎，也成为开发路上与你形影不离、愿意一次次讲到你懂的耐心导师。
+
 > [!IMPORTANT]
 > CiteCiter 当前仍处于早期开发阶段，很多功能仍然需要完善。API、兼容范围和安装方式都可能发生变化。欢迎通过 [Issue](https://github.com/kirkchinese/CiteCiter/issues) 反馈问题，也欢迎提交 Pull Request 共同开发。
 
