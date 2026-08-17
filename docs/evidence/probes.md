@@ -264,3 +264,40 @@ service/Provider（host half 为无副作用空壳），因此天然规避。任
 直接提供 `sessions.create/history/fork/prompt/selectModel/cancel`、`workspace.archiveSession`
 等。这使“新建解释会话 + 读取任意历史页 + 模型选择 + 归档清理”全部可以在纯 client 插件内完成，
 不需要 host half，也不需要修改主仓库。
+
+## P9：fork 子会话能否切到 read-only 权限（D4 落地方案）？
+
+问题：纯 client 插件能否用官方 `SessionFace.command('/permission read-only')` 把解释子会话
+切到只读沙箱，且不影响父会话？
+
+前置：P9 发现 `session.prompt` 的 `/` 文本在当前实现中不会被当成命令派发（它进入了普通
+模型轮次；api-proxy `prompt` 实现无 slash 分支）。正确路径是 `SessionFace.command()`（走
+`remote.commands.execute`）。
+
+浏览器端输出（`node /tmp/citeciter-p9-command.mjs`，P2 服务器 + 临时 DSH_HOME）：
+
+```json
+{
+  "parentId":"session-dbeaf615-…",
+  "childId":"session-6e50e6b1-…",
+  "cmd":{"ok":true,"value":{"matched":true}},
+  "childPerms":[
+    {"seq":0,"type":"permission/preset","data":{"preset":"workspace-write"}},
+    {"seq":1,"type":"sandbox/mode","data":{"mode":"workspace-write"}},
+    {"seq":2,"type":"approval/policy","data":{"policy":"ask"}},
+    {"seq":19,"type":"permission/preset","data":{"preset":"read-only"}},
+    {"seq":20,"type":"sandbox/mode","data":{"mode":"read-only"}}
+  ],
+  "childEvents":22,
+  "parentEventsBefore":17,
+  "parentEventsAfter":17,
+  "parentUnchanged":true,
+  "currentAfter":"session-dbeaf615-…"
+}
+```
+
+结论：**是**。`child.command('/permission read-only')` 向子会话追加
+`permission/preset: read-only` 与 `sandbox/mode: read-only`（approval policy 仍为 ask，
+因为读权限 preset 的 approval 就是 ask 且未变化）；父会话 17 个事件不变；当前会话不变。
+注意：`/permission` 命令在 HTTP `session.prompt` 路径不派发，必须走
+`SessionFace.command()`。

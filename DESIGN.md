@@ -258,11 +258,17 @@ CLOSED ──(同一主会话再次 Citer)──> OPENING（重注册，历史�
     turn/step、messageId；
   - `running`（流式未完成）→ 提示“回复尚未完成”，不发起 fork（避免 `fork-unavailable`）。
 - 子会话策略（推荐）：
-  1. **同一主会话第一次 Citer**：`ctx.sessions.fork({ sessionId, atSeq: finalNode.seq })`。
+  1. **同一主会话第一次 Citer**：`ctx.sessions.fork({ sessionId, atSeq: finalNode.seq })`；
      子会话标题 `child.rename('Citer · ' + 选中文本前 24 字)`。
+     创建并 `open()` 后立即执行 `child.command('/permission read-only')`
+     （官方 `SessionFace.command` 走 `/permission` 命令），把解释子会话的沙箱模式切到
+     `read-only`（写入被沙箱拒绝），同时 approval policy 保持 `ask`；P9 实测子会话追加
+     `permission/preset: read-only` 与 `sandbox/mode: read-only`，父会话不变。
   2. **后续 Citer 同主会话**：复用已记录的子会话（模块内 Map<parentSessionId, childId> +
      `defineStore` 持久化到浏览器 localStorage），调用 `child.prompt()` 追加追问。
-     “新开解释”按钮则再 fork 一个，旧子会话保留或按 D7 归档。
+     不提供“新开解释”按钮；面板内提供 **Cite 会话管理 UI**（按父会话列出其下所有 Cite
+     解释子会话，可打开历史解释、归档或切换到某个旧子会话继续追问；数据来源 =
+     `session.list` 的 `parentId` 为当前父会话的行，动作 = 归档/重命名/继续追问）。
   3. 提示词模板（子会话 user/message）：
      ```
      [角色] 你是 CiteCiter 解释器。只解释下面引用的内容，不执行任务、不修改文件。
@@ -281,6 +287,8 @@ CLOSED ──(同一主会话再次 Citer)──> OPENING（重注册，历史�
 
 - 创建后立即 `const child = ctx.sessions.binding(childId).session`；调用 `child.open()`
   （缺口 D8）拉基线并订阅 `child.subscribe(...)`（返回 unsubscribe，挂在 `ctx.effect`）。
+- 设置只读权限：`await child.command('/permission read-only')`（P9）；失败不阻塞解释，
+  但在面板上标出“当前解释会话继承父级写权限”。
 - `child.prompt([{type:'text', text: template}], 'queue')`；失败显示 `promptError`。
 - RUNNING：面板显示 loading；`child.cancel()` 按钮（官方 `SessionFace.cancel`）。
 - 结束判定：child snapshot 中新的 settled assistant 节点（排除 seed 前缀：记录
@@ -312,7 +320,7 @@ CLOSED ──(同一主会话再次 Citer)──> OPENING（重注册，历史�
 | 父会话已结束/归档 | `useSessions` 列表变化 | 关闭面板、释放状态 | 无 |
 | fork/历史读取失败 | RPC error（`session-not-found` 等） | 面板错误 + 重试按钮 | 无 |
 | 子会话 prompt 被拒 | `promptError`（如 credential 缺失） | 面板显示错误；不重试风暴 | 无 |
-| 解释轮超长/超限 | child snapshot 出现 `turn-error`/`max-tokens`/stop reason | 显示 stop reason；提供“停止/换一种问法/新开解释” | 无 |
+| 解释轮超长/超限 | child snapshot 出现 `turn-error`/`max-tokens`/stop reason | 显示 stop reason；提供“停止/换一种问法”，必要时在管理 UI 中归档后重来 | 无 |
 | 富媒体渲染失败 | 组件边界异常 | 降级纯文本/源码 | 无 |
 | 子会话并发解释 | 对同一 child 的 in-flight prompt | 队列由 host inbox FIFO 保证；面板显示排队状态 | 无 |
 | 插件被 HMR/unload | ctx.effect 统一释放监听、槽注册与订阅 | 面板消失，工具详情面板恢复（P2b 语义） | 无 |
@@ -370,46 +378,36 @@ fork 的既有语义并经 P4/P5 实测。方案 B 作为“需要硬工具限�
 
 ---
 
-## 6. 关键歧义与“待我拍板的决策点”
+## 6. 关键歧义与决策记录（用户已拍板，2026-08-17）
 
-### 6.1 本报告已用合理假设推进的歧义（标注假设，未替你拍板）
+### 6.1 假设确认表
 
-1. **侧边栏是否跨消息常驻**：假设 = 同一主会话内常驻（反复 Citer 追加到同一解释子会话），
-   切换主会话自动关闭。产品上更接近“词典/侧边对话”，也符合 details 槽 session scope 的
-   原生行为。
-2. **解释会话是否允许工具调用**：假设 = v1 允许（fork 继承父 preset 的工具面），用提示词
-   约束“只解释、不执行任务”；不做硬过滤。硬过滤需要方案 B（D4）。
-3. **解释结果富媒体**：假设 = Markdown + KaTeX + 代码 + 白名单 SVG；HTML 演示用沙箱
-   iframe 且默认关闭（D6）。
-4. **一个主会话的解释子会话数量**：假设 = 默认复用 1 个，提供“新开解释”按钮（D3）。
-5. **解释上下文窗口**：假设 = fork 截止在所选消息所在轮次（官方 `atSeq` 语义），不额外
-   拷贝客户端窗口之外的后续轮次（D2）。
+| 假设原文 | 用户结论 |
+|---|---|
+| 侧边栏是否跨消息常驻：同一主会话内常驻 | 正确 |
+| 解释会话是否允许工具调用：v1 允许 | 正确 |
+| 解释结果富媒体：Markdown + KaTeX + 代码 + 白名单 SVG；HTML 用沙箱 iframe 且默认关闭 | 正确（D6 默认关闭、手动开启） |
+| 一个主会话的解释子会话数量：默认复用 1 个 | 默认一个；默认保留、显式归档；**不提供新开按钮**，提供一个管理父会话下 Cite 会话的 UI |
+| 解释上下文窗口：fork 截止在所选消息所在轮次 | 正确 |
 
-### 6.2 待我拍板的决策点清单
+### 6.2 决策清单（最终）
 
-- **D1 修改 DSH 主仓库 vs 纯外部插件**：推荐纯外部插件（方案 A）。若你需要硬性
-  toolFilter/persona 或服务端 session-reference 快照，才进入方案 B 并需要改主仓库。
-- **D2 fork 继承 vs 新建会话+自组上下文包**：推荐 fork 为主（官方 lineage + 完整继承 +
-  KV 前缀复用；已实测）。代价是长前缀会随 fork 复制进子会话（token/磁盘），需要你确认
-  “解释可以携带到所选轮次为止的全部历史”这一成本可接受；不可接受则切通道 B（P8 已证明可行）。
-- **D3 解释子会话生命周期**：推荐“每主会话一个、可追加、可新开”，关闭面板后子会话保留在
-  会话列表（挂在父会话 lineage 下）供回看；是否提供“关闭并归档/删除”按钮由你定
-  （`workspaces.archiveSession` 只归档不删日志；DSH 当前无 session 删除 RPC）。
-- **D4 解释会话工具权限**：推荐 v1 提示词级约束 + 面板提示“解释会话可能调用工具”；如需
-  硬性无工具/白名单工具，必须做方案 B（subagent `toolFilter` 或专属 agent preset），并重新
-  评估挂载与注册冲突。
-- **D5 侧边栏跨会话行为**：details 槽在会话切换时自动关闭（平台原生）。若你要求跨会话常驻
-  （如 pin 住上一个解释），需要改用 `shell.overlay` 自绘浮层并自行实现 resize，脱离官方
-  details 宽度契约。
-- **D6 HTML 演示是否开启**：MarkdownText 平台默认丢弃 raw HTML。开启 ` ```html ` 沙箱
-  iframe 是新增攻击面（虽无脚本），需你确认安全接受度；关闭则 HTML 仅以源码代码块展示。
-- **D7 子会话清理策略**：保留（回看） vs 关闭即归档 vs 达到 N 个后归档最旧。建议“默认保留，
-  用户显式归档”，避免解释历史意外丢失。
-- **D8 `ISession.open()` 类型面缺口**：客户端 `ISession` 导出类型没有 `open()`，但具体类
-  公开该方法且实测必需（P5）。两个选择：(a) 插件内做窄化声明
-  `type OpenableSession = ISession & { open(): Promise<void> }` 并写测试防止漂移（不阻塞
-  外部插件）；(b) 向 DSH 上游提交“把 `open()` 纳入 `ISession`”的 PR（更干净，但属主仓库
-  变更，归入 D1 讨论）。推荐先 (a)，同时准备 (b)。
+- **D1 纯外部插件**：采纳方案 A。不修改 DSH 主仓库。
+- **D2 fork**：采纳。解释子会话一律 `session.fork` 继承所选轮次为止的历史。
+- **D3 子会话生命周期**：每主会话默认一个 Cite 解释子会话并复用；不提供“新开解释”按钮；
+  面板内提供 Cite 会话管理 UI（按父会话列出/打开/归档/切换旧解释）。子会话默认保留，
+  用户可显式归档（`workspaces.archiveSession`）。
+- **D4 工具权限 = 全部读权限、禁止写**：fork 后立即 `child.command('/permission read-only')`
+  把解释子会话沙箱切到 `read-only`（写入被沙箱拒绝；P9 实测）。保留说明：v1 无法把
+  approval policy 单独设为 `never`（`/permission` 只成组设置），若解释模型主动请求
+  `sandbox_permissions` 提升，approval 问题属于子会话，需在 Cite 会话管理 UI 或子会话视图中
+  应答/拒绝；提示词模板明确“不要请求提升权限”。
+- **D5 侧边栏同会话常驻、切换会话自动关闭**：采纳平台原生 details 槽行为。
+- **D6 HTML 演示默认关闭、手动开启**：采纳。关闭时 ` ```html ` 以代码块源码展示；开启后
+  渲染进 `sandbox` iframe（不带 `allow-scripts`）。
+- **D7 默认保留、显式归档**：采纳。Cite 管理 UI 提供归档动作。
+- **D8 插件内解决 `ISession.open()` 类型面缺口**：采纳。插件内做窄化声明
+  `type OpenableSession = ISession & { open(): Promise<void> }` 并写测试锁定，不等待上游。
 
 ---
 
@@ -455,9 +453,10 @@ fork 的既有语义并经 P4/P5 实测。方案 B 作为“需要硬工具限�
 - **槽 priority 竞争**：别的第三方插件也可能用 priority -1 注册 details；设计改为注册前
   计算 `min(existing)-1`，避免同 priority throw。极端情况下两个插件都动态注册时，后注册者
   会赢，属平台既有 shadowing 语义。
-- **解释会话使用父 preset 的完整工具面**：提示词约束不能防住模型调用工具（D4）。
-- **会话列表累积**：每主会话一个解释子会话 + 用户“新开解释”会产生 lineage 子会话；清理
-  依赖 D7。
+- **解释会话工具面仍继承父 preset**：沙箱已按 D4 切到 read-only，写操作会被沙箱拒绝；
+  但工具 schema 仍可见，approval 提升请求需人工/管理 UI 处理（见 §6.2 D4）。
+- **会话列表累积**：每主会话一个解释子会话；管理 UI 支持显式归档（D7），因此列表不会
+  无限增长。
 - **本阶段未做真实模型调用验证**：P4/P5 的轮次在无 key 环境以 `turn-error` 结束，证明的是
   日志/流/隔离机制；真实解释质量（提示词模板、富媒体协议）需在下一阶段有 key 的会话里做
   快照测试。
@@ -483,4 +482,4 @@ fork 的既有语义并经 P4/P5 实测。方案 B 作为“需要硬工具限�
 - 其 fork 子会话若干（见 probes.md）；P8 新建的 blank 会话若干。
 - 全部在 `/tmp/citeciter-dsh-home`，不涉及真实 `~/.dsh/sessions`。
 
-（本报告与探针均已 commit；下一步实现前请先对 D1–D8 作出拍板。）
+（本报告与探针均已 commit；D1–D8 已拍板（见 §6），下一步可进入实现阶段。）
