@@ -303,8 +303,8 @@ CLOSED ──(同一主会话再次 Citer)──> OPENING（重注册，历史�
   - ` ```svg `：DOMParser 白名单解析（允许 svg/g/circle/rect/path/text/defs 等；丢弃
     script/事件属性/`javascript:`/foreignObject），通过 `dangerouslySetInnerHTML` 放进
     `<svg>` 元素。
-  - ` ```html `：渲染进 `<iframe sandbox="allow-same-origin">`（不带 `allow-scripts`）
-    作为静态 HTML/CSS 演示；这是可选能力，默认关闭（D6）。
+  - ` ```html `：默认关闭（D6），以普通代码块展示；用户手动开启后渲染进
+    `<iframe sandbox="allow-same-origin">`（不带 `allow-scripts`）作为静态 HTML/CSS 演示。
   - 解析失败：该 fence 降级为普通代码块 + 一行“渲染失败，显示源码”。
 - 渲染失败兜底：CiteCiter 面板组件自身 try/catch 边界 + `slots.onEntryError` 监督（官方
   slot 崩溃观测）；崩溃时显示纯文本（取 assistant blocks 的 text 字段），不影响主会话。
