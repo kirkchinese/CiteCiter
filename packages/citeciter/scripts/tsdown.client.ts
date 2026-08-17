@@ -144,7 +144,8 @@ function clientConfig(id: string, entry: string): UserConfig {
           minify: true,
         })
         const classMap: Record<string, string> = {}
-        for (const [local, exp] of Object.entries(cssExports ?? {})) classMap[local] = exp.name
+        const sortedExports = Object.entries(cssExports ?? {}).sort(([left], [right]) => left.localeCompare(right))
+        for (const [local, exp] of sortedExports) classMap[local] = exp.name
         return [
           `const css = ${JSON.stringify(code.toString())};`,
           `const tagId = ${JSON.stringify(`${id}/${basename(fileId)}`)};`,
