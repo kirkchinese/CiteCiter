@@ -40,7 +40,12 @@ try {
     await ungrouped.click({ force: true }).catch(() => {})
     await page.waitForTimeout(800)
   }
-  const row = page.getByText(sessionSubstring, { exact: false }).first()
+  const expand = page.getByRole('button', { name: /展开其余/ }).first()
+  if (await expand.count() > 0) {
+    await expand.click({ force: true }).catch(() => {})
+    await page.waitForTimeout(600)
+  }
+  const row = page.getByText(sessionSubstring, { exact: false }).last()
   out.sessionRowCount = await row.count()
   if (await row.count() > 0) {
     await row.click({ force: true }).catch(() => {})
@@ -70,7 +75,10 @@ try {
   out.menuText = await page.locator('[data-citeciter-menu]').innerText()
   await page.getByRole('menuitem', { name: 'Citer!' }).click()
   await page.waitForFunction(() => document.querySelector('[data-citeciter-panel]') !== null, null, { timeout: 8000 })
+  await page.waitForFunction(() => document.querySelector('[data-citeciter-error]') !== null || document.querySelector('[data-citeciter-answer]') !== null, null, { timeout: 15000 })
   out.panelText = await page.locator('[data-citeciter-panel]').innerText()
+  out.errorText = await page.locator('[data-citeciter-error]').count() > 0 ? await page.locator('[data-citeciter-error]').innerText() : null
+  out.answerCount = await page.locator('[data-citeciter-answer]').count()
   out.frameOpen = await frame.evaluate((el) => el.style.gridTemplateColumns)
   out.menuAfterClick = await page.locator('[data-citeciter-menu]').count()
 

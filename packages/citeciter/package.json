@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-citeciter",
   "description": "CiteCiter: selection-scoped explanation sidebar for DSH conversations (browser plugin, client half + no-op host half)",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
   "main": "lib/index.js",
@@ -22,7 +22,8 @@
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-layout",
-        "@deepseek-ai/dsh-client-ui-slots"
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-primitives"
       ],
       "platform": "web"
     }
@@ -37,14 +38,16 @@
     "build": "npm run build:lib && npm run build:bundle",
     "build:lib": "tsc -p tsconfig.json",
     "build:bundle": "tsdown --env.DSH_BUILD_FACE client",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build:lib && node --test tests/*.test.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-ui-layout": "^0.1.0-rc.6",
     "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.0-rc.6"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
@@ -55,6 +58,7 @@
     "lightningcss": "^1.32.0",
     "react": "^18.2.0",
     "tsdown": "^0.22.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.0-rc.6"
   }
 }

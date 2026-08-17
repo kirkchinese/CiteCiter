@@ -2,15 +2,14 @@
 
 CiteCiter：在 DSH Web 会话中选中助手回复文本，右键 `Citer!`，在可调宽右侧详情栏中打开解释侧边栏。解释会话走独立的 fork 子会话，只读继承主会话上下文、不写回主会话（见仓库 `DESIGN.md`）。
 
-## 当前里程碑（0）
-
-包骨架与最小通路：
+## 当前里程碑（1）
 
 - 标准 dual-face client 插件：host half 为无副作用空壳；browser half 由
   `tsdown` 以 DSH 客户端 bundle 契约构建（`window.__ModuleLoader__.load` 工厂）。
 - 已实现：选中 `assistant-step` 文本 → 右键 `Citer!` 浮层菜单 → 打开官方 `details`
-  右栏（300–520px 可拖拽）并显示所选文本与 anchor。
-- 未接入：fork 子会话、`/permission read-only`、解释提示词、富媒体渲染、Cite 会话管理 UI。
+  右栏（300–520px 可拖拽）→ fork 独立解释子会话 → `/permission read-only` →
+  发送解释提示词 → 流式状态与 `MarkdownText` 回答/错误渲染。
+- 未接入：Cite 会话管理 UI（D3/D7）、SVG/沙箱 HTML fence 渲染（D6）、keyless 快照。
 
 ## 布局
 
@@ -54,4 +53,5 @@ node packages/citeciter/dev/smoke.mjs http://127.0.0.1:3907 'make me non blank'
 
 ## Model Experience
 
-无。当前里程碑只渲染浏览器 UI，不发任何模型请求；因此 KV cache 无影响。
+解释提示词通过普通 `session.prompt` 写入独立的 fork 子会话，主会话零写入。
+模型响应只影响子会话上下文；主会话 KV cache 不受影响。

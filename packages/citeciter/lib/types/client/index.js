@@ -1,12 +1,14 @@
 import { SelectionMenu } from "./components/SelectionMenu.js";
+import { createExplainer } from "./explainer.js";
 import { CitePanel } from "./components/CitePanel.js";
 import { readSelection } from "./selection.js";
 import { CiteBus } from "./types.js";
 export const name = '@deepseek-ai/dsh-citeciter';
-export const inject = ['layout', 'slots'];
+export const inject = ['layout', 'slots', 'sessions'];
 export function apply(ctx) {
-    const { layout, slots } = ctx;
+    const { layout, sessions, slots } = ctx;
     const bus = new CiteBus();
+    const explainer = createExplainer(sessions);
     let detailsInjectController = null;
     let detailsDisposer = null;
     ctx.effect(() => {
@@ -48,13 +50,14 @@ export function apply(ctx) {
             detailsDisposer = slots.register({
                 name: 'details',
                 priority: freeDetailsPriority(),
-                inject: () => ({ bus, close: closePanel }),
+                inject: () => ({ bus, close: closePanel, explainer }),
             }, CitePanel);
             return () => {
                 detailsDisposer?.();
                 detailsDisposer = null;
             };
         });
+        void explainer.start(selection);
     };
     const closePanel = () => {
         detailsDisposer?.();

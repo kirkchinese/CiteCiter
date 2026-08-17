@@ -91,3 +91,74 @@ node packages/citeciter/dev/smoke.mjs http://127.0.0.1:3907 'make me non blank'
 2. Cite 会话管理 UI（D3/D7）。
 3. 富媒体渲染协议（MarkdownText + SVG fence + 可选沙箱 HTML，D6）。
 4. 包测试与 keyless 快照（DSH 测试规范）。
+
+## Milestone 1：解释会话管线（fork + read-only + prompt + 面板渲染，已完成）
+
+范围：`Citer!` 点击后创建独立解释子会话、切 `read-only` 权限、发送解释提示词、
+面板显示会话状态与 `MarkdownText` 渲染的回答/错误。Cite 管理 UI 与 SVG fence
+渲染留待下一里程碑。
+
+### 构建与单元测试（实际运行）
+
+```sh
+pnpm --filter @deepseek-ai/dsh-citeciter typecheck   # exit 0
+pnpm --filter @deepseek-ai/dsh-citeciter test        # 3/3 pass
+pnpm --filter @deepseek-ai/dsh-citeciter build       # exit 0
+```
+
+bundle 关键输出：
+
+```
+[@deepseek-ai/dsh-citeciter] [ESM] lib/index.js  0.42 kB
+[@deepseek-ai/dsh-citeciter/client] [CJS] lib/client.js 19.59 kB
+Build complete
+```
+
+bundle externals 检查：仅 `react/jsx-runtime`、`react`、
+`@deepseek-ai/dsh-client-runtime/client`、`@deepseek-ai/dsh-client-ui-primitives`
+四个 require；purity gate 无跨插件 value import 报错。
+
+### 浏览器 smoke（实际运行，临时 DSH_HOME，稳定根会话 `citeciter-smoke-root`）
+
+命令：
+
+```sh
+node packages/citeciter/dev/smoke.mjs http://127.0.0.1:3907 'citeciter-smoke-root'
+```
+
+结果（无 API key 的临时环境，因此解释轮以 `llm-deepseek: no API key ...`
+结束，属预期错误路径）：
+
+```json
+{
+  "frameBefore": "280px minmax(0px, 1fr) 0px",
+  "dispatch": {"defaultPrevented": true, "selectedText": "iemann curvature tensor,"},
+  "menuText": "iemann curvature tensor,\nCiter!",
+  "panelText": "CiteCiter\n×\niemann curvature tensor,\nanchor\n42:assistant-step7\nchild\nsession-569cadc7-…\nstatus\n解释失败\n\nllm-deepseek: no API key ...",
+  "errorText": "llm-deepseek: no API key ...",
+  "answerCount": 0,
+  "frameOpen": "280px minmax(0px, 1fr) 360px",
+  "menuAfterClick": 0,
+  "frameClosed": "280px minmax(0px, 1fr) 0px",
+  "reopenPanelCount": 1,
+  "frameReopen": "280px minmax(0px, 1fr) 360px",
+  "errors": []
+}
+```
+
+服务端取证（`session.list` + `session.history`）：
+
+- 新子会话 `parent = session-dbeaf615-…`（稳定根）。
+- 子日志：继承父前缀后追加 `permission/preset: read-only`（seq 21）与
+  `sandbox/mode: read-only`（seq 22）。
+- 两次 `Citer!` 各追加一条 `CiteCiter 解释器` 提示词（seq 28、38）。
+- 主会话历史不变。
+
+结论：M1 管线在临时环境端到端可用；缺 API key 只影响模型输出，fork/权限/prompt/
+面板错误渲染全部按设计工作。
+
+### 提交
+
+- 包骨架：`896df03`、`6c47c08`
+- smoke 修复：`5741f7b`
+- M1 管线与测试：本次提交（`packages/citeciter` v0.1.0-alpha.1）

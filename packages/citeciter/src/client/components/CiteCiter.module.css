@@ -118,3 +118,37 @@
   font-size: 12px;
   line-height: 18px;
 }
+
+.panelWarn {
+  color: var(--dsw-alias-state-warn-primary, #b26a00);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.panelError {
+  color: var(--dsw-alias-state-error-primary, #d53f3f);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.panelAnswer {
+  overflow-wrap: anywhere;
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionButton {
+  padding: 4px 12px;
+  color: var(--dsw-alias-label-primary, #222);
+  cursor: pointer;
+  background: var(--dsw-alias-interactive-bg-hover-solid, #eee);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 20px;
+}
