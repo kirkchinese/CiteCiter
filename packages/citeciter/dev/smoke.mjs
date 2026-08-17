@@ -100,14 +100,19 @@ try {
   })
   out.sessionRowCount = await exactRows.count()
   if (out.sessionRowCount !== 1) throw new Error(`expected one session row "${sessionTitle}", found ${out.sessionRowCount}`)
-  await exactRows.click({ force: true })
-  await page.waitForTimeout(600)
-  await dismissOptionalPrompts()
-  await page.waitForTimeout(900)
+  const assistantFlow = page.locator('[data-chat-flow-kind="assistant-step"]').last()
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    out.sessionOpenAttempts = attempt
+    await exactRows.click({ force: true })
+    await page.waitForTimeout(600)
+    await dismissOptionalPrompts()
+    await page.waitForTimeout(900)
+    const opened = await assistantFlow.waitFor({ timeout: 8000 }).then(() => true, () => false)
+    if (opened) break
+    if (attempt === 2) throw new Error(`session "${sessionTitle}" did not render its assistant node after two selections`)
+  }
   const frame = page.locator('div[style*="grid-template-columns"]')
   out.frameBefore = await frame.evaluate((el) => el.style.gridTemplateColumns)
-
-  await page.locator('[data-chat-flow-kind="assistant-step"]').last().waitFor({ timeout: 8000 })
   if (parentLogPath !== undefined) out.parentLogBefore = await readLogRevision(parentLogPath)
   out.dispatch = await page.evaluate(selectSourceText, { clientX: 220, clientY: 140 })
 

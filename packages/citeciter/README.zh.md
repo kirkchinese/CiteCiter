@@ -49,7 +49,7 @@ pnpm --filter @kirkchinese/dsh-citeciter build
 先为 Playwright 安装 Chromium，再建立临时 profile：
 
 ```sh
-pnpm exec playwright install chromium
+pnpm --filter @kirkchinese/dsh-citeciter exec playwright install chromium
 mkdir -p /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese
 ln -sfn "$(pwd)/packages/citeciter" \
   /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese/dsh-citeciter

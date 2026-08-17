@@ -17,7 +17,7 @@ The unit suite covers real conversation-key lookup through the parent snapshot, 
 Use a disposable DSH home and profile link:
 
 ```sh
-pnpm exec playwright install chromium
+pnpm --filter @kirkchinese/dsh-citeciter exec playwright install chromium
 mkdir -p /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese
 ln -sfn "$(pwd)/packages/citeciter" /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese/dsh-citeciter
 node packages/citeciter/dev/seed-smoke-session.mjs /tmp/citeciter-dsh-home "$(pwd)"
