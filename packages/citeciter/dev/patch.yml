@@ -1,0 +1,4 @@
+# Local dev overlay for the CiteCiter package.
+- insert:
+    - id: citeciter
+      name: '@deepseek-ai/dsh-citeciter'
