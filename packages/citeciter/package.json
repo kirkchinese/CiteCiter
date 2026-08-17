@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Selection-scoped explanation sidebar for DeepSeek Harness conversations",
   "keywords": [
     "deepseek-harness",
@@ -39,9 +39,13 @@
       "types": "./lib/types/client/index.d.ts",
       "default": "./lib/client.js"
     },
+    "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
@@ -56,6 +60,7 @@
     "lib/index.js",
     "lib/client.js",
     "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
     "README.zh.md"
   ],
   "scripts": {

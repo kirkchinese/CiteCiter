@@ -12,7 +12,7 @@
 
 ## 已实现能力
 
-当前 `v0.1.0` 包含 milestone 0 和 milestone 1 的可运行最小通路：
+当前 `v0.1.1` 包含 milestone 0 和 milestone 1 的可运行最小通路：
 
 - 在 DSH 助手回复中选择文本，仅对 `assistant-step` 节点显示 `Citer!` 右键菜单。
 - 通过真实会话 snapshot 解析选区节点的 `anchorSeq`，在该已完成轮次边界 fork 子会话，而不是从 DOM key 猜测事件序号。

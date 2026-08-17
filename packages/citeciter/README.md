@@ -4,7 +4,7 @@ CiteCiter is a browser plugin for DeepSeek Harness (DSH) Web. Select text in a c
 
 [中文说明](https://github.com/kirkchinese/CiteCiter/blob/main/packages/citeciter/README.zh.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
-> **Early development:** v0.1.0 implements the first usable path, but many features still need work. APIs, compatibility, and installation details may change. Issues and pull requests are welcome.
+> **Early development:** v0.1.1 implements the first usable path, but many features still need work. APIs, compatibility, and installation details may change. Issues and pull requests are welcome.
 
 ## Install
 

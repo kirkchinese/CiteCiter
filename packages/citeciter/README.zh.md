@@ -4,7 +4,7 @@ CiteCiter 是 DeepSeek Harness（DSH）Web 的浏览器插件。选中已经完�
 
 [English](README.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
-> **开发状态：** v0.1.0 实现了第一条可用通路，但当前仍处于早期开发阶段，很多功能仍然需要完善。API、兼容范围和安装方式可能发生变化，欢迎提 Issue 或提交 PR 共同开发。
+> **开发状态：** v0.1.1 实现了第一条可用通路，但当前仍处于早期开发阶段，很多功能仍然需要完善。API、兼容范围和安装方式可能发生变化，欢迎提 Issue 或提交 PR 共同开发。
 
 ## 安装
 
