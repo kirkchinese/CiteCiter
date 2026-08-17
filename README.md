@@ -3,6 +3,10 @@
 [![npm version](https://img.shields.io/npm/v/@kirkchinese/dsh-citeciter)](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<p align="center">
+  <img src="assets/citeciter-whale-sticker.png" width="420" alt="CiteCiter 鲸鱼娘：选中文本，通过只读分叉在侧栏中解释">
+</p>
+
 **CiteCiter 是 DeepSeek Harness（DSH）Web 的选区解释侧边栏插件：选中助手回复，右键点击 `Citer!`，即可基于当时的会话上下文获得独立解释。**
 
 *Selection-scoped explanations for DeepSeek Harness conversations, rendered in a resizable sidebar without writing to the parent session.*
