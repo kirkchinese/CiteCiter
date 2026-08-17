@@ -99,3 +99,17 @@
   'Host Cordis inspect provider "' + manifest.id + '" is already registered');`
 - 该注册表是进程全局 `CordisInspectRegistryService`；disposer 可逆。
 - P7 实测输出见 `docs/evidence/probes.md`。
+
+## 6. 只读权限切换（P9）
+
+`dsh-permission-presets/lib/index.js`：
+- README/配置：base 组合提供 `read-only`（sandbox: read-only, approval: ask）、
+  `workspace-write`、`danger-full-access` 三个预设。
+- :153-175 `ctx.commands.register({ name: "permission", handler: ({agent, rawInput}) => this.apply(...) })`
+  —— `/permission <preset>` 命令写 `permission/preset`，并通过 knob setter 写
+  `sandbox/mode` 与 `approval/policy`（仅有效值变化时）。
+- 客户端 `SessionFace.command(line)` 走 `remote.commands.execute(sessionId, line)`，
+  可对非当前会话执行（P9 实测 `matched: true`）。
+- 注意：`dsh-host-apiproxy` 的 `session.prompt` 实现（:2822-2877）没有 slash 命令分支；
+  `/permission` 经 `session.prompt` 不会派发（P9 已实测为普通模型轮次）。设计必须使用
+  `SessionFace.command()`。
