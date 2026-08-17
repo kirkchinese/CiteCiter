@@ -1,10 +1,9 @@
 /**
  * CiteCiter browser plugin.
  *
- * Milestone 0 (this file): package skeleton + minimum path —
- * assistant-text selection → right-click `Citer!` menu (shell.overlay) →
- * resizable right details panel showing the resolved selection.
- * The explainer session pipeline is deliberately not wired yet.
+ * Browser interaction path: assistant-text selection → right-click `Citer!`
+ * menu (shell.overlay) → resizable right details panel → an isolated,
+ * read-only forked explainer session.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
@@ -15,16 +14,23 @@ import { CitePanel } from './components/CitePanel.tsx'
 import { readSelection } from './selection.ts'
 import { CiteBus, type CiteSelection } from './types.ts'
 
+/** Cordis identity for the CiteCiter browser plugin. */
 export const name = '@deepseek-ai/dsh-citeciter'
 
+/** Hard dependencies whose appearance activates the browser fiber. */
 export const inject = ['layout', 'slots', 'sessions']
 
+/**
+ * Register the selection listener, overlay entry, and details-panel lifecycle.
+ * @param ctx - Cordis browser context with layout, slots, and sessions services.
+ */
 export function apply(ctx: Context): void {
   const { layout, sessions, slots } = ctx
-  const bus = new CiteBus()
+  const bus = new CiteBus((error) => ctx.logger.warn('citeciter selection listener failed', error))
   const explainer = createExplainer(sessions)
   let detailsInjectController: (() => void) | null = null
   let detailsDisposer: (() => void) | null = null
+  let panelOpen = false
 
   ctx.effect(() => {
     const onContextMenu = (event: MouseEvent) => {
@@ -47,41 +53,42 @@ export function apply(ctx: Context): void {
     }
   })
 
-  const freeDetailsPriority = () => {
-    let next = -1
-    for (const entry of slots.entries('details')) {
-      const priority = entry.options.priority ?? 0
-      if (priority <= next) next = priority - 1
-    }
-    return next
-  }
-
   const openPanel = (selection: CiteSelection) => {
     bus.setPanelSelection(selection)
+    panelOpen = true
     layout.openDetails()
-    if (detailsDisposer !== null) return
-    detailsInjectController = slots.inject('details', () => {
-      detailsDisposer = slots.register({
-        name: 'details',
-        priority: freeDetailsPriority(),
-        inject: () => ({ bus, close: closePanel, explainer }),
-      }, CitePanel)
-      return () => {
-        detailsDisposer?.()
-        detailsDisposer = null
-      }
-    })
+    if (detailsInjectController === null) {
+      detailsInjectController = slots.inject('details', () => {
+        detailsDisposer = slots.register({
+          name: 'details',
+          // A single slot renders its lowest priority; closing disposes this shadow entry.
+          priority: Number.MIN_SAFE_INTEGER,
+          inject: () => ({ bus, close: closePanel, explainer }),
+        }, CitePanel)
+        return () => {
+          detailsDisposer?.()
+          detailsDisposer = null
+        }
+      })
+    }
     void explainer.start(selection)
   }
 
   const closePanel = () => {
+    const wasOpen = panelOpen
+    panelOpen = false
     detailsDisposer?.()
     detailsDisposer = null
     detailsInjectController?.()
     detailsInjectController = null
     bus.setPanelSelection(null)
-    layout.closeDetails()
+    if (wasOpen) layout.closeDetails()
   }
+
+  ctx.effect(() => async () => {
+    closePanel()
+    await explainer.dispose()
+  }, 'citeciter: explainer lifecycle')
 
   slots.inject('shell.overlay', () => slots.register({
     name: 'shell.overlay',

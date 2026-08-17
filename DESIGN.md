@@ -1,4 +1,6 @@
-# CiteCiter 调研与设计报告（阶段一：调研 → 原理 → 流程设计 → 设计讨论）
+# CiteCiter 历史调研与设计记录
+
+> 本文保留 2026-08-17 的方案探索和探针结论，不描述当前实现。当前行为、验证命令和 HMR 说明见 `packages/citeciter/README.zh.md` 与 `docs/implementation-milestones.md`。
 
 - 版本：v1（本阶段交付）
 - 日期：2026-08-17（本机时间）
@@ -420,22 +422,21 @@ fork 的既有语义并经 P4/P5 实测。方案 B 作为“需要硬工具限�
 1. 万物皆插件、不在 loop 里加行为：CiteCiter 是挂在 profile patch 上的普通插件，只使用
    UI slot 与 wire RPC，不改 agent-loop。✅
 2. ESM + `@deepseek-ai/dsh-<name>` 命名 + `@deepseek-ai/cordis` peerDep：包骨架照此设计。✅
-3. registrations are effects：contextmenu 监听、slot 注册、child 订阅全部经
-   `ctx.effect()/ctx.on()`，返回 disposer；details 槽注册用 `slots.inject` + 返回 disposer。✅
-4. 通过 `inject` 声明硬依赖、可选能力用 `ctx.get()`：设计声明
-   `['connection','sessions','workspaces','layout','slots']`；对富媒体等可选能力按需
-   `ctx.get`。✅
+3. registrations are effects：contextmenu 监听由 `ctx.effect()` 清理；`slots.inject()` 在 DSH runtime
+   内部用 effect 管理 slot 注册；子会话订阅由插件 lifecycle effect 释放。✅
+4. 通过 `inject` 声明硬依赖：当前 browser half 声明 `layout`、`slots` 和 `sessions`；本实现
+   没有未声明的 `ctx` 服务读取。✅
 5. 不替换 shipped UI 的整块 seat：只在打开时用 priority 遮挡 details 单槽并保证 dispose
    恢复；菜单使用可加的 `shell.overlay`；不注册 `root/sidebar/conversation`。✅
 6. Model-visible ⟺ logged：解释提示词作为子会话 `session.prompt` 的 user/message 落盘；
    上下文若自组，同样写入子日志；没有任何旁路注入主会话。✅
-7. 无硬编码 tunables：选中文本上限、上下文包字节上限、子会话复用上限、SVG/HTML 开关均为
-   插件 `Config` 字段，cordis.yml 可配。✅
+7. 当前没有 deployment policy Config。菜单预览长度是本地呈现常量，富媒体长度上限是固定的
+   安全资源限制；若加入会影响部署策略的限制或开关，必须先增加经 cordis.yml 验证的 Config。✅
 8. misconfiguration fails loud：包缺 `exports["./client"]`/bundle 未构建时 client-modules
    在启动扫描大声抛错（官方行为）；我们的发布脚本 `pnpm run build` 与 `dsh plugin add`
    验证包可解析。✅
-9. 测试与快照：正式实现阶段须为“父会话事件数不变 + 子会话新增解释 turn + 菜单/面板渲染”
-   补 keyless 快照与包测试（使用仓库的 `dsh-client-test-runtime`）；本阶段只有探针，已声明。✅
+9. 测试与快照：当前有 focused unit tests 和 browser smoke；尚未接入上游的 keyless snapshot
+   harness。若将本包作为 DeepSeek Harness 源码工作区内的贡献，必须在同一变更补上该快照。
 10. 文档双语/README/JSDoc：正式包随 README（含 Model Experience 小节）与 JSDoc 交付；
     本报告为设计文档，不在该门禁范围。✅
 

@@ -5,8 +5,11 @@
 * and the plugin registers no process-level Host service (the known
 * Cordis duplicate-service trap therefore cannot trigger).
 */
+/** Cordis plugin identity shared with the browser bundle. */
 const name = "@deepseek-ai/dsh-citeciter";
+/** CiteCiter has no Host service dependencies. */
 const inject = [];
+/** Register no Host effects; all behavior belongs to the browser plugin. */
 function apply() {}
 //#endregion
 export { apply, inject, name };

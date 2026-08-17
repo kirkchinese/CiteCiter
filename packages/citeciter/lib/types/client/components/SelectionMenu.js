@@ -2,7 +2,11 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useState } from 'react';
 import css from './CiteCiter.module.css';
 const PREVIEW_LIMIT = 64;
-/** Floating `Citer!` menu rendered through the shell.overlay seat. */
+/**
+ * Render the floating `Citer!` menu in the shell overlay.
+ * @param props - shared selection bus and panel opener.
+ * @returns menu element while a valid selection exists, otherwise null.
+ */
 export function SelectionMenu({ bus, openPanel }) {
     const [selection, setSelection] = useState(() => bus.getMenuSelection());
     useEffect(() => bus.subscribe(() => {

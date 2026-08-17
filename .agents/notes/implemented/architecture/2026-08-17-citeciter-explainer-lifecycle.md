@@ -1,0 +1,9 @@
+# CiteCiter explainer lifecycle
+
+CiteCiter owns only browser listeners, slot registrations, panel state, and a subscription to a forked child session. The forked child remains a durable DSH session after the panel or plugin unloads; unloading CiteCiter detaches its local subscription and never cancels or mutates that session. The selected DOM key is resolved with `parentBinding.session.getSnapshot().chat.nodes.get(anchorKey)`, and the resulting `anchorSeq` is used for `sessions.fork`; the key's leading kind-length field is not an event sequence. Missing, running, or open-turn source nodes fail before a fork. A parent-session or resolved-anchor change detaches the prior child before the next explanation forks from the requested parent-log prefix. Repeated selections at the same resolved anchor may reuse that child.
+
+The explanation prompt is sent only after `SessionFace.command('/permission read-only')` succeeds with `matched: true`. A rejected, failed, or unmatched permission switch sets the panel error and sends no model-visible prompt, so CiteCiter never falls back to the parent session's permission policy.
+
+The `details` slot is registered through `slots.inject()`, whose DSH implementation owns both the declaration wait and the registration effect. CiteCiter additionally owns panel closure and explainer disposal in a plugin `ctx.effect()`, so teardown restores the native details occupant and removes the child-session observer. An operation epoch prevents a fork, open, permission command, or prompt that resolves after teardown from reinstalling local effects. The asynchronous disposer then waits for the serialized start queue to settle before Cordis completes fiber teardown.
+
+CiteCiter remains a client plugin rather than an agent-loop change. It uses the DSH session fork and prompt APIs, and every model-visible explanation input is appended to the child session log.

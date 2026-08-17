@@ -2,9 +2,10 @@ import type { CiteSelection } from './types.ts'
 
 /**
  * Resolve the current DOM selection into a CiteSelection.
- * Returns null for collapsed/empty selections, selections outside a
- * conversation flow node, and selections that do not belong to a settled
- * assistant step (the only kind CiteCiter explains in v1).
+ * Returns null for collapsed or empty selections, selections outside a
+ * conversation flow node, and selections outside an assistant step.
+ * @param event - context-menu event whose pointer position anchors the menu.
+ * @returns validated selection metadata, or null when CiteCiter should ignore it.
  */
 export function readSelection(event: MouseEvent): CiteSelection | null {
   const selection = window.getSelection()

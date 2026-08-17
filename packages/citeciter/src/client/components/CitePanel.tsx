@@ -1,9 +1,10 @@
 import { useCallback, useSyncExternalStore } from 'react'
-import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CiteBus } from '../types.ts'
 import type { ExplainFace, ExplainPhase } from '../explainer.ts'
+import { RichAnswer } from './RichAnswer.tsx'
 import css from './CiteCiter.module.css'
 
+/** Dependencies injected into the session-scoped details entry. */
 export interface CitePanelProps {
   readonly bus: CiteBus
   readonly close: () => void
@@ -19,7 +20,11 @@ const PHASE_LABEL: Record<ExplainPhase, string> = {
   error: '解释失败',
 }
 
-/** Right details-column panel with the explainer pipeline status. */
+/**
+ * Render the right details-column explanation panel.
+ * @param props - selection state, close action, and explainer face.
+ * @returns panel element with current status and response.
+ */
 export function CitePanel({ bus, close, explainer }: CitePanelProps) {
   const subscribeBus = useCallback((onStoreChange: () => void) => bus.subscribe(onStoreChange), [bus])
   const subscribeExplainer = useCallback((onStoreChange: () => void) => explainer.subscribe(onStoreChange), [explainer])
@@ -45,15 +50,12 @@ export function CitePanel({ bus, close, explainer }: CitePanelProps) {
             <dt>status</dt>
             <dd>{PHASE_LABEL[snapshot.phase]}</dd>
           </dl>
-          {snapshot.permissionWarning !== null && (
-            <p className={css.panelWarn}>{snapshot.permissionWarning}</p>
-          )}
           {snapshot.error !== null && (
             <p className={css.panelError} data-citeciter-error>{snapshot.error}</p>
           )}
           {snapshot.answerText !== null && snapshot.answerText !== '' && (
-            <div className={css.panelAnswer} data-citeciter-answer>
-              <MarkdownText text={snapshot.answerText} />
+            <div className={css.panelAnswer}>
+              <RichAnswer text={snapshot.answerText} streaming={snapshot.phase === 'running'} />
             </div>
           )}
           <div className={css.panelActions}>

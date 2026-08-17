@@ -4,12 +4,17 @@ import css from './CiteCiter.module.css'
 
 const PREVIEW_LIMIT = 64
 
+/** Dependencies injected into the root overlay entry. */
 export interface SelectionMenuProps {
   readonly bus: CiteBus
   readonly openPanel: (selection: CiteSelection) => void
 }
 
-/** Floating `Citer!` menu rendered through the shell.overlay seat. */
+/**
+ * Render the floating `Citer!` menu in the shell overlay.
+ * @param props - shared selection bus and panel opener.
+ * @returns menu element while a valid selection exists, otherwise null.
+ */
 export function SelectionMenu({ bus, openPanel }: SelectionMenuProps) {
   const [selection, setSelection] = useState<CiteSelection | null>(() => bus.getMenuSelection())
 

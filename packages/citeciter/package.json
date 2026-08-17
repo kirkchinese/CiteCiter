@@ -38,6 +38,9 @@
     "build": "npm run build:lib && npm run build:bundle",
     "build:lib": "tsc -p tsconfig.json",
     "build:bundle": "tsdown --env.DSH_BUILD_FACE client",
+    "dev": "npm run build && node dev/watch.mjs",
+    "smoke:seed": "node dev/seed-smoke-session.mjs",
+    "smoke:hmr": "node dev/hmr-smoke.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build:lib && node --test tests/*.test.mjs"
   },
@@ -56,6 +59,7 @@
     "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6",
     "@types/react": "~18.3.1",
     "lightningcss": "^1.32.0",
+    "playwright": "^1.58.2",
     "react": "^18.2.0",
     "tsdown": "^0.22.2",
     "typescript": "^6.0.3",

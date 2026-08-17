@@ -14,7 +14,7 @@
  */
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { basename, dirname, resolve as resolvePath, sep } from 'node:path'
+import { basename, dirname, relative, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { UserConfig } from 'tsdown'
 import { transform } from 'lightningcss'
@@ -91,6 +91,7 @@ export function clientBundle(id: string, libEntry: readonly string[], options: C
 }
 
 function clientConfig(id: string, entry: string): UserConfig {
+  const cssAssets = new Map<string, string>()
   return {
     name: `${id}/client`,
     entry: { client: entry },
@@ -100,13 +101,15 @@ function clientConfig(id: string, entry: string): UserConfig {
     dts: false,
     sourcemap: true,
     clean: false,
-    external: [...CLIENT_EXTERNALS],
+    deps: {
+      neverBundle: [...CLIENT_EXTERNALS],
+      alwaysBundle: (specifier: string) => (CLIENT_EXTERNALS.includes(specifier) ? undefined : true),
+    },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
       'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV ?? 'production'),
       'import.meta.env': JSON.stringify({ MODE: process.env.NODE_ENV ?? 'production' }),
     },
-    noExternal: (specifier: string) => (CLIENT_EXTERNALS.includes(specifier) ? undefined : true),
     plugins: [{
       name: 'dsh-client-bundle-purity',
       resolveId(source: string) {
@@ -124,11 +127,14 @@ function clientConfig(id: string, entry: string): UserConfig {
       resolveId(source: string, importer: string | undefined) {
         if (!source.endsWith('.module.css')) return null
         const abs = importer !== undefined ? sourceAssetPath(source, importer) : source
-        return CSS_VIRTUAL_PREFIX + abs + CSS_VIRTUAL_SUFFIX
+        const virtualId = CSS_VIRTUAL_PREFIX + browserSourcePath(relative(PACKAGE_ROOT, abs)) + CSS_VIRTUAL_SUFFIX
+        cssAssets.set(virtualId, abs)
+        return virtualId
       },
       async load(virtualId: string) {
         if (!virtualId.startsWith(CSS_VIRTUAL_PREFIX)) return null
-        const fileId = virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length)
+        const fileId = cssAssets.get(virtualId)
+        if (fileId === undefined) throw new Error(`unknown CSS module ${virtualId}`)
         this.addWatchFile(fileId)
         const source = await readFile(fileId)
         const { code, exports: cssExports } = transform({

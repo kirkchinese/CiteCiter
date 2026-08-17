@@ -1,13 +1,8 @@
-/** Parse the leading `<seq>:` from a conversation anchor key. */
-export function parseAnchorSeq(anchorKey) {
-    const match = /^(\d+):/u.exec(anchorKey);
-    const value = match?.[1];
-    if (value === undefined)
-        return null;
-    const seq = Number(value);
-    return Number.isSafeInteger(seq) && seq >= 0 ? seq : null;
-}
-/** The prompt template recorded into the explainer child session. */
+/**
+ * Build the explanation prompt recorded into the forked child session.
+ * @param selection - quoted assistant text and its parent-log anchor.
+ * @returns model-visible prompt text.
+ */
 export function buildPrompt(selection) {
     return [
         '你是 CiteCiter 解释器。只解释下面引用的内容，不执行任务、不修改任何文件，不要请求提升沙箱权限。',
