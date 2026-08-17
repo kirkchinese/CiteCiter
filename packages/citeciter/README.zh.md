@@ -11,7 +11,7 @@ CiteCiter 是 DeepSeek Harness（DSH）Web 的浏览器插件。选中已经完�
 需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web 和已经配置好的模型提供方。当前开发与验证基准为 DSH `0.1.0-rc.6` client 包。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.1.1
 ```
 
 重新启动对应的 DSH Web 进程并刷新页面。然后在一条已经完成的助手回复中选择文本，右键点击 `Citer!`。

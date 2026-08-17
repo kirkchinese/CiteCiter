@@ -11,7 +11,7 @@ CiteCiter is a browser plugin for DeepSeek Harness (DSH) Web. Select text in a c
 CiteCiter requires Node.js `^22.19.0 || >=24.0.0`, DSH Web, and a configured model provider. It is developed and tested against the DSH `0.1.0-rc.6` client packages.
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.1.1
 ```
 
 Restart the corresponding DSH Web process and refresh the page. Select text inside a completed assistant reply and right-click to open `Citer!`.

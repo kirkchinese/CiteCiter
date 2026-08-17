@@ -51,7 +51,7 @@ CiteCiter 的 DSH peer dependencies 使用 `^0.1.0-rc.6`。发布前已从 npm r
 先按照 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的说明安装 DSH，再把插件加入 Web profile：
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.1.1
 ```
 
 重新启动对应的 DSH Web 进程并刷新页面。之后在一条已经完成的助手回复中选择文本，右键点击 `Citer!`。
