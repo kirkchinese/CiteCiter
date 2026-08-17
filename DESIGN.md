@@ -5,8 +5,8 @@
 - 版本：v1（本阶段交付）
 - 日期：2026-08-17（本机时间）
 - 环境取证基准：Node.js v22.23.2、pnpm 11.21.0、已安装 DSH `@deepseek-ai/dsh@0.1.0-rc.6`
-  （路径 `<global-dsh>/`，全程只读）。
-- 工作区：`<repo>`（git 已初始化，探针与报告均已提交）。
+  （全局安装树全程只读）。
+- 工作区：本仓库根目录（git 已初始化，探针与报告均已提交）。
 - 结论一句话：**CiteCiter 可以做成“纯外部 client 插件 + 一次 profile patch 行 + 复用官方
   `session.fork`/`session.prompt` 会话 API”，不需要修改 DSH 主仓库，不需要注册任何 Host
   service；“继承但不影响主 session”已用探针证明（fork 子会话 + prompt 子会话，父会话日志逐
@@ -21,7 +21,7 @@
 | L1 实测 | 本报告 §3 探针 P1–P8（临时 `DSH_HOME=/tmp/citeciter-dsh-home`，真实浏览器 headless 渲染，0 次成功模型调用（无 key 临时环境）） | 挂载、渲染、侧边栏、选中菜单、fork 隔离、富媒体、注册冲突 |
 | L1 只读 | 本机安装树 `node_modules/@deepseek-ai/dsh-*/lib/**` 与 `cordis.patch.yml`、README | 机制级源码取证 |
 | L1 只读 | 通过 jsDelivr 镜像取到的 master 分支文档（保存于 `.refs/docs/`，只读）：`AGENTS.md`、`CONTRIBUTING.zh.md`、`docs/architecture.zh.md`、`docs/development.zh.md`、`docs/cordis-primer.zh.md`、`docs/cordis-tutorial/01-first-plugin.zh.md`、`docs/user/develop/basic/index.zh.md`、`docs/subsystems/{client-modules,session,subagent,session-reference,session-projection}.zh.md`、`docs/cookbook/extension-cookbook.zh.md` | 编码规范、平台语义 |
-| L2 前序调研 | `<prior-workspace>/whoami-cordis-{phase1,phase2,audit}-report.md` | 仅作线索；本报告结论全部重新取证 |
+| L2 前序调研 | 早期工作区中的 `whoami-cordis-{phase1,phase2,audit}-report.md` | 仅作线索；本报告结论全部重新取证 |
 | 限制 | `git clone` GitHub 超时（网络到 github.com 443 不通）；改为 raw/jsDelivr 逐文件拉取文档成功。GitHub 仓库未完整落盘，`packages/**/tests/` 源码测试目录本地不可得，故“官方测试用法”以安装树 lib + 类型 + README + 文档 + 自跑探针替代 | 已如实标注 |
 
 只读纪律执行记录：探针全部使用临时 DSH_HOME；真实 `~/.dsh` 仅做了 `curl` GET 读 boot graph

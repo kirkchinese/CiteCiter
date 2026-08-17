@@ -4,7 +4,7 @@
 - 运行环境：Node.js v22.23.2、pnpm 11.21.0、DSH 安装树 `0.1.0-rc.6`
 - 只读纪律：所有探针使用临时 `DSH_HOME=/tmp/citeciter-dsh-home`，从不使用真实 `~/.dsh`；
   对真实 `~/.dsh` 仅做了 HTTP GET 读页面（`curl http://127.0.0.1:3080/`）用于取证 boot graph。
-- 探针代码位置：`<repo>/probes/p1`、`p2`、`p3`、`p6`、`p7`、`p8`
+- 探针代码位置：本仓库的 `probes/p1`、`p2`、`p3`、`p6`、`p7`、`p8`
   （P4/P5 复用 P2 服务器与临时 DSH_HOME 中由 API 创建的会话）。
 - 每个探针只回答一个“是/否”问题；失败与修正过程也保留，因为失败原因本身就是结论。
 
@@ -28,7 +28,7 @@ Directory import '<repo>/probes/p1' is not supported resolving ES modules
 在临时 profile 中建立软链：
 
 ```sh
-ln -sfn <repo>/probes/p1 /tmp/citeciter-dsh-home/profiles/node_modules/citeciter-probe-p1
+ln -sfn "$(pwd)/probes/p1" /tmp/citeciter-dsh-home/profiles/node_modules/citeciter-probe-p1
 ```
 
 patch 改为包名：
@@ -43,7 +43,7 @@ patch 改为包名：
 
 ```sh
 DSH_HOME=/tmp/citeciter-dsh-home dsh --profile web \
-  --patch <repo>/probes/p1-web.patch.yml --port 3901
+  --patch "$(pwd)/probes/p1-web.patch.yml" --port 3901
 ```
 
 观测输出：

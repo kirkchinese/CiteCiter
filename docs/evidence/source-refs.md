@@ -1,7 +1,6 @@
 # CiteCiter 关键源码取证摘录（安装树 + master 文档镜像）
 
-所有行号来自本机安装树 `<global-dsh>/node_modules/@deepseek-ai/`
-（`0.1.0-rc.6`）编译产物；文档来自 `.refs/docs/`（jsDelivr 拉取的 master 分支，只读）。
+所有行号来自本机全局安装的 DSH `0.1.0-rc.6` 编译产物中 `node_modules/@deepseek-ai/`；文档来自本地忽略的 `.refs/docs/`（jsDelivr 拉取的 master 分支，只读）。
 
 ## 1. 布局 / 槽
 

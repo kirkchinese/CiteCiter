@@ -11,4 +11,4 @@
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
     - id: citeciter-probe-p7
-      name: <repo>/probes/p7.mjs
+      name: ./probes/p7.mjs
