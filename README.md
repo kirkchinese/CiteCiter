@@ -90,8 +90,6 @@ CiteCiter 欢迎社区共同开发：
 2. 提交代码前请阅读本仓库 [`AGENTS.md`](AGENTS.md)，并运行与改动相关的 typecheck、build 和 test。
 3. 涉及 DSH API 或 Cordis 生命周期时，请同时参考 DSH 的 [CONTRIBUTING](https://github.com/deepseek-ai/deepseek-harness/blob/master/CONTRIBUTING.md)、[架构文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)和[开发指南](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/development.md)。
 
-社区插件发布方式也参考了 [`dsh-chat-import`](https://github.com/Nwflower/dsh-chat-import) 与 [`dsh-claude-move`](https://github.com/PerryLink/dsh-claude-move)。
-
 ## 许可证
 
 [MIT](LICENSE) © CiteCiter contributors
