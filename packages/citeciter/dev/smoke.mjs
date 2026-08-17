@@ -11,7 +11,8 @@
  *   node dev/smoke.mjs <base-url> <session-title-substring>
  *   PLAYWRIGHT_PATH=/path/to/playwright/index.mjs node dev/smoke.mjs http://127.0.0.1:3907 'make me non blank'
  */
-import { chromium as chromiumExport } from (process.env.PLAYWRIGHT_PATH ?? 'playwright')
+const playwrightPath = process.env.PLAYWRIGHT_PATH ?? 'playwright'
+const { chromium: chromiumExport } = await import(playwrightPath)
 
 const baseUrl = process.argv[2] ?? 'http://127.0.0.1:3907'
 const sessionSubstring = process.argv[3] ?? 'make me non blank'
