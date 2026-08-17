@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-	id: "@deepseek-ai/dsh-citeciter",
+	id: "@kirkchinese/dsh-citeciter",
 	factory: (require) => {
 		var module = { exports: {} };
 		var exports = module.exports;
@@ -10,35 +10,35 @@ window.__ModuleLoader__.load({
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		//#region \0dsh-css:src/client/components/CiteCiter.module.css.mjs
 		const css = "._1Fxyxa_menu{z-index:9999;max-width:min(520px,100vw - 32px);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-module,#fff);border:1px solid var(--dsw-alias-border-l1,#ddd);box-shadow:var(--dsw-shadow-lv2,0 8px 24px #0000001f);pointer-events:auto;border-radius:10px;align-items:center;gap:8px;padding:8px 10px;display:flex;position:fixed}._1Fxyxa_menuPreview{text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:18px;overflow:hidden}._1Fxyxa_menuButton{color:#fff;cursor:pointer;background:var(--dsw-static-deepseek-500,#4d6bfe);border:none;border-radius:8px;flex:none;padding:4px 10px;font-size:13px;line-height:18px}._1Fxyxa_panel{flex-direction:column;height:100%;padding:12px;display:flex;overflow-y:auto}._1Fxyxa_panelHeader{flex:none;justify-content:space-between;align-items:center;display:flex}._1Fxyxa_panelTitle{font-size:14px;font-weight:500}._1Fxyxa_closeButton{width:28px;height:28px;color:var(--dsw-alias-label-secondary,#555);cursor:pointer;background:0 0;border:none;border-radius:999px;font-size:18px;line-height:1}._1Fxyxa_closeButton:hover{background:var(--dsw-alias-interactive-bg-hover,#0000000a)}._1Fxyxa_panelBody{flex-direction:column;gap:12px;padding-top:12px;display:flex}._1Fxyxa_panelHint{color:var(--dsw-alias-label-tertiary,#888);font-size:13px;line-height:20px}._1Fxyxa_quote{overflow-wrap:anywhere;background:var(--dsw-specific-bubble,#f5f5f5);border-radius:8px;margin:0;padding:8px 12px;font-size:14px;line-height:22px}._1Fxyxa_meta{color:var(--dsw-alias-label-secondary,#666);grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:12px;line-height:18px;display:grid}._1Fxyxa_meta dt{color:var(--dsw-alias-label-tertiary,#999)}._1Fxyxa_meta dd{overflow-wrap:anywhere;min-width:0;margin:0}._1Fxyxa_panelNote{color:var(--dsw-alias-label-tertiary,#999);font-size:12px;line-height:18px}._1Fxyxa_panelError{color:var(--dsw-alias-state-error-primary,#d53f3f);overflow-wrap:anywhere;font-size:12px;line-height:18px}._1Fxyxa_panelAnswer{overflow-wrap:anywhere}._1Fxyxa_richAnswer{flex-direction:column;gap:12px;display:flex}._1Fxyxa_richFigure{border:1px solid var(--dsw-alias-border-l1,#ddd);background:var(--dsw-alias-bg-module,#fff);border-radius:8px;margin:0;overflow:hidden}._1Fxyxa_richSvg{object-fit:contain;width:100%;min-height:96px;max-height:360px;display:block}._1Fxyxa_richHtml{background:var(--dsw-alias-bg-module,#fff);border:0;width:100%;min-height:180px;display:block}._1Fxyxa_panelActions{align-items:center;gap:8px;display:flex}._1Fxyxa_actionButton{color:var(--dsw-alias-label-primary,#222);cursor:pointer;background:var(--dsw-alias-interactive-bg-hover-solid,#eee);border:none;border-radius:8px;padding:4px 12px;font-size:13px;line-height:20px}";
-		const tagId = "@deepseek-ai/dsh-citeciter/CiteCiter.module.css";
+		const tagId = "@kirkchinese/dsh-citeciter/CiteCiter.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
-			tag.dataset.plugin = "@deepseek-ai/dsh-citeciter";
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
 			tag.dataset.pluginCss = tagId;
 			tag.textContent = css;
 			document.head.appendChild(tag);
 		}
 		var CiteCiter_module_css_default = {
-			"panelAnswer": "_1Fxyxa_panelAnswer",
-			"panelHint": "_1Fxyxa_panelHint",
-			"menu": "_1Fxyxa_menu",
-			"panelTitle": "_1Fxyxa_panelTitle",
-			"panelHeader": "_1Fxyxa_panelHeader",
-			"richHtml": "_1Fxyxa_richHtml",
-			"meta": "_1Fxyxa_meta",
-			"panelNote": "_1Fxyxa_panelNote",
-			"panelError": "_1Fxyxa_panelError",
 			"panelBody": "_1Fxyxa_panelBody",
 			"menuButton": "_1Fxyxa_menuButton",
-			"panel": "_1Fxyxa_panel",
-			"richAnswer": "_1Fxyxa_richAnswer",
-			"richFigure": "_1Fxyxa_richFigure",
-			"closeButton": "_1Fxyxa_closeButton",
-			"quote": "_1Fxyxa_quote",
+			"panelTitle": "_1Fxyxa_panelTitle",
 			"actionButton": "_1Fxyxa_actionButton",
 			"richSvg": "_1Fxyxa_richSvg",
 			"menuPreview": "_1Fxyxa_menuPreview",
-			"panelActions": "_1Fxyxa_panelActions"
+			"closeButton": "_1Fxyxa_closeButton",
+			"panelNote": "_1Fxyxa_panelNote",
+			"panel": "_1Fxyxa_panel",
+			"richFigure": "_1Fxyxa_richFigure",
+			"panelHeader": "_1Fxyxa_panelHeader",
+			"richHtml": "_1Fxyxa_richHtml",
+			"quote": "_1Fxyxa_quote",
+			"panelAnswer": "_1Fxyxa_panelAnswer",
+			"panelActions": "_1Fxyxa_panelActions",
+			"menu": "_1Fxyxa_menu",
+			"panelHint": "_1Fxyxa_panelHint",
+			"meta": "_1Fxyxa_meta",
+			"richAnswer": "_1Fxyxa_richAnswer",
+			"panelError": "_1Fxyxa_panelError"
 		};
 		//#endregion
 		//#region lib/types/client/components/SelectionMenu.js
@@ -686,7 +686,7 @@ window.__ModuleLoader__.load({
 		//#endregion
 		//#region lib/types/client/index.js
 		/** Cordis identity for the CiteCiter browser plugin. */
-		const name = "@deepseek-ai/dsh-citeciter";
+		const name = "@kirkchinese/dsh-citeciter";
 		/** Hard dependencies whose appearance activates the browser fiber. */
 		const inject = [
 			"layout",
@@ -773,5 +773,3 @@ window.__ModuleLoader__.load({
 		return module.exports;
 	}
 });
-
-//# sourceMappingURL=client.js.map

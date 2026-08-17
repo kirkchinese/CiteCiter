@@ -15,7 +15,7 @@ import { readSelection } from './selection.ts'
 import { CiteBus, type CiteSelection } from './types.ts'
 
 /** Cordis identity for the CiteCiter browser plugin. */
-export const name = '@deepseek-ai/dsh-citeciter'
+export const name = '@kirkchinese/dsh-citeciter'
 
 /** Hard dependencies whose appearance activates the browser fiber. */
 export const inject = ['layout', 'slots', 'sessions']

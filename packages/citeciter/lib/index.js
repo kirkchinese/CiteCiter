@@ -6,7 +6,7 @@
 * Cordis duplicate-service trap therefore cannot trigger).
 */
 /** Cordis plugin identity shared with the browser bundle. */
-const name = "@deepseek-ai/dsh-citeciter";
+const name = "@kirkchinese/dsh-citeciter";
 /** CiteCiter has no Host service dependencies. */
 const inject = [];
 /** Register no Host effects; all behavior belongs to the browser plugin. */

@@ -2,7 +2,7 @@
  * Browser smoke for the built CiteCiter package.
  *
  * Prereq:
- *   1. pnpm --filter @deepseek-ai/dsh-citeciter build
+ *   1. pnpm --filter @kirkchinese/dsh-citeciter build
  *   2. node dev/seed-smoke-session.mjs <temporary-dsh-home> <workspace>
  *   3. a temporary DSH Web instance whose profile resolves this package
  *      through dev/patch.yml.

@@ -333,9 +333,9 @@ CLOSED ──(同一主会话再次 Citer)──> OPENING（重注册，历史�
 
 ### 方案 A（推荐）：纯外部 client 插件 + 复用现有会话 RPC
 
-- 包：`@deepseek-ai/dsh-citeciter`（host half 为无副作用空壳；browser half 全部逻辑）。
-  安装：`dsh plugin --profile web add @deepseek-ai/dsh-citeciter` +
-  `~/.dsh/profiles/web/cordis.patch.yml` 插入 1 行 `- insert: [{ id: citeciter, name: '@deepseek-ai/dsh-citeciter' }]`。
+- 包：`@kirkchinese/dsh-citeciter`（host half 为无副作用空壳；browser half 全部逻辑）。
+  安装：`dsh plugin --profile web add @kirkchinese/dsh-citeciter` +
+  `~/.dsh/profiles/web/cordis.patch.yml` 插入 1 行 `- insert: [{ id: citeciter, name: '@kirkchinese/dsh-citeciter' }]`。
 - 机制：§4 全流程；上下文继承用 `session.fork`（主）+ `session.create`/`history`
   （P8，备选/降级）；生成复用普通 session agent；不注册任何 Host service。
 - 冲突处理：无进程级 Host 注册（P7 陷阱不触发）；details 槽动态注册时计算

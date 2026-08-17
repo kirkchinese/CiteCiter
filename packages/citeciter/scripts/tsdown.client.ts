@@ -99,7 +99,7 @@ function clientConfig(id: string, entry: string): UserConfig {
     format: 'cjs',
     platform: 'browser',
     dts: false,
-    sourcemap: true,
+    sourcemap: 'hidden',
     clean: false,
     deps: {
       neverBundle: [...CLIENT_EXTERNALS],

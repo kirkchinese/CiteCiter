@@ -73,7 +73,7 @@ try {
   await page.waitForFunction(() => window.__citeciterHmrFrames.some((raw) => {
     try {
       const frame = JSON.parse(raw)
-      return frame.type === 'rebuilt' && frame.id === '@deepseek-ai/dsh-citeciter'
+      return frame.type === 'rebuilt' && frame.id === '@kirkchinese/dsh-citeciter'
     } catch {
       return false
     }
@@ -87,7 +87,7 @@ try {
   result.menuCount = await page.locator('[data-citeciter-menu]').count()
   result.frames = await page.evaluate(() => window.__citeciterHmrFrames
     .map((raw) => { try { return JSON.parse(raw) } catch { return null } })
-    .filter((frame) => frame?.id === '@deepseek-ai/dsh-citeciter'))
+    .filter((frame) => frame?.id === '@kirkchinese/dsh-citeciter'))
 } catch (error) {
   result.failure = String(error)
 }

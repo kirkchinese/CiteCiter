@@ -1,9 +1,33 @@
 {
-  "name": "@deepseek-ai/dsh-citeciter",
-  "description": "CiteCiter: selection-scoped explanation sidebar for DSH conversations (browser plugin, client half + no-op host half)",
+  "name": "@kirkchinese/dsh-citeciter",
   "version": "0.1.0-alpha.1",
-  "private": true,
+  "description": "Selection-scoped explanation sidebar for DeepSeek Harness conversations",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "explanation",
+    "sidebar"
+  ],
+  "homepage": "https://github.com/kirkchinese/CiteCiter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kirkchinese/CiteCiter.git",
+    "directory": "packages/citeciter"
+  },
+  "bugs": {
+    "url": "https://github.com/kirkchinese/CiteCiter/issues"
+  },
+  "license": "MIT",
+  "author": "kirkchinese",
   "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
@@ -31,9 +55,9 @@
   "files": [
     "lib/index.js",
     "lib/client.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "README.zh.md"
   ],
-  "license": "MIT",
   "scripts": {
     "build": "npm run build:lib && npm run build:bundle",
     "build:lib": "tsc -p tsconfig.json",

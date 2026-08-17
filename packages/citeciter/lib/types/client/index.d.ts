@@ -7,7 +7,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis';
 /** Cordis identity for the CiteCiter browser plugin. */
-export declare const name = "@deepseek-ai/dsh-citeciter";
+export declare const name = "@kirkchinese/dsh-citeciter";
 /** Hard dependencies whose appearance activates the browser fiber. */
 export declare const inject: string[];
 /**
