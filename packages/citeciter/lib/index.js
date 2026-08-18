@@ -40,6 +40,8 @@ function readOnlyCommandStatus(agent) {
 	const childEvents = events.slice(seedLength);
 	const latestPreset = childEvents.findLast((event) => event.type === "permission/preset");
 	const latestSandbox = childEvents.findLast((event) => event.type === "sandbox/mode");
+	const currentPreset = latestPreset?.type === "permission/preset" ? latestPreset.data.preset : void 0;
+	const currentSandbox = latestSandbox?.type === "sandbox/mode" ? latestSandbox.data.mode : void 0;
 	for (let index = events.length - 1; index >= seedLength; index--) {
 		const run = events[index];
 		if (run?.type !== "command/run" || run.data.name !== "permission") continue;
@@ -50,13 +52,11 @@ function readOnlyCommandStatus(agent) {
 			kind: "error",
 			message: done.data.text ?? "permission command failed without an outcome message"
 		};
-		if (!events.slice(index + 1, done.seq).some((event) => event.type === "permission/preset" && event.data.preset === "read-only")) return {
+		if (currentPreset === "read-only" && currentSandbox === "read-only") return { kind: "ready" };
+		return events.slice(index + 1, done.seq).some((event) => event.type === "permission/preset" && event.data.preset === "read-only") ? { kind: "pending" } : {
 			kind: "error",
 			message: "permission command succeeded without applying read-only"
 		};
-		const currentPreset = latestPreset?.type === "permission/preset" ? latestPreset.data.preset : void 0;
-		const currentSandbox = latestSandbox?.type === "sandbox/mode" ? latestSandbox.data.mode : void 0;
-		return currentPreset === "read-only" && currentSandbox === "read-only" ? { kind: "ready" } : { kind: "pending" };
 	}
 	return { kind: "pending" };
 }

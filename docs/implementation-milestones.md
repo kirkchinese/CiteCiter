@@ -17,7 +17,7 @@ The current focused suite covers:
 
 - exact completed-node resolution and `anchorSeq` fork input;
 - custom first questions and independent follow-up user turns;
-- matched admission plus durable read-only `command/done`/preset settlement and current sandbox fold before Host preparation;
+- matched admission plus durable read-only `command/done` settlement, initial preset/sandbox application, and idempotent later-turn state folding before Host preparation;
 - Host lineage, completed-turn, exact UTF-16 span, and canonical fingerprint validation;
 - distinct selection identity inside one assistant answer;
 - durable projection recovery without a second fork;

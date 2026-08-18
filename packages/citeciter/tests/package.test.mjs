@@ -9,7 +9,7 @@ test('published v0.2 package declares an installable Host+Client DSH bundle', as
   const patch = await readFile(new URL('cordis.patch.yml', packageRoot), 'utf8')
 
   assert.equal(manifest.name, '@kirkchinese/dsh-citeciter')
-  assert.equal(manifest.version, '0.2.0')
+  assert.equal(manifest.version, '0.2.1')
   assert.equal(manifest.private, undefined)
   assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.equal(manifest.exports?.['./typert']?.default, './lib/typert.host.js')

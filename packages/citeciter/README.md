@@ -4,14 +4,14 @@
 
 [中文说明](https://github.com/kirkchinese/CiteCiter/blob/main/packages/citeciter/README.zh.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
-> **Early development:** v0.2.0 is the first positioning release of the durable Host+Client architecture. APIs, compatibility, and installation details may still change. Issues and pull requests are welcome.
+> **Early development:** v0.2.0 introduced the durable Host+Client architecture; v0.2.1 fixes later-turn preparation when DSH treats an already-effective read-only switch as an idempotent no-op. APIs, compatibility, and installation details may still change. Issues and pull requests are welcome.
 
 ## Install
 
 CiteCiter requires Node.js `^22.19.0 || >=24.0.0`, DSH Web, and a configured model provider.
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.1
 ```
 
 Restart the corresponding DSH Web process and refresh the page. A restart is required after installation or upgrade because the Host and Typert manifests are loaded at process startup.

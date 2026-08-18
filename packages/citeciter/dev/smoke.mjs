@@ -161,6 +161,19 @@ try {
   await page.waitForTimeout(500)
   out.recoveredPanelWidth = await panel.evaluate((element) => element.getBoundingClientRect().width)
 
+  // Reapplying read-only on a genuine follow-up is idempotent: DSH may log only
+  // command/run + command/done, so the already-effective child state must pass.
+  const followUpQuestion = '第二轮追问：这个曲率结论还能怎样理解？'
+  await panel.locator('textarea').fill(followUpQuestion)
+  await panel.getByRole('button', { name: '发送', exact: true }).click()
+  await page.waitForFunction((expected) => document.querySelector('[data-citeciter-panel]')?.textContent?.includes(expected), followUpQuestion, {
+    timeout: 15_000,
+  })
+  out.followUpVisible = (await panel.innerText()).includes(followUpQuestion)
+  out.followUpErrorText = await panel.locator('[data-citeciter-error]').count() > 0
+    ? await panel.locator('[data-citeciter-error]').innerText()
+    : null
+
   // A second range in the same answer must become a distinct Thread. Switch
   // back to the first one, then archive only the second through the supported
   // workspace API; the source session remains selected throughout.
@@ -225,6 +238,8 @@ out.passed = out.failure === undefined
   && out.recoveredQuestion === true
   && out.recoveredTitle === '曲率学习 Thread'
   && out.recoveredPanelWidth >= 320
+  && out.followUpVisible === true
+  && !/(prepareThread|read-only switch failed|without applying read-only)/iu.test(out.followUpErrorText ?? '')
   && out.secondDispatch?.defaultPrevented === true
   && out.secondDispatch?.selectedText === 'parallel transport'
   && out.distinctThreadOptions === 3

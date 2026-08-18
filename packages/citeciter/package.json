@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Durable citation-thread learning companion for DeepSeek Harness conversations",
   "keywords": [
     "deepseek-harness",

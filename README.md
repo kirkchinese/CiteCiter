@@ -18,9 +18,9 @@ CiteCiter 让你在 DeepSeek Harness（DSH）的一条已完成助手回复中�
 [English package documentation](packages/citeciter/README.md) · [中文包说明](packages/citeciter/README.zh.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
 > [!IMPORTANT]
-> v0.2.0 是持久 Host+Client 架构的第一版定位发布。项目仍处于早期开发阶段，API、兼容范围和安装方式可能变化。
+> v0.2.0 是持久 Host+Client 架构的第一版定位发布；v0.2.1 修复了重复执行 read-only 时第二轮追问被拒绝的问题。项目仍处于早期开发阶段，API、兼容范围和安装方式可能变化。
 
-## v0.2.0：从一次解释到持久学习 Thread
+## v0.2：从一次解释到持久学习 Thread
 
 - 在同一条已完成 `assistant-step` 内捕获精确选区、UTF-16 范围与有界前后文。
 - 通过源会话 snapshot 解析节点真实 `anchorSeq`；不从 DOM key 猜事件序号。
@@ -70,7 +70,7 @@ Citation 文本始终是不可信数据。即使引用内容包含命令口吻�
 - 已在 DSH 中配置可用模型凭据
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.1
 ```
 
 安装或升级后重启对应的 DSH Web 进程并刷新页面。Host 与 Typert 清单在进程启动时加载。包的 DSH peer range 从 `^0.1.0-rc.6` 开始；focused build 使用 rc.6 包集，v0.2 浏览器链路也在全新 DSH `0.1.0-rc.7` 进程中验证通过。

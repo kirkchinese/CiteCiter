@@ -22,7 +22,7 @@ For a new Citation, the serialized Client operation is:
 3. Run `session.command('/permission read-only')`.
 4. Require both admission `ok` and `value.matched`; failure sends no model-visible question.
 5. Call Agent-scoped `remote.citeciter.prepareThread(childId, citation)`.
-6. Host waits for that child-owned permission command's durable `command/done: success` and intervening `permission/preset: read-only`, and requires the latest child-owned preset plus sandbox mode to remain `read-only`; an error, downgrade, missing event, or timeout fails closed.
+6. Host waits for that child-owned permission command's durable `command/done: success` and requires the latest child-owned preset plus sandbox mode to be `read-only`. The first switch emits preset and sandbox events; an idempotent switch on later turns may emit only `command/run` and `command/done`, so the already-effective child-owned state is accepted. An error, downgrade, missing initial state, or timeout fails closed.
 7. Host validates lineage, `seedLength`, matching inherited `step/end`/`turn/end`, exact UTF-16 span, canonical fingerprint, and immutable per-Agent identity, then installs scope.
 8. Send the exact normalized question as `session.prompt([{ type: 'text', text: question }], 'queue')`.
 

@@ -4,14 +4,14 @@
 
 [English](README.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
-> **开发状态：** v0.2.0 是持久化 Host+Client 架构的第一版定位发布，当前仍处于早期开发阶段。API、兼容范围和安装方式仍可能变化，欢迎提 Issue 或提交 PR。
+> **开发状态：** v0.2.0 引入持久化 Host+Client 架构；v0.2.1 修复了 DSH 将已生效的 read-only 重复切换视为幂等 no-op 时，后续追问准备失败的问题。当前仍处于早期开发阶段，API、兼容范围和安装方式仍可能变化。
 
 ## 安装
 
 需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web 和已配置的模型提供方。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.1
 ```
 
 安装或升级后，请重启对应的 DSH Web 进程并刷新页面。Host 与 Typert 清单在进程启动时加载，因此不能只替换浏览器 bundle。

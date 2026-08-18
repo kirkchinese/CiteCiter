@@ -5,6 +5,12 @@ export function readOnlyCommandStatus(agent) {
     const childEvents = events.slice(seedLength);
     const latestPreset = childEvents.findLast((event) => event.type === 'permission/preset');
     const latestSandbox = childEvents.findLast((event) => event.type === 'sandbox/mode');
+    const currentPreset = latestPreset?.type === 'permission/preset'
+        ? latestPreset.data.preset
+        : undefined;
+    const currentSandbox = latestSandbox?.type === 'sandbox/mode'
+        ? latestSandbox.data.mode
+        : undefined;
     for (let index = events.length - 1; index >= seedLength; index--) {
         const run = events[index];
         if (run?.type !== 'command/run' || run.data.name !== 'permission')
@@ -22,19 +28,16 @@ export function readOnlyCommandStatus(agent) {
                 message: done.data.text ?? 'permission command failed without an outcome message',
             };
         }
-        const presetApplied = events.slice(index + 1, done.seq).some((event) => (event.type === 'permission/preset' && event.data.preset === 'read-only'));
-        if (!presetApplied) {
-            return { kind: 'error', message: 'permission command succeeded without applying read-only' };
+        // Reapplying the same preset is an idempotent command: DSH logs run/done
+        // but emits no duplicate preset or sandbox events. The effective child-
+        // owned state is therefore the durable proof for second and later turns.
+        if (currentPreset === 'read-only' && currentSandbox === 'read-only') {
+            return { kind: 'ready' };
         }
-        const currentPreset = latestPreset?.type === 'permission/preset'
-            ? latestPreset.data.preset
-            : undefined;
-        const currentSandbox = latestSandbox?.type === 'sandbox/mode'
-            ? latestSandbox.data.mode
-            : undefined;
-        return currentPreset === 'read-only' && currentSandbox === 'read-only'
-            ? { kind: 'ready' }
-            : { kind: 'pending' };
+        const presetApplied = events.slice(index + 1, done.seq).some((event) => (event.type === 'permission/preset' && event.data.preset === 'read-only'));
+        return presetApplied
+            ? { kind: 'pending' }
+            : { kind: 'error', message: 'permission command succeeded without applying read-only' };
     }
     return { kind: 'pending' };
 }

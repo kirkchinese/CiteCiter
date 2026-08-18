@@ -64,6 +64,32 @@ test('read-only fold ignores inherited state and requires a settled child comman
   assert.deepEqual(readOnlyCommandStatus(ready.agent), { kind: 'ready' })
 })
 
+test('repeated read-only command accepts the already-effective child state', async () => {
+  const repeated = fakeAgent([
+    ...inherited,
+    event(2, 'command/run', {
+      commandId: 'permission-first',
+      name: 'permission',
+      args: ' read-only',
+      source: { kind: 'user' },
+    }),
+    event(3, 'permission/preset', { preset: 'read-only' }),
+    event(4, 'sandbox/mode', { mode: 'read-only' }),
+    event(5, 'command/done', { commandId: 'permission-first', kind: 'success' }),
+    event(6, 'command/run', {
+      commandId: 'permission-second',
+      name: 'permission',
+      args: ' read-only',
+      source: { kind: 'user' },
+    }),
+    event(7, 'command/done', { commandId: 'permission-second', kind: 'success' }),
+  ])
+
+  assert.deepEqual(readOnlyCommandStatus(repeated.agent), { kind: 'ready' })
+  await requireReadOnlyCommand(repeated.agent, 5)
+  assert.equal(repeated.listenerCount(), 0)
+})
+
 test('read-only fold stays pending after any later permission or sandbox downgrade', () => {
   const settled = [
     ...inherited,
