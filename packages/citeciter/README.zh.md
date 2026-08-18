@@ -1,76 +1,97 @@
 # `@kirkchinese/dsh-citeciter`
 
-CiteCiter 是 DeepSeek Harness（DSH）Web 的浏览器插件。选中已经完成的助手回复，右键点击 `Citer!`，即可在可调宽的 DSH `details` 右栏中查看基于当时会话上下文生成的解释。
+**基于精确历史上下文的、隔离式学习伴侣。** 在 DeepSeek Harness（DSH）的一条已完成助手回复中选中文字，右键点击 `Citer!`，提出你真正想问的问题，并在持久 Citation Thread 中继续追问；源会话不会被写入。
 
 [English](README.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
-> **开发状态：** v0.1.1 实现了第一条可用通路，但当前仍处于早期开发阶段，很多功能仍然需要完善。API、兼容范围和安装方式可能发生变化，欢迎提 Issue 或提交 PR 共同开发。
+> **开发状态：** v0.2.0 是持久化 Host+Client 架构的第一版定位发布，当前仍处于早期开发阶段。API、兼容范围和安装方式仍可能变化，欢迎提 Issue 或提交 PR。
 
 ## 安装
 
-需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web 和已经配置好的模型提供方。当前开发与验证基准为 DSH `0.1.0-rc.6` client 包。
+需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web 和已配置的模型提供方。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.1.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.0
 ```
 
-重新启动对应的 DSH Web 进程并刷新页面。然后在一条已经完成的助手回复中选择文本，右键点击 `Citer!`。
+安装或升级后，请重启对应的 DSH Web 进程并刷新页面。Host 与 Typert 清单在进程启动时加载，因此不能只替换浏览器 bundle。
 
-## 行为
+包声明的 DSH peer range 从 `^0.1.0-rc.6` 开始。focused build 使用 rc.6 包集；v0.2 浏览器全链路也在一个全新启动的 DSH `0.1.0-rc.7` 进程中通过验证。
 
-- 只处理 `assistant-step` 会话节点内的选区。
-- 先用 DOM anchor key 在父会话 snapshot 中查找节点，再用该节点真实的 `anchorSeq` 在已完成轮次边界 fork；不会把会话 key 开头的 kind 长度误当成事件序号。
-- 子会话打开但不会成为当前会话。只有 `/permission read-only` 执行成功且 DSH 确认命令确实匹配后，插件才发送解释提示词。
-- 仅当父会话与解析后的 anchor 都没有变化时才复用子会话。重复请求会先记录已有助手节点，避免把旧回答误当成新结果。
-- 插件不向父会话写入内容。提示词、模型回复、取消动作和错误都属于解释子会话日志。
-- 面板流式渲染 Markdown、KaTeX 和代码。完整且安全的 `svg` 围栏作为惰性 data-URI 图片渲染；完整 `html` 围栏在禁脚本、禁网络的 sandbox iframe 中渲染。被拒绝或未闭合的围栏仍按 Markdown 代码块显示。
+## 使用
 
-解释子会话是持久 DSH 会话。关闭面板或卸载插件只会解除 CiteCiter 的本地订阅，不会删除或取消已经创建的子会话。
+1. 在一条已经完成的助手回复内部选中文字。
+2. 右键点击 `Citer!`。
+3. 输入自定义首问，或选择一个快捷问题。
+4. 在同一 Thread 中继续真实的多轮追问。
+5. 通过常驻入口恢复、切换、重命名或归档 Thread。
 
-## 兼容性与限制
+每条 Citation 都会在所选历史边界创建或复用一个隔离子会话。插件不会切换 DSH 主界面的当前会话，也不会修改源会话日志。
 
-DSH client peer range 为 `^0.1.0-rc.6`，Cordis peer range 为 `^4.0.1`。发布前已确认所需 `0.1.0-rc.6` 包真实存在于公共 npm registry，并以该版本完成验证；其他 DSH 预发布版本尚未获得相同程度的验证。
+## v0.2 已实现能力
 
-当前只支持 DSH Web 和助手回复节点。插件尚无设置 UI、自动子会话清理、移动端专项适配或跨平台浏览器 CI；DSH 预发布 API 的变化也可能要求同步升级 CiteCiter。
+- **精确历史 fork。** 浏览器用 `data-chat-anchor-key` 在源会话 snapshot 中解析真实节点，要求它是已关闭轮次中的最终助手回复，再使用节点的真实 `anchorSeq` fork；绝不从 key 文本猜事件序号。
+- **稳定 Citation 身份。** 源会话、anchor seq、UTF-16 精确范围、原文和有界前后文按固定格式序列化并计算 SHA-256。同一回复中的不同选区仍是不同 Citation。
+- **四层模型输入。** 受限作用域的 system Tutor、fork 继承的精确历史、持久的 user-role Citation Context，以及真正的用户首问/追问保持不同的权限与持久性。
+- **持久多轮 Thread。** 首问和每次追问都是子会话中的普通用户消息。侧栏只展示 Thread 自己拥有的问答/错误，不把继承历史和 runtime-context 内部行混进聊天记录。
+- **恢复与组织。** Host projection 驱动常驻入口、按父会话分组的选择器、页面刷新/进程重启恢复、切换、重命名和 DSH workspace 归档。
+- **失败即关闭的隔离。** 插件在不导航主界面的情况下打开具体子会话，先要求命令确实匹配，再由 Host 等待 `/permission read-only` 持久成功结算并确认当前 sandbox 仍为只读；随后校验 lineage、边界和 Citation 证据，模型工具执行受显式 allowlist 保护。
+- **父日志零干扰。** Citation context、提问、回答、停止、错误和标题都属于子会话。浏览器 smoke 会比较源日志的文件大小和纳秒 mtime。
+- **富内容安全。** Markdown、代码和 KaTeX 正常流式显示；完整且安全的 `svg` 围栏成为惰性 data-URI 图片；完整 `html` 围栏进入禁脚本、禁网络的 sandbox iframe；不安全或未闭合内容回退为 Markdown 源码。
+- **Fiber 生命周期。** Host Agent 作用域、Client Remote、slot、listener、订阅、动画帧和异步状态都可逆；销毁后的延迟异步结果不能重新安装状态。
 
-## 构建与测试
+## 模型输入结构
+
+```text
+system：仅作用于该 Thread 的 CiteCiter Tutor
+history：截至所选助手边界的精确源会话前缀
+user context：持久、被引用的 Citation JSON（不可信数据）
+user：用户真正输入的首问与后续追问
+```
+
+即使选中文本包含命令口吻、role JSON、HTML 或分隔符，它也不会获得 system 权限。架构决策与同题同模型真实对比见 [`docs/architecture/0001-model-input-layering.md`](https://github.com/kirkchinese/CiteCiter/blob/main/docs/architecture/0001-model-input-layering.md)。
+
+## 兼容性与已知限制
+
+- 只支持 DSH Web 中已完成的 `assistant-step`；不处理用户消息、输入框或任意页面文本。
+- 选区必须完整位于同一助手 flow；暂不支持跨消息或跨 block Citation。
+- 归档使用 DSH workspace 全局归档集合隐藏 Thread。CiteCiter 暂无取消归档 UI；归档后再次选择同一 Citation 可能创建新的活跃 Thread。
+- 只读工具 allowlist 有意保持保守。`run_code` 只用于 sandbox 内分析；Host 准备阶段会持久确认 read-only sandbox，每次嵌套工具分派仍经过权威 allowlist guard。当前 DSH 未安装的工具自然不可用。
+- HTML/SVG 安全策略有意保守，被拒绝的内容显示源码而不执行。
+- 暂无设置 UI、完整国际化框架、移动端专项布局和跨平台浏览器 CI。
+- DSH 仍处于预发布阶段，后续 API 变化可能要求同步适配。
+
+## 构建与验证
 
 在仓库根目录运行：
 
 ```sh
 pnpm install
-pnpm --filter @kirkchinese/dsh-citeciter typecheck
-pnpm --filter @kirkchinese/dsh-citeciter test
-pnpm --filter @kirkchinese/dsh-citeciter build
+pnpm run typecheck
+pnpm --dir packages/citeciter test
+pnpm run build
 ```
 
-## 本地浏览器验证（临时 DSH_HOME）
+仓库跟踪 `packages/citeciter/lib/`。构建会先清理过期的顶层 hash chunk，再生成 Host 入口、Client bundle、严格 Typert 清单和 declaration。真实模型分层实验、临时 DSH_HOME 浏览器 smoke、HMR 检查和发布门禁见 [`docs/implementation-milestones.md`](https://github.com/kirkchinese/CiteCiter/blob/main/docs/implementation-milestones.md)。
 
-先为 Playwright 安装 Chromium，再建立临时 profile：
+## 本地浏览器验证
 
 ```sh
 pnpm --filter @kirkchinese/dsh-citeciter exec playwright install chromium
+rm -rf /tmp/citeciter-dsh-home
 mkdir -p /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese
 ln -sfn "$(pwd)/packages/citeciter" \
   /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese/dsh-citeciter
-node packages/citeciter/dev/seed-smoke-session.mjs /tmp/citeciter-dsh-home "$(pwd)"
+node packages/citeciter/dev/seed-smoke-session.mjs \
+  /tmp/citeciter-dsh-home "$(pwd)"
 DSH_HOME=/tmp/citeciter-dsh-home dsh --profile web \
   --patch "$(pwd)/packages/citeciter/dev/patch.yml" --port 3907
-node packages/citeciter/dev/smoke.mjs http://127.0.0.1:3907 'CiteCiter' \
+node packages/citeciter/dev/smoke.mjs \
+  http://127.0.0.1:3907 CiteCiter \
   /tmp/citeciter-dsh-home/citeciter-smoke.json
 ```
 
-seed 脚本写入一个包含真实 `14:assistant-step1:1` anchor 的完整已结算轮次。浏览器 smoke 从实际渲染的会话节点创建选区，并验证右键菜单、侧栏开关、父日志文件 revision 和浏览器错误。
-
-## 实时浏览器开发
-
-1. 按上面的方式把包链接到临时 Web profile，并通过 `dev/patch.yml` 挂载。
-2. 启动 profile 并至少打开一次 URL；DSH Web 会挂载 Cordis client-HMR 的 Host 与浏览器插件。
-3. 运行 `pnpm --filter @kirkchinese/dsh-citeciter dev`，同时监听 declaration 模块与浏览器 bundle。
-
-DSH Host 检测 bundle 变化后会发送 `/plugins/events` rebuild 帧，浏览器随后替换 CiteCiter 的 Cordis fiber。插件内 React 和面板状态会重置，DSH 持有的会话数据不会重置。只有修改 DSH 自有 client package 时，完整 DSH 源码检出目录才需要运行自己的 `pnpm run dev:web`。
-
-开发服务器已挂载插件时，可运行 `node packages/citeciter/dev/hmr-smoke.mjs http://127.0.0.1:3907`。脚本会原子修改并还原 bundle，验证 rebuild 帧、旧 fiber 回收、新 fiber 交互和浏览器错误。
+Smoke 使用真实渲染的 `14:assistant-step1:1` 节点和真实 `anchorSeq: 6`，验证自定义首问、持久投影、恢复、重命名、常驻入口、侧栏宽度、父日志 revision 与浏览器错误。临时 profile 没有模型凭据时，正常的 provider 错误也只会在 read-only、Remote 准备、Citation Context 和真实用户消息全部成功后出现。
 
 ## 贡献与许可证
 
