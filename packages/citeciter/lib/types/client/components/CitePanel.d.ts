@@ -1,14 +1,12 @@
-import type { CiteBus } from '../types.ts';
 import type { ExplainFace } from '../explainer.ts';
 /** Dependencies injected into the session-scoped details entry. */
 export interface CitePanelProps {
-    readonly bus: CiteBus;
     readonly close: () => void;
     readonly explainer: ExplainFace;
 }
 /**
- * Render the right details-column explanation panel.
- * @param props - selection state, close action, and explainer face.
- * @returns panel element with current status and response.
+ * Render the durable Citation Thread panel.
+ * @param props - close action and plugin-owned controller.
+ * @returns question composer, transcript, recovery controls, and lifecycle actions.
  */
-export declare function CitePanel({ bus, close, explainer }: CitePanelProps): import("react").JSX.Element;
+export declare function CitePanel({ close, explainer }: CitePanelProps): import("react").JSX.Element;

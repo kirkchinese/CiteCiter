@@ -1,11 +1,22 @@
+import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client';
 /** One validated right-click selection inside a conversation flow node. */
 export interface CiteSelection {
+    /** Session owning the selected assistant flow at capture time. */
+    readonly sourceSessionId: SessionId;
     /** Selected plain text (already trimmed; display may truncate separately). */
     readonly text: string;
     /** Flow kind of the DOM node that owns the selection. */
     readonly kind: 'assistant-step';
     /** Conversation snapshot node key (`data-chat-anchor-key`). */
     readonly anchorKey: string;
+    /** UTF-16 offset of the trimmed selection within the owning flow's plain text. */
+    readonly startOffset: number;
+    /** Exclusive UTF-16 end offset within the owning flow's plain text. */
+    readonly endOffset: number;
+    /** Bounded plain-text context immediately preceding the selection. */
+    readonly prefixText: string;
+    /** Bounded plain-text context immediately following the selection. */
+    readonly suffixText: string;
     /** Horizontal pointer position for the floating menu, in client coordinates. */
     readonly x: number;
     /** Vertical pointer position for the floating menu, in client coordinates. */

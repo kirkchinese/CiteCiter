@@ -1,12 +1,28 @@
-/**
- * Host loader entry for the browser-only CiteCiter plugin.
- * Deliberately no-op: the browser half (`./client`) owns the whole feature,
- * and the plugin registers no process-level Host service (the known
- * Cordis duplicate-service trap therefore cannot trigger).
- */
-/** Cordis plugin identity shared with the browser bundle. */
+import type { Context } from '@deepseek-ai/cordis';
+import type { Agent } from '@deepseek-ai/dsh-agent';
+import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
+import { type CitationRecord } from './thread.ts';
+/** Public Citation wire shape referenced by the strict Typert manifest. */
+export type { CitationRecord } from './thread.ts';
+/** Cordis/Typert service identity and package name. */
 export declare const name = "@kirkchinese/dsh-citeciter";
-/** CiteCiter has no Host service dependencies. */
-export declare const inject: readonly [];
-/** Register no Host effects; all behavior belongs to the browser plugin. */
-export declare function apply(): void;
+export interface PrepareThreadResult {
+    readonly ready: true;
+    readonly citation: CitationRecord;
+}
+/** Host service for durable, isolated Citation Threads. */
+export declare class CiteCiterHost extends TypertRemoteService {
+    static inject: string[];
+    private readonly active;
+    private projectionRegistry;
+    constructor(ctx: Context);
+    /** Validate one forked child and install its immutable Citation Thread scope. */
+    prepareThread(agent: Agent, rawCitation: CitationRecord): Promise<PrepareThreadResult>;
+    private restore;
+    private install;
+}
+/** Loader-facing namespace plugin wrapper (the bundle patch imports the package root). */
+export declare const inject: readonly ["agents"];
+/** Mount the Remote Service class inside the package entry's owning fiber. */
+export declare function apply(ctx: Context): void;
+export default CiteCiterHost;

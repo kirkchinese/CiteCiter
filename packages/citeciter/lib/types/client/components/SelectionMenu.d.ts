@@ -1,12 +1,14 @@
+import type { ExplainFace } from '../explainer.ts';
 import type { CiteBus, CiteSelection } from '../types.ts';
 /** Dependencies injected into the root overlay entry. */
 export interface SelectionMenuProps {
     readonly bus: CiteBus;
-    readonly openPanel: (selection: CiteSelection) => void;
+    readonly explainer: ExplainFace;
+    readonly openPanel: (selection?: CiteSelection) => void;
 }
 /**
- * Render the floating `Citer!` menu in the shell overlay.
- * @param props - shared selection bus and panel opener.
- * @returns menu element while a valid selection exists, otherwise null.
+ * Render the contextual `Citer!` action and a persistent Thread launcher.
+ * @param props - shared selection bus, explainer state, and panel opener.
+ * @returns shell-overlay controls.
  */
-export declare function SelectionMenu({ bus, openPanel }: SelectionMenuProps): import("react").JSX.Element | null;
+export declare function SelectionMenu({ bus, explainer, openPanel }: SelectionMenuProps): import("react").JSX.Element;

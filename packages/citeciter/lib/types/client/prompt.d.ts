@@ -1,7 +1,7 @@
-import type { CiteSelection } from './types.ts';
+/** Maximum genuine user-question length admitted by the Citation Thread UI. */
+export declare const MAX_QUESTION_CHARS = 12000;
 /**
- * Build the explanation prompt recorded into the forked child session.
- * @param selection - quoted assistant text and its parent-log anchor.
- * @returns model-visible prompt text.
+ * Normalize a genuine user question without wrapping it in Citation or role
+ * prose. System Tutor and Citation Context travel through their own layers.
  */
-export declare function buildPrompt(selection: CiteSelection): string;
+export declare function normalizeQuestion(rawQuestion: string): string;

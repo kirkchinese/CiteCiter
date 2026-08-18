@@ -1,23 +1,29 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readAssistantAnswer } from '../lib/types/client/answer.js'
 import { createExplainerController } from '../lib/types/client/explainer-controller.js'
 
-const selection = (anchorKey = '14:assistant-step2:1', text = 'Riemann curvature tensor') => ({
-  text,
+const sourceId = 'parent-a'
+
+const selection = (overrides = {}) => ({
+  sourceSessionId: sourceId,
+  text: 'Riemann curvature tensor',
   kind: 'assistant-step',
-  anchorKey,
+  anchorKey: 'assistant:1',
+  startOffset: 10,
+  endOffset: 34,
+  prefixText: 'The ',
+  suffixText: ' measures curvature.',
   x: 1,
   y: 2,
+  ...overrides,
 })
 
-const assistantNode = (
-  key,
-  anchorSeq,
-  text = 'source answer',
+const assistantFlow = ({
+  key = 'assistant:1',
+  anchorSeq = 42,
   status = 'settled',
   turnStatus = 'closed',
-) => ({
+} = {}) => ({
   key,
   kind: 'assistant-step',
   anchorSeq,
@@ -26,19 +32,20 @@ const assistantNode = (
     turn: { status: turnStatus },
     step: { status: status === 'running' ? 'open' : 'closed' },
   },
-  data: { status, blocks: [{ kind: 'text', text }] },
+  data: { status, blocks: [{ kind: 'text', text: 'source answer' }] },
 })
 
-function createExplainer(sessions) {
+function snapshotStore() {
   let snapshot = {
     phase: 'idle',
-    childId: null,
     selection: null,
-    answerText: null,
+    activeThread: null,
+    threads: [],
+    transcript: [],
     error: null,
   }
   const listeners = new Set()
-  return createExplainerController(sessions, {
+  return {
     getSnapshot: () => snapshot,
     subscribe(listener) {
       listeners.add(listener)
@@ -54,274 +61,377 @@ function createExplainer(sessions) {
       snapshot = next
       for (const listener of [...listeners]) listener()
     },
-  })
+  }
 }
 
-function fakeSession(options = {}) {
-  let nodes = options.nodes ?? []
-  let running = options.running ?? false
+function observable(getSnapshot) {
   const listeners = new Set()
-  const calls = { open: 0, command: 0, prompt: 0, cancel: 0 }
-  const session = {
-    calls,
+  return {
+    getSnapshot,
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    emit() {
+      for (const listener of [...listeners]) listener()
+    },
     get subscriberCount() { return listeners.size },
+  }
+}
+
+function fakeSession(id, options = {}) {
+  let running = options.running ?? false
+  let nodes = options.nodes ?? []
+  let projected = options.projected
+  const calls = { open: 0, command: 0, prompt: [], cancel: 0, rename: [] }
+  const sessionListeners = new Set()
+  const projection = observable(() => projected)
+  const session = {
+    sessionId: id,
+    calls,
+    projections: { faceOf: () => projection },
     getSnapshot() {
       return {
-        chat: { nodes: { get: (key) => nodes.find((node) => node.key === key), values: () => nodes } },
+        chat: {
+          nodes: {
+            get: (key) => (options.flows ?? []).find((node) => node.key === key),
+            values: () => options.flows ?? [],
+          },
+        },
+        nodes,
+        partial: null,
         running,
         promptError: null,
         lastAgentError: null,
       }
     },
     subscribe(listener) {
-      listeners.add(listener)
-      return () => listeners.delete(listener)
+      sessionListeners.add(listener)
+      return () => sessionListeners.delete(listener)
     },
-    async open() { calls.open++ },
-    async command() {
+    async open() {
+      calls.open++
+      options.order?.push('open')
+    },
+    async command(line) {
       calls.command++
+      options.order?.push('permission')
+      assert.equal(line, '/permission read-only')
       return options.permission ?? { ok: true, value: { matched: true } }
     },
-    async prompt() {
-      calls.prompt++
+    async prompt(content, mode) {
+      calls.prompt.push({ content, mode })
+      options.order?.push('prompt')
       running = true
       return { ok: true, value: { accepted: true } }
     },
     async cancel() {
       calls.cancel++
-      if (options.cancel !== undefined) return options.cancel()
       running = false
-      return { ok: true, value: { accepted: true } }
+      return options.cancelResult ?? { ok: true, value: { accepted: true } }
     },
-    publish(nextNodes, nextRunning = false) {
+    async rename(title) {
+      calls.rename.push(title)
+      return { ok: true, value: { title, seq: 100 } }
+    },
+    publish({ nextNodes = nodes, nextRunning = running, nextProjected = projected } = {}) {
       nodes = nextNodes
       running = nextRunning
-      for (const listener of [...listeners]) listener()
+      projected = nextProjected
+      projection.emit()
+      for (const listener of [...sessionListeners]) listener()
     },
   }
   return session
 }
 
-function fakeSessions(sessionFactory = () => fakeSession()) {
-  let current = 'parent-a'
-  let serial = 0
-  const children = new Map()
-  const parents = new Map([
-    ['parent-a', fakeSession({ nodes: [
-      assistantNode('14:assistant-step2:1', 42),
-      assistantNode('14:assistant-step4:1', 70),
-    ] })],
-    ['parent-b', fakeSession({ nodes: [assistantNode('14:assistant-step3:1', 90)] })],
-  ])
-  const forks = []
-  let bindingCalls = 0
+function citation(overrides = {}) {
   return {
-    forks,
-    children,
-    parents,
-    get bindingCalls() { return bindingCalls },
-    setCurrent(id) { current = id },
-    list: { getSnapshot: () => ({ current }) },
-    async fork(opts) {
-      forks.push(opts)
-      const id = `child-${++serial}`
-      children.set(id, sessionFactory(id))
-      return id
-    },
-    binding(id) {
-      bindingCalls++
-      const session = parents.get(id) ?? children.get(id)
-      return session === undefined ? undefined : { session }
+    schemaVersion: 1,
+    sourceSessionId: sourceId,
+    anchorKey: 'assistant:1',
+    anchorSeq: 42,
+    startOffset: 10,
+    endOffset: 34,
+    selectionFingerprint: 'a'.repeat(64),
+    selectedText: 'Riemann curvature tensor',
+    prefixText: 'The ',
+    suffixText: ' measures curvature.',
+    createdAt: 1,
+    ...overrides,
+  }
+}
+
+function projectedThread(overrides = {}) {
+  return {
+    thread: {
+      citation: citation(),
+      historyStartSeq: 10,
+      contextSeq: 11,
+      ...overrides,
     },
   }
 }
 
-test('explainer reads newly streamed assistant text before settlement', () => {
-  assert.deepEqual(readAssistantAnswer({
-    status: 'running',
-    blocks: [
-      { kind: 'reasoning', text: 'hidden chain' },
-      { kind: 'text', text: 'A curvature measure' },
-      { kind: 'text', text: ' of a manifold.' },
-    ],
-  }), {
-    status: 'running',
-    text: 'A curvature measure of a manifold.',
-  })
-})
+function harness({ childOptions, prepare, existing } = {}) {
+  const order = []
+  const parent = fakeSession(sourceId, { flows: [assistantFlow()] })
+  const children = new Map()
+  let serial = 0
+  const listState = {
+    ids: [sourceId],
+    byId: {
+      [sourceId]: {
+        id: sourceId,
+        displayTitle: 'Geometry discussion',
+        running: false,
+        blank: false,
+        updatedAt: 1,
+      },
+    },
+    current: sourceId,
+    phase: 'ready',
+    subagentsByParent: {},
+    jobsBySession: {},
+  }
+  const list = observable(() => listState)
+  const forks = []
 
-test('explainer recognizes settled and interrupted output but ignores empty/non-assistant data', () => {
-  assert.deepEqual(readAssistantAnswer({ status: 'settled', blocks: [{ kind: 'text', text: 'Done' }] }), {
-    status: 'settled',
-    text: 'Done',
-  })
-  assert.deepEqual(readAssistantAnswer({ status: 'interrupted', blocks: [{ kind: 'text', text: 'Partial' }] }), {
-    status: 'interrupted',
-    text: 'Partial',
-  })
-  assert.equal(readAssistantAnswer({ status: 'running', blocks: [{ kind: 'reasoning', text: 'only reasoning' }] }), null)
-  assert.equal(readAssistantAnswer({ status: 'unknown', blocks: [{ kind: 'text', text: 'ignore' }] }), null)
-})
+  if (existing !== undefined) {
+    children.set(existing.id, existing.session)
+    listState.ids.push(existing.id)
+    listState.byId[existing.id] = {
+      id: existing.id,
+      displayTitle: existing.title ?? 'Recovered thread',
+      ...(existing.title === undefined ? {} : { title: existing.title }),
+      parentId: sourceId,
+      running: false,
+      blank: false,
+      updatedAt: 20,
+      projectionValues: { citeciter: existing.projected },
+    }
+  }
 
-test('an unavailable or running source node cannot fork an arbitrary prefix', async () => {
-  const missingSessions = fakeSessions()
-  const missingExplainer = createExplainer(missingSessions)
-  await missingExplainer.start(selection('14:assistant-step99:1', 'missing'))
-  assert.equal(missingSessions.forks.length, 0)
-  assert.match(missingExplainer.getSnapshot().error, /context is no longer available/)
-
-  const runningSessions = fakeSessions()
-  runningSessions.parents.get('parent-a').publish([
-    assistantNode('14:assistant-step2:1', 42, 'partial', 'running', 'open'),
-  ], true)
-  const runningExplainer = createExplainer(runningSessions)
-  await runningExplainer.start(selection())
-  assert.equal(runningSessions.forks.length, 0)
-  assert.match(runningExplainer.getSnapshot().error, /response is not complete/)
-
-  const openTurnSessions = fakeSessions()
-  openTurnSessions.parents.get('parent-a').publish([
-    assistantNode('14:assistant-step2:1', 42, 'settled step in an open turn', 'settled', 'open'),
-  ], true)
-  const openTurnExplainer = createExplainer(openTurnSessions)
-  await openTurnExplainer.start(selection())
-  assert.equal(openTurnSessions.forks.length, 0)
-  assert.match(openTurnExplainer.getSnapshot().error, /turn is not complete/)
-})
-
-test('read-only failure blocks the model-visible explanation prompt', async () => {
-  const child = fakeSession({ permission: { ok: false, error: { message: 'denied' } } })
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
-
-  await explainer.start(selection())
-
-  assert.equal(child.calls.command, 1)
-  assert.equal(child.calls.prompt, 0)
-  assert.equal(explainer.getSnapshot().phase, 'error')
-  assert.match(explainer.getSnapshot().error, /read-only switch failed: denied/)
-})
-
-test('an unrecognized permission command blocks the explanation prompt', async () => {
-  const child = fakeSession({ permission: { ok: true, value: { matched: false } } })
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
-
-  await explainer.start(selection())
-
-  assert.equal(child.calls.prompt, 0)
-  assert.match(explainer.getSnapshot().error, /permission command was not recognized/)
-})
-
-test('a repeated explanation ignores the preceding assistant answer', async () => {
-  const child = fakeSession()
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
-
-  await explainer.start(selection())
-  child.publish([
-    assistantNode('14:assistant-step3:1', 50, 'first answer'),
-  ])
-  assert.equal(explainer.getSnapshot().answerText, 'first answer')
-
-  await explainer.start(selection('14:assistant-step2:1', 'Ricci contraction'))
-  assert.equal(sessions.forks.length, 1)
-  assert.equal(child.calls.prompt, 2)
-  assert.equal(explainer.getSnapshot().phase, 'running')
-  assert.equal(explainer.getSnapshot().answerText, null)
-
-  child.publish([
-    assistantNode('14:assistant-step3:1', 50, 'first answer'),
-    assistantNode('14:assistant-step4:1', 60, 'second answer', 'running', 'open'),
-  ], true)
-  assert.equal(explainer.getSnapshot().answerText, 'second answer')
-})
-
-test('different real conversation keys with the same kind-length prefix fork at their node sequences', async () => {
-  const sessions = fakeSessions()
-  const explainer = createExplainer(sessions)
-
-  await explainer.start(selection('14:assistant-step2:1', 'first turn'))
-  const first = sessions.children.get('child-1')
-  await explainer.start(selection('14:assistant-step4:1', 'later turn'))
-  const second = sessions.children.get('child-2')
-
-  assert.deepEqual(sessions.forks, [
-    { sessionId: 'parent-a', atSeq: 42 },
-    { sessionId: 'parent-a', atSeq: 70 },
-  ])
-  assert.equal(first.subscriberCount, 0)
-  assert.equal(second.subscriberCount, 1)
-})
-
-test('changing the selected parent detaches the old child and forks a new child', async () => {
-  const sessions = fakeSessions()
-  const explainer = createExplainer(sessions)
-
-  await explainer.start(selection())
-  const first = sessions.children.get('child-1')
-  assert.equal(first.subscriberCount, 1)
-
-  sessions.setCurrent('parent-b')
-  await explainer.start(selection('14:assistant-step3:1', 'new parent term'))
-  const second = sessions.children.get('child-2')
-
-  assert.deepEqual(sessions.forks.map(({ sessionId }) => sessionId), ['parent-a', 'parent-b'])
-  assert.equal(first.subscriberCount, 0)
-  assert.equal(second.subscriberCount, 1)
-  assert.equal(explainer.getSnapshot().childId, 'child-2')
-})
-
-test('dispose invalidates an in-flight fork before it can bind or prompt', async () => {
-  let resolveFork
-  const forked = new Promise((resolve) => { resolveFork = resolve })
-  let bindingCalls = 0
-  const parent = fakeSession({ nodes: [assistantNode('14:assistant-step2:1', 42)] })
   const sessions = {
-    list: { getSnapshot: () => ({ current: 'parent-a' }) },
-    fork: () => forked,
+    list,
     binding(id) {
-      if (id === 'parent-a') return { session: parent }
-      bindingCalls++
-      return { session: fakeSession() }
+      const session = id === sourceId ? parent : children.get(id)
+      return session === undefined ? undefined : { session }
+    },
+    async fork(opts) {
+      order.push('fork')
+      forks.push(opts)
+      const id = `child-${++serial}`
+      const child = fakeSession(id, { order, ...childOptions })
+      children.set(id, child)
+      listState.ids.push(id)
+      listState.byId[id] = {
+        id,
+        displayTitle: id,
+        parentId: sourceId,
+        running: false,
+        blank: false,
+        updatedAt: 10 + serial,
+      }
+      list.emit()
+      return id
     },
   }
-  const explainer = createExplainer(sessions)
-  const started = explainer.start(selection())
-  await Promise.resolve()
 
-  const disposing = explainer.dispose()
-  let disposeSettled = false
-  void disposing.then(() => { disposeSettled = true })
-  await Promise.resolve()
-  assert.equal(disposeSettled, false)
+  const archived = []
+  const workspaceState = {
+    items: [],
+    archivedSessionIds: [],
+    state: 'idle',
+    phase: 'ready',
+    error: null,
+    baselinesReady: true,
+    recentWorkspaceId: undefined,
+  }
+  const workspaceList = observable(() => workspaceState)
+  const workspaces = {
+    list: workspaceList,
+    async archiveSession(id) {
+      archived.push(id)
+      workspaceState.archivedSessionIds = [...workspaceState.archivedSessionIds, id]
+      workspaceList.emit()
+    },
+  }
+  let prepareCalls = 0
+  const prepareThread = prepare ?? (async () => {
+    prepareCalls++
+    order.push('prepare')
+    return { ok: true, value: { ready: true, citation: citation() } }
+  })
+  const controller = createExplainerController(sessions, workspaces, prepareThread, snapshotStore())
+  return {
+    controller,
+    sessions,
+    workspaces,
+    parent,
+    children,
+    forks,
+    order,
+    archived,
+    get prepareCalls() { return prepareCalls },
+  }
+}
 
-  resolveFork('child-late')
-  await disposing
-  await started
+test('custom first question follows fail-closed ordering and stays a genuine user prompt', async () => {
+  const app = harness()
+  app.controller.select(selection())
+  await app.controller.ask('Why does this tensor measure curvature?')
 
-  assert.equal(disposeSettled, true)
-  assert.equal(bindingCalls, 0)
+  const child = app.children.get('child-1')
+  assert.deepEqual(app.forks, [{ sessionId: sourceId, atSeq: 42 }])
+  assert.deepEqual(app.order, ['fork', 'open', 'permission', 'prepare', 'prompt'])
+  assert.deepEqual(child.calls.prompt, [{
+    content: [{ type: 'text', text: 'Why does this tensor measure curvature?' }],
+    mode: 'queue',
+  }])
+  assert.equal(app.parent.calls.command, 0)
+  assert.equal(app.parent.calls.prompt.length, 0)
 })
 
-test('dispose waits for an accepted cancellation to reach quiescence', async () => {
-  let resolveCancel
-  const cancelled = new Promise((resolve) => { resolveCancel = resolve })
-  const child = fakeSession({ cancel: () => cancelled })
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
-  await explainer.start(selection())
+test('read-only command rejection and unmatched command both block preparation and prompt', async () => {
+  for (const permission of [
+    { ok: false, error: { message: 'denied' } },
+    { ok: true, value: { matched: false } },
+  ]) {
+    let prepares = 0
+    const app = harness({
+      childOptions: { permission },
+      prepare: async () => {
+        prepares++
+        return { ok: true, value: { ready: true, citation: citation() } }
+      },
+    })
+    app.controller.select(selection())
+    await app.controller.ask('Explain it')
+    const child = app.children.get('child-1')
+    assert.equal(prepares, 0)
+    assert.equal(child.calls.prompt.length, 0)
+    assert.equal(app.controller.getSnapshot().phase, 'error')
+  }
+})
 
-  const stopping = explainer.stop()
-  await Promise.resolve()
-  const disposing = explainer.dispose()
-  let disposeSettled = false
-  void disposing.then(() => { disposeSettled = true })
-  await Promise.resolve()
-  assert.equal(disposeSettled, false)
+test('Host preparation failure blocks the first model-visible question', async () => {
+  const app = harness({
+    prepare: async () => ({ ok: false, error: { message: 'scope refused' } }),
+  })
+  app.controller.select(selection())
+  await app.controller.ask('Explain it')
+  assert.equal(app.children.get('child-1').calls.prompt.length, 0)
+  assert.match(app.controller.getSnapshot().error, /scope refused/)
+})
 
-  resolveCancel({ ok: true, value: { accepted: true } })
-  await stopping
-  await disposing
-  assert.equal(disposeSettled, true)
+test('missing, running, and open-turn source nodes never fork', async () => {
+  for (const flow of [
+    undefined,
+    assistantFlow({ status: 'running', turnStatus: 'open' }),
+    assistantFlow({ status: 'settled', turnStatus: 'open' }),
+  ]) {
+    const app = harness()
+    app.parent.getSnapshot = () => ({
+      chat: { nodes: { get: () => flow, values: () => flow === undefined ? [] : [flow] } },
+      nodes: [],
+      partial: null,
+      running: false,
+      promptError: null,
+      lastAgentError: null,
+    })
+    app.controller.select(selection())
+    await app.controller.ask('Explain it')
+    assert.equal(app.forks.length, 0)
+    assert.equal(app.controller.getSnapshot().phase, 'error')
+  }
+})
+
+test('follow-ups remain in the same child and are sent as independent user turns', async () => {
+  const app = harness()
+  app.controller.select(selection())
+  await app.controller.ask('First question')
+  await app.controller.ask('Follow-up question')
+
+  const child = app.children.get('child-1')
+  assert.equal(app.forks.length, 1)
+  assert.deepEqual(child.calls.prompt.map((call) => call.content[0].text), [
+    'First question',
+    'Follow-up question',
+  ])
+  assert.equal(child.calls.command, 2)
+})
+
+test('different ranges in one assistant answer produce different children', async () => {
+  const app = harness()
+  app.controller.select(selection())
+  await app.controller.ask('Explain first range')
+  app.controller.select(selection({ text: 'tensor', startOffset: 18, endOffset: 24 }))
+  await app.controller.ask('Explain second range')
+
+  assert.equal(app.forks.length, 2)
+  assert.deepEqual(app.forks.map((entry) => entry.atSeq), [42, 42])
+})
+
+test('projected Thread recovery does not fork and filters inherited history', async () => {
+  const projection = projectedThread()
+  const recovered = fakeSession('thread-1', {
+    projected: projection,
+    nodes: [
+      { kind: 'assistant', seq: 5, blocks: [{ kind: 'text', text: 'inherited answer' }] },
+      { kind: 'user', seq: 10, content: [{ type: 'text', text: 'first question' }] },
+      { kind: 'context', seq: 11, content: [], source: {}, provenance: {}, form: 'snapshot' },
+      { kind: 'assistant', seq: 12, blocks: [{ kind: 'text', text: 'thread answer' }] },
+    ],
+  })
+  const app = harness({ existing: { id: 'thread-1', session: recovered, projected: projection, title: 'Curvature' } })
+
+  await app.controller.switchThread('thread-1')
+  assert.equal(app.forks.length, 0)
+  assert.deepEqual(app.controller.getSnapshot().transcript.map((entry) => entry.text), [
+    'first question',
+    'thread answer',
+  ])
+  await app.controller.ask('A real follow-up')
+  assert.equal(recovered.calls.prompt[0].content[0].text, 'A real follow-up')
+})
+
+test('rename and archive use existing durable session verbs', async () => {
+  const projection = projectedThread()
+  const recovered = fakeSession('thread-1', { projected: projection })
+  const app = harness({ existing: { id: 'thread-1', session: recovered, projected: projection } })
+  await app.controller.switchThread('thread-1')
+  await app.controller.renameActive('My tensor notes')
+  assert.deepEqual(recovered.calls.rename, ['My tensor notes'])
+  assert.equal(app.controller.getSnapshot().activeThread.title, 'My tensor notes')
+
+  await app.controller.archiveActive()
+  assert.deepEqual(app.archived, ['thread-1'])
+  assert.equal(app.controller.getSnapshot().activeThread, null)
+  assert.equal(app.controller.getSnapshot().threads.length, 0)
+})
+
+test('dispose invalidates an in-flight fork before late binding or prompt', async () => {
+  let resolveFork
+  const forked = new Promise((resolve) => { resolveFork = resolve })
+  const app = harness()
+  let childBindings = 0
+  app.sessions.fork = async (opts) => {
+    app.forks.push(opts)
+    return forked
+  }
+  const originalBinding = app.sessions.binding
+  app.sessions.binding = (id) => {
+    if (id !== sourceId) childBindings++
+    return originalBinding(id)
+  }
+
+  app.controller.select(selection())
+  const asking = app.controller.ask('Explain it')
+  while (app.forks.length === 0) await new Promise((resolve) => setImmediate(resolve))
+  const disposing = app.controller.dispose()
+  resolveFork('child-late')
+  await Promise.all([asking, disposing])
+
+  assert.equal(childBindings, 0)
 })

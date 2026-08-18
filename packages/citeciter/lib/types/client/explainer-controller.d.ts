@@ -1,32 +1,31 @@
-import type { ISessions, SessionId, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { ISessions, IWorkspaces, SessionId, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
+import type { PrepareThreadResult } from '../index.ts';
+import type { CitationRecord } from '../thread.ts';
+import { type ThreadSummary } from './thread.ts';
+import { type TranscriptEntry } from './transcript.ts';
 import type { CiteSelection } from './types.ts';
-/** User-visible lifecycle state of one explanation request. */
-export type ExplainPhase = 'idle' | 'creating' | 'ready' | 'running' | 'settled' | 'error';
-/** Immutable value observed by the CiteCiter panel. */
+export type ExplainPhase = 'idle' | 'draft' | 'creating' | 'ready' | 'running' | 'error';
 export interface ExplainSnapshot {
     phase: ExplainPhase;
-    childId: SessionId | null;
     selection: CiteSelection | null;
-    answerText: string | null;
+    activeThread: ThreadSummary | null;
+    threads: readonly ThreadSummary[];
+    transcript: readonly TranscriptEntry[];
     error: string | null;
 }
-/** Observable actions owned by one CiteCiter plugin fiber. */
+export type PrepareThread = (sessionId: SessionId, citation: CitationRecord) => Promise<RemoteResult<PrepareThreadResult>>;
 export interface ExplainFace {
     getSnapshot(): ExplainSnapshot;
     subscribe(listener: () => void): () => void;
-    start(selection: CiteSelection): Promise<void>;
+    select(selection: CiteSelection): void;
+    ask(question: string): Promise<void>;
+    switchThread(sessionId: string): Promise<void>;
+    renameActive(title: string): Promise<void>;
+    archiveActive(): Promise<void>;
     stop(): Promise<void>;
     dispose(): Promise<void>;
 }
-/**
- * Bind the explanation state machine to a supplied snapshot store.
- *
- * A parent or anchor change detaches the old child and forks a correctly scoped
- * one. Work is serialized so repeated selections cannot create parallel children, and disposal
- * invalidates every in-flight await before it can install another subscription.
- *
- * @param sessions - DSH browser session service.
- * @param store - plugin-owned observable state store.
- * @returns observable explainer state and lifecycle actions.
- */
-export declare function createExplainerController(sessions: ISessions, store: SnapshotStore<ExplainSnapshot>): ExplainFace;
+/** Bind durable Thread orchestration to plugin-owned browser services and state. */
+export declare function createExplainerController(sessions: ISessions, workspaces: IWorkspaces, prepareThread: PrepareThread, store: SnapshotStore<ExplainSnapshot>): ExplainFace;
+export type { ThreadSummary, TranscriptEntry };

@@ -1,15 +1,15 @@
+/** Maximum genuine user-question length admitted by the Citation Thread UI. */
+export const MAX_QUESTION_CHARS = 12_000;
 /**
- * Build the explanation prompt recorded into the forked child session.
- * @param selection - quoted assistant text and its parent-log anchor.
- * @returns model-visible prompt text.
+ * Normalize a genuine user question without wrapping it in Citation or role
+ * prose. System Tutor and Citation Context travel through their own layers.
  */
-export function buildPrompt(selection) {
-    return [
-        '你是 CiteCiter 解释器。只解释下面引用的内容，不执行任务、不修改任何文件，不要请求提升沙箱权限。',
-        `[引用自主会话 anchor=${selection.anchorKey}]`,
-        '<<<',
-        selection.text,
-        '>>>',
-        '要求：先给一句话直觉解释，再展开原理。数学用 $...$；代码使用带语言围栏；如需图，输出一个 ```svg 围栏（不要 script/foreignObject）。不要输出与引用无关的内容。',
-    ].join('\n\n');
+export function normalizeQuestion(rawQuestion) {
+    const question = rawQuestion.trim();
+    if (question === '')
+        throw new Error('question cannot be empty');
+    if (question.length > MAX_QUESTION_CHARS) {
+        throw new Error(`question exceeds ${MAX_QUESTION_CHARS} characters`);
+    }
+    return question;
 }

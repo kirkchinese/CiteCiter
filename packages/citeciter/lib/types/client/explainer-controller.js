@@ -1,189 +1,245 @@
 import { readAssistantAnswer } from "./answer.js";
-import { buildPrompt } from "./prompt.js";
-/**
- * Bind the explanation state machine to a supplied snapshot store.
- *
- * A parent or anchor change detaches the old child and forks a correctly scoped
- * one. Work is serialized so repeated selections cannot create parallel children, and disposal
- * invalidates every in-flight await before it can install another subscription.
- *
- * @param sessions - DSH browser session service.
- * @param store - plugin-owned observable state store.
- * @returns observable explainer state and lifecycle actions.
- */
-export function createExplainerController(sessions, store) {
+import { normalizeQuestion } from "./prompt.js";
+import { createCitation, findCitationThread, listCitationThreads, summarizeCitationThread, } from "./thread.js";
+import { extractTranscript } from "./transcript.js";
+/** Bind durable Thread orchestration to plugin-owned browser services and state. */
+export function createExplainerController(sessions, workspaces, prepareThread, store) {
     let child = null;
-    let parentId = null;
-    let forkSeq = null;
     let unsubscribeChild = null;
+    let unsubscribeProjection = null;
     let disposed = false;
     let epoch = 0;
-    let startQueue = Promise.resolve();
-    let stopQueue = Promise.resolve();
-    const baselineAssistantKeys = new Set();
+    let operationQueue = Promise.resolve();
+    const isActive = (operationEpoch) => !disposed && operationEpoch === epoch;
     const update = (mutator) => {
         if (!disposed)
             store.update(mutator);
     };
-    const fail = (error) => {
+    const fail = (error, operationEpoch = epoch) => {
+        if (!isActive(operationEpoch))
+            return;
         update((draft) => {
             draft.phase = 'error';
             draft.error = error instanceof Error ? error.message : String(error);
         });
     };
-    const isActive = (operationEpoch) => !disposed && operationEpoch === epoch;
-    const detachChild = () => {
-        epoch++;
+    const releaseAttachment = () => {
+        unsubscribeProjection?.();
+        unsubscribeProjection = null;
         unsubscribeChild?.();
         unsubscribeChild = null;
         child = null;
-        parentId = null;
-        forkSeq = null;
-        baselineAssistantKeys.clear();
+    };
+    const currentProjectedThread = () => {
+        if (child === null)
+            return null;
+        const value = child.projections.faceOf('citeciter').getSnapshot();
+        return value?.thread ?? null;
     };
     const updateFromChild = () => {
         const session = child;
         if (session === null || disposed)
             return;
-        const snapshot = session.getSnapshot();
-        let answer = null;
-        for (const node of snapshot.chat.nodes.values()) {
-            if (node.kind !== 'assistant-step' || baselineAssistantKeys.has(node.key))
-                continue;
-            const candidate = readAssistantAnswer(node.data);
-            if (candidate !== null && (answer === null || node.anchorSeq >= answer.anchorSeq)) {
-                answer = { ...candidate, anchorSeq: node.anchorSeq };
+        const conversation = session.getSnapshot();
+        const projected = currentProjectedThread();
+        let activeThread = store.getSnapshot().activeThread;
+        if (projected !== null) {
+            const summary = summarizeCitationThread(sessions.list.getSnapshot(), session.sessionId, projected);
+            if (summary !== null)
+                activeThread = summary;
+        }
+        const historyStartSeq = activeThread?.historyStartSeq ?? Number.MAX_SAFE_INTEGER;
+        update((draft) => {
+            draft.activeThread = activeThread;
+            draft.transcript = extractTranscript(conversation, historyStartSeq);
+            if (conversation.promptError !== null) {
+                draft.phase = 'error';
+                draft.error = conversation.promptError.error.message;
             }
-        }
-        if (answer !== null) {
-            update((draft) => {
-                draft.phase = answer.status === 'running' ? 'running' : 'settled';
-                draft.answerText = answer.text;
-                draft.error = null;
-            });
-            return;
-        }
-        if (snapshot.promptError !== null) {
-            fail(snapshot.promptError.error.message);
-            return;
-        }
-        if (snapshot.lastAgentError !== null) {
-            fail(snapshot.lastAgentError);
-            return;
-        }
-        if (snapshot.running) {
-            update((draft) => {
+            else if (conversation.lastAgentError !== null) {
+                draft.phase = 'error';
+                draft.error = conversation.lastAgentError;
+            }
+            else if (conversation.running) {
                 draft.phase = 'running';
-            });
-        }
+                draft.error = null;
+            }
+            else if (draft.phase !== 'creating' && draft.phase !== 'error') {
+                draft.phase = 'ready';
+            }
+        });
     };
-    const rememberAssistantKeys = (session) => {
-        for (const node of session.getSnapshot().chat.nodes.values()) {
-            if (node.kind === 'assistant-step')
-                baselineAssistantKeys.add(node.key);
-        }
-    };
-    const attachChild = (session, sourceId, atSeq) => {
+    const attach = (session, summary) => {
+        releaseAttachment();
         child = session;
-        parentId = sourceId;
-        forkSeq = atSeq;
-        baselineAssistantKeys.clear();
-        rememberAssistantKeys(session);
+        update((draft) => {
+            draft.selection = null;
+            draft.activeThread = summary;
+            draft.transcript = [];
+            draft.error = null;
+        });
         unsubscribeChild = session.subscribe(updateFromChild);
+        const projectionFace = session.projections.faceOf('citeciter');
+        unsubscribeProjection = projectionFace.subscribe(updateFromChild);
+        updateFromChild();
     };
-    const prompt = async (selection, operationEpoch) => {
-        const session = child;
-        if (session === null || !isActive(operationEpoch))
+    const discoverThreads = () => listCitationThreads(sessions.list.getSnapshot(), workspaces.list.getSnapshot().archivedSessionIds);
+    const refreshThreads = () => {
+        if (disposed)
             return;
-        rememberAssistantKeys(session);
+        const threads = discoverThreads();
+        const activeId = store.getSnapshot().activeThread?.sessionId;
+        const refreshed = activeId === undefined
+            ? undefined
+            : threads.find((thread) => thread.sessionId === activeId);
+        update((draft) => {
+            draft.threads = threads;
+            if (refreshed !== undefined)
+                draft.activeThread = refreshed;
+        });
+    };
+    const unsubscribeList = sessions.list.subscribe(refreshThreads);
+    const unsubscribeWorkspaces = workspaces.list.subscribe(refreshThreads);
+    refreshThreads();
+    const ensureReadOnlyScope = async (session, citation, operationEpoch) => {
+        let permission;
+        try {
+            permission = await session.command('/permission read-only');
+        }
+        catch (error) {
+            fail(error, operationEpoch);
+            return false;
+        }
+        if (!isActive(operationEpoch))
+            return false;
+        if (!permission.ok) {
+            fail(`read-only switch failed: ${permission.error.message}`, operationEpoch);
+            return false;
+        }
+        if (!permission.value.matched) {
+            fail('read-only switch failed: permission command was not recognized', operationEpoch);
+            return false;
+        }
+        let prepared;
+        try {
+            prepared = await prepareThread(session.sessionId, citation);
+        }
+        catch (error) {
+            fail(error, operationEpoch);
+            return false;
+        }
+        if (!isActive(operationEpoch))
+            return false;
+        if (!prepared.ok) {
+            fail(`Citation Thread preparation failed: ${prepared.error.message}`, operationEpoch);
+            return false;
+        }
+        return true;
+    };
+    const sendQuestion = async (session, citation, question, operationEpoch) => {
+        if (!await ensureReadOnlyScope(session, citation, operationEpoch))
+            return;
+        if (!isActive(operationEpoch))
+            return;
         update((draft) => {
             draft.phase = 'running';
-            draft.selection = selection;
-            draft.answerText = null;
             draft.error = null;
         });
         let result;
         try {
-            result = await session.prompt([{
-                    type: 'text',
-                    text: buildPrompt(selection),
-                }], 'queue');
+            result = await session.prompt([{ type: 'text', text: question }], 'queue');
         }
         catch (error) {
-            if (isActive(operationEpoch))
-                fail(error);
+            fail(error, operationEpoch);
             return;
         }
         if (!isActive(operationEpoch))
             return;
         if (!result.ok) {
-            fail(result.error.message);
+            fail(result.error.message, operationEpoch);
             return;
         }
         updateFromChild();
     };
-    const runStart = async (selection) => {
-        if (disposed)
-            return;
-        const current = sessions.list.getSnapshot().current;
-        if (current === undefined) {
-            fail('no current session');
-            return;
+    const openExisting = async (summary, operationEpoch) => {
+        const binding = sessions.binding(summary.sessionId);
+        if (binding === undefined) {
+            fail(`Citation Thread "${summary.sessionId}" is not locally addressable`, operationEpoch);
+            return null;
         }
+        const session = binding.session;
+        try {
+            await session.open();
+        }
+        catch (error) {
+            fail(error, operationEpoch);
+            return null;
+        }
+        if (!isActive(operationEpoch))
+            return null;
+        attach(session, summary);
         update((draft) => {
-            draft.selection = selection;
-            draft.error = null;
+            draft.phase = session.getSnapshot().running ? 'running' : 'ready';
         });
-        const sourceBinding = sessions.binding(current);
+        return session;
+    };
+    const createForSelection = async (selection, question, operationEpoch) => {
+        const sourceBinding = sessions.binding(selection.sourceSessionId);
         if (sourceBinding === undefined) {
-            fail(`current session "${current}" is not locally addressable`);
+            fail(`source session "${selection.sourceSessionId}" is not locally addressable`, operationEpoch);
             return;
         }
         const sourceNode = sourceBinding.session.getSnapshot().chat.nodes.get(selection.anchorKey);
         if (sourceNode === undefined || sourceNode.kind !== 'assistant-step') {
-            fail('selected assistant context is no longer available');
+            fail('selected assistant context is no longer available', operationEpoch);
             return;
         }
         const sourceAnswer = readAssistantAnswer(sourceNode.data);
         if (sourceAnswer === null || sourceAnswer.status === 'running') {
-            fail('selected assistant response is not complete');
+            fail('selected assistant response is not complete', operationEpoch);
             return;
         }
         if (sourceNode.location.kind !== 'step' || sourceNode.location.turn.status !== 'closed') {
-            fail('selected assistant turn is not complete');
+            fail('selected assistant turn is not complete', operationEpoch);
             return;
         }
-        const atSeq = sourceNode.anchorSeq;
-        if (child !== null && parentId === current && forkSeq === atSeq) {
-            await prompt(selection, epoch);
+        let citation;
+        try {
+            citation = await createCitation(selection, selection.sourceSessionId, sourceNode.anchorSeq);
+        }
+        catch (error) {
+            fail(error, operationEpoch);
             return;
         }
-        if (child !== null) {
-            detachChild();
-            update((draft) => {
-                draft.phase = 'idle';
-                draft.childId = null;
-                draft.answerText = null;
-            });
+        if (!isActive(operationEpoch))
+            return;
+        const existing = findCitationThread(discoverThreads(), citation);
+        if (existing !== undefined) {
+            const session = await openExisting(existing, operationEpoch);
+            if (session !== null)
+                await sendQuestion(session, existing.citation, question, operationEpoch);
+            return;
         }
         update((draft) => {
             draft.phase = 'creating';
+            draft.error = null;
         });
-        const operationEpoch = epoch;
         let childId;
         try {
-            childId = await sessions.fork({ sessionId: current, atSeq });
+            childId = await sessions.fork({
+                sessionId: selection.sourceSessionId,
+                atSeq: sourceNode.anchorSeq,
+            });
         }
         catch (error) {
-            if (isActive(operationEpoch))
-                fail(error);
+            fail(error, operationEpoch);
             return;
         }
         if (!isActive(operationEpoch))
             return;
         const binding = sessions.binding(childId);
         if (binding === undefined) {
-            fail(`fork child "${childId}" is not locally addressable`);
+            fail(`fork child "${childId}" is not locally addressable`, operationEpoch);
             return;
         }
         const session = binding.session;
@@ -191,100 +247,206 @@ export function createExplainerController(sessions, store) {
             await session.open();
         }
         catch (error) {
-            if (isActive(operationEpoch))
-                fail(error);
+            fail(error, operationEpoch);
             return;
         }
         if (!isActive(operationEpoch))
             return;
-        attachChild(session, current, atSeq);
-        update((draft) => {
-            draft.childId = childId;
-            draft.phase = 'ready';
-        });
-        let permission;
-        try {
-            permission = await session.command('/permission read-only');
-        }
-        catch (error) {
-            if (isActive(operationEpoch))
-                fail(error);
-            return;
-        }
-        if (!isActive(operationEpoch))
-            return;
-        if (!permission.ok) {
-            fail(`read-only switch failed: ${permission.error.message}`);
-            return;
-        }
-        if (!permission.value.matched) {
-            fail('read-only switch failed: permission command was not recognized');
-            return;
-        }
-        await prompt(selection, operationEpoch);
+        const list = sessions.list.getSnapshot();
+        const source = list.byId[selection.sourceSessionId];
+        const childRow = list.byId[childId];
+        const provisional = {
+            sessionId: childId,
+            parentSessionId: selection.sourceSessionId,
+            parentTitle: source?.displayTitle ?? selection.sourceSessionId,
+            ...(childRow?.title === undefined ? {} : { title: childRow.title }),
+            updatedAt: childRow?.updatedAt ?? Date.now(),
+            running: false,
+            citation,
+            historyStartSeq: Number.MAX_SAFE_INTEGER,
+            contextSeq: Number.MAX_SAFE_INTEGER,
+        };
+        attach(session, provisional);
+        await sendQuestion(session, citation, question, operationEpoch);
     };
-    const start = (selection) => {
+    const enqueue = (task, operationEpoch = epoch) => {
         if (disposed)
             return Promise.resolve();
-        const task = startQueue.then(async () => {
-            try {
-                await runStart(selection);
-            }
-            catch (error) {
-                fail(error);
-            }
-        });
-        startQueue = task;
-        return task;
-    };
-    const runStop = async () => {
-        const session = child;
-        const operationEpoch = epoch;
-        if (session === null || !isActive(operationEpoch))
-            return;
-        try {
-            const result = await session.cancel();
+        const run = async () => {
             if (!isActive(operationEpoch))
                 return;
-            if (!result.ok) {
-                fail(result.error.message);
-                return;
+            try {
+                await task(operationEpoch);
             }
+            catch (error) {
+                fail(error, operationEpoch);
+            }
+        };
+        const next = operationQueue.then(run, run);
+        operationQueue = next;
+        return next;
+    };
+    const select = (selection) => {
+        if (disposed)
+            return;
+        epoch++;
+        releaseAttachment();
+        update((draft) => {
+            draft.phase = 'draft';
+            draft.selection = selection;
+            draft.activeThread = null;
+            draft.transcript = [];
+            draft.error = null;
+        });
+    };
+    const ask = (rawQuestion) => {
+        let question;
+        try {
+            question = normalizeQuestion(rawQuestion);
         }
         catch (error) {
-            if (isActive(operationEpoch))
-                fail(error);
+            fail(error);
+            return Promise.resolve();
+        }
+        return enqueue(async (operationEpoch) => {
+            const snapshot = store.getSnapshot();
+            const session = child;
+            if (session !== null && snapshot.activeThread !== null) {
+                await sendQuestion(session, snapshot.activeThread.citation, question, operationEpoch);
+                return;
+            }
+            if (snapshot.selection === null) {
+                fail('select a quotation or recover a Citation Thread first', operationEpoch);
+                return;
+            }
+            await createForSelection(snapshot.selection, question, operationEpoch);
+        });
+    };
+    const switchThread = (sessionId) => {
+        if (disposed)
+            return Promise.resolve();
+        epoch++;
+        const operationEpoch = epoch;
+        releaseAttachment();
+        update((draft) => {
+            draft.phase = 'creating';
+            draft.selection = null;
+            draft.activeThread = null;
+            draft.transcript = [];
+            draft.error = null;
+        });
+        return enqueue(async () => {
+            const summary = discoverThreads()
+                .find((thread) => thread.sessionId === sessionId);
+            if (summary === undefined) {
+                fail(`Citation Thread "${sessionId}" is unavailable`, operationEpoch);
+                return;
+            }
+            await openExisting(summary, operationEpoch);
+        }, operationEpoch);
+    };
+    const renameActive = (rawTitle) => enqueue(async (operationEpoch) => {
+        const title = rawTitle.trim();
+        if (title === '') {
+            fail('Thread title cannot be empty', operationEpoch);
+            return;
+        }
+        const session = child;
+        if (session === null) {
+            fail('no active Citation Thread', operationEpoch);
+            return;
+        }
+        const result = await session.rename(title);
+        if (!isActive(operationEpoch))
+            return;
+        if (!result.ok) {
+            fail(result.error.message, operationEpoch);
+            return;
+        }
+        update((draft) => {
+            if (draft.activeThread !== null)
+                draft.activeThread = { ...draft.activeThread, title: result.value.title };
+            draft.error = null;
+        });
+    });
+    const archiveActive = () => {
+        const session = child;
+        const summary = store.getSnapshot().activeThread;
+        if (disposed || session === null || summary === null) {
+            fail('no active Citation Thread');
+            return Promise.resolve();
+        }
+        const operationEpoch = epoch;
+        return enqueue(async () => {
+            if (session.getSnapshot().running) {
+                const cancelled = await session.cancel();
+                if (!isActive(operationEpoch))
+                    return;
+                if (!cancelled.ok) {
+                    fail(cancelled.error.message, operationEpoch);
+                    return;
+                }
+            }
+            await workspaces.archiveSession(summary.sessionId);
+            if (!isActive(operationEpoch))
+                return;
+            // Only clear the visible Thread after the durable archive succeeds, so a
+            // cancellation or workspace error stays actionable in the current panel.
+            epoch++;
+            releaseAttachment();
+            update((draft) => {
+                draft.phase = 'idle';
+                draft.selection = null;
+                draft.activeThread = null;
+                draft.transcript = [];
+                draft.error = null;
+            });
+            refreshThreads();
+        }, operationEpoch);
+    };
+    const stop = () => enqueue(async (operationEpoch) => {
+        const session = child;
+        if (session === null)
+            return;
+        const result = await session.cancel();
+        if (!isActive(operationEpoch))
+            return;
+        if (!result.ok) {
+            fail(result.error.message, operationEpoch);
             return;
         }
         update((draft) => {
             draft.phase = 'ready';
+            draft.error = null;
         });
-    };
-    const stop = () => {
-        if (disposed)
-            return Promise.resolve();
-        const task = stopQueue.then(async () => {
-            try {
-                await runStop();
-            }
-            catch (error) {
-                fail(error);
-            }
-        });
-        stopQueue = task;
-        return task;
-    };
+    });
     const dispose = async () => {
-        if (!disposed) {
-            detachChild();
-            disposed = true;
+        if (disposed)
+            return;
+        const session = child;
+        disposed = true;
+        epoch++;
+        unsubscribeList();
+        unsubscribeWorkspaces();
+        releaseAttachment();
+        if (session?.getSnapshot().running === true) {
+            try {
+                await session.cancel();
+            }
+            catch {
+                // Plugin unload is best-effort after the epoch has prevented stale writes.
+            }
         }
-        await Promise.all([startQueue, stopQueue]);
+        await operationQueue;
     };
     return {
         getSnapshot: store.getSnapshot,
         subscribe: store.subscribe,
-        start,
+        select,
+        ask,
+        switchThread,
+        renameActive,
+        archiveActive,
         stop,
         dispose,
     };
