@@ -1,0 +1,4 @@
+# Add only the deterministic provider after the candidate bundle is installed.
+- insert:
+    - id: citeciter-fixture-llm
+      name: ../node_modules/@kirkchinese/dsh-citeciter/dev/fake-llm.mjs

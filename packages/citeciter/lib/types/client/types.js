@@ -1,45 +1,34 @@
-/** Observable selection state shared by the overlay and details panel. */
+/** Tiny observable state shared by the selection popover and independent dock. */
 export class CiteBus {
     reportListenerError;
-    menuSelection = null;
-    panelSelection = null;
+    snapshot = { menuSelection: null, panelOpen: false };
     listeners = new Set();
-    /** @param reportListenerError - isolates and reports one failed subscriber. */
+    /** @param reportListenerError - contains one failed browser subscriber. */
     constructor(reportListenerError) {
         this.reportListenerError = reportListenerError;
     }
-    /** @returns current context-menu selection, or null while hidden. */
-    getMenuSelection() {
-        return this.menuSelection;
-    }
-    /** @returns selection currently explained in the details panel. */
-    getPanelSelection() {
-        return this.panelSelection;
-    }
-    /** @param selection - next context-menu selection, or null to hide it. */
-    setMenuSelection(selection) {
-        if (this.menuSelection === selection)
-            return;
-        this.menuSelection = selection;
-        this.notify();
-    }
-    /** @param selection - next details-panel selection, or null when closed. */
-    setPanelSelection(selection) {
-        if (this.panelSelection === selection)
-            return;
-        this.panelSelection = selection;
-        this.notify();
-    }
-    /**
-     * Subscribe to either selection value.
-     * @param listener - callback invoked after a value changes.
-     * @returns disposer for this subscription.
-     */
-    subscribe(listener) {
+    /** @returns stable overlay snapshot. */
+    getSnapshot = () => this.snapshot;
+    /** @param listener - observer. @returns disposer. */
+    subscribe = (listener) => {
         this.listeners.add(listener);
         return () => {
             this.listeners.delete(listener);
         };
+    };
+    /** Show or dismiss the selection question popover. */
+    setMenuSelection(selection) {
+        if (this.snapshot.menuSelection === selection)
+            return;
+        this.snapshot = { ...this.snapshot, menuSelection: selection };
+        this.notify();
+    }
+    /** Open or close the independent companion dock. */
+    setPanelOpen(panelOpen) {
+        if (this.snapshot.panelOpen === panelOpen)
+            return;
+        this.snapshot = { ...this.snapshot, panelOpen };
+        this.notify();
     }
     notify() {
         for (const listener of [...this.listeners]) {

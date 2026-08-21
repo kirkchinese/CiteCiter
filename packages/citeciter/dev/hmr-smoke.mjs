@@ -4,7 +4,7 @@ const playwrightModule = process.env.PLAYWRIGHT_PATH ?? 'playwright'
 const { chromium: chromiumExport } = await import(playwrightModule)
 
 const baseUrl = process.argv[2] ?? 'http://127.0.0.1:3907'
-const menuLabel = process.argv[3] ?? 'Citer!'
+const menuLabel = process.argv[3] ?? '向 CiteCiter 提问'
 const bundlePath = new URL('../lib/client.js', import.meta.url)
 const temporaryBundlePath = new URL(`../lib/.client.hmr-smoke-${process.pid}.tmp`, import.meta.url)
 const originalBundle = await readFile(bundlePath)
@@ -60,7 +60,7 @@ try {
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 20_000 })
   await page.waitForTimeout(2_000)
   await page.evaluate(dispatchSelection)
-  await page.getByRole('menuitem', { name: menuLabel, exact: true }).waitFor({ timeout: 8_000 })
+  await page.getByRole('dialog', { name: menuLabel, exact: true }).waitFor({ timeout: 8_000 })
   result.before = menuLabel
 
   const marker = new TextEncoder().encode(`\n/* citeciter-hmr-smoke ${Date.now()} */\n`)
@@ -82,7 +82,7 @@ try {
   result.unmountedOldFiber = true
 
   await page.evaluate(dispatchSelection)
-  await page.getByRole('menuitem', { name: menuLabel, exact: true }).waitFor({ timeout: 8_000 })
+  await page.getByRole('dialog', { name: menuLabel, exact: true }).waitFor({ timeout: 8_000 })
   result.after = menuLabel
   result.menuCount = await page.locator('[data-citeciter-menu]').count()
   result.frames = await page.evaluate(() => window.__citeciterHmrFrames

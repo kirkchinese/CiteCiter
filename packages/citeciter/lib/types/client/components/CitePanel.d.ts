@@ -1,12 +1,9 @@
-import type { ExplainFace } from '../explainer.ts';
-/** Dependencies injected into the session-scoped details entry. */
+import type { CompanionFace } from '../companion-controller.ts';
+import type { CiteBus } from '../types.ts';
 export interface CitePanelProps {
-    readonly close: () => void;
-    readonly explainer: ExplainFace;
+    readonly bus: CiteBus;
+    readonly companion: CompanionFace;
+    readonly closePanel: () => void;
 }
-/**
- * Render the durable Citation Thread panel.
- * @param props - close action and plugin-owned controller.
- * @returns question composer, transcript, recovery controls, and lifecycle actions.
- */
-export declare function CitePanel({ close, explainer }: CitePanelProps): import("react").JSX.Element;
+/** Independent, resizable learning workspace docked beside the active coding conversation. */
+export declare function CitePanel({ bus, companion, closePanel }: CitePanelProps): import("react").JSX.Element | null;

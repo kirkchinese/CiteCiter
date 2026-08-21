@@ -1,51 +1,29 @@
-import { z } from 'zod';
-import { citationRecordSchema } from "./thread.js";
-export const prepareThreadResultSchema = z.object({
-    ready: z.literal(true),
-    citation: citationRecordSchema,
-}).strict();
-/** Strict descriptor shared byte-for-byte by Host and Client contributions. */
-export const prepareThreadDescriptor = {
-    id: '@kirkchinese/dsh-citeciter#citeciter/prepareThread',
+import { citeCiterRequestSchema, citeCiterResponseSchema } from "./topic.js";
+/** Strict root-scoped Topic command shared by Host and browser manifests. */
+export const citeCiterRequestDescriptor = {
+    id: '@kirkchinese/dsh-citeciter#citeciter/request',
     service: 'citeciter',
     namespace: 'citeciter',
-    method: 'prepareThread',
+    method: 'request',
     invocation: { kind: 'direct' },
-    scope: {
-        context: 'agent',
-        wire: 'agentId',
-    },
-    parameters: [
-        {
-            name: 'agent',
-            wire: 'agentId',
-            source: 'lookup',
-            lookup: 'agent',
-            codec: {
-                mode: 'strict',
-                typeSymbol: '@deepseek-ai/dsh-session/types#SessionId',
-                schema: z.string().min(1),
-            },
-        },
-        {
-            name: 'rawCitation',
-            wire: 'rawCitation',
+    parameters: [{
+            name: 'rawRequest',
+            wire: 'rawRequest',
             source: 'json',
             codec: {
                 mode: 'strict',
-                typeSymbol: '@kirkchinese/dsh-citeciter#CitationRecord',
-                schema: citationRecordSchema,
+                typeSymbol: '@kirkchinese/dsh-citeciter#CiteCiterRequest',
+                schema: citeCiterRequestSchema,
             },
-        },
-    ],
+        }],
     result: {
         mode: 'strict',
-        typeSymbol: '@kirkchinese/dsh-citeciter#PrepareThreadResult',
-        schema: prepareThreadResultSchema,
+        typeSymbol: '@kirkchinese/dsh-citeciter#CiteCiterResponse',
+        schema: citeCiterResponseSchema,
     },
     sourceLocation: {
         file: 'src/index.ts',
-        line: 104,
+        line: 63,
         column: 3,
     },
 };

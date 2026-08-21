@@ -4,83 +4,62 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <p align="center">
-  <img src="assets/citeciter-whale-sticker.png" width="420" alt="CiteCiter 鲸鱼娘：在精确历史边界创建隔离学习 Thread">
+  <img src="assets/citeciter-whale-sticker.png" width="420" alt="CiteCiter 学习伴侣">
 </p>
 
-## 基于精确历史上下文的、隔离式学习伴侣
+## 跟得上 AI 的独立学习伴侣
 
-AI 很会冲刺，却不总记得回头看你。代码、结论和新抽象快速涌来时，最危险的往往不是 AI 不会，而是它看起来什么都会——于是你一边点头，一边错过了真正理解的机会。
+CiteCiter 是 DeepSeek Harness（DSH）的学习伴侣插件。在一次已经提交的助手模型调用中选中文字，就地提出问题；来源 Agent 可以继续编程，讨论则在独立、只读、可持久恢复的 CiteCiter Topic 中多轮进行。
 
-CiteCiter 让你在 DeepSeek Harness（DSH）的一条已完成助手回复中选中文字，右键点击 `Citer!`，提出你真正想问的问题。它会在那一刻的精确会话边界 fork 一条隔离、只读、可持久恢复的 Citation Thread；你可以继续追问、切换、重命名或归档，而源会话继续向前，日志不被写入。
-
-**CiteCiter 不替你跳过思考，而是帮你追上 AI 的脚步。**
+**它不替你跳过思考，而是帮你追上 AI 的脚步。**
 
 [English package documentation](packages/citeciter/README.md) · [中文包说明](packages/citeciter/README.zh.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
 > [!IMPORTANT]
-> v0.2.0 是持久 Host+Client 架构的第一版定位发布；v0.2.1 修复了重复执行 read-only 时第二轮追问被拒绝的问题。项目仍处于早期开发阶段，API、兼容范围和安装方式可能变化。
+> v0.3 用私有 Observer Topic 取代普通 DSH 子 Thread。项目仍处于早期开发阶段，API、存储和兼容范围可能变化。
 
-## v0.2：从一次解释到持久学习 Thread
+## 使用流程
 
-- 在同一条已完成 `assistant-step` 内捕获精确选区、UTF-16 范围与有界前后文。
-- 通过源会话 snapshot 解析节点真实 `anchorSeq`；不从 DOM key 猜事件序号。
-- 以“源会话 + anchor seq + 选区证据 SHA-256”识别 Citation；同一答案中的不同选区不会混淆。
-- 在精确边界 fork 子会话，不切换 DSH 主界面的当前会话。
-- 只有 `/permission read-only` 成功且命令被确认匹配、Host 校验通过后，才发送真正的用户问题。
-- 首问可自定义，后续支持真实多轮；Thread 可刷新恢复、切换、重命名和归档。
-- 常驻 `Citation Threads` 入口由 Host projection 恢复，不要求再次选择原文。
-- Agent 作用域的 Tutor、Citation Context 与工具隔离不会污染其他会话。
-- Markdown、代码、KaTeX、安全 SVG 和禁脚本/禁网络 HTML 继续采用保守渲染策略。
-- Listener、Remote、projection、slot、订阅、动画帧和 Agent 作用域均随 Cordis fiber 回收。
+1. 在一个已经提交的助手模型调用中选中文字；外层 Agent 轮次可以仍在运行。
+2. 右键，在选区旁输入第一个问题，然后点击 `Citer!`。
+3. CiteCiter 为这次提交创建新 Topic，并在 DSH 编程界面右侧打开学习栏。
+4. 在 Topic 内继续追问，或从 CiteCiter 自己的 Topic 栏恢复旧讨论。
+5. 独立调整模型、思考强度、标题、归档状态和学习栏宽度，不改变来源 Session。
 
-## 模型输入为什么分成四层
+默认模式是 Observer。Exact Fork 保留为来源轮次已经结束时使用的高级操作。
 
-```text
-1. system：只作用于当前 Thread 的教学 Tutor
-2. history：截至所选助手节点的精确历史前缀
-3. user context：持久 Citation JSON（明确标记为不可信引用数据）
-4. user：用户真正输入的首问与每次追问
-```
+## v0.3
 
-这避免了把教学政策、历史证据、引用内容和用户意图塞进同一个伪用户 prompt。六个同题、同模型、同历史边界的真实对比中，四层方案总分 `138/144`，并在证据纪律与追问一致性上领先。完整 ADR、实验脚本和脱敏产物见：
+- 以已提交的 `assistant/message` 为可引用最小单元，不等待 `turn/end`。
+- 将渲染后的 Markdown 选区映射回原文 UTF-16 范围，保留 Host 可复验的 Citation 证据。
+- 每次首问创建一个独立 Topic；相同选区不会静默复用旧讨论。
+- Topic 使用标准 DSH Session、Agent Loop、标题和持久化服务，但存放在 `$DSH_HOME/citeciter/`，不进入普通 Session 列表。
+- Topic 专属 `read_source_session` 工具按需读取固定来源 Session 的已提交事件，不向模型暴露物理日志路径。
+- 独立 Agent 使用 read-only sandbox，只允许来源读取及可选的标准只读文件工具。
+- DSH 设置页提供 Observer/Exact 偏好、来源 reasoning、只读来源文件、学习栏宽度和恢复上次 Topic。
+- Topic 支持多轮、重命名、归档、恢复、停止和独立模型配置。
+- Markdown、代码、KaTeX、安全 SVG 与沙箱 HTML 采用保守渲染策略。
 
-- [`docs/architecture/0001-model-input-layering.md`](docs/architecture/0001-model-input-layering.md)
-- [`experiments/model-input-layering/`](experiments/model-input-layering/)
+完整产品和存储决定见 [`docs/architecture/0002-observer-learning-companion.zh.md`](docs/architecture/0002-observer-learning-companion.zh.md)。
 
-## 工作方式
+## 安装与升级
 
-```text
-选择已完成助手文本
-  → Citer! 右键菜单
-  → snapshot 解析真实 anchorSeq 与完成边界
-  → 创建/复用隔离子会话
-  → matched read-only
-  → Host 校验并安装 Tutor / Citation Context / 工具守卫
-  → 发送真实用户首问
-  → 在 details 侧栏继续多轮
-  → projection 持久恢复、切换、重命名或归档
-```
-
-Citation 文本始终是不可信数据。即使引用内容包含命令口吻、role JSON、HTML 或分隔符，也不会获得 system 权限。源会话只是证据和 UI 分组；提问、上下文、回答、停止、错误与标题全部属于子会话。
-
-## 环境与安装
-
-- Node.js `^22.19.0 || >=24.0.0`
-- DeepSeek Harness Web
-- 已在 DSH 中配置可用模型凭据
+需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8` 和已经配置的模型提供方。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.2.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
+dsh plugin --profile web list --depth 0
 ```
 
-安装或升级后重启对应的 DSH Web 进程并刷新页面。Host 与 Typert 清单在进程启动时加载。包的 DSH peer range 从 `^0.1.0-rc.6` 开始；focused build 使用 rc.6 包集，v0.2 浏览器链路也在全新 DSH `0.1.0-rc.7` 进程中验证通过。
+安装或升级后重启对应的 DSH Web 进程并刷新页面。v0.3 不改写来源 Session，也不导入 v0.2 fork 出来的旧 Citation Thread；新讨论使用独立的 v0.3 Topic 存储。
 
 ## 已知限制
 
-- 只支持 DSH Web 中已完成的助手回复；选区必须完整位于同一个 assistant flow。
-- 归档通过 DSH workspace 归档集合隐藏 Thread；暂时没有取消归档 UI。归档后再次选择同一 Citation 可能创建新的活跃 Thread。
-- 工具 allowlist 有意保持保守；当前 DSH 未安装的只读工具不可用。
-- 暂无设置 UI、完整国际化框架、移动端专项适配和跨平台浏览器 CI。
+- 选区必须完整位于一个已提交的助手 flow；不支持流式片段、跨消息或跨 block 引用。
+- KaTeX 排版和脚注编号缺少稳定的原文字符坐标，暂不可直接引用。
+- Exact Fork 不能从仍在运行的来源轮次开始。
+- 来源文件读取依赖当前 DSH 组合提供文件系统服务，并始终保持只读。
+- 暂无 Topic 搜索、UI 删除、完整国际化和跨平台浏览器 CI。
 - DSH 仍处于预发布阶段，后续 API 变化可能要求同步升级。
 
 ## 开发与验证
@@ -92,22 +71,18 @@ pnpm --dir packages/citeciter test
 pnpm run build
 ```
 
-仓库跟踪 `packages/citeciter/lib/`。修改 `src/` 或构建配置后必须重新 build。测试覆盖精确 fork、失败即关闭顺序、自定义首问、追问、投影恢复、transcript 边界、重命名/归档、销毁竞态、Typert 严格清单与富内容安全。
-
-可复现浏览器 smoke 会在临时 DSH_HOME 中创建真实已结算会话，验证首问、持久 Thread、页面刷新恢复、父日志 size/mtime 不变和侧栏布局。完整命令、模型实验和发布门禁见 [`docs/implementation-milestones.md`](docs/implementation-milestones.md)。
+仓库跟踪 `packages/citeciter/lib/`。修改源码或构建配置后必须重新构建。可复现安装、升级、运行时与浏览器门禁见 [`docs/implementation-milestones.md`](docs/implementation-milestones.md)。
 
 ## 仓库地图
 
-- `packages/citeciter/`：可发布 Host+Client 包、测试与浏览器 smoke。
-- `docs/architecture/0001-model-input-layering.md`：模型输入分层 ADR。
-- `.agents/notes/implemented/architecture/2026-08-17-citeciter-explainer-lifecycle.md`：持久 Thread 生命周期。
-- `experiments/model-input-layering/`：真实模型 A/B/C 对比。
-- `DESIGN.md`、`docs/evidence/`、`probes/`：早期调研与探针；不是当前实现权威。
+- `packages/citeciter/`：可发布 Host + Client 插件、测试与浏览器 smoke。
+- `docs/citeciter-product-interview.zh.md`：原始产品访谈记录。
+- `docs/architecture/0002-observer-learning-companion.zh.md`：Observer 学习伴侣架构。
+- `docs/releases/v0.3.0.md`：v0.3 发布说明与限制。
+- `experiments/model-input-layering/`：模型输入分层实验。
 
-## 贡献
+## 贡献与许可证
 
-提交 Issue 时请附 DSH、Node.js 和 CiteCiter 版本及最小复现。提交代码前请阅读 [`AGENTS.md`](AGENTS.md)，并运行相关 typecheck、test、build 与 `git diff --check`。
-
-## 许可证
+提交 Issue 时请附 DSH、Node.js 和 CiteCiter 版本及最小复现。提交代码前请阅读 [`AGENTS.md`](AGENTS.md)。
 
 [MIT](LICENSE) © CiteCiter contributors

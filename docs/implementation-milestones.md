@@ -1,109 +1,113 @@
-# CiteCiter v0.2 verification
+# CiteCiter v0.3 release gates
 
-This guide records reproducible checks for the current external Host+Client package. Product behavior belongs in `packages/citeciter/README.md` and `README.zh.md`; authority/lifecycle decisions belong in ADR 0001 and the implemented lifecycle note.
+This guide defines the smallest reproducible gate set for the v0.3 external Host+Client package. Product behavior belongs in the bilingual package README; architecture and ownership decisions belong in ADR 0002. A gate is complete only when it is rerun against the exact candidate tarball.
 
-## Focused checks
+## Implemented surface
 
-From the repository root:
+The v0.3 tree contains:
+
+- a committed-`assistant/message` Citation boundary that does not require `turn/end`;
+- strict Host validation of the source Session, UTF-16 range, surrounding text, and SHA-256 fingerprint;
+- one private standard DSH Session per Topic, with a private numeric navigation index;
+- a Topic-scoped Tutor, durable untrusted Citation context, bounded `read_source_session`, read-only sandbox, and optional standard `read` tool;
+- Observer as the default and a closed-turn Exact Fork seed as the advanced path;
+- DSH title generation, source-model inheritance, independent model selection, multi-turn continuation, stop, rename, archive/restore, and confirmed Host deletion;
+- a selection question popover, persistent launcher, resizable learning dock, private Topic rail, and native DSH settings section.
+
+The formal unit suite currently covers citation validation, source evidence formatting and byte limits, reasoning filtering, Topic request/settings schemas, Citation input rendering, strict Typert descriptors, Client event isolation, rich-content safety, and the publish manifest. Runtime persistence and assembled UI behavior are release-smoke responsibilities rather than claims inferred from those unit tests.
+
+## Static and focused checks
+
+Run once from the repository root after the final source edit:
 
 ```sh
-pnpm install
 pnpm run typecheck
 pnpm --dir packages/citeciter test
 pnpm run build
+git diff --check -- \
+  docs/architecture/0002-observer-learning-companion.zh.md \
+  docs/implementation-milestones.md \
+  docs/releases/v0.3.0.md \
+  packages/citeciter
 ```
 
-The current focused suite covers:
+The build must remove stale declarations and stale hash chunks before emitting the Host entry, Client bundle, both Typert entries, referenced chunks, and declarations under `packages/citeciter/lib/`.
 
-- exact completed-node resolution and `anchorSeq` fork input;
-- custom first questions and independent follow-up user turns;
-- matched admission plus durable read-only `command/done` settlement, initial preset/sandbox application, and idempotent later-turn state folding before Host preparation;
-- Host lineage, completed-turn, exact UTF-16 span, and canonical fingerprint validation;
-- distinct selection identity inside one assistant answer;
-- durable projection recovery without a second fork;
-- child-only transcript boundaries;
-- rename, workspace archive filtering, and parent noninterference;
-- disposal during an in-flight fork;
-- Citation Context adversarial-text round trips and immutable first projection;
-- strict Agent-scoped Host/Client Typert descriptors;
-- safe SVG, network-free HTML, and incomplete/unsafe rich-fence fallback;
-- publish manifest, Host/Client exports, and peer declarations.
+## Candidate tarball
 
-`pnpm run build` compiles tracked `lib/types`, removes stale top-level bundle chunks, and emits:
-
-- `lib/index.js` — Host package entry;
-- `lib/typert.host.js` — strict Host contribution;
-- `lib/typert.remote-client.js` — Client Remote contribution;
-- `lib/client.js` — bundled browser face.
-
-## Model-input comparison
-
-The reproducible experiment is in `experiments/model-input-layering/`. It uses six synthetic cases with the same model and history boundary across:
-
-- A: one combined user prompt;
-- B: Citation injection plus genuine user question;
-- C: scoped system Tutor plus persistent Citation Context plus genuine user question.
-
-Canonical runs used `deepseek-official/deepseek-v4-pro`, answer reasoning `max`, and judge reasoning `low`. Aggregate scores were A `137/144`, B `136/144`, and C `138/144`; C led evidence discipline (`23`) and follow-up consistency (`24`). See `experiments/model-input-layering/README.md` and the accepted [`architecture/0001-model-input-layering.md`](architecture/0001-model-input-layering.md). The sanitized fixture SHA-256 is `3b3d9975e5d06d66c30efb474b11720d78dcba116d75f6453a02bc4d323e292a`.
-
-## Disposable browser smoke
-
-Install Chromium once, link the built package into a disposable DSH home, seed a settled source conversation, and start a separate Web instance:
+Pack the exact candidate into a disposable directory:
 
 ```sh
-pnpm --filter @kirkchinese/dsh-citeciter exec playwright install chromium
-rm -rf /tmp/citeciter-dsh-home
-mkdir -p /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese
-ln -sfn "$(pwd)/packages/citeciter" \
-  /tmp/citeciter-dsh-home/profiles/node_modules/@kirkchinese/dsh-citeciter
-node packages/citeciter/dev/seed-smoke-session.mjs \
-  /tmp/citeciter-dsh-home "$(pwd)"
-DSH_HOME=/tmp/citeciter-dsh-home dsh --profile web \
-  --patch "$(pwd)/packages/citeciter/dev/patch.yml" --port 3907
+CITECITER_PACK_DIR="$(mktemp -d /tmp/citeciter-pack.XXXXXX)"
+(cd packages/citeciter && npm pack --json --pack-destination "$CITECITER_PACK_DIR")
+tar -tf "$CITECITER_PACK_DIR"/kirkchinese-dsh-citeciter-0.3.0.tgz
 ```
 
-In another terminal:
+Require `package.json`, `LICENSE`, both package READMEs, `cordis.patch.yml`, the Host and Client entries, both Typert entries, every referenced JavaScript chunk, and declaration files. Reject source files, tests, dev fixtures, scripts, source maps, nested tarballs, screenshots, temporary homes, and credentials.
+
+## Fresh install
+
+Use a new DSH home; never reuse or stop the user's server on port `3080`:
+
+```sh
+CITECITER_INSTALL_HOME="$(mktemp -d /tmp/citeciter-install.XXXXXX)"
+DSH_HOME="$CITECITER_INSTALL_HOME" \
+  dsh plugin --profile web add \
+  "$CITECITER_PACK_DIR/kirkchinese-dsh-citeciter-0.3.0.tgz"
+DSH_HOME="$CITECITER_INSTALL_HOME" dsh plugin --profile web list --depth 0
+```
+
+The profile dependency, lock resolution, and installed manifest must all report `@kirkchinese/dsh-citeciter@0.3.0`. Start this disposable profile on `--port 0`; a clean Host and Client load with no duplicate CiteCiter bundle is required.
+
+## Upgrade from v0.2.1
+
+Create a second disposable home, install `0.2.1`, then add the exact v0.3 tarball through the same `dsh plugin --profile web add` command. Do not perform this gate against the user's real profile.
+
+The upgraded profile must contain one installed CiteCiter `0.3.0` dependency and start successfully. Existing v0.2 child Sessions remain ordinary DSH Sessions; v0.3 neither rewrites nor imports them. New Topics must use `$DSH_HOME/citeciter/`, and the ordinary source logs must remain readable and unchanged.
+
+## Keyless assembled Web smoke
+
+Seed the open-turn fixture in the disposable home, then start a separate DSH process with the deterministic fixture provider and a dynamically assigned port:
+
+```sh
+node packages/citeciter/dev/seed-smoke-session.mjs \
+  "$CITECITER_INSTALL_HOME" "$(pwd)"
+mkdir -p "$CITECITER_INSTALL_HOME/profiles/node_modules/@kirkchinese"
+ln -s "$(pwd)/packages/citeciter" \
+  "$CITECITER_INSTALL_HOME/profiles/node_modules/@kirkchinese/dsh-citeciter"
+DSH_HOME="$CITECITER_INSTALL_HOME" DSH_TELEMETRY_DISABLED=1 \
+  dsh --profile web \
+  --patch "$(pwd)/packages/citeciter/dev/fixture.patch.yml" --port 0
+```
+
+Use the printed URL in another terminal:
 
 ```sh
 node packages/citeciter/dev/smoke.mjs \
-  http://127.0.0.1:3907 CiteCiter \
-  /tmp/citeciter-dsh-home/citeciter-smoke.json
+  "<printed-url>" CiteCiter \
+  "$CITECITER_INSTALL_HOME/citeciter-smoke.json" \
+  "/tmp/citeciter-v03-smoke.png"
 ```
 
-The seed's rendered assistant key is `14:assistant-step1:1`; its real `anchorSeq` is `6`. The v0.2 smoke exits non-zero unless it verifies all of the following:
+The smoke must prove all of the following:
 
-- exact text selection and native context-menu suppression;
-- the custom first-question composer and quick questions;
-- a genuine question persisted in a forked read-only Thread;
-- a projected history picker and persistent launcher;
-- rename, close/reopen, full-page reload recovery, and a usable settled panel width;
-- a second range becoming a distinct Thread, bidirectional switching, workspace archive, and active-list filtering;
-- no parent-log size or nanosecond-mtime change;
-- no page or console error.
+- a committed assistant model call is cited while its enclosing source turn remains open;
+- the native context menu is suppressed and Observer is the default;
+- the first Topic calls `read_source_session`, streams the deterministic answer, and receives the DSH-generated title;
+- the dock reserves a usable third column while the source programming conversation remains visible;
+- rename, close, launcher, full-page reload, Topic recovery, and a genuine second question work;
+- the same source model call can create a second independent Topic;
+- archive removes the Topic from the default rail and it remains available for restore;
+- no Topic title appears in the ordinary DSH Session tree;
+- the source log size and nanosecond mtime remain unchanged;
+- no page or console error occurs.
 
-A disposable profile without provider credentials is intentional: the model turn reaches the normal provider error only after fork, a successful durable read-only command lifecycle, strict Remote preparation, persistent context, and the genuine user message have succeeded. With the fixture used for the v0.2 release check, the child header had `seedLength: 12`, the Citation snapshot appeared at seq `22`, and its envelope preserved `historyStartSeq: 12`, anchor seq `6`, exact UTF-16 range `4..28`, and a 64-character SHA-256 fingerprint. The source log revision stayed byte-for-byte and mtime-for-mtime unchanged. A fresh process recovered the renamed Thread from projection state; a second Citation was switched to and archived through the workspace archive API, after which a restart exposed only the remaining active Thread.
+The screenshot is diagnostic output and must stay under `/tmp`; it is not a repository artifact.
 
-## Live development and HMR
+## Visual browser check
 
-`pnpm --filter @kirkchinese/dsh-citeciter dev` watches this package's declaration output and browser bundle. A running Web profile must already have its Client HMR receiver and Host file watcher active. Verify that condition before expecting automatic replacement:
+After the automated smoke, inspect the same disposable process with the in-app browser skill. Verify the real DSH programming shell at desktop and narrow widths: source selection and popover placement, left navigation plus central coding conversation retention, dock resizing and fallback overlay, Topic switching and follow-up composition, settings controls, focus labels, and visible error states. Stop only the disposable DSH process created for this gate.
 
-```sh
-node packages/citeciter/dev/hmr-smoke.mjs http://127.0.0.1:3907
-```
+## Release decision
 
-The HMR smoke atomically changes and restores `lib/client.js`; it passes only after observing the rebuild frame, old-fiber unmount, one working replacement menu, and no browser error. Merely rebuilding the external bundle does not update an already-running Web process whose watcher is inactive. When changing DSH's own Client packages or Web shell, run `pnpm run dev:web` from the same DSH checkout; starting an unrelated Vite server does not update the DSH Web GUI.
-
-## Publish checks
-
-Before tagging:
-
-```sh
-git diff --check
-pnpm run typecheck
-pnpm --dir packages/citeciter test
-pnpm run build
-(cd packages/citeciter && npm pack --dry-run)
-(cd packages/citeciter && npm pack)
-```
-
-Inspect the tarball and require the root entry, Client bundle, both Typert exports, all referenced hash chunks, declaration files, patch, license, and bilingual package READMEs. Reject credentials, temporary homes, screenshots, source maps not intentionally published, or stale hash chunks.
+Do not publish when any static, package, fresh-install, upgrade, assembled-smoke, or visual gate is missing or failing. Record the exact commands and candidate version in the release handoff; do not convert a planned gate into a passed claim.

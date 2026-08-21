@@ -6,7 +6,7 @@ import { zstdCompressSync, zstdDecompressSync } from 'node:zlib'
 
 const dshHome = process.argv[2] ?? '/tmp/citeciter-dsh-home'
 const cwd = process.argv[3] ?? fileURLToPath(new URL('../../../', import.meta.url))
-const fixtureKind = 'citeciter-smoke-fixture-v1'
+const fixtureKind = 'citeciter-smoke-fixture-v2'
 const legacySessionId = 'session-11111111-1111-4111-8111-111111111111'
 const metadataPath = join(dshHome, 'citeciter-smoke.json')
 const sessionId = `session-${randomUUID()}`
@@ -102,16 +102,29 @@ const rows = [
     },
     surfaceOp: 'append',
   },
-  { type: 'step/end', seq: 7, time: createdAt + 8, data: { turn: 1, step: 1 } },
-  { type: 'turn/end', seq: 8, time: createdAt + 9, data: { turn: 1, reason: { kind: 'completed' } } },
-  { type: 'session/end-seed', seq: 9, time: createdAt + 10, data: {} },
-  { type: 'session/title', seq: 10, time: createdAt + 11, data: { title, messageSeqs: [], source: { kind: 'user' } } },
+  {
+    type: 'tool/call',
+    seq: 7,
+    time: createdAt + 8,
+    data: {
+      turn: 1,
+      step: 1,
+      callId: '44444444-4444-4444-8444-444444444444',
+      name: 'read',
+      arguments: '{"path":"docs/architecture.md"}',
+    },
+  },
+  { type: 'session/title', seq: 8, time: createdAt + 9, data: { title, messageSeqs: [], source: { kind: 'user' } } },
 ]
 const projectDir = join(dshHome, 'sessions', projectKey(cwd))
 const previousRoots = new Set([legacySessionId])
 try {
   const previous = JSON.parse(await readFile(metadataPath, 'utf8'))
-  if (previous.kind === fixtureKind && typeof previous.sessionId === 'string') previousRoots.add(previous.sessionId)
+  if (
+    typeof previous.kind === 'string'
+    && previous.kind.startsWith('citeciter-smoke-fixture-')
+    && typeof previous.sessionId === 'string'
+  ) previousRoots.add(previous.sessionId)
 } catch (error) {
   if (error === null || typeof error !== 'object' || !('code' in error) || error.code !== 'ENOENT') throw error
 }
@@ -123,6 +136,14 @@ const [header, ...events] = rows
 const headerFrame = zstdCompressSync(Buffer.from(`${JSON.stringify(header)}\n`))
 const eventFrame = zstdCompressSync(Buffer.from(`${events.map((row) => JSON.stringify(row)).join('\n')}\n`))
 await writeFile(logPath, Buffer.concat([headerFrame, eventFrame]))
-const metadata = { kind: fixtureKind, sessionId, title, anchorKey: '14:assistant-step1:1', anchorSeq: 6, logPath }
+const metadata = {
+  kind: fixtureKind,
+  sessionId,
+  title,
+  anchorKey: '14:assistant-step1:1',
+  anchorSeq: 6,
+  openTurn: true,
+  logPath,
+}
 await writeFile(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`)
 console.log(JSON.stringify(metadata))

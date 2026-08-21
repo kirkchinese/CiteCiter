@@ -1,70 +1,92 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import type { ExplainFace } from '../explainer.ts'
-import type { CiteBus, CiteSelection } from '../types.ts'
+import { type FormEvent, useEffect, useState, useSyncExternalStore } from 'react'
+import type { CompanionFace, CreateMode } from '../companion-controller.ts'
+import type { CiteBus } from '../types.ts'
 import css from './CiteCiter.module.css'
 
-const PREVIEW_LIMIT = 64
+const PREVIEW_LIMIT = 96
 
-/** Dependencies injected into the root overlay entry. */
 export interface SelectionMenuProps {
   readonly bus: CiteBus
-  readonly explainer: ExplainFace
-  readonly openPanel: (selection?: CiteSelection) => void
+  readonly companion: CompanionFace
+  readonly openPanel: () => void
 }
 
-/**
- * Render the contextual `Citer!` action and a persistent Thread launcher.
- * @param props - shared selection bus, explainer state, and panel opener.
- * @returns shell-overlay controls.
- */
-export function SelectionMenu({ bus, explainer, openPanel }: SelectionMenuProps) {
-  const [selection, setSelection] = useState<CiteSelection | null>(() => bus.getMenuSelection())
-  const subscribeExplainer = useCallback((listener: () => void) => explainer.subscribe(listener), [explainer])
-  const snapshot = useSyncExternalStore(subscribeExplainer, explainer.getSnapshot)
+/** Ask the first question beside the selected source text. */
+export function SelectionMenu({ bus, companion, openPanel }: SelectionMenuProps) {
+  const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot)
+  const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
+  const [question, setQuestion] = useState('')
+  const [mode, setMode] = useState<CreateMode>(snapshot.settings.defaultMode)
+  const selection = overlay.menuSelection
 
-  useEffect(() => bus.subscribe(() => {
-    setSelection(bus.getMenuSelection())
-  }), [bus])
+  useEffect(() => {
+    if (selection === null) return
+    setQuestion('')
+    setMode(snapshot.settings.defaultMode)
+  }, [selection, snapshot.settings.defaultMode])
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (selection === null || question.trim() === '') return
+    const prompt = question.trim()
+    openPanel()
+    bus.setMenuSelection(null)
+    void companion.create(selection, prompt, mode)
+  }
 
   const preview = selection === null
     ? ''
-    : selection.text.length > PREVIEW_LIMIT
-      ? `${selection.text.slice(0, PREVIEW_LIMIT)}…`
-      : selection.text
+    : selection.displayText.length > PREVIEW_LIMIT
+      ? selection.displayText.slice(0, PREVIEW_LIMIT) + '…'
+      : selection.displayText
+  const left = selection === null ? 0 : Math.max(12, Math.min(selection.x, window.innerWidth - 390))
+  const top = selection === null ? 0 : Math.max(12, Math.min(selection.y, window.innerHeight - 260))
 
   return (
     <>
       {selection !== null && (
-        <div
-          className={css.menu}
+        <form
+          className={css.selectionPopover}
           data-citeciter-menu
-          style={{ left: selection.x, top: selection.y }}
-          role="menu"
+          style={{ left, top }}
+          role="dialog"
+          aria-label="向 CiteCiter 提问"
+          onSubmit={submit}
         >
-          <span className={css.menuPreview} title={selection.text}>{preview}</span>
-          <button
-            className={css.menuButton}
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              openPanel(selection)
-              bus.setMenuSelection(null)
-            }}
-          >
-            Citer!
-          </button>
-        </div>
+          <div className={css.popoverQuote} title={selection.displayText}>“{preview}”</div>
+          <div className={css.popoverComposer}>
+            <input
+              autoFocus
+              value={question}
+              maxLength={12_000}
+              onChange={(event) => setQuestion(event.currentTarget.value)}
+              placeholder="哪里没看懂？"
+              aria-label="CiteCiter 的第一个问题"
+            />
+            <button type="submit" disabled={question.trim() === ''}>Citer!</button>
+          </div>
+          <details className={css.popoverMode}>
+            <summary>上下文方式：{mode === 'observer' ? '旁观（推荐）' : mode === 'exact-fork' ? '精确分叉' : '可用时精确分叉'}</summary>
+            <select value={mode} onChange={(event) => setMode(event.currentTarget.value as CreateMode)}>
+              <option value="observer">旁观：来源继续更新</option>
+              <option value="exact-when-available">轮次结束时精确，否则旁观</option>
+              <option value="exact-fork">精确分叉：要求轮次已结束</option>
+            </select>
+          </details>
+        </form>
       )}
-      {snapshot.threads.length > 0 && (
+      {snapshot.sourceSessionId !== null && !overlay.panelOpen && (
         <button
-          className={css.threadLauncher}
+          className={css.topicLauncher}
           type="button"
-          onClick={() => openPanel()}
-          aria-label={`打开 ${snapshot.threads.length} 个 Citation Threads`}
-          title="Citation Threads"
+          onClick={openPanel}
+          aria-label={snapshot.topics.length === 0
+            ? '打开 CiteCiter'
+            : '打开 CiteCiter，共 ' + snapshot.topics.length + ' 个讨论'}
+          title="打开 CiteCiter"
         >
-          <span aria-hidden="true">✦</span>
-          <span>{snapshot.threads.length}</span>
+          <span aria-hidden="true">🐋</span>
+          {snapshot.topics.length > 0 && <span>{snapshot.topics.length}</span>}
         </button>
       )}
     </>

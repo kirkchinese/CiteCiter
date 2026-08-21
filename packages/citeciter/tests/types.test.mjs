@@ -10,9 +10,14 @@ test('a failed CiteBus subscriber does not starve later subscribers', () => {
   bus.subscribe(() => calls.push('later listener'))
 
   bus.setMenuSelection({
-    text: 'term',
+    sourceSessionId: 'source-session',
+    displayText: 'term',
     kind: 'assistant-step',
     anchorKey: '1:assistant-step1',
+    startOffset: 4,
+    endOffset: 8,
+    prefixText: 'the ',
+    suffixText: ' here',
     x: 1,
     y: 2,
   })

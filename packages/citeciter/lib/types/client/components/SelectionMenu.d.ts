@@ -1,14 +1,9 @@
-import type { ExplainFace } from '../explainer.ts';
-import type { CiteBus, CiteSelection } from '../types.ts';
-/** Dependencies injected into the root overlay entry. */
+import type { CompanionFace } from '../companion-controller.ts';
+import type { CiteBus } from '../types.ts';
 export interface SelectionMenuProps {
     readonly bus: CiteBus;
-    readonly explainer: ExplainFace;
-    readonly openPanel: (selection?: CiteSelection) => void;
+    readonly companion: CompanionFace;
+    readonly openPanel: () => void;
 }
-/**
- * Render the contextual `Citer!` action and a persistent Thread launcher.
- * @param props - shared selection bus, explainer state, and panel opener.
- * @returns shell-overlay controls.
- */
-export declare function SelectionMenu({ bus, explainer, openPanel }: SelectionMenuProps): import("react").JSX.Element;
+/** Ask the first question beside the selected source text. */
+export declare function SelectionMenu({ bus, companion, openPanel }: SelectionMenuProps): import("react").JSX.Element;

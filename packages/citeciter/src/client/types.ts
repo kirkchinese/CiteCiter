@@ -1,75 +1,55 @@
 import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 
-/** One validated right-click selection inside a conversation flow node. */
+/** One right-click selection inside a rendered assistant model call. */
 export interface CiteSelection {
-  /** Session owning the selected assistant flow at capture time. */
   readonly sourceSessionId: SessionId
-  /** Selected plain text (already trimmed; display may truncate separately). */
-  readonly text: string
-  /** Flow kind of the DOM node that owns the selection. */
+  readonly displayText: string
   readonly kind: 'assistant-step'
-  /** Conversation snapshot node key (`data-chat-anchor-key`). */
   readonly anchorKey: string
-  /** UTF-16 offset of the trimmed selection within the owning flow's plain text. */
   readonly startOffset: number
-  /** Exclusive UTF-16 end offset within the owning flow's plain text. */
   readonly endOffset: number
-  /** Bounded plain-text context immediately preceding the selection. */
   readonly prefixText: string
-  /** Bounded plain-text context immediately following the selection. */
   readonly suffixText: string
-  /** Horizontal pointer position for the floating menu, in client coordinates. */
   readonly x: number
-  /** Vertical pointer position for the floating menu, in client coordinates. */
   readonly y: number
 }
 
-/** Minimal observable bus shared by the menu and the side panel. */
-export type CiteBusListener = () => void
+export interface CiteOverlaySnapshot {
+  readonly menuSelection: CiteSelection | null
+  readonly panelOpen: boolean
+}
 
-/** Observable selection state shared by the overlay and details panel. */
+/** Tiny observable state shared by the selection popover and independent dock. */
 export class CiteBus {
-  private menuSelection: CiteSelection | null = null
-  private panelSelection: CiteSelection | null = null
-  private readonly listeners = new Set<CiteBusListener>()
+  private snapshot: CiteOverlaySnapshot = { menuSelection: null, panelOpen: false }
+  private readonly listeners = new Set<() => void>()
 
-  /** @param reportListenerError - isolates and reports one failed subscriber. */
+  /** @param reportListenerError - contains one failed browser subscriber. */
   constructor(private readonly reportListenerError: (error: unknown) => void) {}
 
-  /** @returns current context-menu selection, or null while hidden. */
-  getMenuSelection(): CiteSelection | null {
-    return this.menuSelection
-  }
+  /** @returns stable overlay snapshot. */
+  getSnapshot = (): CiteOverlaySnapshot => this.snapshot
 
-  /** @returns selection currently explained in the details panel. */
-  getPanelSelection(): CiteSelection | null {
-    return this.panelSelection
-  }
-
-  /** @param selection - next context-menu selection, or null to hide it. */
-  setMenuSelection(selection: CiteSelection | null): void {
-    if (this.menuSelection === selection) return
-    this.menuSelection = selection
-    this.notify()
-  }
-
-  /** @param selection - next details-panel selection, or null when closed. */
-  setPanelSelection(selection: CiteSelection | null): void {
-    if (this.panelSelection === selection) return
-    this.panelSelection = selection
-    this.notify()
-  }
-
-  /**
-   * Subscribe to either selection value.
-   * @param listener - callback invoked after a value changes.
-   * @returns disposer for this subscription.
-   */
-  subscribe(listener: CiteBusListener): () => void {
+  /** @param listener - observer. @returns disposer. */
+  subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener)
     return () => {
       this.listeners.delete(listener)
     }
+  }
+
+  /** Show or dismiss the selection question popover. */
+  setMenuSelection(selection: CiteSelection | null): void {
+    if (this.snapshot.menuSelection === selection) return
+    this.snapshot = { ...this.snapshot, menuSelection: selection }
+    this.notify()
+  }
+
+  /** Open or close the independent companion dock. */
+  setPanelOpen(panelOpen: boolean): void {
+    if (this.snapshot.panelOpen === panelOpen) return
+    this.snapshot = { ...this.snapshot, panelOpen }
+    this.notify()
   }
 
   private notify(): void {

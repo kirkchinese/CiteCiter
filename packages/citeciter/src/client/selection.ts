@@ -27,6 +27,16 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
   const startFlow = parentElement(range.startContainer)?.closest<HTMLElement>('[data-chat-flow-kind]')
   const endFlow = parentElement(range.endContainer)?.closest<HTMLElement>('[data-chat-flow-kind]')
   if (startFlow === null || startFlow === undefined || endFlow !== startFlow) return null
+  for (const reasoning of startFlow.querySelectorAll('[data-variant="think"]')) {
+    if (range.intersectsNode(reasoning)) return null
+  }
+  for (const generated of startFlow.querySelectorAll('button, .katex, [data-footnotes], sup')) {
+    if (range.intersectsNode(generated)) return null
+  }
+  for (const endpoint of [range.startContainer, range.endContainer]) {
+    const element = parentElement(endpoint)
+    if (element?.closest('.md-code-block') !== null && element?.closest('pre') === null) return null
+  }
 
   const kind = startFlow.dataset.chatFlowKind
   const anchorKey = startFlow.dataset.chatAnchorKey
@@ -48,7 +58,7 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
 
   return {
     sourceSessionId,
-    text,
+    displayText: text,
     kind,
     anchorKey,
     startOffset,

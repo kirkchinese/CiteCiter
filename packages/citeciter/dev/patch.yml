@@ -1,4 +1,6 @@
 # Local dev overlay for the CiteCiter package.
 - insert:
+    - id: citeciter-fixture-llm
+      name: ../node_modules/@kirkchinese/dsh-citeciter/dev/fake-llm.mjs
     - id: citeciter
       name: '@kirkchinese/dsh-citeciter'

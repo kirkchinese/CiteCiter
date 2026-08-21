@@ -1,13 +1,26 @@
-/** End-to-end browser smoke for the durable CiteCiter v0.2 Thread flow. */
+/** Keyless assembled-Web smoke for the CiteCiter Observer Topic flow. */
 import { readFile, stat } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 
 const { chromium } = await import(process.env.PLAYWRIGHT_PATH ?? 'playwright')
 const baseUrl = process.argv[2] ?? 'http://127.0.0.1:3907'
 const sessionTitle = process.argv[3] ?? 'CiteCiter'
 const fixtureMetadataPath = process.argv[4]
-const question = '为什么平行移动能检测曲率？'
-let parentLogPath
+const screenshotPath = resolve(process.argv[5] ?? `/tmp/citeciter-v03-smoke-${process.pid}.png`)
+const firstQuestion = '为什么平行移动能检测曲率？'
+const followUpQuestion = '第二轮追问：这和 holonomy 有什么关系？'
+const secondQuestion = '路径依赖为什么能代表几何弯曲？'
+const firstAnswer = '首轮回答：平行移动比较同一向量沿不同路径返回后的差异；这个差异由曲率刻画。'
+const followUpAnswer = '第二轮回答：曲率可以看成无穷小闭合回路的 holonomy；回路越小，偏差的一阶面积项越直接反映曲率。'
+const generatedTitle = '曲率与平行移动'
+const renamedTitle = '曲率学习 Topic'
+
+if (fixtureMetadataPath === undefined) {
+  throw new Error('usage: node dev/smoke.mjs <url> <session-title> <fixture-metadata.json> [screenshot-under-/tmp]')
+}
+if (!screenshotPath.startsWith('/tmp/')) {
+  throw new Error('the smoke screenshot must stay under /tmp')
+}
 
 async function revision(path) {
   const value = await stat(path, { bigint: true })
@@ -15,7 +28,7 @@ async function revision(path) {
 }
 
 async function dismissOptionalPrompts(page) {
-  for (const name of ['稍后配置', '继续']) {
+  for (const name of ['稍后配置', '继续', 'Configure later', 'Continue']) {
     const button = page.getByRole('button', { name })
     if (await button.count() > 0) {
       await button.first().click({ force: true }).catch(() => {})
@@ -24,13 +37,14 @@ async function dismissOptionalPrompts(page) {
   }
 }
 
-function selectSourceText(needle = 'Riemann curvature tensor') {
-  const flow = document.querySelector('[data-chat-flow-kind="assistant-step"]')
-  if (flow === null) throw new Error('assistant-step fixture is not rendered')
+function selectSourceText(needle) {
+  const flow = [...document.querySelectorAll('[data-chat-flow-kind="assistant-step"]')]
+    .find((candidate) => candidate.textContent?.includes(needle))
+  if (!(flow instanceof HTMLElement)) throw new Error(`assistant fixture does not contain "${needle}"`)
   const walker = document.createTreeWalker(flow, NodeFilter.SHOW_TEXT)
   let node = walker.nextNode()
   while (node !== null && !node.data.includes(needle)) node = walker.nextNode()
-  if (node === null) throw new Error(`assistant fixture does not contain "${needle}"`)
+  if (node === null) throw new Error(`assistant fixture does not contain "${needle}" in one text node`)
   const start = node.data.indexOf(needle)
   const range = document.createRange()
   range.setStart(node, start)
@@ -38,17 +52,39 @@ function selectSourceText(needle = 'Riemann curvature tensor') {
   const selected = window.getSelection()
   selected.removeAllRanges()
   selected.addRange(range)
+  const box = range.getBoundingClientRect()
   const event = new MouseEvent('contextmenu', {
     bubbles: true,
     cancelable: true,
-    clientX: 260,
-    clientY: 160,
+    clientX: Math.max(24, Math.min(box.left, window.innerWidth - 420)),
+    clientY: Math.max(24, Math.min(box.bottom, window.innerHeight - 280)),
   })
   return {
     defaultPrevented: !flow.dispatchEvent(event),
     selectedText: selected.toString(),
-    anchorKey: flow.getAttribute('data-chat-anchor-key'),
+    anchorKey: flow.dataset.chatAnchorKey,
   }
+}
+
+async function askFromSelection(page, needle, question) {
+  const dispatch = await page.evaluate(selectSourceText, needle)
+  const popover = page.getByRole('dialog', { name: '向 CiteCiter 提问' })
+  await popover.waitFor({ timeout: 8_000 })
+  const mode = await popover.locator('select').inputValue()
+  await popover.getByLabel('CiteCiter 的第一个问题').fill(question)
+  await popover.getByRole('button', { name: 'Citer!', exact: true }).click()
+  return { dispatch, mode }
+}
+
+async function waitForPanelText(page, text, timeout = 20_000) {
+  await page.waitForFunction((expected) => (
+    document.querySelector('[data-citeciter-panel]')?.textContent?.includes(expected) === true
+  ), text, { timeout })
+}
+
+const metadata = JSON.parse(await readFile(fixtureMetadataPath, 'utf8'))
+if (metadata.kind !== 'citeciter-smoke-fixture-v2' || metadata.openTurn !== true) {
+  throw new Error('the smoke requires an open-turn v2 source fixture')
 }
 
 const browser = await chromium.launch({ headless: true })
@@ -58,20 +94,17 @@ page.on('pageerror', (error) => errors.push(String(error)))
 page.on('console', (message) => {
   if (message.type() === 'error') errors.push(message.text())
 })
-const out = {}
+const out = {
+  fixture: {
+    sessionId: metadata.sessionId,
+    anchorKey: metadata.anchorKey,
+    anchorSeq: metadata.anchorSeq,
+    openTurn: metadata.openTurn,
+  },
+  screenshotPath,
+}
 
 try {
-  if (fixtureMetadataPath !== undefined) {
-    const metadata = JSON.parse(await readFile(fixtureMetadataPath, 'utf8'))
-    if (metadata.kind !== 'citeciter-smoke-fixture-v1') throw new Error('invalid smoke fixture metadata')
-    parentLogPath = metadata.logPath
-    out.fixture = {
-      sessionId: metadata.sessionId,
-      anchorKey: metadata.anchorKey,
-      anchorSeq: metadata.anchorSeq,
-    }
-  }
-
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 20_000 })
   await page.waitForTimeout(2_500)
   await dismissOptionalPrompts(page)
@@ -86,9 +119,8 @@ try {
     await page.waitForTimeout(500)
   }
 
-  const sourceRow = page.locator('[role="treeitem"][aria-selected]').filter({
-    has: page.getByText(sessionTitle, { exact: true }),
-  })
+  const escapedTitle = sessionTitle.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const sourceRow = page.getByRole('treeitem', { name: new RegExp(`^${escapedTitle}\\s+`) })
   out.sourceRows = await sourceRow.count()
   if (out.sourceRows !== 1) throw new Error(`expected one source row, found ${out.sourceRows}`)
   const assistantFlow = page.locator('[data-chat-flow-kind="assistant-step"]').last()
@@ -97,160 +129,150 @@ try {
     await sourceRow.click({ force: true })
     await page.waitForTimeout(700)
     await dismissOptionalPrompts(page)
-    await page.waitForTimeout(800)
     const opened = await assistantFlow.waitFor({ timeout: 6_000 }).then(() => true, () => false)
     if (opened) break
     if (attempt === 3) throw new Error('source session did not render after three attempts')
   }
 
-  if (parentLogPath !== undefined) out.parentBefore = await revision(parentLogPath)
-  out.dispatch = await page.evaluate(selectSourceText)
-  await page.getByRole('menuitem', { name: 'Citer!', exact: true }).click()
+  out.parentBefore = await revision(metadata.logPath)
+  const first = await askFromSelection(page, 'Riemann curvature tensor', firstQuestion)
+  out.firstDispatch = first.dispatch
+  out.defaultMode = first.mode
+
   const panel = page.locator('[data-citeciter-panel]')
   await panel.waitFor({ timeout: 8_000 })
-  await page.waitForTimeout(400)
-  out.initialPanelWidth = await panel.evaluate((element) => element.getBoundingClientRect().width)
-  out.initialPlaceholder = await panel.locator('textarea').getAttribute('placeholder')
-  out.initialQuickQuestions = await panel.locator('button').filter({ hasText: /解释|例子|为什么/ }).count()
+  await waitForPanelText(page, firstQuestion)
+  await waitForPanelText(page, firstAnswer)
+  await page.waitForFunction(() => /已读至 seq \d+/u.test(
+    document.querySelector('[data-citeciter-panel]')?.textContent ?? '',
+  ), null, { timeout: 20_000 })
+  await waitForPanelText(page, generatedTitle)
+  await page.waitForFunction((expected) => (
+    document.querySelector('[data-citeciter-panel] input[aria-label="Topic 标题"]')?.value === expected
+  ), generatedTitle, { timeout: 8_000 })
+  out.panelWidth = await panel.evaluate((element) => element.getBoundingClientRect().width)
+  out.docked = await page.locator('[data-citeciter-docked="true"]').count()
+  out.sourceVisibleBesidePanel = await assistantFlow.isVisible()
+  out.firstQuestionVisible = (await panel.innerText()).includes(firstQuestion)
+  out.firstAnswerVisible = (await panel.innerText()).includes(firstAnswer)
+  const sourceRead = (await panel.innerText()).match(/已读至 seq (\d+)/u)
+  out.observedThroughSeq = sourceRead === null ? null : Number(sourceRead[1])
+  out.generatedTitle = await panel.getByLabel('Topic 标题').inputValue()
+  out.topicCountAfterFirst = await panel.locator('[data-citeciter-topic]').count()
+  const shellFrame = page.locator('[data-citeciter-docked="true"]')
+  await page.getByRole('button', { name: /^(收起侧边栏|Collapse sidebar)$/u }).click()
+  await page.waitForTimeout(300)
+  out.collapsedSidebarWidth = await shellFrame.evaluate((element) => (
+    element.firstElementChild?.getBoundingClientRect().width ?? 0
+  ))
+  await page.getByRole('button', { name: /^(打开侧边栏|Open sidebar)$/u }).click()
+  await page.waitForTimeout(300)
+  out.expandedSidebarWidth = await shellFrame.evaluate((element) => (
+    element.firstElementChild?.getBoundingClientRect().width ?? 0
+  ))
 
-  await panel.locator('textarea').fill(question)
-  await panel.getByRole('button', { name: '发送', exact: true }).click()
-  await page.waitForFunction(() => {
-    const root = document.querySelector('[data-citeciter-panel]')
-    return root?.querySelector('input[aria-label="Thread 名称"]') !== null
-      && root?.querySelector('select') !== null
-  }, null, { timeout: 15_000 })
-  await page.waitForFunction((expected) => document.querySelector('[data-citeciter-panel]')?.textContent?.includes(expected), question, {
-    timeout: 15_000,
-  })
-
-  out.questionVisible = (await panel.innerText()).includes(question)
-  out.errorText = await panel.locator('[data-citeciter-error]').count() > 0
-    ? await panel.locator('[data-citeciter-error]').innerText()
-    : null
-  out.historyPicker = await panel.getByText('历史 Threads', { exact: true }).count()
-  out.launcher = await page.getByRole('button', { name: /打开 1 个 Citation Threads/ }).count()
-
-  await panel.getByLabel('Thread 名称').fill('曲率学习 Thread')
-  await panel.getByRole('button', { name: '保存', exact: true }).click()
-  await page.waitForTimeout(500)
-  out.renamed = (await panel.getByLabel('Thread 名称').inputValue()) === '曲率学习 Thread'
-
+  await panel.getByLabel('Topic 标题').fill(renamedTitle)
+  await panel.getByRole('button', { name: '保存标题', exact: true }).click()
+  await page.waitForFunction((expected) => (
+    [...document.querySelectorAll('[data-citeciter-topic] strong')].some((node) => node.textContent === expected)
+  ), renamedTitle, { timeout: 8_000 })
   await panel.getByRole('button', { name: '关闭 CiteCiter' }).click()
   await page.waitForFunction(() => document.querySelector('[data-citeciter-panel]') === null)
-  await page.getByRole('button', { name: /打开 1 个 Citation Threads/ }).click()
-  await panel.waitFor({ timeout: 5_000 })
-  out.reopened = await panel.count()
+  out.launcherAfterFirst = await page.getByRole('button', { name: /打开 CiteCiter，共 1 个讨论/ }).count()
 
-  // A full page reload must rediscover the durable projection and launcher.
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(2_500)
   await dismissOptionalPrompts(page)
-  const recoveredLauncher = page.getByRole('button', { name: /打开 1 个 Citation Threads/ })
+  const recoveredLauncher = page.getByRole('button', { name: /打开 CiteCiter/ })
   await recoveredLauncher.waitFor({ timeout: 8_000 })
-  out.recoveredLauncher = await recoveredLauncher.count()
   await recoveredLauncher.click()
   await panel.waitFor({ timeout: 5_000 })
-  const picker = panel.locator('select')
-  await picker.selectOption({ index: 1 })
-  await page.waitForFunction((expected) => document.querySelector('[data-citeciter-panel]')?.textContent?.includes(expected), question, {
-    timeout: 8_000,
-  })
-  out.recoveredQuestion = (await panel.innerText()).includes(question)
-  out.recoveredTitle = await panel.getByLabel('Thread 名称').inputValue()
-  await page.waitForTimeout(500)
-  out.recoveredPanelWidth = await panel.evaluate((element) => element.getBoundingClientRect().width)
+  const recoveredTitle = panel.getByLabel('Topic 标题')
+  await recoveredTitle.waitFor({ timeout: 8_000 })
+  await page.waitForFunction((expected) => (
+    document.querySelector('[data-citeciter-panel] input[aria-label="Topic 标题"]')?.value === expected
+  ), renamedTitle, { timeout: 8_000 })
+  await waitForPanelText(page, firstQuestion)
+  out.recoveredTitle = await recoveredTitle.inputValue()
+  out.recoveredQuestion = (await panel.innerText()).includes(firstQuestion)
+  out.recoveredTopics = await panel.locator('[data-citeciter-topic]').count()
 
-  // Reapplying read-only on a genuine follow-up is idempotent: DSH may log only
-  // command/run + command/done, so the already-effective child state must pass.
-  const followUpQuestion = '第二轮追问：这个曲率结论还能怎样理解？'
   await panel.locator('textarea').fill(followUpQuestion)
   await panel.getByRole('button', { name: '发送', exact: true }).click()
-  await page.waitForFunction((expected) => document.querySelector('[data-citeciter-panel]')?.textContent?.includes(expected), followUpQuestion, {
-    timeout: 15_000,
-  })
-  out.followUpVisible = (await panel.innerText()).includes(followUpQuestion)
-  out.followUpErrorText = await panel.locator('[data-citeciter-error]').count() > 0
-    ? await panel.locator('[data-citeciter-error]').innerText()
-    : null
+  await waitForPanelText(page, followUpQuestion)
+  await waitForPanelText(page, followUpAnswer)
+  out.followUpQuestionVisible = (await panel.innerText()).includes(followUpQuestion)
+  out.followUpAnswerVisible = (await panel.innerText()).includes(followUpAnswer)
 
-  // A second range in the same answer must become a distinct Thread. Switch
-  // back to the first one, then archive only the second through the supported
-  // workspace API; the source session remains selected throughout.
   await panel.getByRole('button', { name: '关闭 CiteCiter' }).click()
   await page.waitForFunction(() => document.querySelector('[data-citeciter-panel]') === null)
-  out.secondDispatch = await page.evaluate(selectSourceText, 'parallel transport')
-  await page.getByRole('menuitem', { name: 'Citer!', exact: true }).click()
-  await panel.waitFor({ timeout: 5_000 })
-  const secondQuestion = '这和 holonomy 有什么关系？'
-  await panel.locator('textarea').fill(secondQuestion)
-  await panel.getByRole('button', { name: '发送', exact: true }).click()
-  await page.waitForFunction((expected) => {
-    const root = document.querySelector('[data-citeciter-panel]')
-    return root?.querySelectorAll('select option').length === 3 && root.textContent?.includes(expected)
-  }, secondQuestion, { timeout: 15_000 })
-  out.distinctThreadOptions = await panel.locator('select option').count()
+  const second = await askFromSelection(page, 'parallel transport', secondQuestion)
+  out.secondDispatch = second.dispatch
+  out.secondMode = second.mode
+  await panel.waitFor({ timeout: 8_000 })
+  await waitForPanelText(page, secondQuestion)
+  await waitForPanelText(page, firstAnswer)
+  await page.waitForFunction(() => document.querySelectorAll('[data-citeciter-topic]').length === 2, null, { timeout: 10_000 })
   out.secondQuestionVisible = (await panel.innerText()).includes(secondQuestion)
-  out.twoThreadLauncher = await page.getByRole('button', { name: /打开 2 个 Citation Threads/ }).count()
-  const secondThreadId = await picker.inputValue()
+  out.topicCountAfterSecond = await panel.locator('[data-citeciter-topic]').count()
+  out.activeSecondTopic = await panel.locator('[data-citeciter-topic][data-active="true"]').count()
 
-  await picker.selectOption({ label: '曲率学习 Thread' })
-  await page.waitForFunction((expected) => document.querySelector('[data-citeciter-panel]')?.textContent?.includes(expected), question, {
-    timeout: 8_000,
-  })
-  out.switchedToFirst = (await panel.innerText()).includes(question)
-  await picker.selectOption(secondThreadId)
-  await page.waitForFunction((expected) => document.querySelector('[data-citeciter-panel]')?.textContent?.includes(expected), secondQuestion, {
-    timeout: 8_000,
-  })
-  out.switchedBackToSecond = (await panel.innerText()).includes(secondQuestion)
-  await panel.getByRole('button', { name: '归档', exact: true }).click()
-  await page.waitForFunction(() => document.querySelector('[data-citeciter-panel] select')?.querySelectorAll('option').length === 2, null, {
-    timeout: 8_000,
-  })
-  out.optionsAfterArchive = await picker.locator('option').count()
-  out.launcherAfterArchive = await page.getByRole('button', { name: /打开 1 个 Citation Threads/ }).count()
+  await panel.getByRole('button', { name: '归档当前 Topic', exact: true }).click()
+  await page.waitForFunction(() => document.querySelectorAll('[data-citeciter-topic]').length === 1, null, { timeout: 8_000 })
+  out.topicCountAfterArchive = await panel.locator('[data-citeciter-topic]').count()
+  out.archivedTopicCanRestore = await panel.getByRole('button', { name: '恢复当前 Topic', exact: true }).count()
+  out.privateRowsInMainList = await page.locator('[role="treeitem"]').evaluateAll((rows, titles) => (
+    rows.filter((row) => titles.some((title) => row.textContent?.includes(title))).length
+  ), [generatedTitle, renamedTitle])
+  out.sourceRowsAfter = await sourceRow.count()
 
-  if (parentLogPath !== undefined) out.parentAfter = await revision(parentLogPath)
-  await page.screenshot({
-    path: fileURLToPath(new URL('../../../artifacts/citeciter-v02-smoke.png', import.meta.url)),
-    fullPage: true,
-  })
+  await page.screenshot({ path: screenshotPath, fullPage: true })
+  await panel.getByRole('button', { name: '关闭 CiteCiter' }).click()
+  await page.waitForFunction(() => document.querySelector('[data-citeciter-panel]') === null)
+  out.launcherAfterArchive = await page.getByRole('button', { name: /打开 CiteCiter，共 1 个讨论/ }).count()
+  out.parentAfter = await revision(metadata.logPath)
 } catch (error) {
   out.failure = String(error)
-  out.bodyAtFailure = (await page.locator('body').innerText()).slice(0, 1_200)
+  out.bodyAtFailure = (await page.locator('body').innerText()).slice(0, 1_600)
+  await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {})
 }
 
 out.errors = errors.slice(0, 10)
 out.passed = out.failure === undefined
-  && out.dispatch?.defaultPrevented === true
-  && out.dispatch?.selectedText === 'Riemann curvature tensor'
-  && out.dispatch?.anchorKey === '14:assistant-step1:1'
-  && out.initialPanelWidth >= 320
-  && out.initialPlaceholder === '你想从哪一点开始？'
-  && out.initialQuickQuestions >= 3
-  && out.questionVisible === true
-  && out.historyPicker === 1
-  && out.launcher === 1
-  && out.renamed === true
-  && out.reopened === 1
-  && out.recoveredLauncher === 1
+  && out.fixture.openTurn === true
+  && out.firstDispatch?.defaultPrevented === true
+  && out.firstDispatch?.selectedText === 'Riemann curvature tensor'
+  && out.firstDispatch?.anchorKey === metadata.anchorKey
+  && out.defaultMode === 'observer'
+  && out.panelWidth >= 360
+  && out.docked === 1
+  && out.sourceVisibleBesidePanel === true
+  && out.firstQuestionVisible === true
+  && out.firstAnswerVisible === true
+  && out.observedThroughSeq >= metadata.anchorSeq
+  && out.generatedTitle === generatedTitle
+  && out.topicCountAfterFirst === 1
+  && out.collapsedSidebarWidth <= 64
+  && out.expandedSidebarWidth >= 200
+  && out.launcherAfterFirst === 1
+  && out.recoveredTitle === renamedTitle
   && out.recoveredQuestion === true
-  && out.recoveredTitle === '曲率学习 Thread'
-  && out.recoveredPanelWidth >= 320
-  && out.followUpVisible === true
-  && !/(prepareThread|read-only switch failed|without applying read-only)/iu.test(out.followUpErrorText ?? '')
+  && out.recoveredTopics === 1
+  && out.followUpQuestionVisible === true
+  && out.followUpAnswerVisible === true
   && out.secondDispatch?.defaultPrevented === true
   && out.secondDispatch?.selectedText === 'parallel transport'
-  && out.distinctThreadOptions === 3
+  && out.secondDispatch?.anchorKey === metadata.anchorKey
+  && out.secondMode === 'observer'
   && out.secondQuestionVisible === true
-  && out.twoThreadLauncher === 1
-  && out.switchedToFirst === true
-  && out.switchedBackToSecond === true
-  && out.optionsAfterArchive === 2
+  && out.topicCountAfterSecond === 2
+  && out.activeSecondTopic === 1
+  && out.topicCountAfterArchive === 1
+  && out.archivedTopicCanRestore === 1
+  && out.privateRowsInMainList === 0
+  && out.sourceRowsAfter === 1
   && out.launcherAfterArchive === 1
-  && !/(unknown|prepareThread|without inject|read-only switch failed)/iu.test(out.errorText ?? '')
-  && (parentLogPath === undefined || JSON.stringify(out.parentBefore) === JSON.stringify(out.parentAfter))
+  && JSON.stringify(out.parentBefore) === JSON.stringify(out.parentAfter)
   && out.errors.length === 0
 
 console.log(JSON.stringify(out, null, 2))
