@@ -19,12 +19,24 @@
 
 CiteCiter lets you select text from a committed AI response, ask about it beside the source, and continue learning in a separate multi-turn Topic. The source Agent keeps working, and the source Session stays unchanged.
 
+## See it in DSH
+
+<p align="center">
+  <img src="assets/screenshots/citeciter-learning-dock.jpg" width="100%" alt="CiteCiter learning dock beside a live DSH programming conversation">
+</p>
+
+<p align="center"><sub>Ask beside the source while CiteCiter inspects reasoning, source events, and project files through read-only tools.</sub></p>
+
+<p align="center">
+  <img src="assets/screenshots/citeciter-settings.png" width="720" alt="CiteCiter settings inside the native DSH settings dialog">
+</p>
+
 ## Install
 
 CiteCiter requires Node.js `^22.19.0 || >=24.0.0`, DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`, and a configured model provider.
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
 ```
 
 Restart the corresponding DSH Web process and refresh the page after installation or upgrade.
@@ -43,8 +55,10 @@ Restart the corresponding DSH Web process and refresh the page after installatio
 - **Private Topics.** Each submission creates an independent DSH Session under `$DSH_HOME/citeciter/`, outside the ordinary Session list.
 - **Precise selections.** Visible Markdown selections map back to Host-verifiable source ranges.
 - **Bound evidence.** `read_source_session` reads committed events from one fixed source Session without exposing its physical log path.
+- **Open-ended investigation.** The standard read-only `glob` and `grep` tools discover project files and search their contents before `read` opens a known path.
 - **Read-only operation.** CiteCiter cannot write to the source Session or source workspace.
-- **Native workflow.** The selection popover, resizable learning dock, Topic navigation, and settings stay inside the DSH programming interface.
+- **Inspectable workflow.** Live reasoning, prompt injections, tool calls, results, and user questions use compact expandable rows inside the learning dock.
+- **Native workflow.** The selection popover, resizable learning dock, active/archive Topic navigation, and settings stay inside the DSH programming interface.
 
 ## Context modes
 
@@ -57,7 +71,7 @@ Exact Fork is an advanced mode for a source turn that has already ended. `exact-
 Install v0.3 with the same command, then verify the installed version:
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
 dsh plugin --profile web list --depth 0
 ```
 

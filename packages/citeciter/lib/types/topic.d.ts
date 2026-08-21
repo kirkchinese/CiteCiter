@@ -151,19 +151,76 @@ export declare const topicSummarySchema: z.ZodObject<{
     }, z.core.$strict>;
 }, z.core.$strict>;
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
-export declare const topicMessageSchema: z.ZodObject<{
+export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    role: z.ZodLiteral<"user">;
+    text: z.ZodString;
     id: z.ZodString;
     seq: z.ZodNumber;
-    role: z.ZodEnum<{
-        error: "error";
-        user: "user";
-        assistant: "assistant";
-    }>;
+}, z.core.$strict>, z.ZodObject<{
+    role: z.ZodLiteral<"assistant">;
     text: z.ZodString;
     reasoning: z.ZodNullable<z.ZodString>;
     streaming: z.ZodBoolean;
-}, z.core.$strict>;
+    id: z.ZodString;
+    seq: z.ZodNumber;
+}, z.core.$strict>, z.ZodObject<{
+    role: z.ZodLiteral<"context">;
+    label: z.ZodString;
+    text: z.ZodString;
+    id: z.ZodString;
+    seq: z.ZodNumber;
+}, z.core.$strict>, z.ZodObject<{
+    role: z.ZodLiteral<"tool">;
+    name: z.ZodString;
+    arguments: z.ZodString;
+    result: z.ZodNullable<z.ZodString>;
+    isError: z.ZodBoolean;
+    running: z.ZodBoolean;
+    id: z.ZodString;
+    seq: z.ZodNumber;
+}, z.core.$strict>, z.ZodObject<{
+    role: z.ZodLiteral<"error">;
+    text: z.ZodString;
+    id: z.ZodString;
+    seq: z.ZodNumber;
+}, z.core.$strict>], "role">;
 export type TopicMessage = z.infer<typeof topicMessageSchema>;
+export declare const questionOptionSchema: z.ZodObject<{
+    label: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+}, z.core.$strict>;
+export declare const questionItemSchema: z.ZodObject<{
+    id: z.ZodString;
+    question: z.ZodString;
+    header: z.ZodOptional<z.ZodString>;
+    options: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        label: z.ZodString;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>>;
+    multiSelect: z.ZodOptional<z.ZodBoolean>;
+}, z.core.$strict>;
+export declare const questionAnswerSchema: z.ZodObject<{
+    answers: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        selected: z.ZodArray<z.ZodString>;
+        custom: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>;
+}, z.core.$strict>;
+export type QuestionAnswer = z.infer<typeof questionAnswerSchema>;
+export declare const pendingQuestionSchema: z.ZodObject<{
+    key: z.ZodString;
+    questions: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        question: z.ZodString;
+        header: z.ZodOptional<z.ZodString>;
+        options: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            label: z.ZodString;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>>;
+        multiSelect: z.ZodOptional<z.ZodBoolean>;
+    }, z.core.$strict>>;
+}, z.core.$strict>;
+export type PendingQuestion = z.infer<typeof pendingQuestionSchema>;
 export declare const topicSnapshotSchema: z.ZodObject<{
     topic: z.ZodObject<{
         topicId: z.ZodNumber;
@@ -203,17 +260,51 @@ export declare const topicSnapshotSchema: z.ZodObject<{
             stop: z.ZodOptional<z.ZodArray<z.ZodString>>;
         }, z.core.$strict>;
     }, z.core.$strict>;
-    messages: z.ZodArray<z.ZodObject<{
+    messages: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+        role: z.ZodLiteral<"user">;
+        text: z.ZodString;
         id: z.ZodString;
         seq: z.ZodNumber;
-        role: z.ZodEnum<{
-            error: "error";
-            user: "user";
-            assistant: "assistant";
-        }>;
+    }, z.core.$strict>, z.ZodObject<{
+        role: z.ZodLiteral<"assistant">;
         text: z.ZodString;
         reasoning: z.ZodNullable<z.ZodString>;
         streaming: z.ZodBoolean;
+        id: z.ZodString;
+        seq: z.ZodNumber;
+    }, z.core.$strict>, z.ZodObject<{
+        role: z.ZodLiteral<"context">;
+        label: z.ZodString;
+        text: z.ZodString;
+        id: z.ZodString;
+        seq: z.ZodNumber;
+    }, z.core.$strict>, z.ZodObject<{
+        role: z.ZodLiteral<"tool">;
+        name: z.ZodString;
+        arguments: z.ZodString;
+        result: z.ZodNullable<z.ZodString>;
+        isError: z.ZodBoolean;
+        running: z.ZodBoolean;
+        id: z.ZodString;
+        seq: z.ZodNumber;
+    }, z.core.$strict>, z.ZodObject<{
+        role: z.ZodLiteral<"error">;
+        text: z.ZodString;
+        id: z.ZodString;
+        seq: z.ZodNumber;
+    }, z.core.$strict>], "role">>;
+    pendingQuestion: z.ZodNullable<z.ZodObject<{
+        key: z.ZodString;
+        questions: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            question: z.ZodString;
+            header: z.ZodOptional<z.ZodString>;
+            options: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                label: z.ZodString;
+                description: z.ZodOptional<z.ZodString>;
+            }, z.core.$strict>>>;
+            multiSelect: z.ZodOptional<z.ZodBoolean>;
+        }, z.core.$strict>>;
     }, z.core.$strict>>;
     error: z.ZodNullable<z.ZodString>;
 }, z.core.$strict>;
@@ -275,6 +366,21 @@ export declare const citeCiterRequestSchema: z.ZodDiscriminatedUnion<[z.ZodObjec
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"stop">;
     topicSessionId: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"answer-question">;
+    topicSessionId: z.ZodString;
+    key: z.ZodString;
+    answer: z.ZodObject<{
+        answers: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            selected: z.ZodArray<z.ZodString>;
+            custom: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>;
+    }, z.core.$strict>;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"cancel-question">;
+    topicSessionId: z.ZodString;
+    key: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"rename">;
     topicSessionId: z.ZodString;
@@ -339,17 +445,51 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 stop: z.ZodOptional<z.ZodArray<z.ZodString>>;
             }, z.core.$strict>;
         }, z.core.$strict>;
-        messages: z.ZodArray<z.ZodObject<{
+        messages: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+            role: z.ZodLiteral<"user">;
+            text: z.ZodString;
             id: z.ZodString;
             seq: z.ZodNumber;
-            role: z.ZodEnum<{
-                error: "error";
-                user: "user";
-                assistant: "assistant";
-            }>;
+        }, z.core.$strict>, z.ZodObject<{
+            role: z.ZodLiteral<"assistant">;
             text: z.ZodString;
             reasoning: z.ZodNullable<z.ZodString>;
             streaming: z.ZodBoolean;
+            id: z.ZodString;
+            seq: z.ZodNumber;
+        }, z.core.$strict>, z.ZodObject<{
+            role: z.ZodLiteral<"context">;
+            label: z.ZodString;
+            text: z.ZodString;
+            id: z.ZodString;
+            seq: z.ZodNumber;
+        }, z.core.$strict>, z.ZodObject<{
+            role: z.ZodLiteral<"tool">;
+            name: z.ZodString;
+            arguments: z.ZodString;
+            result: z.ZodNullable<z.ZodString>;
+            isError: z.ZodBoolean;
+            running: z.ZodBoolean;
+            id: z.ZodString;
+            seq: z.ZodNumber;
+        }, z.core.$strict>, z.ZodObject<{
+            role: z.ZodLiteral<"error">;
+            text: z.ZodString;
+            id: z.ZodString;
+            seq: z.ZodNumber;
+        }, z.core.$strict>], "role">>;
+        pendingQuestion: z.ZodNullable<z.ZodObject<{
+            key: z.ZodString;
+            questions: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                question: z.ZodString;
+                header: z.ZodOptional<z.ZodString>;
+                options: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    label: z.ZodString;
+                    description: z.ZodOptional<z.ZodString>;
+                }, z.core.$strict>>>;
+                multiSelect: z.ZodOptional<z.ZodBoolean>;
+            }, z.core.$strict>>;
         }, z.core.$strict>>;
         error: z.ZodNullable<z.ZodString>;
     }, z.core.$strict>;

@@ -1,4 +1,4 @@
-import { c as citeCiterRequestSchema, l as citeCiterResponseSchema } from "./topic-CjNNXSWB.js";
+import { c as citeCiterRequestSchema, l as citeCiterResponseSchema } from "./topic-BfAp9KoS.js";
 //#region lib/types/typert-common.js
 /** Strict root-scoped Topic command shared by Host and browser manifests. */
 const citeCiterRequestDescriptor = {

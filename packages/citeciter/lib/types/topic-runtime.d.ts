@@ -10,12 +10,15 @@ export declare class TopicRuntime {
     private readonly handles;
     private readonly selections;
     private readonly opening;
+    private readonly pendingQuestions;
     private readonly ready;
     private disposal;
     private releasing;
     private releaseLlm;
     private releaseFs;
+    private releaseSubprocess;
     private releaseSandboxPolicy;
+    private releaseQuestionProvider;
     private hasSourceFiles;
     private closed;
     /** @param host - owning DSH context. @param settings - current user preferences. */
@@ -36,6 +39,9 @@ export declare class TopicRuntime {
     private sourceTool;
     private ensureHandle;
     private ask;
+    private askUser;
+    private answerQuestion;
+    private cancelQuestion;
     private stop;
     private rename;
     private archive;

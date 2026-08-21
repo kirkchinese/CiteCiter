@@ -5,6 +5,7 @@ import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-session-query'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-subprocess'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import z from '@deepseek-ai/schemastery'
 import { TopicRuntime } from './topic-runtime.ts'
@@ -21,7 +22,7 @@ import {
 /** Cordis/Typert package identity. */
 export const name = '@kirkchinese/dsh-citeciter'
 /** Services required by the private Topic runtime. */
-export const inject = ['llm', 'sessionQuery'] as const
+export const inject = ['llm', 'sessionQuery', 'subprocess'] as const
 
 /** Host settings identity shared with the browser settings scope. */
 export const CITECITER_SETTINGS_NS = settingsNamespace(CITECITER_SETTINGS_NAMESPACE)

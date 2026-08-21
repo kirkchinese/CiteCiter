@@ -12,6 +12,7 @@ import {
   type CiteCiterResponse,
   type CiteCiterSettings,
   type ProviderOption,
+  type QuestionAnswer,
   type TopicSnapshot,
   type TopicSummary,
 } from '../topic.ts'
@@ -46,6 +47,8 @@ export interface CompanionFace {
   create(selection: CiteSelection, question: string, mode?: CreateMode): Promise<void>
   openTopic(sessionId: string): Promise<void>
   ask(question: string): Promise<void>
+  answerQuestion(key: string, answer: QuestionAnswer): Promise<void>
+  cancelQuestion(key: string): Promise<void>
   stop(): Promise<void>
   rename(title: string): Promise<void>
   archive(archived: boolean): Promise<void>
@@ -314,6 +317,39 @@ export function createCompanionController(
     }
   }
 
+  const answerQuestion = async (key: string, answer: QuestionAnswer): Promise<void> => {
+    const active = store.getSnapshot().active
+    if (active === null) return
+    const operationEpoch = ++epoch
+    try {
+      const response = await call({
+        action: 'answer-question',
+        topicSessionId: active.topic.sessionId,
+        key,
+        answer,
+      })
+      if (response.kind === 'topic') acceptTopic(response.topic, operationEpoch, active.topic.sessionId)
+    } catch (error) {
+      fail(error, operationEpoch)
+    }
+  }
+
+  const cancelQuestion = async (key: string): Promise<void> => {
+    const active = store.getSnapshot().active
+    if (active === null) return
+    const operationEpoch = ++epoch
+    try {
+      const response = await call({
+        action: 'cancel-question',
+        topicSessionId: active.topic.sessionId,
+        key,
+      })
+      if (response.kind === 'topic') acceptTopic(response.topic, operationEpoch, active.topic.sessionId)
+    } catch (error) {
+      fail(error, operationEpoch)
+    }
+  }
+
   const rename = async (rawTitle: string): Promise<void> => {
     const active = store.getSnapshot().active
     const title = rawTitle.trim()
@@ -335,6 +371,10 @@ export function createCompanionController(
     try {
       const response = await call({ action: 'archive', topicSessionId: active.topic.sessionId, archived })
       if (response.kind === 'topic') acceptTopic(response.topic, operationEpoch, active.topic.sessionId)
+      if (archived !== store.getSnapshot().includeArchived) update((draft) => {
+        draft.active = null
+        draft.phase = 'idle'
+      })
       await refreshTopics(operationEpoch)
     } catch (error) {
       fail(error, operationEpoch)
@@ -367,6 +407,8 @@ export function createCompanionController(
     create,
     openTopic: (sessionId) => openTopic(sessionId, ++epoch),
     ask,
+    answerQuestion,
+    cancelQuestion,
     stop,
     rename,
     archive,
@@ -374,6 +416,9 @@ export function createCompanionController(
       const operationEpoch = ++epoch
       update((draft) => {
         draft.includeArchived = include
+        draft.active = null
+        draft.topics = []
+        draft.phase = 'idle'
       })
       void refreshTopics(operationEpoch).catch((error) => fail(error, operationEpoch))
     },

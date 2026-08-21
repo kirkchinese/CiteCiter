@@ -35,6 +35,7 @@ const PLATFORM_MODULES = [
 
 const CSS_VIRTUAL_PREFIX = '\0dsh-css:'
 const CSS_VIRTUAL_SUFFIX = '.mjs'
+const PNG_VIRTUAL_PREFIX = '\0citeciter-png:'
 
 /**
  * Wire/type layers a client bundle may inline: browser-safe contracts with no
@@ -92,6 +93,7 @@ export function clientBundle(id: string, libEntry: readonly string[], options: C
 
 function clientConfig(id: string, entry: string): UserConfig {
   const cssAssets = new Map<string, string>()
+  const pngAssets = new Map<string, string>()
   return {
     name: `${id}/client`,
     entry: { client: entry },
@@ -158,6 +160,22 @@ function clientConfig(id: string, entry: string): UserConfig {
           '}',
           `export default ${JSON.stringify(classMap)};`,
         ].join('\n')
+      },
+    }, {
+      name: 'citeciter-png-inline',
+      resolveId(source: string, importer: string | undefined) {
+        if (!source.endsWith('.png')) return null
+        const abs = importer !== undefined ? sourceAssetPath(source, importer) : source
+        const virtualId = PNG_VIRTUAL_PREFIX + browserSourcePath(relative(PACKAGE_ROOT, abs))
+        pngAssets.set(virtualId, abs)
+        return virtualId
+      },
+      async load(virtualId: string) {
+        if (!virtualId.startsWith(PNG_VIRTUAL_PREFIX)) return null
+        const fileId = pngAssets.get(virtualId)
+        if (fileId === undefined) throw new Error(`unknown PNG asset ${virtualId}`)
+        this.addWatchFile(fileId)
+        return `export default ${JSON.stringify(`data:image/png;base64,${(await readFile(fileId)).toString('base64')}`)};`
       },
     }],
     outputOptions: {

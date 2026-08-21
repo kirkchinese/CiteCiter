@@ -9,7 +9,7 @@ A private learning companion for live DeepSeek Harness conversations. Select tex
 CiteCiter requires Node.js `^22.19.0 || >=24.0.0`, DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`, and a configured model provider.
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
 ```
 
 Restart the corresponding DSH Web process and refresh the page after installation or upgrade.
@@ -28,8 +28,10 @@ Restart the corresponding DSH Web process and refresh the page after installatio
 - **Private Topics.** Each submission creates an independent DSH Session under `$DSH_HOME/citeciter/`, outside the ordinary Session list.
 - **Precise selections.** Visible Markdown selections map back to Host-verifiable source ranges.
 - **Bound evidence.** `read_source_session` reads committed events from one fixed source Session without exposing its physical log path.
+- **Open-ended investigation.** The standard read-only `glob` and `grep` tools discover project files and search their contents before `read` opens a known path.
 - **Read-only operation.** CiteCiter cannot write to the source Session or source workspace.
-- **Native workflow.** The selection popover, resizable learning dock, Topic navigation, and settings remain inside the DSH programming interface.
+- **Inspectable workflow.** Live reasoning, prompt injections, tool calls, results, and user questions use compact expandable rows inside the learning dock.
+- **Native workflow.** The selection popover, resizable learning dock, active/archive Topic navigation, and settings remain inside the DSH programming interface.
 
 ## Context modes
 
@@ -40,7 +42,7 @@ Exact Fork is an advanced mode for a source turn that has already ended. `exact-
 ## Upgrade from v0.2
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
 dsh plugin --profile web list --depth 0
 ```
 

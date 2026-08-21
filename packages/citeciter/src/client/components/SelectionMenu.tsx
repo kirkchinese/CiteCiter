@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState, useSyncExternalStore } from 'react'
 import type { CompanionFace, CreateMode } from '../companion-controller.ts'
 import type { CiteBus } from '../types.ts'
+import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
 
 const PREVIEW_LIMIT = 96
@@ -85,8 +86,8 @@ export function SelectionMenu({ bus, companion, openPanel }: SelectionMenuProps)
             : '打开 CiteCiter，共 ' + snapshot.topics.length + ' 个讨论'}
           title="打开 CiteCiter"
         >
-          <span aria-hidden="true">🐋</span>
-          {snapshot.topics.length > 0 && <span>{snapshot.topics.length}</span>}
+          <img src={mascotUrl} alt="" aria-hidden="true" />
+          {snapshot.topics.length > 0 && <span className={css.launcherCount}>{snapshot.topics.length}</span>}
         </button>
       )}
     </>

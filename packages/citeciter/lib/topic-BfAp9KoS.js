@@ -84,21 +84,68 @@ const topicSummarySchema = z.object({
 	observedThroughSeq: z.number().int().nonnegative().nullable(),
 	modelConfig: modelConfigSchema
 }).strict();
-const topicMessageSchema = z.object({
+const topicMessageIdentitySchema = {
 	id: z.string().min(1),
-	seq: z.number().int().nonnegative(),
-	role: z.enum([
-		"user",
-		"assistant",
-		"error"
-	]),
-	text: z.string(),
-	reasoning: z.string().nullable(),
-	streaming: z.boolean()
+	seq: z.number().int().nonnegative()
+};
+const topicMessageSchema = z.discriminatedUnion("role", [
+	z.object({
+		...topicMessageIdentitySchema,
+		role: z.literal("user"),
+		text: z.string()
+	}).strict(),
+	z.object({
+		...topicMessageIdentitySchema,
+		role: z.literal("assistant"),
+		text: z.string(),
+		reasoning: z.string().nullable(),
+		streaming: z.boolean()
+	}).strict(),
+	z.object({
+		...topicMessageIdentitySchema,
+		role: z.literal("context"),
+		label: z.string().min(1),
+		text: z.string()
+	}).strict(),
+	z.object({
+		...topicMessageIdentitySchema,
+		role: z.literal("tool"),
+		name: z.string().min(1),
+		arguments: z.string(),
+		result: z.string().nullable(),
+		isError: z.boolean(),
+		running: z.boolean()
+	}).strict(),
+	z.object({
+		...topicMessageIdentitySchema,
+		role: z.literal("error"),
+		text: z.string()
+	}).strict()
+]);
+const questionOptionSchema = z.object({
+	label: z.string().min(1),
+	description: z.string().optional()
+}).strict();
+const questionItemSchema = z.object({
+	id: z.string().min(1),
+	question: z.string().min(1),
+	header: z.string().optional(),
+	options: z.array(questionOptionSchema).optional(),
+	multiSelect: z.boolean().optional()
+}).strict();
+const questionAnswerSchema = z.object({ answers: z.array(z.object({
+	id: z.string().min(1),
+	selected: z.array(z.string()),
+	custom: z.string().optional()
+}).strict()) }).strict();
+const pendingQuestionSchema = z.object({
+	key: z.string().min(1),
+	questions: z.array(questionItemSchema).min(1)
 }).strict();
 const topicSnapshotSchema = z.object({
 	topic: topicSummarySchema,
 	messages: z.array(topicMessageSchema),
+	pendingQuestion: pendingQuestionSchema.nullable(),
 	error: z.string().nullable()
 }).strict();
 const modelOptionSchema = z.object({
@@ -146,6 +193,17 @@ const citeCiterRequestSchema = z.discriminatedUnion("action", [
 	z.object({
 		action: z.literal("stop"),
 		topicSessionId: topicSessionIdSchema
+	}).strict(),
+	z.object({
+		action: z.literal("answer-question"),
+		topicSessionId: topicSessionIdSchema,
+		key: z.string().min(1),
+		answer: questionAnswerSchema
+	}).strict(),
+	z.object({
+		action: z.literal("cancel-question"),
+		topicSessionId: topicSessionIdSchema,
+		key: z.string().min(1)
 	}).strict(),
 	z.object({
 		action: z.literal("rename"),
