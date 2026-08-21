@@ -1,8 +1,23 @@
-# `@kirkchinese/dsh-citeciter`
+<p align="center">
+  <img src="assets/citeciter-whale-sticker.png" width="360" alt="CiteCiter 鲸鱼吉祥物">
+</p>
 
-服务于进行中 DeepSeek Harness 对话的独立学习伴侣。在已经提交的助手回答中选中文字，就地提问；来源 Agent 可以继续工作，讨论则在独立 Topic 中多轮进行。
+<h1 align="center">CiteCiter</h1>
 
-[English](README.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
+<p align="center">服务于进行中 DeepSeek Harness 对话的独立学习伴侣。</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@kirkchinese/dsh-citeciter"><img src="https://img.shields.io/npm/v/@kirkchinese/dsh-citeciter" alt="npm 版本"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT 许可证"></a>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="https://www.npmjs.com/package/@kirkchinese/dsh-citeciter">npm</a> ·
+  <a href="https://github.com/kirkchinese/CiteCiter/issues">问题反馈</a>
+</p>
+
+CiteCiter 让你在已经提交的 AI 回答中选中文字，就地提出问题，并在独立 Topic 中继续多轮学习。来源 Agent 可以继续工作，来源 Session 不会被改变。
 
 ## 安装
 
@@ -24,7 +39,7 @@ dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
 
 ## 核心能力
 
-- **模型调用级引用。** `assistant/message` 一经提交即可开始，无需等待整个 Agent 轮次结束。
+- **模型调用级引用。** `assistant/message` 一经提交即可开始学习，无需等待整个 Agent 轮次结束。
 - **私有 Topic。** 每次提交都会在 `$DSH_HOME/citeciter/` 下创建独立 DSH Session，不进入普通 Session 列表。
 - **精确选区。** 可见 Markdown 选区会映射回 Host 可复验的原文范围。
 - **绑定来源的证据。** `read_source_session` 只读取一个固定来源 Session 的已提交事件，不暴露物理日志路径。
@@ -38,6 +53,8 @@ Observer 是默认模式。它创建独立 Topic，并按需读取已经提交�
 Exact Fork 是面向已结束来源轮次的高级模式。`exact-when-available` 在存在稳定边界时使用 Exact Fork，否则回退到 Observer。
 
 ## 从 v0.2 升级
+
+使用相同命令安装 v0.3，然后检查实际版本：
 
 ```sh
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
@@ -56,8 +73,8 @@ dsh plugin --profile web list --depth 0
 
 ## 参与贡献
 
-欢迎提交 Issue 和 Pull Request。提交代码前请阅读[贡献文档](https://github.com/kirkchinese/CiteCiter/blob/main/CONTRIBUTING.zh.md)。
+欢迎提交 Issue 和 Pull Request。提交代码前请阅读[贡献文档](CONTRIBUTING.zh.md)。
 
 ## 许可证
 
-MIT © CiteCiter contributors
+[MIT](LICENSE) © CiteCiter contributors
