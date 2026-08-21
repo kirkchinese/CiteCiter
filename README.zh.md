@@ -19,12 +19,24 @@
 
 CiteCiter 让你在已经提交的 AI 回答中选中文字，就地提出问题，并在独立 Topic 中继续多轮学习。来源 Agent 可以继续工作，来源 Session 不会被改变。
 
+## 在 DSH 中的实际效果
+
+<p align="center">
+  <img src="assets/screenshots/citeciter-learning-dock.jpg" width="100%" alt="CiteCiter 学习栏与正在进行的 DSH 编程对话并排显示">
+</p>
+
+<p align="center"><sub>不离开来源对话，通过只读工具检查思考、会话事件和项目文件。</sub></p>
+
+<p align="center">
+  <img src="assets/screenshots/citeciter-settings.png" width="720" alt="DSH 原生设置对话框中的 CiteCiter 设置">
+</p>
+
 ## 安装
 
 CiteCiter 需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`，以及已经配置的模型提供方。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
 ```
 
 安装或升级后，请重启对应的 DSH Web 进程并刷新页面。
@@ -43,8 +55,10 @@ dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
 - **私有 Topic。** 每次提交都会在 `$DSH_HOME/citeciter/` 下创建独立 DSH Session，不进入普通 Session 列表。
 - **精确选区。** 可见 Markdown 选区会映射回 Host 可复验的原文范围。
 - **绑定来源的证据。** `read_source_session` 只读取一个固定来源 Session 的已提交事件，不暴露物理日志路径。
+- **开放式项目调查。** 标准只读 `glob` 与 `grep` 先发现项目文件并搜索内容，再由 `read` 打开已知路径。
 - **只读运行。** CiteCiter 不能写入来源 Session 或来源工作区。
-- **原生工作流。** 选区浮层、可调宽学习栏、Topic 导航和设置都保留在 DSH 编程界面内。
+- **可检查的对话流程。** 实时思考、提示词注入、工具调用、结果和用户提问都在学习栏中以紧凑可展开行显示。
+- **原生工作流。** 选区浮层、可调宽学习栏、活动/归档 Topic 导航和设置都保留在 DSH 编程界面内。
 
 ## 上下文模式
 
@@ -57,7 +71,7 @@ Exact Fork 是面向已结束来源轮次的高级模式。`exact-when-available
 使用相同命令安装 v0.3，然后检查实际版本：
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
 dsh plugin --profile web list --depth 0
 ```
 

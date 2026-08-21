@@ -1,6 +1,6 @@
 import { type ISessions, type SessionId, type SettingsScope, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
-import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type TopicSnapshot, type TopicSummary } from '../topic.ts';
+import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type QuestionAnswer, type TopicSnapshot, type TopicSummary } from '../topic.ts';
 import type { CiteSelection } from './types.ts';
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'error';
 export type CreateMode = 'observer' | 'exact-fork' | 'exact-when-available';
@@ -24,6 +24,8 @@ export interface CompanionFace {
     create(selection: CiteSelection, question: string, mode?: CreateMode): Promise<void>;
     openTopic(sessionId: string): Promise<void>;
     ask(question: string): Promise<void>;
+    answerQuestion(key: string, answer: QuestionAnswer): Promise<void>;
+    cancelQuestion(key: string): Promise<void>;
     stop(): Promise<void>;
     rename(title: string): Promise<void>;
     archive(archived: boolean): Promise<void>;

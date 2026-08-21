@@ -2,14 +2,26 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   useEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react'
+import {
+  DisclosureRow,
+  IconArchiveOutline20,
+  IconQuestionOutline14,
+  IconSparkle16,
+  IconThinkOutline14,
+  JsonTree,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CompanionFace, CompanionPhase } from '../companion-controller.ts'
+import type { TopicMessage } from '../../topic.ts'
 import type { CiteBus } from '../types.ts'
+import mascotUrl from '../assets/citeciter-mascot.png'
+import { QuestionCard } from './QuestionCard.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
 import css from './CiteCiter.module.css'
 
@@ -37,6 +49,124 @@ function parseModelValue(value: string): [string, string] {
 function quotePreview(text: string): string {
   const compact = text.replaceAll(/\s+/g, ' ').trim()
   return compact.length > 54 ? compact.slice(0, 54) + '…' : compact
+}
+
+function firstLine(text: string): string {
+  return text.trim().split(/\r?\n/u, 1)[0] ?? ''
+}
+
+function latestLine(text: string): string {
+  return text.trimEnd().split(/\r?\n/u).at(-1) ?? ''
+}
+
+function compactPreview(text: string): string {
+  const compact = text.replaceAll(/\s+/g, ' ').trim()
+  return compact.length > 120 ? compact.slice(0, 120) + '…' : compact
+}
+
+function jsonObject(text: string): object | unknown[] | null {
+  try {
+    const value: unknown = JSON.parse(text)
+    return typeof value === 'object' && value !== null ? value as object | unknown[] : null
+  } catch {
+    return null
+  }
+}
+
+const TOOL_TITLES: Readonly<Record<string, string>> = {
+  read_source_session: '读取来源会话',
+  read: '读取文件',
+  glob: '枚举文件',
+  grep: '搜索内容',
+  ask_user_question: '提问',
+}
+
+function FlowDisclosure({
+  icon,
+  title,
+  summary,
+  running = false,
+  children,
+}: {
+  readonly icon: ReactNode
+  readonly title: string
+  readonly summary: string
+  readonly running?: boolean
+  readonly children: ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const summaryRef = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (!running) return
+    const element = summaryRef.current
+    if (element !== null) element.scrollLeft = element.scrollWidth - element.clientWidth
+  }, [running, summary])
+  return (
+    <DisclosureRow
+      className={css.flowDisclosure}
+      rowClassName={running ? css.flowRowRunning : css.flowRow}
+      icon={icon}
+      title={title}
+      open={open}
+      expandable
+      expandOnRowClick
+      onToggle={() => setOpen(!open)}
+      collapsedContent={(
+        <><span className={css.flowDot}>·</span><span className={css.flowSummary} ref={summaryRef}>{summary}</span></>
+      )}
+    >
+      {children}
+    </DisclosureRow>
+  )
+}
+
+function ReasoningRow({ text, running }: { readonly text: string, readonly running: boolean }) {
+  return (
+    <FlowDisclosure
+      icon={<IconThinkOutline14 />}
+      title="Think"
+      summary={running ? latestLine(text) : firstLine(text)}
+      running={running}
+    >
+      <pre className={css.flowBody}>{text}</pre>
+    </FlowDisclosure>
+  )
+}
+
+function ToolRow({ message }: { readonly message: Extract<TopicMessage, { role: 'tool' }> }) {
+  const args = jsonObject(message.arguments)
+  const result = message.result === null ? null : jsonObject(message.result)
+  const summary = message.running
+    ? compactPreview(message.arguments)
+    : message.isError
+      ? '调用失败'
+      : compactPreview(message.result ?? '完成')
+  return (
+    <FlowDisclosure
+      icon={message.name === 'ask_user_question' ? <IconQuestionOutline14 /> : <IconSparkle16 />}
+      title={TOOL_TITLES[message.name] ?? message.name}
+      summary={summary}
+      running={message.running}
+    >
+      <div className={css.toolPreview}>
+        <strong>参数</strong>
+        {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label="工具参数" copyable={false} />}
+        {message.result !== null && (
+          <><strong>{message.isError ? '错误' : '结果'}</strong>{result === null
+            ? <pre>{message.result}</pre>
+            : <JsonTree data={result} label="工具结果" copyable={false} />}</>
+        )}
+      </div>
+    </FlowDisclosure>
+  )
+}
+
+function ContextRow({ message }: { readonly message: Extract<TopicMessage, { role: 'context' }> }) {
+  return (
+    <FlowDisclosure icon={<IconSparkle16 />} title={message.label} summary={firstLine(message.text)}>
+      <pre className={css.flowBody}>{message.text}</pre>
+    </FlowDisclosure>
+  )
 }
 
 /** Reserve a real third DSH column while keeping the official shell and coding surface intact. */
@@ -192,13 +322,13 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
 
       <nav className={css.topicRail} aria-label="CiteCiter Topics">
         <div className={css.brand}>
-          <span className={css.brandMark} aria-hidden="true">🐋</span>
+          <span className={css.brandMark} aria-hidden="true"><img src={mascotUrl} alt="" /></span>
           <div><strong>CiteCiter</strong><span>学习伴侣</span></div>
         </div>
         <div className={css.railCaption}>
-          <span>当前来源的讨论</span>
+          <span>{snapshot.includeArchived ? '归档讨论' : '当前来源的讨论'}</span>
           <button type="button" onClick={() => companion.setIncludeArchived(!snapshot.includeArchived)}>
-            {snapshot.includeArchived ? '仅活动' : '查看归档'}
+            {snapshot.includeArchived ? '返回活动' : '查看归档'}
           </button>
         </div>
         <div className={css.topicList}>
@@ -220,7 +350,9 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
             </button>
           ))}
           {snapshot.topics.length === 0 && (
-            <p className={css.railEmpty}>在中央编程对话中选中文字，右键即可开始。</p>
+            <p className={css.railEmpty}>{snapshot.includeArchived
+              ? '当前来源还没有归档 Topic。'
+              : '在中央编程对话中选中文字，右键即可开始。'}</p>
           )}
         </div>
         <div className={css.railFoot}>
@@ -241,7 +373,7 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
 
         {active === null && snapshot.draftQuote === null ? (
           <div className={css.emptyState}>
-            <div className={css.emptyWhale} aria-hidden="true">🐋</div>
+            <div className={css.emptyWhale} aria-hidden="true"><img src={mascotUrl} alt="" /></div>
             <h2>编程别停，问题放到旁边问</h2>
             <p>选中主对话里一次已完成模型调用的任意文字，右键输入问题。Topic 会在这里独立多轮继续，不进入左侧主会话列表。</p>
             {snapshot.error !== null && <p className={css.panelError}>{snapshot.error}</p>}
@@ -310,41 +442,44 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
                 )}
                 <button
                   type="button"
+                  className={css.archiveButton}
                   aria-label={active.topic.archived ? '恢复当前 Topic' : '归档当前 Topic'}
                   onClick={() => { void companion.archive(!active.topic.archived) }}
                 >
-                  {active.topic.archived ? '恢复' : '归档'}
+                  <IconArchiveOutline20 size={14} />{active.topic.archived ? '恢复' : '归档'}
                 </button>
               </div>
             )}
 
             <div className={css.transcript} aria-live="polite">
-              {active?.messages.map((message) => (
-                <article
-                  key={message.id}
-                  className={message.role === 'user' ? css.userTurn : message.role === 'assistant' ? css.assistantTurn : css.errorTurn}
-                >
-                  <div className={css.turnRole}>{message.role === 'user' ? '你' : message.role === 'assistant' ? 'CiteCiter' : '错误'}</div>
-                  {message.role === 'assistant'
-                    ? (
-                        <>
-                          {message.reasoning !== null && (
-                            <details className={css.reasoning}>
-                              <summary>思考过程</summary>
-                              <p>{message.reasoning}</p>
-                            </details>
-                          )}
-                          <RichAnswer text={message.text} streaming={message.streaming} />
-                        </>
-                      )
-                    : <p>{message.text}</p>}
-                </article>
-              ))}
+              {active?.messages.map((message) => {
+                if (message.role === 'tool') return <ToolRow key={message.id} message={message} />
+                if (message.role === 'context') return <ContextRow key={message.id} message={message} />
+                if (message.role === 'user') return (
+                  <article key={message.id} className={css.userTurn}>
+                    <div className={css.turnRole}>你</div><p>{message.text}</p>
+                  </article>
+                )
+                if (message.role === 'error') return (
+                  <article key={message.id} className={css.errorTurn}>
+                    <div className={css.turnRole}>错误</div><p>{message.text}</p>
+                  </article>
+                )
+                return (
+                  <article key={message.id} className={css.assistantTurn}>
+                    <div className={css.turnRole}>CiteCiter</div>
+                    {message.reasoning !== null && <ReasoningRow text={message.reasoning} running={message.streaming} />}
+                    {message.text !== '' && <RichAnswer text={message.text} streaming={message.streaming} />}
+                  </article>
+                )
+              })}
               {snapshot.phase === 'creating' && <div className={css.loadingCard}>正在建立只读上下文与独立 Topic…</div>}
               {snapshot.error !== null && <p className={css.panelError} data-citeciter-error>{snapshot.error}</p>}
             </div>
 
-            <form className={css.composer} onSubmit={submit}>
+            {active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
+              ? <QuestionCard key={active.pendingQuestion.key} pending={active.pendingQuestion} companion={companion} />
+              : <form className={css.composer} onSubmit={submit}>
               <textarea
                 rows={3}
                 maxLength={12_000}
@@ -359,7 +494,7 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
                 {snapshot.phase === 'running' && <button type="button" onClick={() => { void companion.stop() }}>停止</button>}
                 <button className={css.sendButton} type="submit" disabled={active === null || question.trim() === ''}>发送</button>
               </div>
-            </form>
+            </form>}
           </>
         )}
       </section>

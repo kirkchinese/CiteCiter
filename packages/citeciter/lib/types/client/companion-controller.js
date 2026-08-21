@@ -262,6 +262,43 @@ export function createCompanionController(sessions, settingsScope, request, stor
             fail(error, operationEpoch);
         }
     };
+    const answerQuestion = async (key, answer) => {
+        const active = store.getSnapshot().active;
+        if (active === null)
+            return;
+        const operationEpoch = ++epoch;
+        try {
+            const response = await call({
+                action: 'answer-question',
+                topicSessionId: active.topic.sessionId,
+                key,
+                answer,
+            });
+            if (response.kind === 'topic')
+                acceptTopic(response.topic, operationEpoch, active.topic.sessionId);
+        }
+        catch (error) {
+            fail(error, operationEpoch);
+        }
+    };
+    const cancelQuestion = async (key) => {
+        const active = store.getSnapshot().active;
+        if (active === null)
+            return;
+        const operationEpoch = ++epoch;
+        try {
+            const response = await call({
+                action: 'cancel-question',
+                topicSessionId: active.topic.sessionId,
+                key,
+            });
+            if (response.kind === 'topic')
+                acceptTopic(response.topic, operationEpoch, active.topic.sessionId);
+        }
+        catch (error) {
+            fail(error, operationEpoch);
+        }
+    };
     const rename = async (rawTitle) => {
         const active = store.getSnapshot().active;
         const title = rawTitle.trim();
@@ -287,6 +324,11 @@ export function createCompanionController(sessions, settingsScope, request, stor
             const response = await call({ action: 'archive', topicSessionId: active.topic.sessionId, archived });
             if (response.kind === 'topic')
                 acceptTopic(response.topic, operationEpoch, active.topic.sessionId);
+            if (archived !== store.getSnapshot().includeArchived)
+                update((draft) => {
+                    draft.active = null;
+                    draft.phase = 'idle';
+                });
             await refreshTopics(operationEpoch);
         }
         catch (error) {
@@ -321,6 +363,8 @@ export function createCompanionController(sessions, settingsScope, request, stor
         create,
         openTopic: (sessionId) => openTopic(sessionId, ++epoch),
         ask,
+        answerQuestion,
+        cancelQuestion,
         stop,
         rename,
         archive,
@@ -328,6 +372,9 @@ export function createCompanionController(sessions, settingsScope, request, stor
             const operationEpoch = ++epoch;
             update((draft) => {
                 draft.includeArchived = include;
+                draft.active = null;
+                draft.topics = [];
+                draft.phase = 'idle';
             });
             void refreshTopics(operationEpoch).catch((error) => fail(error, operationEpoch));
         },

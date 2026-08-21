@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CompanionFace } from '../companion-controller.ts'
+import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
 
 export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
@@ -14,7 +15,7 @@ export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
   return (
     <div className={css.settingsPage}>
       <header className={css.settingsHero}>
-        <span className={css.settingsWhale} aria-hidden="true">🐋</span>
+        <span className={css.settingsWhale} aria-hidden="true"><img src={mascotUrl} alt="" /></span>
         <div>
           <h2>CiteCiter</h2>
           <p>保留 DSH 的编程主界面，把学习讨论放在右侧独立工作区。</p>
@@ -54,7 +55,7 @@ export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
           />
         </label>
         <label className={css.settingToggle}>
-          <span><strong>允许读取来源工作区文件</strong><small>只提供 DSH 标准 read；写入、编辑、命令与外部副作用始终不可用。</small></span>
+          <span><strong>允许调查来源工作区</strong><small>提供 DSH 标准 read、glob 与 grep；写入、编辑、任意命令与外部副作用始终不可用。</small></span>
           <input
             type="checkbox"
             checked={settings.allowSourceFiles}

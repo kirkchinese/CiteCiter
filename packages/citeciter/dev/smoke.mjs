@@ -220,6 +220,9 @@ try {
   await panel.getByRole('button', { name: '归档当前 Topic', exact: true }).click()
   await page.waitForFunction(() => document.querySelectorAll('[data-citeciter-topic]').length === 1, null, { timeout: 8_000 })
   out.topicCountAfterArchive = await panel.locator('[data-citeciter-topic]').count()
+  await panel.getByRole('button', { name: '查看归档', exact: true }).click()
+  await panel.getByRole('button', { name: '恢复当前 Topic', exact: true }).waitFor({ timeout: 8_000 })
+  out.archiveViewCount = await panel.locator('[data-citeciter-topic]').count()
   out.archivedTopicCanRestore = await panel.getByRole('button', { name: '恢复当前 Topic', exact: true }).count()
   out.privateRowsInMainList = await page.locator('[role="treeitem"]').evaluateAll((rows, titles) => (
     rows.filter((row) => titles.some((title) => row.textContent?.includes(title))).length
@@ -268,6 +271,7 @@ out.passed = out.failure === undefined
   && out.topicCountAfterSecond === 2
   && out.activeSecondTopic === 1
   && out.topicCountAfterArchive === 1
+  && out.archiveViewCount === 1
   && out.archivedTopicCanRestore === 1
   && out.privateRowsInMainList === 0
   && out.sourceRowsAfter === 1

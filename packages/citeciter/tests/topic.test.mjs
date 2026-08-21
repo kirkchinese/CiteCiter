@@ -132,6 +132,21 @@ test('Topic commands keep Observer as the default while Exact Fork stays explici
   assert.equal(citeCiterRequestSchema.parse({ ...command, mode: 'exact-fork' }).mode, 'exact-fork')
 })
 
+test('question replies use one strict answer batch keyed to the pending request', () => {
+  const command = citeCiterRequestSchema.parse({
+    action: 'answer-question',
+    topicSessionId: 'citeciter-topic',
+    key: 'pending-key',
+    answer: { answers: [{ id: 'choice', selected: ['A'] }] },
+  })
+  assert.equal(command.action, 'answer-question')
+  assert.deepEqual(command.answer.answers[0], { id: 'choice', selected: ['A'] })
+  assert.throws(() => citeCiterRequestSchema.parse({
+    ...command,
+    answer: { answers: [{ id: 'choice', selected: ['A'], unknown: true }] },
+  }), /Unrecognized key/)
+})
+
 test('Host and Client Typert artifacts expose one root-scoped strict Topic command', () => {
   assert.equal(TYPERT.package, '@kirkchinese/dsh-citeciter')
   assert.equal(TYPERT.face, 'host')

@@ -42,7 +42,7 @@ import { CITECITER_SETTINGS_NAMESPACE, DEFAULT_CITECITER_SETTINGS, citeCiterRequ
 /** Cordis/Typert package identity. */
 export const name = '@kirkchinese/dsh-citeciter';
 /** Services required by the private Topic runtime. */
-export const inject = ['llm', 'sessionQuery'];
+export const inject = ['llm', 'sessionQuery', 'subprocess'];
 /** Host settings identity shared with the browser settings scope. */
 export const CITECITER_SETTINGS_NS = settingsNamespace(CITECITER_SETTINGS_NAMESPACE);
 /** Native settings schema for new Topics and the companion panel. */

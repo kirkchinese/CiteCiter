@@ -6,7 +6,7 @@ import { type CiteCiterRequest, type CiteCiterResponse } from './topic.ts';
 /** Cordis/Typert package identity. */
 export declare const name = "@kirkchinese/dsh-citeciter";
 /** Services required by the private Topic runtime. */
-export declare const inject: readonly ["llm", "sessionQuery"];
+export declare const inject: readonly ["llm", "sessionQuery", "subprocess"];
 /** Host settings identity shared with the browser settings scope. */
 export declare const CITECITER_SETTINGS_NS: import("@deepseek-ai/dsh-settings").SettingsNamespace;
 /** Native settings schema for new Topics and the companion panel. */
@@ -25,7 +25,7 @@ export declare const CITECITER_SETTINGS_SCHEMA: z<Schemastery.ObjectS<{
 }>>;
 /** Root-scoped Remote service owning one isolated DSH runtime. */
 export declare class CiteCiterHost extends TypertRemoteService {
-    static inject: readonly ["llm", "sessionQuery"];
+    static inject: readonly ["llm", "sessionQuery", "subprocess"];
     private readonly topics;
     constructor(ctx: Context);
     /** Do not publish the Remote service until its private runtime is ready. */
