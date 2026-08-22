@@ -1,15 +1,26 @@
 # `@kirkchinese/dsh-citeciter`
 
-A private learning companion for live DeepSeek Harness conversations. Select text from a committed assistant response, ask beside the source, and continue in an independent multi-turn Topic while the source Agent keeps working.
+Ask about any line in a DSH response—without stopping the agent or changing the source session. CiteCiter is a source-bound, read-only learning companion for sustained side questions.
+
+![Select a DSH response and continue asking in a private CiteCiter learning Topic](https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/demo/citeciter-0.4.0.gif)
 
 [简体中文](README.zh.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
+## Compatibility
+
+| Host | CiteCiter version | Status |
+|---|---|---|
+| DSH Web `0.1.1-rc.2` | `0.4.x` | Fully verified |
+| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.x` | Linux source-shell verified; not a macOS/Windows installer claim |
+| DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
+| DSH TUI | — | Not supported yet |
+
 ## Install
 
-CiteCiter requires Node.js `^22.19.0 || >=24.0.0`, DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`, and a configured model provider.
+CiteCiter 0.4.0 requires Node.js `^22.19.0 || >=24.0.0`, DSH `>=0.1.1-rc.1 <0.1.1-rc.3`, and a configured model provider.
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
 ```
 
 Restart the corresponding DSH Web process and refresh the page after installation or upgrade.
@@ -41,14 +52,14 @@ Observer is the default. It creates an independent Topic and reads committed sou
 
 Exact Fork is an advanced mode for a source turn that has already ended. `exact-when-available` uses Exact Fork when a stable boundary exists and otherwise falls back to Observer.
 
-## Upgrade from v0.2
+## Upgrade from an earlier version
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
 dsh plugin --profile web list --depth 0
 ```
 
-The upgrade does not rewrite source Sessions or import v0.2 Citation Threads. Existing child Sessions remain ordinary DSH data; new discussions use private v0.3 Topics.
+Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
 
 ## Limitations
 
@@ -56,6 +67,8 @@ The upgrade does not rewrite source Sessions or import v0.2 Citation Threads. Ex
 - Renderer-generated KaTeX layout and footnote numbers cannot be cited directly because they lack stable source coordinates.
 - Exact Fork cannot start from an open source turn.
 - Source-file access depends on the running DSH filesystem service and remains read-only.
+- Desktop validation covers dataelement's Linux development shell; it does not claim packaged macOS or Windows installer testing.
+- There is currently no TUI interaction adapter.
 - DSH is prerelease software; later DSH API versions may require a CiteCiter update.
 
 ## Contributing

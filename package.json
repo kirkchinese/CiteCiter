@@ -4,6 +4,7 @@
   "packageManager": "pnpm@11.21.0",
   "scripts": {
     "build": "pnpm --filter @kirkchinese/dsh-citeciter build",
+    "test": "pnpm --filter @kirkchinese/dsh-citeciter test",
     "typecheck": "pnpm --filter @kirkchinese/dsh-citeciter typecheck"
   }
 }

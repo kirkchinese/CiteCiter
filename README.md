@@ -1,10 +1,8 @@
-<p align="center">
-  <img src="assets/citeciter-whale-sticker.png" width="360" alt="CiteCiter whale mascot">
-</p>
-
 <h1 align="center">CiteCiter</h1>
 
-<p align="center">A private learning companion for live DeepSeek Harness conversations.</p>
+<p align="center"><strong>Ask about any line in a DSH response—without stopping the agent or changing the source session.</strong></p>
+
+<p align="center">A source-bound, read-only learning companion for sustained side questions.</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@kirkchinese/dsh-citeciter"><img src="https://img.shields.io/npm/v/@kirkchinese/dsh-citeciter" alt="npm version"></a>
@@ -17,7 +15,17 @@
   <a href="https://github.com/kirkchinese/CiteCiter/issues">Issues</a>
 </p>
 
-CiteCiter lets you select text from a committed AI response, ask about it beside the source, and continue learning in a separate multi-turn Topic. The source Agent keeps working, and the source Session stays unchanged.
+<p align="center">
+  <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="Select a DSH response and continue asking in a private CiteCiter learning Topic">
+</p>
+
+<p align="center"><sub>Select a line, ask beside it, and keep learning while the source Agent continues its work.</sub></p>
+
+<p align="center">
+  <img src="assets/citeciter-whale-sticker.png" width="180" alt="CiteCiter whale mascot">
+</p>
+
+CiteCiter lets you select text from a committed AI response, ask beside the source, and continue learning in an independent Topic bound to source evidence. It can inspect the source Session and project files through read-only tools without modifying either one.
 
 ## See it in DSH
 
@@ -31,12 +39,21 @@ CiteCiter lets you select text from a committed AI response, ask about it beside
   <img src="assets/screenshots/citeciter-settings.png" width="720" alt="CiteCiter settings inside the native DSH settings dialog">
 </p>
 
+## Compatibility
+
+| Host | CiteCiter version | Status |
+|---|---|---|
+| DSH Web `0.1.1-rc.2` | `0.4.x` | Fully verified |
+| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.x` | Linux source-shell verified; not a macOS/Windows installer claim |
+| DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
+| DSH TUI | — | Not supported yet |
+
 ## Install
 
-CiteCiter requires Node.js `^22.19.0 || >=24.0.0`, DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`, and a configured model provider.
+CiteCiter 0.4.0 requires Node.js `^22.19.0 || >=24.0.0`, DSH `>=0.1.1-rc.1 <0.1.1-rc.3`, and a configured model provider.
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
 ```
 
 Restart the corresponding DSH Web process and refresh the page after installation or upgrade.
@@ -68,16 +85,16 @@ Observer is the default. It creates an independent Topic and reads committed sou
 
 Exact Fork is an advanced mode for a source turn that has already ended. `exact-when-available` uses Exact Fork when a stable boundary exists and otherwise falls back to Observer.
 
-## Upgrade from v0.2
+## Upgrade from an earlier version
 
-Install v0.3 with the same command, then verify the installed version:
+Install v0.4 with the same command, then verify the installed version:
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
 dsh plugin --profile web list --depth 0
 ```
 
-The upgrade does not rewrite source Sessions or import v0.2 Citation Threads. Existing child Sessions remain ordinary DSH data; new discussions use private v0.3 Topics.
+Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
 
 ## Limitations
 
@@ -85,6 +102,8 @@ The upgrade does not rewrite source Sessions or import v0.2 Citation Threads. Ex
 - Renderer-generated KaTeX layout and footnote numbers do not have stable source coordinates and cannot be cited directly.
 - Exact Fork cannot start from an open source turn.
 - Source-file access depends on the running DSH filesystem service and remains read-only.
+- Desktop validation covers dataelement's Linux development shell; it does not claim packaged macOS or Windows installer testing.
+- There is currently no TUI interaction adapter.
 - DSH is prerelease software; later DSH API versions may require a CiteCiter update.
 
 ## Contributing

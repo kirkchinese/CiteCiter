@@ -5,12 +5,12 @@ import plugin, { CiteCiterHost } from '../lib/types/index.js'
 
 const packageRoot = new URL('../', import.meta.url)
 
-test('published v0.3 package declares an installable Observer Host+Client DSH bundle', async () => {
+test('published v0.4 package declares an installable Observer Host+Client DSH bundle', async () => {
   const manifest = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'))
   const patch = await readFile(new URL('cordis.patch.yml', packageRoot), 'utf8')
 
   assert.equal(manifest.name, '@kirkchinese/dsh-citeciter')
-  assert.equal(manifest.version, '0.3.2')
+  assert.equal(manifest.version, '0.4.0')
   assert.equal(manifest.private, undefined)
   assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.equal(manifest.exports?.['./typert']?.default, './lib/typert.host.js')
@@ -43,6 +43,9 @@ test('published v0.3 package declares an installable Observer Host+Client DSH bu
     '@deepseek-ai/dsh-permission-presets',
     '@deepseek-ai/dsh-session-projection',
   ]) assert.equal(manifest.peerDependencies[removedPeer], undefined)
+  for (const [name, range] of Object.entries(manifest.peerDependencies)) {
+    if (name.startsWith('@deepseek-ai/dsh-')) assert.equal(range, '>=0.1.1-rc.1 <0.1.1-rc.3')
+  }
   assert.equal(patch, "- insert:\n    - id: citeciter\n      name: '@kirkchinese/dsh-citeciter'\n")
 })
 

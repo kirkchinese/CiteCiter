@@ -1,10 +1,8 @@
-<p align="center">
-  <img src="assets/citeciter-whale-sticker.png" width="360" alt="CiteCiter 鲸鱼吉祥物">
-</p>
-
 <h1 align="center">CiteCiter</h1>
 
-<p align="center">服务于进行中 DeepSeek Harness 对话的独立学习伴侣。</p>
+<p align="center"><strong>在 DSH 回复里划一句，旁边追问；主 Agent 继续工作，来源 Session 保持不变。</strong></p>
+
+<p align="center">与精确原文绑定、只读、可持续多轮追问的学习伴侣。</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@kirkchinese/dsh-citeciter"><img src="https://img.shields.io/npm/v/@kirkchinese/dsh-citeciter" alt="npm 版本"></a>
@@ -17,7 +15,17 @@
   <a href="https://github.com/kirkchinese/CiteCiter/issues">问题反馈</a>
 </p>
 
-CiteCiter 让你在已经提交的 AI 回答中选中文字，就地提出问题，并在独立 Topic 中继续多轮学习。来源 Agent 可以继续工作，来源 Session 不会被改变。
+<p align="center">
+  <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="选中 DSH 回答后在 CiteCiter 私有学习 Topic 中继续追问">
+</p>
+
+<p align="center"><sub>选中一句、提出问题、在学习栏继续理解；主 Agent 同时保持自己的工作节奏。</sub></p>
+
+<p align="center">
+  <img src="assets/citeciter-whale-sticker.png" width="180" alt="CiteCiter 鲸鱼吉祥物">
+</p>
+
+CiteCiter 让你在已经提交的 AI 回答中选中文字，就地提出问题，并在与来源证据绑定的独立 Topic 中继续学习。它可以只读核查来源会话和项目文件，不会修改来源 Session 或工作区。
 
 ## 在 DSH 中的实际效果
 
@@ -31,12 +39,21 @@ CiteCiter 让你在已经提交的 AI 回答中选中文字，就地提出问题
   <img src="assets/screenshots/citeciter-settings.png" width="720" alt="DSH 原生设置对话框中的 CiteCiter 设置">
 </p>
 
+## 兼容性
+
+| 宿主 | CiteCiter 版本 | 状态 |
+|---|---|---|
+| DSH Web `0.1.1-rc.2` | `0.4.x` | 完整验证 |
+| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) 源码开发壳（内置 DSH `0.1.1-rc.1`） | `0.4.x` | Linux 源码壳验证；不代表 macOS/Windows 安装器实测 |
+| DSH Web `0.1.0-rc.7` | `0.3.2` | 旧版稳定线 |
+| DSH TUI | — | 暂不支持 |
+
 ## 安装
 
-CiteCiter 需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`，以及已经配置的模型提供方。
+CiteCiter 0.4.0 需要 Node.js `^22.19.0 || >=24.0.0`、DSH `>=0.1.1-rc.1 <0.1.1-rc.3`，以及已经配置的模型提供方。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
 ```
 
 安装或升级后，请重启对应的 DSH Web 进程并刷新页面。
@@ -68,16 +85,16 @@ Observer 是默认模式。它创建独立 Topic，并按需读取已经提交�
 
 Exact Fork 是面向已结束来源轮次的高级模式。`exact-when-available` 在存在稳定边界时使用 Exact Fork，否则回退到 Observer。
 
-## 从 v0.2 升级
+## 从旧版本升级
 
-使用相同命令安装 v0.3，然后检查实际版本：
+使用相同命令安装 v0.4，然后检查实际版本：
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
 dsh plugin --profile web list --depth 0
 ```
 
-升级不会改写来源 Session，也不会导入 v0.2 Citation Thread。旧子 Session 仍是普通 DSH 数据；新讨论使用私有 v0.3 Topic。
+从 v0.3 升级不会迁移或重写现有 Topic、设置或来源 Session。仍在 DSH `0.1.0-rc.7` 上运行的用户应继续使用 CiteCiter 0.3.2。
 
 ## 已知限制
 
@@ -85,6 +102,8 @@ dsh plugin --profile web list --depth 0
 - 渲染器生成的 KaTeX 排版和脚注编号没有稳定原文坐标，不能直接引用。
 - Exact Fork 不能从仍在运行的来源轮次开始。
 - 来源文件访问依赖当前 DSH 文件系统服务，并始终保持只读。
+- Desktop 验证覆盖 dataelement 项目的 Linux 源码开发壳；尚未宣称 macOS 或 Windows 安装器实测。
+- 当前没有 TUI 交互适配器。
 - DSH 仍处于预发布阶段，后续 API 版本可能要求同步更新 CiteCiter。
 
 ## 参与贡献

@@ -72,6 +72,10 @@ function hasToolResult(messages, prefix) {
   )))
 }
 
+function hasTool(options, name) {
+  return options.tools.some((tool) => tool.name === name)
+}
+
 function latestHumanQuestion(messages) {
   return messages.filter((message) => message.role === 'user' && message.source.kind === 'user').at(-1)
     ?.content.find((block) => block.type === 'text')?.text ?? ''
@@ -135,13 +139,13 @@ class FixtureAdapter extends LlmAdapter {
           { label: '结束测试', description: '立即结束来源轮次。' },
         ],
       }] }), 'citeciter-fixture-live', '运行中已提交回答：这一段在工具提问等待期间已经落盘，但整个来源轮次尚未结束。')
-    } else if (!hasToolResult(options.messages, 'citeciter-fixture-source-')) {
+    } else if (hasTool(options, 'read_source_session') && !hasToolResult(options.messages, 'citeciter-fixture-source-')) {
       chunks = toolChunks('read_source_session', '{"fromSeq":0}', 'citeciter-fixture-source')
-    } else if (question.includes('调查项目') && !hasToolResult(options.messages, 'citeciter-fixture-glob-')) {
+    } else if (question.includes('调查项目') && hasTool(options, 'glob') && !hasToolResult(options.messages, 'citeciter-fixture-glob-')) {
       chunks = toolChunks('glob', '{"pattern":"*","path":"."}', 'citeciter-fixture-glob')
-    } else if (question.includes('调查项目') && !hasToolResult(options.messages, 'citeciter-fixture-grep-')) {
+    } else if (question.includes('调查项目') && hasTool(options, 'grep') && !hasToolResult(options.messages, 'citeciter-fixture-grep-')) {
       chunks = toolChunks('grep', '{"pattern":"CiteCiter","path":".","include":"*.json"}', 'citeciter-fixture-grep')
-    } else if (question.includes('调查项目') && !hasToolResult(options.messages, 'citeciter-fixture-read-')) {
+    } else if (question.includes('调查项目') && hasTool(options, 'read') && !hasToolResult(options.messages, 'citeciter-fixture-read-')) {
       chunks = toolChunks('read', '{"file_path":"package.json"}', 'citeciter-fixture-read')
     } else if (question.includes('向我提问') && !hasToolResult(options.messages, 'citeciter-fixture-question-')) {
       chunks = toolChunks('ask_user_question', JSON.stringify({ questions: [{
