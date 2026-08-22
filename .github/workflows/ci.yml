@@ -31,7 +31,7 @@ jobs:
           DSH_VERSION: ${{ matrix.dsh }}
         run: |
           node --input-type=module <<'NODE'
-          import { readFile, writeFile } from 'node:fs/promises'
+          import { readFile, unlink, writeFile } from 'node:fs/promises'
 
           const path = 'packages/citeciter/package.json'
           const manifest = JSON.parse(await readFile(path, 'utf8'))
@@ -45,6 +45,9 @@ jobs:
           const workspacePath = 'pnpm-workspace.yaml'
           const workspace = await readFile(workspacePath, 'utf8')
           await writeFile(workspacePath, workspace.replaceAll('0.1.1-rc.2', process.env.DSH_VERSION))
+          if (process.env.DSH_VERSION !== '0.1.1-rc.2') {
+            await unlink('pnpm-lock.yaml')
+          }
           NODE
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm test
