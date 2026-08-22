@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
+import plugin, { CiteCiterHost } from '../lib/types/index.js'
 
 const packageRoot = new URL('../', import.meta.url)
 
@@ -9,7 +10,7 @@ test('published v0.3 package declares an installable Observer Host+Client DSH bu
   const patch = await readFile(new URL('cordis.patch.yml', packageRoot), 'utf8')
 
   assert.equal(manifest.name, '@kirkchinese/dsh-citeciter')
-  assert.equal(manifest.version, '0.3.1')
+  assert.equal(manifest.version, '0.3.2')
   assert.equal(manifest.private, undefined)
   assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.equal(manifest.exports?.['./typert']?.default, './lib/typert.host.js')
@@ -28,7 +29,7 @@ test('published v0.3 package declares an installable Observer Host+Client DSH bu
     '@deepseek-ai/dsh-session-persistence-jsonl',
     '@deepseek-ai/dsh-session-query',
     '@deepseek-ai/dsh-session-title',
-    '@deepseek-ai/dsh-session-title-first-prompt-llm',
+    '@deepseek-ai/dsh-session-title-llm',
     '@deepseek-ai/dsh-settings',
     '@deepseek-ai/dsh-system-prompt',
     '@deepseek-ai/dsh-tool-fs',
@@ -43,4 +44,8 @@ test('published v0.3 package declares an installable Observer Host+Client DSH bu
     '@deepseek-ai/dsh-session-projection',
   ]) assert.equal(manifest.peerDependencies[removedPeer], undefined)
   assert.equal(patch, "- insert:\n    - id: citeciter\n      name: '@kirkchinese/dsh-citeciter'\n")
+})
+
+test('default package entry mounts the Remote service directly', () => {
+  assert.equal(plugin, CiteCiterHost)
 })

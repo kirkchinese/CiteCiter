@@ -1,13 +1,16 @@
 /** Deterministic keyless LLM route for the assembled CiteCiter Web smoke. */
-import { CallId, LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { CallId, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 
 export const name = 'citeciter-fixture-llm'
 export const inject = ['llm']
 
 const PROVIDER = 'fixture'
 const MODEL = 'fixture'
+const ALTERNATE_MODEL = 'fixture-alt'
 const FIRST_ANSWER = '首轮回答：平行移动比较同一向量沿不同路径返回后的差异；这个差异由曲率刻画。'
 const FOLLOW_UP_ANSWER = '第二轮回答：曲率可以看成无穷小闭合回路的 holonomy；回路越小，偏差的一阶面积项越直接反映曲率。'
+const FIRST_ANSWER_WITH_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions>\n["能用球面上的例子说明吗？","holonomy 与曲率是什么关系？","为什么偏差与回路面积成正比？"]\n</citeciter-next-questions>`
+const MALFORMED_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions>\n["只有两个问题？","应该被静默隐藏吗？"]\n</citeciter-next-questions>`
 let callNumber = 0
 
 function textChunks(text) {
@@ -33,7 +36,7 @@ function reasoningTextChunks(reasoning, text) {
   ]
 }
 
-function toolChunks(name, arguments_, prefix) {
+function toolChunks(name, arguments_, prefix, text = undefined) {
   const id = CallId(`${prefix}-${++callNumber}`)
   const block = {
     type: 'tool-call',
@@ -41,16 +44,25 @@ function toolChunks(name, arguments_, prefix) {
     name,
     arguments: arguments_,
   }
-  return [
+  const chunks = [
     { type: 'block-start', index: 0, blockType: 'reasoning' },
     { type: 'reasoning-delta', index: 0, text: '正在检查可验证的上下文与工具结果。' },
     { type: 'block-end', index: 0, block: { type: 'reasoning', text: '正在检查可验证的上下文与工具结果。' } },
-    { type: 'block-start', index: 1, blockType: 'tool-call' },
-    { type: 'tool-call-delta', index: 1, id, name: block.name, argumentsDelta: block.arguments },
-    { type: 'block-end', index: 1, block },
+  ]
+  const toolIndex = text === undefined ? 1 : 2
+  if (text !== undefined) chunks.push(
+    { type: 'block-start', index: 1, blockType: 'text' },
+    { type: 'text-delta', index: 1, text },
+    { type: 'block-end', index: 1, block: { type: 'text', text } },
+  )
+  chunks.push(
+    { type: 'block-start', index: toolIndex, blockType: 'tool-call' },
+    { type: 'tool-call-delta', index: toolIndex, id, name: block.name, argumentsDelta: block.arguments },
+    { type: 'block-end', index: toolIndex, block },
     { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     { type: 'finish', reason: { kind: 'tool-calls' } },
-  ]
+  )
+  return chunks
 }
 
 function hasToolResult(messages, prefix) {
@@ -65,8 +77,10 @@ function latestHumanQuestion(messages) {
     ?.content.find((block) => block.type === 'text')?.text ?? ''
 }
 
-function humanQuestionCount(messages) {
-  return messages.filter((message) => message.role === 'user' && message.source.kind === 'user').length
+function alreadyAnswered(messages) {
+  return messages.some((message) => message.role === 'assistant' && message.content.some((block) => (
+    block.type === 'text' && (block.text.includes(FIRST_ANSWER) || block.text.includes(FOLLOW_UP_ANSWER))
+  )))
 }
 
 class FixtureAdapter extends LlmAdapter {
@@ -75,11 +89,28 @@ class FixtureAdapter extends LlmAdapter {
   }
 
   listModels() {
-    return Promise.resolve([{ provider: PROVIDER, id: MODEL, name: 'Fixture' }])
+    return Promise.resolve([
+      { provider: PROVIDER, id: MODEL, name: 'Fixture' },
+      { provider: PROVIDER, id: ALTERNATE_MODEL, name: 'Fixture Alt' },
+    ])
   }
 
-  resolveModel() {
-    return Promise.resolve({ provider: PROVIDER, id: MODEL, name: 'Fixture' })
+  resolveModel(provider, model) {
+    if (provider !== PROVIDER || model !== MODEL && model !== ALTERNATE_MODEL) {
+      return Promise.reject(new Error(`Unknown fixture route ${provider}/${model}`))
+    }
+    return Promise.resolve({
+      provider: PROVIDER,
+      id: model,
+      name: model === MODEL ? 'Fixture' : 'Fixture Alt',
+      reasoning: {
+        efforts: [
+          { id: ReasoningEffortId('low'), name: 'Low' },
+          { id: ReasoningEffortId('max'), name: 'Max' },
+        ],
+        defaultEffort: ReasoningEffortId('low'),
+      },
+    })
   }
 
   async prepareCall(provider, model, signal) {
@@ -94,12 +125,24 @@ class FixtureAdapter extends LlmAdapter {
     const question = latestHumanQuestion(options.messages)
     let chunks
     if (options.purpose === 'session-title') chunks = textChunks('曲率与平行移动')
-    else if (!hasToolResult(options.messages, 'citeciter-fixture-source-')) {
+    else if (question.includes('运行中引用测试') && !hasToolResult(options.messages, 'citeciter-fixture-live-')) {
+      chunks = toolChunks('ask_user_question', JSON.stringify({ questions: [{
+        id: 'continue-live-test',
+        header: '继续测试',
+        question: '保持这个来源轮次开放，直到完成 CiteCiter 引用测试吗？',
+        options: [
+          { label: '保持开放（推荐）', description: '等待用户确认，让已提交模型调用保持可引用。' },
+          { label: '结束测试', description: '立即结束来源轮次。' },
+        ],
+      }] }), 'citeciter-fixture-live', '运行中已提交回答：这一段在工具提问等待期间已经落盘，但整个来源轮次尚未结束。')
+    } else if (!hasToolResult(options.messages, 'citeciter-fixture-source-')) {
       chunks = toolChunks('read_source_session', '{"fromSeq":0}', 'citeciter-fixture-source')
     } else if (question.includes('调查项目') && !hasToolResult(options.messages, 'citeciter-fixture-glob-')) {
       chunks = toolChunks('glob', '{"pattern":"*","path":"."}', 'citeciter-fixture-glob')
     } else if (question.includes('调查项目') && !hasToolResult(options.messages, 'citeciter-fixture-grep-')) {
       chunks = toolChunks('grep', '{"pattern":"CiteCiter","path":".","include":"*.json"}', 'citeciter-fixture-grep')
+    } else if (question.includes('调查项目') && !hasToolResult(options.messages, 'citeciter-fixture-read-')) {
+      chunks = toolChunks('read', '{"file_path":"package.json"}', 'citeciter-fixture-read')
     } else if (question.includes('向我提问') && !hasToolResult(options.messages, 'citeciter-fixture-question-')) {
       chunks = toolChunks('ask_user_question', JSON.stringify({ questions: [{
         id: 'learning-depth',
@@ -112,15 +155,19 @@ class FixtureAdapter extends LlmAdapter {
       }] }), 'citeciter-fixture-question')
     } else {
       const answer = question.includes('调查项目')
-        ? '项目调查完成：glob 已枚举文件，grep 已完成全局内容搜索。'
+        ? '项目调查完成：glob 已枚举文件，grep 已完成全局内容搜索，read 已读取命中文件。'
         : question.includes('向我提问')
           ? '已收到你的学习偏好，并据此继续解释。'
-          : humanQuestionCount(options.messages) > 1 ? FOLLOW_UP_ANSWER : FIRST_ANSWER
+          : question.includes('工具能力')
+            ? `当前工具：${options.tools.map((tool) => tool.name).sort().join('、')}`
+            : alreadyAnswered(options.messages) ? FOLLOW_UP_ANSWER
+              : question.includes('错误快捷问题') ? MALFORMED_FOLLOWUPS : FIRST_ANSWER_WITH_FOLLOWUPS
       chunks = reasoningTextChunks('正在把工具证据与当前问题整理成清晰回答。', answer)
     }
+    const chunkDelayMs = question.includes('停止恢复测试') ? 500 : 90
     for (const chunk of chunks) {
       options.signal?.throwIfAborted()
-      await new Promise((resolve) => setTimeout(resolve, 90))
+      await new Promise((resolve) => setTimeout(resolve, chunkDelayMs))
       yield chunk
     }
   }

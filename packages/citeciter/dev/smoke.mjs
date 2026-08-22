@@ -14,6 +14,8 @@ const firstAnswer = '首轮回答：平行移动比较同一向量沿不同路�
 const followUpAnswer = '第二轮回答：曲率可以看成无穷小闭合回路的 holonomy；回路越小，偏差的一阶面积项越直接反映曲率。'
 const generatedTitle = '曲率与平行移动'
 const renamedTitle = '曲率学习 Topic'
+const sourceAnswer = 'The Riemann curvature tensor measures how parallel transport depends on path.'
+const translatedQuote = '黎曼曲率张量衡量平行移动如何依赖于路径。'
 
 if (fixtureMetadataPath === undefined) {
   throw new Error('usage: node dev/smoke.mjs <url> <session-title> <fixture-metadata.json> [screenshot-under-/tmp]')
@@ -66,8 +68,49 @@ function selectSourceText(needle) {
   }
 }
 
+function selectInjectedTranslation({ sourceNeedle, translation }) {
+  const flow = [...document.querySelectorAll('[data-chat-flow-kind="assistant-step"]')]
+    .find((candidate) => candidate.textContent?.includes(sourceNeedle))
+  if (!(flow instanceof HTMLElement)) throw new Error(`assistant fixture does not contain "${sourceNeedle}"`)
+  const walker = document.createTreeWalker(flow, NodeFilter.SHOW_TEXT)
+  let source = walker.nextNode()
+  while (source !== null && !source.data.includes(sourceNeedle)) source = walker.nextNode()
+  if (source === null || source.parentElement === null) throw new Error('assistant fixture source paragraph is missing')
+  const wrapper = document.createElement('span')
+  wrapper.dataset.readFrogTranslationMode = 'bilingual'
+  wrapper.textContent = translation
+  source.parentElement.dataset.readFrogParagraph = ''
+  source.parentElement.append(wrapper)
+  const range = document.createRange()
+  range.selectNodeContents(wrapper)
+  const selected = window.getSelection()
+  selected.removeAllRanges()
+  selected.addRange(range)
+  const event = new MouseEvent('contextmenu', {
+    bubbles: true,
+    cancelable: true,
+    clientX: 640,
+    clientY: 360,
+  })
+  return {
+    defaultPrevented: !flow.dispatchEvent(event),
+    selectedText: selected.toString(),
+    anchorKey: flow.dataset.chatAnchorKey,
+  }
+}
+
 async function askFromSelection(page, needle, question) {
   const dispatch = await page.evaluate(selectSourceText, needle)
+  const popover = page.getByRole('dialog', { name: '向 CiteCiter 提问' })
+  await popover.waitFor({ timeout: 8_000 })
+  const mode = await popover.locator('select').inputValue()
+  await popover.getByLabel('CiteCiter 的第一个问题').fill(question)
+  await popover.getByRole('button', { name: 'Citer!', exact: true }).click()
+  return { dispatch, mode }
+}
+
+async function askFromTranslatedSelection(page, sourceNeedle, translation, question) {
+  const dispatch = await page.evaluate(selectInjectedTranslation, { sourceNeedle, translation })
   const popover = page.getByRole('dialog', { name: '向 CiteCiter 提问' })
   await popover.waitFor({ timeout: 8_000 })
   const mode = await popover.locator('select').inputValue()
@@ -135,7 +178,7 @@ try {
   }
 
   out.parentBefore = await revision(metadata.logPath)
-  const first = await askFromSelection(page, 'Riemann curvature tensor', firstQuestion)
+  const first = await askFromTranslatedSelection(page, sourceAnswer, translatedQuote, firstQuestion)
   out.firstDispatch = first.dispatch
   out.defaultMode = first.mode
 
@@ -244,7 +287,7 @@ out.errors = errors.slice(0, 10)
 out.passed = out.failure === undefined
   && out.fixture.openTurn === true
   && out.firstDispatch?.defaultPrevented === true
-  && out.firstDispatch?.selectedText === 'Riemann curvature tensor'
+  && out.firstDispatch?.selectedText === translatedQuote
   && out.firstDispatch?.anchorKey === metadata.anchorKey
   && out.defaultMode === 'observer'
   && out.panelWidth >= 360

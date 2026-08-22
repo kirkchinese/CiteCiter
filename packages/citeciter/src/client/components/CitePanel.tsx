@@ -2,6 +2,7 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   type ReactNode,
   useEffect,
   useMemo,
@@ -13,13 +14,17 @@ import {
   DisclosureRow,
   IconArchiveOutline20,
   IconQuestionOutline14,
+  IconSendOutline16,
   IconSparkle16,
+  IconStopFill16,
   IconThinkOutline14,
   JsonTree,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CompanionFace, CompanionPhase } from '../companion-controller.ts'
 import type { TopicMessage } from '../../topic.ts'
 import type { CiteBus } from '../types.ts'
+import { parseNextQuestions } from '../prompt.ts'
+import collapseArrowUrl from '../assets/collapse-arrow.svg'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import { QuestionCard } from './QuestionCard.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
@@ -27,10 +32,81 @@ import css from './CiteCiter.module.css'
 
 const PHASE_LABEL: Record<CompanionPhase, string> = {
   idle: '等待一个选区',
-  creating: '正在创建独立 Topic…',
+  creating: '正在确认上下文方式…',
   ready: '可以继续追问',
   running: 'CiteCiter 正在回答…',
+  stopping: '正在停止…',
+  stopped: '已停止，可继续',
   error: '需要处理',
+}
+
+type MascotState = 'diving' | 'reading' | 'answering' | 'surfaced'
+
+function mascotState(phase: CompanionPhase, messages: readonly TopicMessage[]): MascotState {
+  const runningTool = messages.findLast((message) => message.role === 'tool' && message.running)
+  if (runningTool?.role === 'tool' && runningTool.name.toLowerCase().includes('bash')) return 'diving'
+  if (runningTool?.role === 'tool' && ['read', 'read_source_session', 'glob', 'grep'].includes(runningTool.name)) return 'reading'
+  return phase === 'running' || phase === 'creating' || phase === 'stopping' ? 'answering' : 'surfaced'
+}
+
+function MascotStatus({ state }: { readonly state: MascotState }) {
+  const labels: Record<MascotState, string> = {
+    diving: '鲸鱼娘正在潜水执行 Bash',
+    reading: '鲸鱼娘正举着放大镜读取文件',
+    answering: '鲸鱼娘抱住引用气泡开始回答',
+    surfaced: '鲸鱼娘已浮出水面，回答完成',
+  }
+  return (
+    <span className={css.mascotStatus} data-state={state} role="img" aria-label={labels[state]}>
+      <img src={mascotUrl} alt="" />
+      <span aria-hidden="true" />
+    </span>
+  )
+}
+
+function CitationWaterline({ anchorKey, target }: {
+  readonly anchorKey: string | undefined
+  readonly target: RefObject<HTMLElement>
+}) {
+  const [path, setPath] = useState('')
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    if (anchorKey === undefined) return
+    const source = document.querySelector<HTMLElement>(`[data-chat-anchor-key="${CSS.escape(anchorKey)}"]`)
+    const destination = target.current
+    if (source === null || destination === null) return
+    const update = () => {
+      const from = source.getBoundingClientRect()
+      const to = destination.getBoundingClientRect()
+      const x1 = Math.min(from.right, window.innerWidth - 8)
+      const y1 = from.top + from.height / 2
+      const x2 = to.left
+      const y2 = to.top + to.height / 2
+      const bend = Math.max(36, Math.abs(x2 - x1) * 0.42)
+      setPath(`M ${x1} ${y1} C ${x1 + bend} ${y1 - 8}, ${x2 - bend} ${y2 + 8}, ${x2} ${y2}`)
+    }
+    const show = () => { update(); setVisible(true) }
+    const hide = () => setVisible(false)
+    update()
+    setVisible(true)
+    const initialFade = setTimeout(hide, 1800)
+    for (const element of [source, destination]) {
+      element.addEventListener('pointerenter', show)
+      element.addEventListener('pointerleave', hide)
+    }
+    window.addEventListener('resize', update)
+    document.addEventListener('scroll', update, true)
+    return () => {
+      clearTimeout(initialFade)
+      for (const element of [source, destination]) {
+        element.removeEventListener('pointerenter', show)
+        element.removeEventListener('pointerleave', hide)
+      }
+      window.removeEventListener('resize', update)
+      document.removeEventListener('scroll', update, true)
+    }
+  }, [anchorKey, target])
+  return <svg className={css.citationWaterline} data-visible={visible || undefined} aria-hidden="true"><path d={path} /></svg>
 }
 
 function clampWidth(value: number): number {
@@ -169,6 +245,64 @@ function ContextRow({ message }: { readonly message: Extract<TopicMessage, { rol
   )
 }
 
+function friendlyFailure(text: string): string {
+  return text.replaceAll(/https?:\/\/[^\s)]+/gu, '模型服务地址')
+}
+
+function ErrorTurn({ message }: { readonly message: Extract<TopicMessage, { role: 'error' }> }) {
+  const summary = friendlyFailure(message.text)
+  return (
+    <article className={css.errorTurn} data-status={message.status}>
+      <div className={css.turnRole}>{message.status === 'stopped' ? '已停止' : '请求失败'}</div>
+      <p>{summary}</p>
+      <div className={css.errorMeta}>
+        <span>第 {message.attempt} 次请求</span>
+        <span>{message.bodyRetained ? '已保留已生成正文' : '未产生可保留正文'}</span>
+        <span>{message.status === 'stopped' ? '可继续追问' : '可修改问题后重试'}</span>
+      </div>
+      {summary !== message.text && <details><summary>技术详情</summary><pre>{message.text}</pre></details>}
+    </article>
+  )
+}
+
+function AssistantTurn({
+  message,
+  first,
+  disabled,
+  companion,
+  reportParseError,
+}: {
+  readonly message: Extract<TopicMessage, { role: 'assistant' }>
+  readonly first: boolean
+  readonly disabled: boolean
+  readonly companion: CompanionFace
+  readonly reportParseError: (messageId: string) => void
+}) {
+  const parsed = useMemo(
+    () => first
+      ? parseNextQuestions(message.text)
+      : { text: message.text, questions: [], invalid: false },
+    [first, message.text],
+  )
+  useEffect(() => {
+    if (parsed.invalid && !message.streaming) reportParseError(message.id)
+  }, [message.id, message.streaming, parsed.invalid, reportParseError])
+  return (
+    <article className={css.assistantTurn}>
+      <div className={css.turnRole}>CiteCiter</div>
+      {message.reasoning !== null && <ReasoningRow text={message.reasoning} running={message.streaming} />}
+      {parsed.text !== '' && <RichAnswer text={parsed.text} streaming={message.streaming} />}
+      {!message.streaming && parsed.questions.length === 3 && (
+        <div className={css.nextQuestions} aria-label="接下来可能想问">
+          {parsed.questions.map((question) => (
+            <button type="button" key={question} disabled={disabled} onClick={() => { void companion.ask(question) }}>{question}</button>
+          ))}
+        </div>
+      )}
+    </article>
+  )
+}
+
 /** Reserve a real third DSH column while keeping the official shell and coding surface intact. */
 function useDockColumn(open: boolean, widthPercent: number): readonly [number, boolean] {
   const [width, setWidth] = useState(0)
@@ -222,23 +356,32 @@ export interface CitePanelProps {
   readonly bus: CiteBus
   readonly companion: CompanionFace
   readonly closePanel: () => void
+  readonly reportParseError: (messageId: string) => void
 }
 
 /** Independent, resizable learning workspace docked beside the active coding conversation. */
-export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
+export function CitePanel({ bus, companion, closePanel, reportParseError }: CitePanelProps) {
   const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot)
   const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
   const [question, setQuestion] = useState('')
   const [title, setTitle] = useState('')
+  const [titleDirty, setTitleDirty] = useState(false)
   const [widthPercent, setWidthPercent] = useState(snapshot.settings.panelWidthPercent)
   const resizeOrigin = useRef<{ x: number, width: number, frameWidth: number } | null>(null)
+  const titleRef = useRef<HTMLElement>(null)
   const open = overlay.panelOpen
   const [panelWidth, docked] = useDockColumn(open, widthPercent)
   const active = snapshot.active
 
   useEffect(() => companion.setVisible(open), [companion, open])
   useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent])
-  useEffect(() => setTitle(active?.topic.title ?? ''), [active?.topic.sessionId, active?.topic.title])
+  useEffect(() => {
+    setTitle(active?.topic.title ?? '')
+    setTitleDirty(false)
+  }, [active?.topic.sessionId])
+  useEffect(() => {
+    if (!titleDirty) setTitle(active?.topic.title ?? '')
+  }, [active?.topic.title, titleDirty])
 
   const selectedProvider = snapshot.providers.find((provider) => provider.id === active?.topic.modelConfig.provider)
   const selectedModel = selectedProvider?.models.find((model) => model.id === active?.topic.modelConfig.model)
@@ -247,15 +390,20 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
     providerName: provider.name,
     model,
   }))), [snapshot.providers])
+  const firstAssistantId = active?.messages.find((message) => message.role === 'assistant' && message.text !== '')?.id
+  const whaleState = mascotState(snapshot.phase, active?.messages ?? [])
 
   if (!open) return null
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
+    if (snapshot.phase === 'running' || snapshot.phase === 'stopping') return
     const value = question.trim()
     if (value === '') return
-    setQuestion('')
-    void companion.ask(value)
+    const submitted = question
+    void companion.ask(value).then((sent) => {
+      if (sent) setQuestion((current) => current === submitted ? '' : current)
+    })
   }
   const updateWidth = (next: number) => {
     const value = clampWidth(next)
@@ -287,6 +435,7 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
   const cancelResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     resizeOrigin.current = null
+    setWidthPercent(snapshot.settings.panelWidthPercent)
   }
   const resizeKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
@@ -319,10 +468,14 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
           onKeyDown={resizeKey}
         />
       )}
+      <button className={css.closeButton} type="button" onClick={closePanel} aria-label="关闭 CiteCiter">
+        <img src={collapseArrowUrl} alt="" />
+      </button>
+      <CitationWaterline anchorKey={snapshot.sourceAnchorKey ?? undefined} target={titleRef} />
 
       <nav className={css.topicRail} aria-label="CiteCiter Topics">
         <div className={css.brand}>
-          <span className={css.brandMark} aria-hidden="true"><img src={mascotUrl} alt="" /></span>
+          <MascotStatus state={whaleState} />
           <div><strong>CiteCiter</strong><span>学习伴侣</span></div>
         </div>
         <div className={css.railCaption}>
@@ -349,14 +502,18 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
               </span>
             </button>
           ))}
-          {snapshot.topics.length === 0 && (
+          {snapshot.topicsStatus === 'loading' && <p className={css.railEmpty} role="status">正在读取 Topic…</p>}
+          {snapshot.topicsStatus === 'error' && (
+            <p className={css.railError} role="alert">Topic 读取失败<br />{snapshot.topicsError}</p>
+          )}
+          {snapshot.topicsStatus === 'ready' && snapshot.topics.length === 0 && (
             <p className={css.railEmpty}>{snapshot.includeArchived
               ? '当前来源还没有归档 Topic。'
               : '在中央编程对话中选中文字，右键即可开始。'}</p>
           )}
         </div>
         <div className={css.railFoot}>
-          <span>{snapshot.topics.length} 个 Topic</span>
+          <span>{snapshot.topicsStatus === 'ready' ? `${snapshot.topics.length} 个 Topic` : 'Topic 状态未知'}</span>
           <span>{widthPercent}%</span>
         </div>
       </nav>
@@ -364,11 +521,12 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
       <section className={css.learningWorkspace}>
         <header className={css.dockHeader}>
           <div className={css.dockHeading}>
-            <span className={css.modeBadge}>{active?.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer'}</span>
-            <strong>{active?.topic.title ?? '新的学习讨论'}</strong>
+            <span className={css.modeBadge}>{active === null
+              ? snapshot.phase === 'creating' ? '待确认' : '学习栏'
+              : active.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer'}</span>
+            <strong ref={titleRef}>{active?.topic.title ?? '新的学习讨论'}</strong>
             <span>{PHASE_LABEL[snapshot.phase]}</span>
           </div>
-          <button className={css.closeButton} type="button" onClick={closePanel} aria-label="关闭 CiteCiter">×</button>
         </header>
 
         {active === null && snapshot.draftQuote === null ? (
@@ -376,7 +534,7 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
             <div className={css.emptyWhale} aria-hidden="true"><img src={mascotUrl} alt="" /></div>
             <h2>编程别停，问题放到旁边问</h2>
             <p>选中主对话里一次已完成模型调用的任意文字，右键输入问题。Topic 会在这里独立多轮继续，不进入左侧主会话列表。</p>
-            {snapshot.error !== null && <p className={css.panelError}>{snapshot.error}</p>}
+            {snapshot.error !== null && <p className={css.panelError}>{friendlyFailure(snapshot.error)}</p>}
           </div>
         ) : (
           <>
@@ -396,17 +554,25 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
               <div className={css.topicToolbar}>
                 <form onSubmit={(event) => {
                   event.preventDefault()
-                  void companion.rename(title)
+                  void companion.rename(title).then((saved) => {
+                    if (saved) setTitleDirty(false)
+                  })
                 }}>
-                  <input value={title} onChange={(event) => setTitle(event.currentTarget.value)} aria-label="Topic 标题" />
-                  <button type="submit" disabled={title.trim() === '' || title === active.topic.title}>保存标题</button>
+                  <input value={title} onChange={(event) => {
+                    setTitle(event.currentTarget.value)
+                    setTitleDirty(true)
+                  }} aria-label="Topic 标题" />
+                  <button type="submit" disabled={title.trim() === '' || !titleDirty || snapshot.renaming}>
+                    {snapshot.renaming ? '保存中…' : titleDirty ? '保存标题' : '已保存'}
+                  </button>
                 </form>
                 <select
                   aria-label="CiteCiter 模型"
                   value={modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model)}
+                  disabled={snapshot.modelRouteSaving}
                   onChange={(event) => {
                     const [provider, model] = parseModelValue(event.currentTarget.value)
-                    void companion.selectModel(provider, model, null)
+                    void companion.setModelRoute(provider, model)
                   }}
                 >
                   {!models.some((item) => item.provider === active.topic.modelConfig.provider && item.model.id === active.topic.modelConfig.model) && (
@@ -426,12 +592,9 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
                   <select
                     aria-label="思考强度"
                     value={active.topic.modelConfig.reasoningEffort ?? ''}
+                    disabled={snapshot.reasoningEffortSaving || snapshot.modelRouteSaving}
                     onChange={(event) => {
-                      void companion.selectModel(
-                        active.topic.modelConfig.provider,
-                        active.topic.modelConfig.model,
-                        event.currentTarget.value === '' ? null : event.currentTarget.value,
-                      )
+                      void companion.setReasoningEffort(event.currentTarget.value === '' ? null : event.currentTarget.value)
                     }}
                   >
                     <option value="">模型默认思考</option>
@@ -444,9 +607,10 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
                   type="button"
                   className={css.archiveButton}
                   aria-label={active.topic.archived ? '恢复当前 Topic' : '归档当前 Topic'}
+                  disabled={snapshot.archiving}
                   onClick={() => { void companion.archive(!active.topic.archived) }}
                 >
-                  <IconArchiveOutline20 size={14} />{active.topic.archived ? '恢复' : '归档'}
+                  <IconArchiveOutline20 size={14} />{snapshot.archiving ? '处理中…' : active.topic.archived ? '恢复' : '归档'}
                 </button>
               </div>
             )}
@@ -461,20 +625,21 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
                   </article>
                 )
                 if (message.role === 'error') return (
-                  <article key={message.id} className={css.errorTurn}>
-                    <div className={css.turnRole}>错误</div><p>{message.text}</p>
-                  </article>
+                  <ErrorTurn key={message.id} message={message} />
                 )
-                return (
-                  <article key={message.id} className={css.assistantTurn}>
-                    <div className={css.turnRole}>CiteCiter</div>
-                    {message.reasoning !== null && <ReasoningRow text={message.reasoning} running={message.streaming} />}
-                    {message.text !== '' && <RichAnswer text={message.text} streaming={message.streaming} />}
-                  </article>
-                )
+                return <AssistantTurn
+                  key={message.id}
+                  message={message}
+                  first={message.id === firstAssistantId}
+                  disabled={snapshot.phase === 'running' || snapshot.phase === 'stopping'}
+                  companion={companion}
+                  reportParseError={reportParseError}
+                />
               })}
-              {snapshot.phase === 'creating' && <div className={css.loadingCard}>正在建立只读上下文与独立 Topic…</div>}
-              {snapshot.error !== null && <p className={css.panelError} data-citeciter-error>{snapshot.error}</p>}
+              {snapshot.phase === 'creating' && <div className={css.loadingCard}>正在验证引用并确认 Observer / Exact Fork…</div>}
+              {snapshot.error !== null && !active?.messages.some((message) => message.role === 'error') && (
+                <p className={css.panelError} data-citeciter-error>{friendlyFailure(snapshot.error)}</p>
+              )}
             </div>
 
             {active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
@@ -491,8 +656,17 @@ export function CitePanel({ bus, companion, closePanel }: CitePanelProps) {
               />
               <div className={css.composerActions}>
                 <span>只读 · 不干预主 Agent</span>
-                {snapshot.phase === 'running' && <button type="button" onClick={() => { void companion.stop() }}>停止</button>}
-                <button className={css.sendButton} type="submit" disabled={active === null || question.trim() === ''}>发送</button>
+                <button
+                  className={css.sendButton}
+                  type={snapshot.phase === 'running' ? 'button' : 'submit'}
+                  disabled={snapshot.phase === 'stopping' || snapshot.phase !== 'running' && (active === null || question.trim() === '')}
+                  aria-label={snapshot.phase === 'running' ? '停止回答' : snapshot.phase === 'stopping' ? '正在停止' : '发送'}
+                  onClick={snapshot.phase === 'running' ? () => { void companion.stop() } : undefined}
+                >
+                  {snapshot.phase === 'running' || snapshot.phase === 'stopping'
+                    ? <IconStopFill16 size={16} />
+                    : <IconSendOutline16 size={16} />}
+                </button>
               </div>
             </form>}
           </>

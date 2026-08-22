@@ -1,7 +1,8 @@
 /** Pure Observer citation validation and source-session evidence formatting. */
 import { createHash } from 'node:crypto';
 import { snapshotJsonValue, } from '@deepseek-ai/dsh-session';
-import { canonicalCitationIdentity, citationDraftSchema, } from "./topic.js";
+import { canonicalCitationIdentity, citationDraftSchema, citationSelectionClaimSchema, } from "./topic.js";
+import { resolveCitationRange } from "./citation-mapping.js";
 function messageText(content) {
     return content
         .filter((block) => block.type === 'text')
@@ -24,23 +25,51 @@ function evidence(value) {
 export function fingerprintCitationDraft(draft) {
     return createHash('sha256').update(canonicalCitationIdentity(draft)).digest('hex');
 }
+function committedAssistantText(source, sourceSessionId, anchorSeq) {
+    if (sourceSessionId !== source.session.id) {
+        throw new Error('Citation sourceSessionId does not match the observed source Session');
+    }
+    const anchor = source.events.find((event) => event.seq === anchorSeq);
+    if (anchor?.type !== 'assistant/message') {
+        throw new Error('Citation anchorSeq does not identify a committed assistant/message');
+    }
+    const text = messageText(anchor.data.message.content);
+    if (text === '')
+        throw new Error('Citation assistant/message has no visible text');
+    return { seq: anchor.seq, text };
+}
+/** Resolve a browser selection claim against the authoritative committed assistant message. */
+export function resolveObserverCitation(source, rawClaim) {
+    const claim = citationSelectionClaimSchema.parse(rawClaim);
+    const anchor = committedAssistantText(source, claim.sourceSessionId, claim.anchorSeq);
+    const range = resolveCitationRange({
+        displayText: claim.displayText,
+        ...(claim.sourceHintText === undefined ? {} : { sourceHintText: claim.sourceHintText }),
+        prefixText: claim.prefixText,
+        suffixText: claim.suffixText,
+    }, anchor.text);
+    const identity = {
+        sourceSessionId: claim.sourceSessionId,
+        anchorSeq: anchor.seq,
+        ...range,
+        displayText: claim.displayText,
+    };
+    const selectionFingerprint = fingerprintCitationDraft(identity);
+    return {
+        citation: { ...identity, selectionFingerprint },
+        assistantMessageSeq: anchor.seq,
+        assistantVisibleText: anchor.text,
+        contentFingerprint: selectionFingerprint,
+    };
+}
 /**
  * Validate one Citation against a committed assistant message in the observed source snapshot.
  * A matching `assistant/message` is sufficient; its step and turn may remain open.
  */
 export function validateObserverCitation(source, rawDraft) {
     const citation = citationDraftSchema.parse(rawDraft);
-    if (citation.sourceSessionId !== source.session.id) {
-        throw new Error('Citation sourceSessionId does not match the observed source Session');
-    }
-    const anchor = source.events.find((event) => event.seq === citation.anchorSeq);
-    if (anchor?.type !== 'assistant/message') {
-        throw new Error('Citation anchorSeq does not identify a committed assistant/message');
-    }
-    const visibleText = messageText(anchor.data.message.content);
-    if (visibleText === '') {
-        throw new Error('Citation assistant/message has no visible text');
-    }
+    const anchor = committedAssistantText(source, citation.sourceSessionId, citation.anchorSeq);
+    const visibleText = anchor.text;
     if (citation.endOffset <= citation.startOffset
         || citation.endOffset > visibleText.length
         || citation.endOffset - citation.startOffset !== citation.sourceText.length

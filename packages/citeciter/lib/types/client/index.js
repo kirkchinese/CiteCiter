@@ -23,7 +23,6 @@ export async function apply(ctx) {
             decode: decodeSettings,
         });
         const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error));
-        const companion = createCompanionController(sessions, settings, (request) => remoteCtx.remote.citeciter.request(request));
         const openPanel = () => {
             remoteCtx.layout.closeDetails();
             bus.setPanelOpen(true);
@@ -31,6 +30,23 @@ export async function apply(ctx) {
         const closePanel = () => {
             remoteCtx.layout.closeDetails();
             bus.setPanelOpen(false);
+        };
+        const companion = createCompanionController(sessions, settings, (request) => remoteCtx.remote.citeciter.request(request), openPanel);
+        const reportedParseErrors = new Set();
+        const reportParseError = (messageId) => {
+            const storageKey = `citeciter:malformed-followups:${messageId}`;
+            try {
+                if (sessionStorage.getItem(storageKey) !== null)
+                    return;
+                sessionStorage.setItem(storageKey, '1');
+            }
+            catch {
+                // Browser privacy settings may deny session storage; the in-memory set still deduplicates this page.
+            }
+            if (reportedParseErrors.has(messageId))
+                return;
+            reportedParseErrors.add(messageId);
+            remoteCtx.logger.warn(`CiteCiter ignored malformed first-answer follow-up questions in ${messageId}`);
         };
         const syncSource = () => {
             companion.setSource(sessions.list.getSnapshot().current ?? null);
@@ -75,7 +91,7 @@ export async function apply(ctx) {
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
             id: 'citeciter.panel',
-            inject: () => ({ bus, companion, closePanel }),
+            inject: () => ({ bus, companion, closePanel, reportParseError }),
         }, CitePanel));
         remoteCtx.slots.inject('settings.section', () => remoteCtx.slots.register({
             name: 'settings.section',

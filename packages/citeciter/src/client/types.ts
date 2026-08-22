@@ -4,6 +4,7 @@ import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 export interface CiteSelection {
   readonly sourceSessionId: SessionId
   readonly displayText: string
+  readonly sourceHintText?: string
   readonly kind: 'assistant-step'
   readonly anchorKey: string
   readonly startOffset: number

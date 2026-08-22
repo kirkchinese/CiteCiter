@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Private Observer-topic learning companion for live DeepSeek Harness conversations",
   "keywords": [
     "deepseek-harness",
@@ -109,7 +109,7 @@
     "@deepseek-ai/dsh-session-persistence-jsonl": ">=0.1.0-rc.7 <0.1.0-rc.8",
     "@deepseek-ai/dsh-session-query": ">=0.1.0-rc.7 <0.1.0-rc.8",
     "@deepseek-ai/dsh-session-title": ">=0.1.0-rc.7 <0.1.0-rc.8",
-    "@deepseek-ai/dsh-session-title-first-prompt-llm": ">=0.1.0-rc.7 <0.1.0-rc.8",
+    "@deepseek-ai/dsh-session-title-llm": ">=0.1.0-rc.7 <0.1.0-rc.8",
     "@deepseek-ai/dsh-settings": ">=0.1.0-rc.7 <0.1.0-rc.8",
     "@deepseek-ai/dsh-subprocess": ">=0.1.0-rc.7 <0.1.0-rc.8",
     "@deepseek-ai/dsh-spill": ">=0.1.0-rc.7 <0.1.0-rc.8",
@@ -143,7 +143,7 @@
     "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.0-rc.7",
     "@deepseek-ai/dsh-session-query": "0.1.0-rc.7",
     "@deepseek-ai/dsh-session-title": "0.1.0-rc.7",
-    "@deepseek-ai/dsh-session-title-first-prompt-llm": "0.1.0-rc.7",
+    "@deepseek-ai/dsh-session-title-llm": "0.1.0-rc.7",
     "@deepseek-ai/dsh-settings": "0.1.0-rc.7",
     "@deepseek-ai/dsh-subprocess": "0.1.0-rc.7",
     "@deepseek-ai/dsh-spill": "0.1.0-rc.7",

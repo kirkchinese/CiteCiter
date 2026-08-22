@@ -3,9 +3,9 @@ import type { CiteSelection } from './types.ts';
 /**
  * Resolve the current DOM selection into a CiteSelection.
  *
- * The complete Range must belong to one finalized assistant flow. The returned
- * offsets are measured against that flow's plain text and adjusted after
- * trimming, so identical quotations at different locations remain distinct.
+ * A Range inside one assistant flow keeps exact visible offsets. A cross-flow
+ * Range binds to its final intersected assistant model call while preserving
+ * the complete visible quote for the learning UI.
  *
  * @param event - context-menu event whose pointer position anchors the menu.
  * @param sourceSessionId - current session identity captured with the DOM range.

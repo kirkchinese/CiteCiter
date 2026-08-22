@@ -74,6 +74,9 @@ let CiteCiterHost = (() => {
         topics = __runInitializers(this, _instanceExtraInitializers);
         constructor(ctx) {
             super(ctx, 'citeciter');
+            ctx.inject(['settings'], (settingsCtx) => {
+                settingsCtx.settings.register(CITECITER_SETTINGS_NS, CITECITER_SETTINGS_SCHEMA);
+            });
             this.topics = new TopicRuntime(ctx, () => currentSettings(ctx));
             ctx.effect(() => async () => this.topics.dispose(), 'citeciter: private Topic runtime');
         }
@@ -90,9 +93,6 @@ let CiteCiterHost = (() => {
 export { CiteCiterHost };
 /** Register optional settings and mount the Host Remote service. */
 export async function apply(ctx) {
-    ctx.inject(['settings'], (settingsCtx) => {
-        settingsCtx.settings.register(CITECITER_SETTINGS_NS, CITECITER_SETTINGS_SCHEMA);
-    });
     await ctx.plugin(CiteCiterHost);
 }
 export default CiteCiterHost;

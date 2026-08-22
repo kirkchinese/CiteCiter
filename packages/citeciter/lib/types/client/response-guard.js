@@ -5,6 +5,11 @@ export function isCurrentTopicResponse(operationEpoch, currentEpoch, currentSour
         && (expectedSessionId === undefined || responseSessionId === expectedSessionId);
 }
 /** Return whether an idle source may restore its remembered Topic. */
-export function shouldReopenLastTopic(hasActiveTopic, phaseIsIdle, reopenLastTopic) {
-    return !hasActiveTopic && phaseIsIdle && reopenLastTopic;
+export function shouldReopenLastTopic(hasActiveTopic, phaseIsIdle, reopenLastTopic, showingArchived = false, attempted = false, suppressed = false) {
+    return !hasActiveTopic
+        && phaseIsIdle
+        && reopenLastTopic
+        && !showingArchived
+        && !attempted
+        && !suppressed;
 }

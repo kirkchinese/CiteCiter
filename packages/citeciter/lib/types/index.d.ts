@@ -35,5 +35,5 @@ export declare class CiteCiterHost extends TypertRemoteService {
 }
 /** Register optional settings and mount the Host Remote service. */
 export declare function apply(ctx: Context): Promise<void>;
-export type { CiteCiterRequest, CiteCiterResponse, CiteCiterSettings, CitationDraft, CitationRecord, TopicSnapshot, TopicSummary, } from './topic.ts';
+export type { CiteCiterRequest, CiteCiterResponse, CiteCiterSettings, CitationSelectionClaim, CitationDraft, CitationRecord, TopicSnapshot, TopicSummary, } from './topic.ts';
 export default CiteCiterHost;

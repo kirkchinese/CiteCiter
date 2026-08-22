@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CompanionFace } from '../companion-controller.ts'
 import mascotUrl from '../assets/citeciter-mascot.png'
@@ -12,6 +12,17 @@ export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
 export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
   const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
   const settings = snapshot.settings
+  const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent)
+  const committedWidth = useRef(settings.panelWidthPercent)
+  useEffect(() => {
+    committedWidth.current = settings.panelWidthPercent
+    setWidthDraft(settings.panelWidthPercent)
+  }, [settings.panelWidthPercent])
+  const commitWidth = (value: number) => {
+    if (value === committedWidth.current) return
+    committedWidth.current = value
+    void companion.setSetting('panelWidthPercent', value)
+  }
   return (
     <div className={css.settingsPage}>
       <header className={css.settingsHero}>
@@ -21,6 +32,13 @@ export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
           <p>保留 DSH 的编程主界面，把学习讨论放在右侧独立工作区。</p>
         </div>
       </header>
+      {snapshot.settingsSaveMessage !== null && (
+        <p
+          className={css.settingsSaveStatus}
+          data-status={snapshot.settingsSaveStatus}
+          role={snapshot.settingsSaveStatus === 'error' ? 'alert' : 'status'}
+        >{snapshot.settingsSaveMessage}</p>
+      )}
 
       <section className={css.settingsGroup}>
         <h3>新 Topic 的来源方式</h3>
@@ -67,18 +85,25 @@ export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
       <section className={css.settingsGroup}>
         <h3>学习栏</h3>
         <label className={css.widthSetting}>
-          <span><strong>默认宽度</strong><output>{settings.panelWidthPercent}%</output></span>
+          <span><strong>默认宽度</strong><output>{widthDraft}%</output></span>
           <input
             type="range"
             min={28}
             max={55}
             step={1}
-            value={settings.panelWidthPercent}
-            onChange={(event) => { void companion.setSetting('panelWidthPercent', Number(event.currentTarget.value)) }}
+            value={widthDraft}
+            onChange={(event) => setWidthDraft(Number(event.currentTarget.value))}
+            onPointerUp={(event) => commitWidth(Number(event.currentTarget.value))}
+            onBlur={(event) => commitWidth(Number(event.currentTarget.value))}
+            onKeyUp={(event) => {
+              if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+                commitWidth(Number(event.currentTarget.value))
+              }
+            }}
           />
         </label>
         <label className={css.settingToggle}>
-          <span><strong>重新打开上次 Topic</strong><small>再次展开学习栏时，回到当前来源最近查看的讨论。</small></span>
+          <span><strong>重新打开上次 Topic</strong><small>刷新或重新进入来源 Session 时，自动展开学习栏并恢复最近讨论。</small></span>
           <input
             type="checkbox"
             checked={settings.reopenLastTopic}
@@ -88,7 +113,7 @@ export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
         <div className={css.dockPreview} aria-label="学习栏宽度预览">
           <span className={css.previewSidebar} />
           <span className={css.previewCoding}>DSH 编程对话</span>
-          <span className={css.previewDock} style={{ width: settings.panelWidthPercent + '%' }}>CiteCiter</span>
+          <span className={css.previewDock} style={{ width: widthDraft + '%' }}>CiteCiter</span>
         </div>
       </section>
     </div>

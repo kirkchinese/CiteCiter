@@ -1,17 +1,81 @@
-import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, } from 'react';
-import { DisclosureRow, IconArchiveOutline20, IconQuestionOutline14, IconSparkle16, IconThinkOutline14, JsonTree, } from '@deepseek-ai/dsh-client-ui-primitives';
+import { DisclosureRow, IconArchiveOutline20, IconQuestionOutline14, IconSendOutline16, IconSparkle16, IconStopFill16, IconThinkOutline14, JsonTree, } from '@deepseek-ai/dsh-client-ui-primitives';
+import { parseNextQuestions } from "../prompt.js";
+import collapseArrowUrl from '../assets/collapse-arrow.svg';
 import mascotUrl from '../assets/citeciter-mascot.png';
 import { QuestionCard } from "./QuestionCard.js";
 import { RichAnswer } from "./RichAnswer.js";
 import css from './CiteCiter.module.css';
 const PHASE_LABEL = {
     idle: '等待一个选区',
-    creating: '正在创建独立 Topic…',
+    creating: '正在确认上下文方式…',
     ready: '可以继续追问',
     running: 'CiteCiter 正在回答…',
+    stopping: '正在停止…',
+    stopped: '已停止，可继续',
     error: '需要处理',
 };
+function mascotState(phase, messages) {
+    const runningTool = messages.findLast((message) => message.role === 'tool' && message.running);
+    if (runningTool?.role === 'tool' && runningTool.name.toLowerCase().includes('bash'))
+        return 'diving';
+    if (runningTool?.role === 'tool' && ['read', 'read_source_session', 'glob', 'grep'].includes(runningTool.name))
+        return 'reading';
+    return phase === 'running' || phase === 'creating' || phase === 'stopping' ? 'answering' : 'surfaced';
+}
+function MascotStatus({ state }) {
+    const labels = {
+        diving: '鲸鱼娘正在潜水执行 Bash',
+        reading: '鲸鱼娘正举着放大镜读取文件',
+        answering: '鲸鱼娘抱住引用气泡开始回答',
+        surfaced: '鲸鱼娘已浮出水面，回答完成',
+    };
+    return (_jsxs("span", { className: css.mascotStatus, "data-state": state, role: "img", "aria-label": labels[state], children: [_jsx("img", { src: mascotUrl, alt: "" }), _jsx("span", { "aria-hidden": "true" })] }));
+}
+function CitationWaterline({ anchorKey, target }) {
+    const [path, setPath] = useState('');
+    const [visible, setVisible] = useState(false);
+    useEffect(() => {
+        if (anchorKey === undefined)
+            return;
+        const source = document.querySelector(`[data-chat-anchor-key="${CSS.escape(anchorKey)}"]`);
+        const destination = target.current;
+        if (source === null || destination === null)
+            return;
+        const update = () => {
+            const from = source.getBoundingClientRect();
+            const to = destination.getBoundingClientRect();
+            const x1 = Math.min(from.right, window.innerWidth - 8);
+            const y1 = from.top + from.height / 2;
+            const x2 = to.left;
+            const y2 = to.top + to.height / 2;
+            const bend = Math.max(36, Math.abs(x2 - x1) * 0.42);
+            setPath(`M ${x1} ${y1} C ${x1 + bend} ${y1 - 8}, ${x2 - bend} ${y2 + 8}, ${x2} ${y2}`);
+        };
+        const show = () => { update(); setVisible(true); };
+        const hide = () => setVisible(false);
+        update();
+        setVisible(true);
+        const initialFade = setTimeout(hide, 1800);
+        for (const element of [source, destination]) {
+            element.addEventListener('pointerenter', show);
+            element.addEventListener('pointerleave', hide);
+        }
+        window.addEventListener('resize', update);
+        document.addEventListener('scroll', update, true);
+        return () => {
+            clearTimeout(initialFade);
+            for (const element of [source, destination]) {
+                element.removeEventListener('pointerenter', show);
+                element.removeEventListener('pointerleave', hide);
+            }
+            window.removeEventListener('resize', update);
+            document.removeEventListener('scroll', update, true);
+        };
+    }, [anchorKey, target]);
+    return _jsx("svg", { className: css.citationWaterline, "data-visible": visible || undefined, "aria-hidden": "true", children: _jsx("path", { d: path }) });
+}
 function clampWidth(value) {
     return Math.max(28, Math.min(55, Math.round(value)));
 }
@@ -82,6 +146,23 @@ function ToolRow({ message }) {
 function ContextRow({ message }) {
     return (_jsx(FlowDisclosure, { icon: _jsx(IconSparkle16, {}), title: message.label, summary: firstLine(message.text), children: _jsx("pre", { className: css.flowBody, children: message.text }) }));
 }
+function friendlyFailure(text) {
+    return text.replaceAll(/https?:\/\/[^\s)]+/gu, '模型服务地址');
+}
+function ErrorTurn({ message }) {
+    const summary = friendlyFailure(message.text);
+    return (_jsxs("article", { className: css.errorTurn, "data-status": message.status, children: [_jsx("div", { className: css.turnRole, children: message.status === 'stopped' ? '已停止' : '请求失败' }), _jsx("p", { children: summary }), _jsxs("div", { className: css.errorMeta, children: [_jsxs("span", { children: ["\u7B2C ", message.attempt, " \u6B21\u8BF7\u6C42"] }), _jsx("span", { children: message.bodyRetained ? '已保留已生成正文' : '未产生可保留正文' }), _jsx("span", { children: message.status === 'stopped' ? '可继续追问' : '可修改问题后重试' })] }), summary !== message.text && _jsxs("details", { children: [_jsx("summary", { children: "\u6280\u672F\u8BE6\u60C5" }), _jsx("pre", { children: message.text })] })] }));
+}
+function AssistantTurn({ message, first, disabled, companion, reportParseError, }) {
+    const parsed = useMemo(() => first
+        ? parseNextQuestions(message.text)
+        : { text: message.text, questions: [], invalid: false }, [first, message.text]);
+    useEffect(() => {
+        if (parsed.invalid && !message.streaming)
+            reportParseError(message.id);
+    }, [message.id, message.streaming, parsed.invalid, reportParseError]);
+    return (_jsxs("article", { className: css.assistantTurn, children: [_jsx("div", { className: css.turnRole, children: "CiteCiter" }), message.reasoning !== null && _jsx(ReasoningRow, { text: message.reasoning, running: message.streaming }), parsed.text !== '' && _jsx(RichAnswer, { text: parsed.text, streaming: message.streaming }), !message.streaming && parsed.questions.length === 3 && (_jsx("div", { className: css.nextQuestions, "aria-label": "\u63A5\u4E0B\u6765\u53EF\u80FD\u60F3\u95EE", children: parsed.questions.map((question) => (_jsx("button", { type: "button", disabled: disabled, onClick: () => { void companion.ask(question); }, children: question }, question))) }))] }));
+}
 /** Reserve a real third DSH column while keeping the official shell and coding surface intact. */
 function useDockColumn(open, widthPercent) {
     const [width, setWidth] = useState(0);
@@ -134,19 +215,28 @@ function useDockColumn(open, widthPercent) {
     return [width, docked];
 }
 /** Independent, resizable learning workspace docked beside the active coding conversation. */
-export function CitePanel({ bus, companion, closePanel }) {
+export function CitePanel({ bus, companion, closePanel, reportParseError }) {
     const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot);
     const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot);
     const [question, setQuestion] = useState('');
     const [title, setTitle] = useState('');
+    const [titleDirty, setTitleDirty] = useState(false);
     const [widthPercent, setWidthPercent] = useState(snapshot.settings.panelWidthPercent);
     const resizeOrigin = useRef(null);
+    const titleRef = useRef(null);
     const open = overlay.panelOpen;
     const [panelWidth, docked] = useDockColumn(open, widthPercent);
     const active = snapshot.active;
     useEffect(() => companion.setVisible(open), [companion, open]);
     useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent]);
-    useEffect(() => setTitle(active?.topic.title ?? ''), [active?.topic.sessionId, active?.topic.title]);
+    useEffect(() => {
+        setTitle(active?.topic.title ?? '');
+        setTitleDirty(false);
+    }, [active?.topic.sessionId]);
+    useEffect(() => {
+        if (!titleDirty)
+            setTitle(active?.topic.title ?? '');
+    }, [active?.topic.title, titleDirty]);
     const selectedProvider = snapshot.providers.find((provider) => provider.id === active?.topic.modelConfig.provider);
     const selectedModel = selectedProvider?.models.find((model) => model.id === active?.topic.modelConfig.model);
     const models = useMemo(() => snapshot.providers.flatMap((provider) => provider.models.map((model) => ({
@@ -154,15 +244,22 @@ export function CitePanel({ bus, companion, closePanel }) {
         providerName: provider.name,
         model,
     }))), [snapshot.providers]);
+    const firstAssistantId = active?.messages.find((message) => message.role === 'assistant' && message.text !== '')?.id;
+    const whaleState = mascotState(snapshot.phase, active?.messages ?? []);
     if (!open)
         return null;
     const submit = (event) => {
         event.preventDefault();
+        if (snapshot.phase === 'running' || snapshot.phase === 'stopping')
+            return;
         const value = question.trim();
         if (value === '')
             return;
-        setQuestion('');
-        void companion.ask(value);
+        const submitted = question;
+        void companion.ask(value).then((sent) => {
+            if (sent)
+                setQuestion((current) => current === submitted ? '' : current);
+        });
     };
     const updateWidth = (next) => {
         const value = clampWidth(next);
@@ -197,6 +294,7 @@ export function CitePanel({ bus, companion, closePanel }) {
         if (event.currentTarget.hasPointerCapture(event.pointerId))
             event.currentTarget.releasePointerCapture(event.pointerId);
         resizeOrigin.current = null;
+        setWidthPercent(snapshot.settings.panelWidthPercent);
     };
     const resizeKey = (event) => {
         if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')
@@ -204,17 +302,25 @@ export function CitePanel({ bus, companion, closePanel }) {
         event.preventDefault();
         updateWidth(widthPercent + (event.key === 'ArrowLeft' ? 1 : -1));
     };
-    return (_jsxs("aside", { className: css.dock, style: { width: panelWidth > 0 ? panelWidth : undefined }, "data-citeciter-panel": true, "data-overlay": docked ? undefined : true, "aria-label": "CiteCiter \u5B66\u4E60\u4F34\u4FA3", children: [docked && (_jsx("div", { className: css.resizeHandle, role: "separator", "aria-label": "\u8C03\u6574 CiteCiter \u5BBD\u5EA6", "aria-orientation": "vertical", "aria-valuemin": 28, "aria-valuemax": 55, "aria-valuenow": widthPercent, tabIndex: 0, onPointerDown: startResize, onPointerMove: moveResize, onPointerUp: endResize, onPointerCancel: cancelResize, onKeyDown: resizeKey })), _jsxs("nav", { className: css.topicRail, "aria-label": "CiteCiter Topics", children: [_jsxs("div", { className: css.brand, children: [_jsx("span", { className: css.brandMark, "aria-hidden": "true", children: _jsx("img", { src: mascotUrl, alt: "" }) }), _jsxs("div", { children: [_jsx("strong", { children: "CiteCiter" }), _jsx("span", { children: "\u5B66\u4E60\u4F34\u4FA3" })] })] }), _jsxs("div", { className: css.railCaption, children: [_jsx("span", { children: snapshot.includeArchived ? '归档讨论' : '当前来源的讨论' }), _jsx("button", { type: "button", onClick: () => companion.setIncludeArchived(!snapshot.includeArchived), children: snapshot.includeArchived ? '返回活动' : '查看归档' })] }), _jsxs("div", { className: css.topicList, children: [snapshot.topics.map((topic) => (_jsxs("button", { className: css.topicItem, "data-active": active?.topic.sessionId === topic.sessionId || undefined, "data-archived": topic.archived || undefined, "data-citeciter-topic": topic.sessionId, type: "button", onClick: () => { void companion.openTopic(topic.sessionId); }, children: [_jsx("span", { className: css.topicStatus, "data-running": topic.running || undefined }), _jsxs("span", { className: css.topicCopy, children: [_jsx("strong", { "data-pending": topic.titlePending || undefined, children: topic.title }), _jsxs("small", { children: ["\u201C", quotePreview(topic.citation.displayText), "\u201D"] })] })] }, topic.sessionId))), snapshot.topics.length === 0 && (_jsx("p", { className: css.railEmpty, children: snapshot.includeArchived
+    return (_jsxs("aside", { className: css.dock, style: { width: panelWidth > 0 ? panelWidth : undefined }, "data-citeciter-panel": true, "data-overlay": docked ? undefined : true, "aria-label": "CiteCiter \u5B66\u4E60\u4F34\u4FA3", children: [docked && (_jsx("div", { className: css.resizeHandle, role: "separator", "aria-label": "\u8C03\u6574 CiteCiter \u5BBD\u5EA6", "aria-orientation": "vertical", "aria-valuemin": 28, "aria-valuemax": 55, "aria-valuenow": widthPercent, tabIndex: 0, onPointerDown: startResize, onPointerMove: moveResize, onPointerUp: endResize, onPointerCancel: cancelResize, onKeyDown: resizeKey })), _jsx("button", { className: css.closeButton, type: "button", onClick: closePanel, "aria-label": "\u5173\u95ED CiteCiter", children: _jsx("img", { src: collapseArrowUrl, alt: "" }) }), _jsx(CitationWaterline, { anchorKey: snapshot.sourceAnchorKey ?? undefined, target: titleRef }), _jsxs("nav", { className: css.topicRail, "aria-label": "CiteCiter Topics", children: [_jsxs("div", { className: css.brand, children: [_jsx(MascotStatus, { state: whaleState }), _jsxs("div", { children: [_jsx("strong", { children: "CiteCiter" }), _jsx("span", { children: "\u5B66\u4E60\u4F34\u4FA3" })] })] }), _jsxs("div", { className: css.railCaption, children: [_jsx("span", { children: snapshot.includeArchived ? '归档讨论' : '当前来源的讨论' }), _jsx("button", { type: "button", onClick: () => companion.setIncludeArchived(!snapshot.includeArchived), children: snapshot.includeArchived ? '返回活动' : '查看归档' })] }), _jsxs("div", { className: css.topicList, children: [snapshot.topics.map((topic) => (_jsxs("button", { className: css.topicItem, "data-active": active?.topic.sessionId === topic.sessionId || undefined, "data-archived": topic.archived || undefined, "data-citeciter-topic": topic.sessionId, type: "button", onClick: () => { void companion.openTopic(topic.sessionId); }, children: [_jsx("span", { className: css.topicStatus, "data-running": topic.running || undefined }), _jsxs("span", { className: css.topicCopy, children: [_jsx("strong", { "data-pending": topic.titlePending || undefined, children: topic.title }), _jsxs("small", { children: ["\u201C", quotePreview(topic.citation.displayText), "\u201D"] })] })] }, topic.sessionId))), snapshot.topicsStatus === 'loading' && _jsx("p", { className: css.railEmpty, role: "status", children: "\u6B63\u5728\u8BFB\u53D6 Topic\u2026" }), snapshot.topicsStatus === 'error' && (_jsxs("p", { className: css.railError, role: "alert", children: ["Topic \u8BFB\u53D6\u5931\u8D25", _jsx("br", {}), snapshot.topicsError] })), snapshot.topicsStatus === 'ready' && snapshot.topics.length === 0 && (_jsx("p", { className: css.railEmpty, children: snapshot.includeArchived
                                     ? '当前来源还没有归档 Topic。'
-                                    : '在中央编程对话中选中文字，右键即可开始。' }))] }), _jsxs("div", { className: css.railFoot, children: [_jsxs("span", { children: [snapshot.topics.length, " \u4E2A Topic"] }), _jsxs("span", { children: [widthPercent, "%"] })] })] }), _jsxs("section", { className: css.learningWorkspace, children: [_jsxs("header", { className: css.dockHeader, children: [_jsxs("div", { className: css.dockHeading, children: [_jsx("span", { className: css.modeBadge, children: active?.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer' }), _jsx("strong", { children: active?.topic.title ?? '新的学习讨论' }), _jsx("span", { children: PHASE_LABEL[snapshot.phase] })] }), _jsx("button", { className: css.closeButton, type: "button", onClick: closePanel, "aria-label": "\u5173\u95ED CiteCiter", children: "\u00D7" })] }), active === null && snapshot.draftQuote === null ? (_jsxs("div", { className: css.emptyState, children: [_jsx("div", { className: css.emptyWhale, "aria-hidden": "true", children: _jsx("img", { src: mascotUrl, alt: "" }) }), _jsx("h2", { children: "\u7F16\u7A0B\u522B\u505C\uFF0C\u95EE\u9898\u653E\u5230\u65C1\u8FB9\u95EE" }), _jsx("p", { children: "\u9009\u4E2D\u4E3B\u5BF9\u8BDD\u91CC\u4E00\u6B21\u5DF2\u5B8C\u6210\u6A21\u578B\u8C03\u7528\u7684\u4EFB\u610F\u6587\u5B57\uFF0C\u53F3\u952E\u8F93\u5165\u95EE\u9898\u3002Topic \u4F1A\u5728\u8FD9\u91CC\u72EC\u7ACB\u591A\u8F6E\u7EE7\u7EED\uFF0C\u4E0D\u8FDB\u5165\u5DE6\u4FA7\u4E3B\u4F1A\u8BDD\u5217\u8868\u3002" }), snapshot.error !== null && _jsx("p", { className: css.panelError, children: snapshot.error })] })) : (_jsxs(_Fragment, { children: [_jsxs("div", { className: css.contextBar, children: [_jsxs("blockquote", { children: ["\u201C", active?.topic.citation.displayText ?? snapshot.draftQuote, "\u201D"] }), active !== null && (_jsxs("div", { className: css.contextMeta, children: [_jsx("span", { "data-ok": active.topic.sourceAvailable || undefined, children: active.topic.sourceAvailable ? '来源在线' : '来源不可用' }), _jsx("span", { children: active.topic.observedThroughSeq === null ? '尚未读取来源' : '已读至 seq ' + active.topic.observedThroughSeq })] }))] }), active !== null && (_jsxs("div", { className: css.topicToolbar, children: [_jsxs("form", { onSubmit: (event) => {
+                                    : '在中央编程对话中选中文字，右键即可开始。' }))] }), _jsxs("div", { className: css.railFoot, children: [_jsx("span", { children: snapshot.topicsStatus === 'ready' ? `${snapshot.topics.length} 个 Topic` : 'Topic 状态未知' }), _jsxs("span", { children: [widthPercent, "%"] })] })] }), _jsxs("section", { className: css.learningWorkspace, children: [_jsx("header", { className: css.dockHeader, children: _jsxs("div", { className: css.dockHeading, children: [_jsx("span", { className: css.modeBadge, children: active === null
+                                        ? snapshot.phase === 'creating' ? '待确认' : '学习栏'
+                                        : active.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer' }), _jsx("strong", { ref: titleRef, children: active?.topic.title ?? '新的学习讨论' }), _jsx("span", { children: PHASE_LABEL[snapshot.phase] })] }) }), active === null && snapshot.draftQuote === null ? (_jsxs("div", { className: css.emptyState, children: [_jsx("div", { className: css.emptyWhale, "aria-hidden": "true", children: _jsx("img", { src: mascotUrl, alt: "" }) }), _jsx("h2", { children: "\u7F16\u7A0B\u522B\u505C\uFF0C\u95EE\u9898\u653E\u5230\u65C1\u8FB9\u95EE" }), _jsx("p", { children: "\u9009\u4E2D\u4E3B\u5BF9\u8BDD\u91CC\u4E00\u6B21\u5DF2\u5B8C\u6210\u6A21\u578B\u8C03\u7528\u7684\u4EFB\u610F\u6587\u5B57\uFF0C\u53F3\u952E\u8F93\u5165\u95EE\u9898\u3002Topic \u4F1A\u5728\u8FD9\u91CC\u72EC\u7ACB\u591A\u8F6E\u7EE7\u7EED\uFF0C\u4E0D\u8FDB\u5165\u5DE6\u4FA7\u4E3B\u4F1A\u8BDD\u5217\u8868\u3002" }), snapshot.error !== null && _jsx("p", { className: css.panelError, children: friendlyFailure(snapshot.error) })] })) : (_jsxs(_Fragment, { children: [_jsxs("div", { className: css.contextBar, children: [_jsxs("blockquote", { children: ["\u201C", active?.topic.citation.displayText ?? snapshot.draftQuote, "\u201D"] }), active !== null && (_jsxs("div", { className: css.contextMeta, children: [_jsx("span", { "data-ok": active.topic.sourceAvailable || undefined, children: active.topic.sourceAvailable ? '来源在线' : '来源不可用' }), _jsx("span", { children: active.topic.observedThroughSeq === null ? '尚未读取来源' : '已读至 seq ' + active.topic.observedThroughSeq })] }))] }), active !== null && (_jsxs("div", { className: css.topicToolbar, children: [_jsxs("form", { onSubmit: (event) => {
                                             event.preventDefault();
-                                            void companion.rename(title);
-                                        }, children: [_jsx("input", { value: title, onChange: (event) => setTitle(event.currentTarget.value), "aria-label": "Topic \u6807\u9898" }), _jsx("button", { type: "submit", disabled: title.trim() === '' || title === active.topic.title, children: "\u4FDD\u5B58\u6807\u9898" })] }), _jsxs("select", { "aria-label": "CiteCiter \u6A21\u578B", value: modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model), onChange: (event) => {
+                                            void companion.rename(title).then((saved) => {
+                                                if (saved)
+                                                    setTitleDirty(false);
+                                            });
+                                        }, children: [_jsx("input", { value: title, onChange: (event) => {
+                                                    setTitle(event.currentTarget.value);
+                                                    setTitleDirty(true);
+                                                }, "aria-label": "Topic \u6807\u9898" }), _jsx("button", { type: "submit", disabled: title.trim() === '' || !titleDirty || snapshot.renaming, children: snapshot.renaming ? '保存中…' : titleDirty ? '保存标题' : '已保存' })] }), _jsxs("select", { "aria-label": "CiteCiter \u6A21\u578B", value: modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model), disabled: snapshot.modelRouteSaving, onChange: (event) => {
                                             const [provider, model] = parseModelValue(event.currentTarget.value);
-                                            void companion.selectModel(provider, model, null);
-                                        }, children: [!models.some((item) => item.provider === active.topic.modelConfig.provider && item.model.id === active.topic.modelConfig.model) && (_jsxs("option", { value: modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model), children: [active.topic.modelConfig.provider, " / ", active.topic.modelConfig.model] })), snapshot.providers.map((provider) => (_jsx("optgroup", { label: provider.name, children: provider.models.map((model) => (_jsx("option", { value: modelValue(provider.id, model.id), children: model.name }, model.id))) }, provider.id)))] }), selectedModel !== undefined && selectedModel.reasoningEfforts.length > 0 && (_jsxs("select", { "aria-label": "\u601D\u8003\u5F3A\u5EA6", value: active.topic.modelConfig.reasoningEffort ?? '', onChange: (event) => {
-                                            void companion.selectModel(active.topic.modelConfig.provider, active.topic.modelConfig.model, event.currentTarget.value === '' ? null : event.currentTarget.value);
-                                        }, children: [_jsx("option", { value: "", children: "\u6A21\u578B\u9ED8\u8BA4\u601D\u8003" }), selectedModel.reasoningEfforts.map((effort) => (_jsx("option", { value: effort.id, children: effort.name }, effort.id)))] })), _jsxs("button", { type: "button", className: css.archiveButton, "aria-label": active.topic.archived ? '恢复当前 Topic' : '归档当前 Topic', onClick: () => { void companion.archive(!active.topic.archived); }, children: [_jsx(IconArchiveOutline20, { size: 14 }), active.topic.archived ? '恢复' : '归档'] })] })), _jsxs("div", { className: css.transcript, "aria-live": "polite", children: [active?.messages.map((message) => {
+                                            void companion.setModelRoute(provider, model);
+                                        }, children: [!models.some((item) => item.provider === active.topic.modelConfig.provider && item.model.id === active.topic.modelConfig.model) && (_jsxs("option", { value: modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model), children: [active.topic.modelConfig.provider, " / ", active.topic.modelConfig.model] })), snapshot.providers.map((provider) => (_jsx("optgroup", { label: provider.name, children: provider.models.map((model) => (_jsx("option", { value: modelValue(provider.id, model.id), children: model.name }, model.id))) }, provider.id)))] }), selectedModel !== undefined && selectedModel.reasoningEfforts.length > 0 && (_jsxs("select", { "aria-label": "\u601D\u8003\u5F3A\u5EA6", value: active.topic.modelConfig.reasoningEffort ?? '', disabled: snapshot.reasoningEffortSaving || snapshot.modelRouteSaving, onChange: (event) => {
+                                            void companion.setReasoningEffort(event.currentTarget.value === '' ? null : event.currentTarget.value);
+                                        }, children: [_jsx("option", { value: "", children: "\u6A21\u578B\u9ED8\u8BA4\u601D\u8003" }), selectedModel.reasoningEfforts.map((effort) => (_jsx("option", { value: effort.id, children: effort.name }, effort.id)))] })), _jsxs("button", { type: "button", className: css.archiveButton, "aria-label": active.topic.archived ? '恢复当前 Topic' : '归档当前 Topic', disabled: snapshot.archiving, onClick: () => { void companion.archive(!active.topic.archived); }, children: [_jsx(IconArchiveOutline20, { size: 14 }), snapshot.archiving ? '处理中…' : active.topic.archived ? '恢复' : '归档'] })] })), _jsxs("div", { className: css.transcript, "aria-live": "polite", children: [active?.messages.map((message) => {
                                         if (message.role === 'tool')
                                             return _jsx(ToolRow, { message: message }, message.id);
                                         if (message.role === 'context')
@@ -222,9 +328,11 @@ export function CitePanel({ bus, companion, closePanel }) {
                                         if (message.role === 'user')
                                             return (_jsxs("article", { className: css.userTurn, children: [_jsx("div", { className: css.turnRole, children: "\u4F60" }), _jsx("p", { children: message.text })] }, message.id));
                                         if (message.role === 'error')
-                                            return (_jsxs("article", { className: css.errorTurn, children: [_jsx("div", { className: css.turnRole, children: "\u9519\u8BEF" }), _jsx("p", { children: message.text })] }, message.id));
-                                        return (_jsxs("article", { className: css.assistantTurn, children: [_jsx("div", { className: css.turnRole, children: "CiteCiter" }), message.reasoning !== null && _jsx(ReasoningRow, { text: message.reasoning, running: message.streaming }), message.text !== '' && _jsx(RichAnswer, { text: message.text, streaming: message.streaming })] }, message.id));
-                                    }), snapshot.phase === 'creating' && _jsx("div", { className: css.loadingCard, children: "\u6B63\u5728\u5EFA\u7ACB\u53EA\u8BFB\u4E0A\u4E0B\u6587\u4E0E\u72EC\u7ACB Topic\u2026" }), snapshot.error !== null && _jsx("p", { className: css.panelError, "data-citeciter-error": true, children: snapshot.error })] }), active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
+                                            return (_jsx(ErrorTurn, { message: message }, message.id));
+                                        return _jsx(AssistantTurn, { message: message, first: message.id === firstAssistantId, disabled: snapshot.phase === 'running' || snapshot.phase === 'stopping', companion: companion, reportParseError: reportParseError }, message.id);
+                                    }), snapshot.phase === 'creating' && _jsx("div", { className: css.loadingCard, children: "\u6B63\u5728\u9A8C\u8BC1\u5F15\u7528\u5E76\u786E\u8BA4 Observer / Exact Fork\u2026" }), snapshot.error !== null && !active?.messages.some((message) => message.role === 'error') && (_jsx("p", { className: css.panelError, "data-citeciter-error": true, children: friendlyFailure(snapshot.error) }))] }), active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
                                 ? _jsx(QuestionCard, { pending: active.pendingQuestion, companion: companion }, active.pendingQuestion.key)
-                                : _jsxs("form", { className: css.composer, onSubmit: submit, children: [_jsx("textarea", { rows: 3, maxLength: 12_000, "aria-label": "\u7EE7\u7EED\u5411 CiteCiter \u63D0\u95EE", value: question, disabled: active === null, onChange: (event) => setQuestion(event.currentTarget.value), placeholder: active === null ? 'Topic 创建后可继续追问' : '继续追问，或聊点题外话…' }), _jsxs("div", { className: css.composerActions, children: [_jsx("span", { children: "\u53EA\u8BFB \u00B7 \u4E0D\u5E72\u9884\u4E3B Agent" }), snapshot.phase === 'running' && _jsx("button", { type: "button", onClick: () => { void companion.stop(); }, children: "\u505C\u6B62" }), _jsx("button", { className: css.sendButton, type: "submit", disabled: active === null || question.trim() === '', children: "\u53D1\u9001" })] })] })] }))] })] }));
+                                : _jsxs("form", { className: css.composer, onSubmit: submit, children: [_jsx("textarea", { rows: 3, maxLength: 12_000, "aria-label": "\u7EE7\u7EED\u5411 CiteCiter \u63D0\u95EE", value: question, disabled: active === null, onChange: (event) => setQuestion(event.currentTarget.value), placeholder: active === null ? 'Topic 创建后可继续追问' : '继续追问，或聊点题外话…' }), _jsxs("div", { className: css.composerActions, children: [_jsx("span", { children: "\u53EA\u8BFB \u00B7 \u4E0D\u5E72\u9884\u4E3B Agent" }), _jsx("button", { className: css.sendButton, type: snapshot.phase === 'running' ? 'button' : 'submit', disabled: snapshot.phase === 'stopping' || snapshot.phase !== 'running' && (active === null || question.trim() === ''), "aria-label": snapshot.phase === 'running' ? '停止回答' : snapshot.phase === 'stopping' ? '正在停止' : '发送', onClick: snapshot.phase === 'running' ? () => { void companion.stop(); } : undefined, children: snapshot.phase === 'running' || snapshot.phase === 'stopping'
+                                                        ? _jsx(IconStopFill16, { size: 16 })
+                                                        : _jsx(IconSendOutline16, { size: 16 }) })] })] })] }))] })] }));
 }

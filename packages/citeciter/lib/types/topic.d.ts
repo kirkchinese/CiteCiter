@@ -28,6 +28,16 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>;
 /** Settings used before an optional DSH settings provider becomes available. */
 export declare const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings;
+/** Browser-visible selection resolved by the Host against one committed model call. */
+export declare const citationSelectionClaimSchema: z.ZodObject<{
+    sourceSessionId: z.ZodString;
+    anchorSeq: z.ZodNumber;
+    displayText: z.ZodString;
+    sourceHintText: z.ZodOptional<z.ZodString>;
+    prefixText: z.ZodString;
+    suffixText: z.ZodString;
+}, z.core.$strict>;
+export type CitationSelectionClaim = z.infer<typeof citationSelectionClaimSchema>;
 /** Host-verifiable Markdown evidence plus the browser-visible quote used by the UI. */
 export declare const citationDraftSchema: z.ZodObject<{
     sourceSessionId: z.ZodString;
@@ -40,7 +50,7 @@ export declare const citationDraftSchema: z.ZodObject<{
     suffixText: z.ZodString;
     selectionFingerprint: z.ZodString;
 }, z.core.$strict>;
-/** Browser-captured selection submitted for authoritative Host validation. */
+/** Exact Citation retained for durable data and legacy 0.3.1 requests. */
 export type CitationDraft = z.infer<typeof citationDraftSchema>;
 export declare const citationRecordSchema: z.ZodObject<{
     sourceSessionId: z.ZodString;
@@ -69,6 +79,7 @@ export type TopicModelConfig = z.infer<typeof modelConfigSchema>;
 export declare const topicMetadataSchema: z.ZodObject<{
     schemaVersion: z.ZodLiteral<1>;
     topicId: z.ZodNumber;
+    createRequestId: z.ZodOptional<z.ZodString>;
     sessionId: z.ZodString;
     sourceSessionId: z.ZodString;
     sourceCwd: z.ZodString;
@@ -105,10 +116,12 @@ export declare const topicMetadataSchema: z.ZodObject<{
         fallback: "fallback";
         user: "user";
     }>>;
+    cachedTitleEventSeq: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     createdAt: z.ZodNumber;
     updatedAt: z.ZodNumber;
     archivedAt: z.ZodNullable<z.ZodNumber>;
     sourceAvailable: z.ZodBoolean;
+    observedThroughSeq: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
 }, z.core.$strict>;
 /** Small navigation record stored outside the standard Topic Session log. */
 export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
@@ -181,6 +194,12 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
 }, z.core.$strict>, z.ZodObject<{
     role: z.ZodLiteral<"error">;
     text: z.ZodString;
+    bodyRetained: z.ZodBoolean;
+    attempt: z.ZodNumber;
+    status: z.ZodEnum<{
+        failed: "failed";
+        stopped: "stopped";
+    }>;
     id: z.ZodString;
     seq: z.ZodNumber;
 }, z.core.$strict>], "role">;
@@ -290,6 +309,12 @@ export declare const topicSnapshotSchema: z.ZodObject<{
     }, z.core.$strict>, z.ZodObject<{
         role: z.ZodLiteral<"error">;
         text: z.ZodString;
+        bodyRetained: z.ZodBoolean;
+        attempt: z.ZodNumber;
+        status: z.ZodEnum<{
+            failed: "failed";
+            stopped: "stopped";
+        }>;
         id: z.ZodString;
         seq: z.ZodNumber;
     }, z.core.$strict>], "role">>;
@@ -333,8 +358,9 @@ export declare const providerOptionSchema: z.ZodObject<{
 }, z.core.$strict>;
 export type ProviderOption = z.infer<typeof providerOptionSchema>;
 /** One strict direct-RPC command for the private CiteCiter runtime. */
-export declare const citeCiterRequestSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<readonly [z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    requestId: z.ZodString;
     citation: z.ZodObject<{
         sourceSessionId: z.ZodString;
         anchorSeq: z.ZodNumber;
@@ -353,6 +379,23 @@ export declare const citeCiterRequestSchema: z.ZodDiscriminatedUnion<[z.ZodObjec
         "exact-when-available": "exact-when-available";
     }>;
 }, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"create">;
+    requestId: z.ZodString;
+    selectionClaim: z.ZodObject<{
+        sourceSessionId: z.ZodString;
+        anchorSeq: z.ZodNumber;
+        displayText: z.ZodString;
+        sourceHintText: z.ZodOptional<z.ZodString>;
+        prefixText: z.ZodString;
+        suffixText: z.ZodString;
+    }, z.core.$strict>;
+    question: z.ZodString;
+    mode: z.ZodEnum<{
+        observer: "observer";
+        "exact-fork": "exact-fork";
+        "exact-when-available": "exact-when-available";
+    }>;
+}, z.core.$strict>]>, z.ZodDiscriminatedUnion<[z.ZodObject<{
     action: z.ZodLiteral<"list">;
     sourceSessionId: z.ZodString;
     includeArchived: z.ZodOptional<z.ZodBoolean>;
@@ -396,12 +439,21 @@ export declare const citeCiterRequestSchema: z.ZodDiscriminatedUnion<[z.ZodObjec
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"models">;
 }, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"set-model-route">;
+    topicSessionId: z.ZodString;
+    provider: z.ZodString;
+    model: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"set-reasoning-effort">;
+    topicSessionId: z.ZodString;
+    reasoningEffort: z.ZodNullable<z.ZodString>;
+}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"select-model">;
     topicSessionId: z.ZodString;
     provider: z.ZodString;
     model: z.ZodString;
     reasoningEffort: z.ZodNullable<z.ZodString>;
-}, z.core.$strict>], "action">;
+}, z.core.$strict>], "action">]>;
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>;
 /** Strict response union returned by the single Remote command endpoint. */
 export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
@@ -475,6 +527,12 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }, z.core.$strict>, z.ZodObject<{
             role: z.ZodLiteral<"error">;
             text: z.ZodString;
+            bodyRetained: z.ZodBoolean;
+            attempt: z.ZodNumber;
+            status: z.ZodEnum<{
+                failed: "failed";
+                stopped: "stopped";
+            }>;
             id: z.ZodString;
             seq: z.ZodNumber;
         }, z.core.$strict>], "role">>;

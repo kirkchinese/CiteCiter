@@ -26,6 +26,15 @@ export const DEFAULT_CITECITER_SETTINGS = Object.freeze({
     panelWidthPercent: 34,
     reopenLastTopic: true,
 });
+/** Browser-visible selection resolved by the Host against one committed model call. */
+export const citationSelectionClaimSchema = z.object({
+    sourceSessionId: z.string().min(1),
+    anchorSeq: z.number().int().nonnegative(),
+    displayText: z.string().min(1).max(32_000),
+    sourceHintText: z.string().min(1).max(32_000).optional(),
+    prefixText: z.string().max(1_000),
+    suffixText: z.string().max(1_000),
+}).strict();
 /** Host-verifiable Markdown evidence plus the browser-visible quote used by the UI. */
 export const citationDraftSchema = z.object({
     sourceSessionId: z.string().min(1),
@@ -53,6 +62,7 @@ export const modelConfigSchema = z.object({
 export const topicMetadataSchema = z.object({
     schemaVersion: z.literal(TOPIC_METADATA_SCHEMA_VERSION),
     topicId: z.number().int().positive(),
+    createRequestId: z.string().min(1).optional(),
     sessionId: z.string().min(1),
     sourceSessionId: z.string().min(1),
     sourceCwd: z.string(),
@@ -63,10 +73,12 @@ export const topicMetadataSchema = z.object({
     temporaryTitle: z.string().min(1).max(160),
     cachedTitle: z.string().min(1).max(240).nullable(),
     cachedTitleSource: z.enum(['fallback', 'provider', 'user']).nullable(),
+    cachedTitleEventSeq: z.number().int().nonnegative().nullable().optional(),
     createdAt: z.number().int().nonnegative(),
     updatedAt: z.number().int().nonnegative(),
     archivedAt: z.number().int().nonnegative().nullable(),
     sourceAvailable: z.boolean(),
+    observedThroughSeq: z.number().int().nonnegative().nullable().optional(),
 }).strict();
 export const topicSummarySchema = z.object({
     topicId: z.number().int().positive(),
@@ -120,6 +132,9 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
         ...topicMessageIdentitySchema,
         role: z.literal('error'),
         text: z.string(),
+        bodyRetained: z.boolean(),
+        attempt: z.number().int().positive(),
+        status: z.enum(['failed', 'stopped']),
     }).strict(),
 ]);
 export const questionOptionSchema = z.object({
@@ -166,61 +181,82 @@ export const providerOptionSchema = z.object({
 }).strict();
 const questionSchema = z.string().trim().min(1).max(12_000);
 const topicSessionIdSchema = z.string().min(1);
-/** One strict direct-RPC command for the private CiteCiter runtime. */
-export const citeCiterRequestSchema = z.discriminatedUnion('action', [
+const createRequestSchema = z.union([
     z.object({
         action: z.literal('create'),
+        requestId: z.string().min(1),
         citation: citationDraftSchema,
         question: questionSchema,
         mode: z.enum(['observer', 'exact-fork', 'exact-when-available']),
     }).strict(),
     z.object({
-        action: z.literal('list'),
-        sourceSessionId: z.string().min(1),
-        includeArchived: z.boolean().optional(),
-    }).strict(),
-    z.object({ action: z.literal('get'), topicSessionId: topicSessionIdSchema }).strict(),
-    z.object({
-        action: z.literal('ask'),
-        topicSessionId: topicSessionIdSchema,
+        action: z.literal('create'),
+        requestId: z.string().min(1),
+        selectionClaim: citationSelectionClaimSchema,
         question: questionSchema,
-    }).strict(),
-    z.object({ action: z.literal('stop'), topicSessionId: topicSessionIdSchema }).strict(),
-    z.object({
-        action: z.literal('answer-question'),
-        topicSessionId: topicSessionIdSchema,
-        key: z.string().min(1),
-        answer: questionAnswerSchema,
-    }).strict(),
-    z.object({
-        action: z.literal('cancel-question'),
-        topicSessionId: topicSessionIdSchema,
-        key: z.string().min(1),
-    }).strict(),
-    z.object({
-        action: z.literal('rename'),
-        topicSessionId: topicSessionIdSchema,
-        title: z.string().trim().min(1).max(240),
-    }).strict(),
-    z.object({
-        action: z.literal('archive'),
-        topicSessionId: topicSessionIdSchema,
-        archived: z.boolean(),
-    }).strict(),
-    z.object({
-        action: z.literal('delete'),
-        topicSessionId: topicSessionIdSchema,
-        confirmSessionId: topicSessionIdSchema,
-    }).strict(),
-    z.object({ action: z.literal('models') }).strict(),
-    z.object({
-        action: z.literal('select-model'),
-        topicSessionId: topicSessionIdSchema,
-        provider: z.string().min(1),
-        model: z.string().min(1),
-        reasoningEffort: z.string().min(1).nullable(),
+        mode: z.enum(['observer', 'exact-fork', 'exact-when-available']),
     }).strict(),
 ]);
+/** One strict direct-RPC command for the private CiteCiter runtime. */
+export const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnion('action', [
+        z.object({
+            action: z.literal('list'),
+            sourceSessionId: z.string().min(1),
+            includeArchived: z.boolean().optional(),
+        }).strict(),
+        z.object({ action: z.literal('get'), topicSessionId: topicSessionIdSchema }).strict(),
+        z.object({
+            action: z.literal('ask'),
+            topicSessionId: topicSessionIdSchema,
+            question: questionSchema,
+        }).strict(),
+        z.object({ action: z.literal('stop'), topicSessionId: topicSessionIdSchema }).strict(),
+        z.object({
+            action: z.literal('answer-question'),
+            topicSessionId: topicSessionIdSchema,
+            key: z.string().min(1),
+            answer: questionAnswerSchema,
+        }).strict(),
+        z.object({
+            action: z.literal('cancel-question'),
+            topicSessionId: topicSessionIdSchema,
+            key: z.string().min(1),
+        }).strict(),
+        z.object({
+            action: z.literal('rename'),
+            topicSessionId: topicSessionIdSchema,
+            title: z.string().trim().min(1).max(240),
+        }).strict(),
+        z.object({
+            action: z.literal('archive'),
+            topicSessionId: topicSessionIdSchema,
+            archived: z.boolean(),
+        }).strict(),
+        z.object({
+            action: z.literal('delete'),
+            topicSessionId: topicSessionIdSchema,
+            confirmSessionId: topicSessionIdSchema,
+        }).strict(),
+        z.object({ action: z.literal('models') }).strict(),
+        z.object({
+            action: z.literal('set-model-route'),
+            topicSessionId: topicSessionIdSchema,
+            provider: z.string().min(1),
+            model: z.string().min(1),
+        }).strict(),
+        z.object({
+            action: z.literal('set-reasoning-effort'),
+            topicSessionId: topicSessionIdSchema,
+            reasoningEffort: z.string().min(1).nullable(),
+        }).strict(),
+        z.object({
+            action: z.literal('select-model'),
+            topicSessionId: topicSessionIdSchema,
+            provider: z.string().min(1),
+            model: z.string().min(1),
+            reasoningEffort: z.string().min(1).nullable(),
+        }).strict(),
+    ])]);
 /** Strict response union returned by the single Remote command endpoint. */
 export const citeCiterResponseSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('topic'), topic: topicSnapshotSchema }).strict(),

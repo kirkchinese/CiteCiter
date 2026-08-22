@@ -36,6 +36,7 @@ const PLATFORM_MODULES = [
 const CSS_VIRTUAL_PREFIX = '\0dsh-css:'
 const CSS_VIRTUAL_SUFFIX = '.mjs'
 const PNG_VIRTUAL_PREFIX = '\0citeciter-png:'
+const SVG_VIRTUAL_PREFIX = '\0citeciter-svg:'
 
 /**
  * Wire/type layers a client bundle may inline: browser-safe contracts with no
@@ -94,6 +95,7 @@ export function clientBundle(id: string, libEntry: readonly string[], options: C
 function clientConfig(id: string, entry: string): UserConfig {
   const cssAssets = new Map<string, string>()
   const pngAssets = new Map<string, string>()
+  const svgAssets = new Map<string, string>()
   return {
     name: `${id}/client`,
     entry: { client: entry },
@@ -176,6 +178,22 @@ function clientConfig(id: string, entry: string): UserConfig {
         if (fileId === undefined) throw new Error(`unknown PNG asset ${virtualId}`)
         this.addWatchFile(fileId)
         return `export default ${JSON.stringify(`data:image/png;base64,${(await readFile(fileId)).toString('base64')}`)};`
+      },
+    }, {
+      name: 'citeciter-svg-inline',
+      resolveId(source: string, importer: string | undefined) {
+        if (!source.endsWith('.svg')) return null
+        const abs = importer !== undefined ? sourceAssetPath(source, importer) : source
+        const virtualId = SVG_VIRTUAL_PREFIX + browserSourcePath(relative(PACKAGE_ROOT, abs))
+        svgAssets.set(virtualId, abs)
+        return virtualId
+      },
+      async load(virtualId: string) {
+        if (!virtualId.startsWith(SVG_VIRTUAL_PREFIX)) return null
+        const fileId = svgAssets.get(virtualId)
+        if (fileId === undefined) throw new Error(`unknown SVG asset ${virtualId}`)
+        this.addWatchFile(fileId)
+        return `export default ${JSON.stringify(`data:image/svg+xml;base64,${(await readFile(fileId)).toString('base64')}`)};`
       },
     }],
     outputOptions: {

@@ -50,6 +50,9 @@ export class CiteCiterHost extends TypertRemoteService {
 
   constructor(ctx: Context) {
     super(ctx, 'citeciter')
+    ctx.inject(['settings'], (settingsCtx) => {
+      settingsCtx.settings.register(CITECITER_SETTINGS_NS, CITECITER_SETTINGS_SCHEMA)
+    })
     this.topics = new TopicRuntime(ctx, () => currentSettings(ctx))
     ctx.effect(() => async () => this.topics.dispose(), 'citeciter: private Topic runtime')
   }
@@ -68,9 +71,6 @@ export class CiteCiterHost extends TypertRemoteService {
 
 /** Register optional settings and mount the Host Remote service. */
 export async function apply(ctx: Context): Promise<void> {
-  ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.register(CITECITER_SETTINGS_NS, CITECITER_SETTINGS_SCHEMA)
-  })
   await ctx.plugin(CiteCiterHost)
 }
 
@@ -78,6 +78,7 @@ export type {
   CiteCiterRequest,
   CiteCiterResponse,
   CiteCiterSettings,
+  CitationSelectionClaim,
   CitationDraft,
   CitationRecord,
   TopicSnapshot,

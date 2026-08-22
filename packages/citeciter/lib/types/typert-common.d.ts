@@ -14,8 +14,9 @@ export declare const citeCiterRequestDescriptor: {
         readonly codec: {
             readonly mode: "strict";
             readonly typeSymbol: "@kirkchinese/dsh-citeciter#CiteCiterRequest";
-            readonly schema: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+            readonly schema: import("zod").ZodUnion<readonly [import("zod").ZodUnion<readonly [import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"create">;
+                requestId: import("zod").ZodString;
                 citation: import("zod").ZodObject<{
                     sourceSessionId: import("zod").ZodString;
                     anchorSeq: import("zod").ZodNumber;
@@ -34,6 +35,23 @@ export declare const citeCiterRequestDescriptor: {
                     "exact-when-available": "exact-when-available";
                 }>;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"create">;
+                requestId: import("zod").ZodString;
+                selectionClaim: import("zod").ZodObject<{
+                    sourceSessionId: import("zod").ZodString;
+                    anchorSeq: import("zod").ZodNumber;
+                    displayText: import("zod").ZodString;
+                    sourceHintText: import("zod").ZodOptional<import("zod").ZodString>;
+                    prefixText: import("zod").ZodString;
+                    suffixText: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>;
+                question: import("zod").ZodString;
+                mode: import("zod").ZodEnum<{
+                    observer: "observer";
+                    "exact-fork": "exact-fork";
+                    "exact-when-available": "exact-when-available";
+                }>;
+            }, import("zod/v4/core").$strict>]>, import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"list">;
                 sourceSessionId: import("zod").ZodString;
                 includeArchived: import("zod").ZodOptional<import("zod").ZodBoolean>;
@@ -77,12 +95,21 @@ export declare const citeCiterRequestDescriptor: {
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"models">;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"set-model-route">;
+                topicSessionId: import("zod").ZodString;
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"set-reasoning-effort">;
+                topicSessionId: import("zod").ZodString;
+                reasoningEffort: import("zod").ZodNullable<import("zod").ZodString>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"select-model">;
                 topicSessionId: import("zod").ZodString;
                 provider: import("zod").ZodString;
                 model: import("zod").ZodString;
                 reasoningEffort: import("zod").ZodNullable<import("zod").ZodString>;
-            }, import("zod/v4/core").$strict>], "action">;
+            }, import("zod/v4/core").$strict>], "action">]>;
         };
     }];
     readonly result: {
@@ -159,6 +186,12 @@ export declare const citeCiterRequestDescriptor: {
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     role: import("zod").ZodLiteral<"error">;
                     text: import("zod").ZodString;
+                    bodyRetained: import("zod").ZodBoolean;
+                    attempt: import("zod").ZodNumber;
+                    status: import("zod").ZodEnum<{
+                        failed: "failed";
+                        stopped: "stopped";
+                    }>;
                     id: import("zod").ZodString;
                     seq: import("zod").ZodNumber;
                 }, import("zod/v4/core").$strict>], "role">>;

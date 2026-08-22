@@ -9,7 +9,7 @@
 CiteCiter 需要 Node.js `^22.19.0 || >=24.0.0`、DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`，以及已经配置的模型提供方。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
 ```
 
 安装或升级后，请重启对应的 DSH Web 进程并刷新页面。
@@ -27,10 +27,12 @@ dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
 - **模型调用级引用。** `assistant/message` 一经提交即可开始，无需等待整个 Agent 轮次结束。
 - **私有 Topic。** 每次提交都会在 `$DSH_HOME/citeciter/` 下创建独立 DSH Session，不进入普通 Session 列表。
 - **精确选区。** 可见 Markdown 选区会映射回 Host 可复验的原文范围。
+- **跨流程选区。** 同时选中思考、工具与正文时，以选区中最后一个已提交模型回答作为可复验锚点，完整可见选区仍保留在学习栏中。
 - **绑定来源的证据。** `read_source_session` 只读取一个固定来源 Session 的已提交事件，不暴露物理日志路径。
 - **开放式项目调查。** 标准只读 `glob` 与 `grep` 先发现项目文件并搜索内容，再由 `read` 打开已知路径。
 - **只读运行。** CiteCiter 不能写入来源 Session 或来源工作区。
 - **可检查的对话流程。** 实时思考、提示词注入、工具调用、结果和用户提问都在学习栏中以紧凑可展开行显示。
+- **自然续问。** 第一轮回答完成后，模型可按严格格式给出三个后续问题；格式无效时前端不创建快捷入口，只记录日志。
 - **原生工作流。** 选区浮层、可调宽学习栏、活动/归档 Topic 导航和设置都保留在 DSH 编程界面内。
 
 ## 上下文模式
@@ -42,7 +44,7 @@ Exact Fork 是面向已结束来源轮次的高级模式。`exact-when-available
 ## 从 v0.2 升级
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.3.2
 dsh plugin --profile web list --depth 0
 ```
 
@@ -50,7 +52,7 @@ dsh plugin --profile web list --depth 0
 
 ## 已知限制
 
-- 选区必须完整位于一个已经提交的助手 flow；暂不支持流式片段和跨消息选区。
+- 选区中必须至少包含一个已经提交的助手模型回答；纯用户消息、纯工具行和仍在流式输出的片段不能作为引用锚点。
 - 渲染器生成的 KaTeX 排版和脚注编号没有稳定原文坐标，不能直接引用。
 - Exact Fork 不能从仍在运行的来源轮次开始。
 - 来源文件访问依赖当前 DSH 文件系统服务，并始终保持只读。

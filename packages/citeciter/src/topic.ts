@@ -34,6 +34,18 @@ export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   reopenLastTopic: true,
 })
 
+/** Browser-visible selection resolved by the Host against one committed model call. */
+export const citationSelectionClaimSchema = z.object({
+  sourceSessionId: z.string().min(1),
+  anchorSeq: z.number().int().nonnegative(),
+  displayText: z.string().min(1).max(32_000),
+  sourceHintText: z.string().min(1).max(32_000).optional(),
+  prefixText: z.string().max(1_000),
+  suffixText: z.string().max(1_000),
+}).strict()
+
+export type CitationSelectionClaim = z.infer<typeof citationSelectionClaimSchema>
+
 /** Host-verifiable Markdown evidence plus the browser-visible quote used by the UI. */
 export const citationDraftSchema = z.object({
   sourceSessionId: z.string().min(1),
@@ -47,7 +59,7 @@ export const citationDraftSchema = z.object({
   selectionFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
 }).strict()
 
-/** Browser-captured selection submitted for authoritative Host validation. */
+/** Exact Citation retained for durable data and legacy 0.3.1 requests. */
 export type CitationDraft = z.infer<typeof citationDraftSchema>
 
 export const citationRecordSchema = citationDraftSchema.extend({
@@ -72,6 +84,7 @@ export type TopicModelConfig = z.infer<typeof modelConfigSchema>
 export const topicMetadataSchema = z.object({
   schemaVersion: z.literal(TOPIC_METADATA_SCHEMA_VERSION),
   topicId: z.number().int().positive(),
+  createRequestId: z.string().min(1).optional(),
   sessionId: z.string().min(1),
   sourceSessionId: z.string().min(1),
   sourceCwd: z.string(),
@@ -82,10 +95,12 @@ export const topicMetadataSchema = z.object({
   temporaryTitle: z.string().min(1).max(160),
   cachedTitle: z.string().min(1).max(240).nullable(),
   cachedTitleSource: z.enum(['fallback', 'provider', 'user']).nullable(),
+  cachedTitleEventSeq: z.number().int().nonnegative().nullable().optional(),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
   archivedAt: z.number().int().nonnegative().nullable(),
   sourceAvailable: z.boolean(),
+  observedThroughSeq: z.number().int().nonnegative().nullable().optional(),
 }).strict()
 
 /** Small navigation record stored outside the standard Topic Session log. */
@@ -147,6 +162,9 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
     ...topicMessageIdentitySchema,
     role: z.literal('error'),
     text: z.string(),
+    bodyRetained: z.boolean(),
+    attempt: z.number().int().positive(),
+    status: z.enum(['failed', 'stopped']),
   }).strict(),
 ])
 
@@ -212,14 +230,25 @@ export type ProviderOption = z.infer<typeof providerOptionSchema>
 const questionSchema = z.string().trim().min(1).max(12_000)
 const topicSessionIdSchema = z.string().min(1)
 
-/** One strict direct-RPC command for the private CiteCiter runtime. */
-export const citeCiterRequestSchema = z.discriminatedUnion('action', [
+const createRequestSchema = z.union([
   z.object({
     action: z.literal('create'),
+    requestId: z.string().min(1),
     citation: citationDraftSchema,
     question: questionSchema,
     mode: z.enum(['observer', 'exact-fork', 'exact-when-available']),
   }).strict(),
+  z.object({
+    action: z.literal('create'),
+    requestId: z.string().min(1),
+    selectionClaim: citationSelectionClaimSchema,
+    question: questionSchema,
+    mode: z.enum(['observer', 'exact-fork', 'exact-when-available']),
+  }).strict(),
+])
+
+/** One strict direct-RPC command for the private CiteCiter runtime. */
+export const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnion('action', [
   z.object({
     action: z.literal('list'),
     sourceSessionId: z.string().min(1),
@@ -260,13 +289,24 @@ export const citeCiterRequestSchema = z.discriminatedUnion('action', [
   }).strict(),
   z.object({ action: z.literal('models') }).strict(),
   z.object({
+    action: z.literal('set-model-route'),
+    topicSessionId: topicSessionIdSchema,
+    provider: z.string().min(1),
+    model: z.string().min(1),
+  }).strict(),
+  z.object({
+    action: z.literal('set-reasoning-effort'),
+    topicSessionId: topicSessionIdSchema,
+    reasoningEffort: z.string().min(1).nullable(),
+  }).strict(),
+  z.object({
     action: z.literal('select-model'),
     topicSessionId: topicSessionIdSchema,
     provider: z.string().min(1),
     model: z.string().min(1),
     reasoningEffort: z.string().min(1).nullable(),
   }).strict(),
-])
+])])
 
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>
 

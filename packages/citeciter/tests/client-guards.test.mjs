@@ -17,6 +17,9 @@ test('only an idle source without an active Topic may auto-reopen the remembered
   assert.equal(shouldReopenLastTopic(false, false, true), false)
   assert.equal(shouldReopenLastTopic(true, true, true), false)
   assert.equal(shouldReopenLastTopic(false, true, false), false)
+  assert.equal(shouldReopenLastTopic(false, true, true, true), false)
+  assert.equal(shouldReopenLastTopic(false, true, true, false, true), false)
+  assert.equal(shouldReopenLastTopic(false, true, true, false, false, true), false)
 })
 
 test('only the current source, epoch, and requested Topic may update the view', () => {
@@ -44,6 +47,26 @@ test('rendered Markdown context disambiguates repeated source text', () => {
   assert.equal(normalized.startOffset, answer.lastIndexOf('value'))
   assert.equal(normalized.endOffset, answer.lastIndexOf('value') + 'value'.length)
   assert.equal(normalized.sourceText, 'value')
+})
+
+test('a translated visible quote maps through its committed source paragraph', () => {
+  const answer = 'The watchdog stops the stale source.'
+  const normalized = normalizeSelectionAgainstAnswer({
+    sourceSessionId: 'source',
+    displayText: '过期来源',
+    sourceHintText: answer,
+    kind: 'assistant-step',
+    anchorKey: 'assistant:6',
+    startOffset: 0,
+    endOffset: answer.length,
+    prefixText: '',
+    suffixText: '',
+    x: 1,
+    y: 1,
+  }, answer)
+
+  assert.equal(normalized.displayText, '过期来源')
+  assert.equal(normalized.sourceText, answer)
 })
 
 test('a visible selection crossing Markdown markers maps to one exact raw range', () => {

@@ -17,6 +17,14 @@ export function shouldReopenLastTopic(
   hasActiveTopic: boolean,
   phaseIsIdle: boolean,
   reopenLastTopic: boolean,
+  showingArchived = false,
+  attempted = false,
+  suppressed = false,
 ): boolean {
-  return !hasActiveTopic && phaseIsIdle && reopenLastTopic
+  return !hasActiveTopic
+    && phaseIsIdle
+    && reopenLastTopic
+    && !showingArchived
+    && !attempted
+    && !suppressed
 }

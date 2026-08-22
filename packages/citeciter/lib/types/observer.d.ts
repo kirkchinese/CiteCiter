@@ -1,5 +1,5 @@
 import { type JsonValue, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session';
-import { type CitationDraft } from './topic.ts';
+import { type CitationSelectionClaim, type CitationDraft } from './topic.ts';
 /** One atomic live-preferred SessionQuery observation. */
 export interface ObserverSourceSnapshot {
     readonly session: Pick<SessionHeader, 'id' | 'cwd'>;
@@ -35,6 +35,8 @@ export interface SourceReadResult {
 }
 /** Compute the SHA-256 identity carried by the current CitationDraft schema. */
 export declare function fingerprintCitationDraft(draft: Omit<CitationDraft, 'selectionFingerprint'>): string;
+/** Resolve a browser selection claim against the authoritative committed assistant message. */
+export declare function resolveObserverCitation(source: ObserverSourceSnapshot, rawClaim: CitationSelectionClaim): ValidatedObserverCitation;
 /**
  * Validate one Citation against a committed assistant message in the observed source snapshot.
  * A matching `assistant/message` is sufficient; its step and turn may remain open.

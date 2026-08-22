@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   fingerprintCitationDraft,
   formatSourceSessionRead,
+  resolveObserverCitation,
   validateObserverCitation,
 } from '../lib/types/observer.js'
 
@@ -67,6 +68,26 @@ test('a committed assistant/message is citable while its step and turn remain op
   assert.equal(first.contentFingerprint, citation.selectionFingerprint)
   assert.deepEqual(second, first)
   assert.notEqual(second.citation, first.citation)
+})
+
+test('the Host resolves inherited rendered Markdown without trusting the browser projection', () => {
+  const text = '缺口真实存在且被正确保持为 false：`ACC-002/003/004` 与 `single_nx20_continuous_profile_signed=false`。'
+  const source = { session: { id: sourceId }, events: [assistant(681179, text)] }
+  const resolved = resolveObserverCitation(source, {
+    sourceSessionId: sourceId,
+    anchorSeq: 681179,
+    displayText: 'single_nx20_continuous_profile_signed=false',
+    prefixText: 'ACC-002/003/004 与 ',
+    suffixText: '。',
+  })
+
+  assert.equal(resolved.citation.sourceText, 'single_nx20_continuous_profile_signed=false')
+  assert.equal(resolved.citation.startOffset, text.indexOf('single_nx20'))
+  assert.equal(resolved.citation.displayText, 'single_nx20_continuous_profile_signed=false')
+  assert.equal(resolved.contentFingerprint, fingerprintCitationDraft({
+    ...resolved.citation,
+    selectionFingerprint: undefined,
+  }))
 })
 
 test('chunk-only, stale text, invalid UTF-16 offsets, and forged fingerprints are rejected', () => {

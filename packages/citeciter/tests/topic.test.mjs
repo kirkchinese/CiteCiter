@@ -120,6 +120,7 @@ test('Topic commands keep Observer as the default while Exact Fork stays explici
 
   const command = {
     action: 'create',
+    requestId: 'request-1',
     citation: draft(),
     question: '  这里为什么成立？  ',
     mode: 'observer',
@@ -130,6 +131,32 @@ test('Topic commands keep Observer as the default while Exact Fork stays explici
   assert.deepEqual(second, first)
   assert.notEqual(second, first)
   assert.equal(citeCiterRequestSchema.parse({ ...command, mode: 'exact-fork' }).mode, 'exact-fork')
+  const claimCommand = {
+    action: 'create',
+    requestId: 'request-2',
+    selectionClaim: {
+      sourceSessionId: 'source-session',
+      anchorSeq: 42,
+      displayText: 'quoted text',
+      prefixText: 'pre',
+      suffixText: 'post',
+    },
+    question: '为什么？',
+    mode: 'observer',
+  }
+  assert.deepEqual(citeCiterRequestSchema.parse(claimCommand), claimCommand)
+  assert.throws(() => citeCiterRequestSchema.parse({ ...claimCommand, citation: draft() }), /Invalid input/)
+  assert.equal(citeCiterRequestSchema.parse({
+    action: 'set-model-route',
+    topicSessionId: 'topic',
+    provider: 'provider',
+    model: 'model',
+  }).action, 'set-model-route')
+  assert.equal(citeCiterRequestSchema.parse({
+    action: 'set-reasoning-effort',
+    topicSessionId: 'topic',
+    reasoningEffort: null,
+  }).action, 'set-reasoning-effort')
 })
 
 test('question replies use one strict answer batch keyed to the pending request', () => {
