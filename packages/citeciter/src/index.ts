@@ -64,8 +64,8 @@ export class CiteCiterHost extends TypertRemoteService {
 
   /** Validate and execute one strict Topic command. */
   @Remote('request')
-  async request(rawRequest: CiteCiterRequest): Promise<CiteCiterResponse> {
-    return this.topics.request(citeCiterRequestSchema.parse(rawRequest) as CiteCiterRequest)
+  async request(rawRequest: CiteCiterRequest, signal: AbortSignal): Promise<CiteCiterResponse> {
+    return this.topics.request(citeCiterRequestSchema.parse(rawRequest) as CiteCiterRequest, signal)
   }
 }
 

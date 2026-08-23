@@ -198,7 +198,7 @@ test('source reads format useful evidence, omit chunks, and gate reasoning', () 
   const answer = withoutReasoning.events.find((event) => event.type === 'assistant/message')
   assert.equal('reasoning' in answer, false)
   assert.equal(withoutReasoning.capturedThroughSeq, 6)
-  assert.equal(withoutReasoning.availableThroughSeq, 9)
+  assert.equal(withoutReasoning.availableThroughSeq, 6)
   assert.equal(withoutReasoning.truncated, false)
 })
 
@@ -208,7 +208,10 @@ test('source-read byte limits stop before the first event that does not fit', ()
     includeReasoning: true,
     maxBytes: 100_000,
   })
-  const oneEventBytes = Buffer.byteLength(JSON.stringify([complete.events[0]]), 'utf8')
+  const oneEventBytes = Math.max(
+    Buffer.byteLength(JSON.stringify([complete.events[0]]), 'utf8'),
+    Buffer.byteLength(JSON.stringify([complete.events[1]]), 'utf8'),
+  )
   const bounded = formatSourceSessionRead(source, {
     includeReasoning: true,
     maxBytes: oneEventBytes,
@@ -219,4 +222,157 @@ test('source-read byte limits stop before the first event that does not fit', ()
   assert.equal(bounded.capturedThroughSeq, 0)
   assert.equal(bounded.availableThroughSeq, 9)
   assert.equal(bounded.truncated, true)
+})
+
+test('oversized source events become bounded placeholders that preserve progress', () => {
+  const bigAssistant = (seq) => assistant(seq, 'x'.repeat(2_000))
+  const source = {
+    session: { id: sourceId },
+    events: [
+      bigAssistant(430),
+      assistant(431, 'after first'),
+      assistant(432, 'after second'),
+    ],
+  }
+  const placeholder = { type: 'assistant/message', seq: 430, oversized: true }
+  const firstNormal = { type: 'assistant/message', seq: 431, turn: 1, step: 1, text: 'after first' }
+  const first = formatSourceSessionRead(source, {
+    fromSeq: 430,
+    includeReasoning: false,
+    maxBytes: Buffer.byteLength(JSON.stringify([placeholder, firstNormal]), 'utf8') - 1,
+  })
+  assert.deepEqual(first.events, [placeholder])
+  assert.equal(first.capturedThroughSeq, 430)
+  assert.equal(first.availableThroughSeq, 432)
+  assert.equal(first.truncated, true)
+  assert.equal(Buffer.byteLength(JSON.stringify(first.events), 'utf8') <= Buffer.byteLength(JSON.stringify([placeholder, firstNormal]), 'utf8'), true)
+
+  const rest = formatSourceSessionRead(source, {
+    fromSeq: 431,
+    includeReasoning: false,
+    maxBytes: 100_000,
+  })
+  assert.deepEqual(rest.events.map((event) => event.seq), [431, 432])
+  assert.equal(rest.capturedThroughSeq, 432)
+  assert.equal(rest.truncated, false)
+})
+
+test('consecutive oversized events advance by at least one seq per returned page', () => {
+  const source = {
+    session: { id: sourceId },
+    events: [
+      assistant(10, 'x'.repeat(2_000)),
+      assistant(11, 'y'.repeat(2_000)),
+      assistant(12, 'done'),
+    ],
+  }
+  const firstPlaceholder = { type: 'assistant/message', seq: 10, oversized: true }
+  const secondPlaceholder = { type: 'assistant/message', seq: 11, oversized: true }
+  const normal = { type: 'assistant/message', seq: 12, turn: 1, step: 1, text: 'done' }
+  const first = formatSourceSessionRead(source, {
+    fromSeq: 10,
+    includeReasoning: false,
+    maxBytes: Buffer.byteLength(JSON.stringify([firstPlaceholder, secondPlaceholder, normal]), 'utf8') - 1,
+  })
+  assert.deepEqual(first.events, [firstPlaceholder, secondPlaceholder])
+  assert.equal(first.capturedThroughSeq, 11)
+  assert.equal(first.truncated, true)
+
+  const next = formatSourceSessionRead(source, {
+    fromSeq: first.capturedThroughSeq + 1,
+    includeReasoning: false,
+    maxBytes: 100_000,
+  })
+  assert.equal(next.events[0]?.seq, 12)
+  assert.equal(next.events[0]?.text, 'done')
+  assert.equal(next.events[0]?.oversized, undefined)
+  assert.equal(next.capturedThroughSeq, 12)
+  assert.equal(next.truncated, false)
+})
+
+test('an event exactly equal to the UTF-8 page limit remains complete', () => {
+  const source = {
+    session: { id: sourceId },
+    events: [assistant(3, '曲率😀')],
+  }
+  const complete = formatSourceSessionRead(source, {
+    includeReasoning: false,
+    maxBytes: 100_000,
+  })
+  const exact = formatSourceSessionRead(source, {
+    includeReasoning: false,
+    maxBytes: Buffer.byteLength(JSON.stringify(complete.events), 'utf8'),
+  })
+  assert.deepEqual(exact.events, complete.events)
+  assert.equal(Buffer.byteLength(JSON.stringify(exact.events), 'utf8') > 0, true)
+  assert.equal(exact.capturedThroughSeq, 3)
+  assert.equal(exact.truncated, false)
+})
+
+test('an exact-limit middle event waits for an empty page instead of becoming oversized', () => {
+  const firstEvent = assistant(2, 'first')
+  const exactEvent = assistant(3, '😀'.repeat(256))
+  const exactAlone = formatSourceSessionRead({ session: { id: sourceId }, events: [exactEvent] }, {
+    includeReasoning: false,
+    maxBytes: 100_000,
+  })
+  const maxBytes = Buffer.byteLength(JSON.stringify(exactAlone.events), 'utf8')
+  const firstPage = formatSourceSessionRead({ session: { id: sourceId }, events: [firstEvent, exactEvent] }, {
+    includeReasoning: false,
+    maxBytes,
+  })
+  assert.deepEqual(firstPage.events.map((event) => event.seq), [2])
+  assert.equal(firstPage.capturedThroughSeq, 2)
+  assert.equal(firstPage.truncated, true)
+
+  const secondPage = formatSourceSessionRead({ session: { id: sourceId }, events: [firstEvent, exactEvent] }, {
+    fromSeq: 3,
+    includeReasoning: false,
+    maxBytes,
+  })
+  assert.deepEqual(secondPage.events, exactAlone.events)
+  assert.equal(secondPage.capturedThroughSeq, 3)
+  assert.equal(secondPage.truncated, false)
+})
+
+test('UTF-8 byte limits distinguish an exact event from one byte under budget', () => {
+  const source = { session: { id: sourceId }, events: [assistant(3, '曲率😀'.repeat(128))] }
+  const complete = formatSourceSessionRead(source, { includeReasoning: false, maxBytes: 100_000 })
+  const exactBytes = Buffer.byteLength(JSON.stringify(complete.events), 'utf8')
+  const exact = formatSourceSessionRead(source, { includeReasoning: false, maxBytes: exactBytes })
+  const under = formatSourceSessionRead(source, { includeReasoning: false, maxBytes: exactBytes - 1 })
+  assert.deepEqual(exact.events, complete.events)
+  assert.deepEqual(under.events, [{ type: 'assistant/message', seq: 3, oversized: true }])
+  assert.equal(under.capturedThroughSeq, 3)
+})
+
+test('a page too small for the oversized placeholder still advances its cursor', () => {
+  const source = { session: { id: sourceId }, events: [assistant(3, 'large')] }
+  const result = formatSourceSessionRead(source, { includeReasoning: false, maxBytes: 2 })
+  assert.deepEqual(result.events, [])
+  assert.equal(result.capturedThroughSeq, 3)
+  assert.equal(result.truncated, true)
+})
+
+test('fixed boundaries hide later source growth while Observer pages can advance into it', () => {
+  const initial = {
+    session: { id: sourceId },
+    events: [assistant(1, 'one'), assistant(2, 'two')],
+  }
+  const grown = { ...initial, events: [...initial.events, assistant(3, 'three')] }
+  const exact = formatSourceSessionRead(grown, {
+    throughSeq: 2,
+    includeReasoning: false,
+    maxBytes: 100_000,
+  })
+  assert.deepEqual(exact.events.map((event) => event.seq), [1, 2])
+  assert.equal(exact.availableThroughSeq, 2)
+
+  const observer = formatSourceSessionRead(grown, {
+    fromSeq: 3,
+    includeReasoning: false,
+    maxBytes: 100_000,
+  })
+  assert.deepEqual(observer.events.map((event) => event.seq), [3])
+  assert.equal(observer.availableThroughSeq, 3)
 })

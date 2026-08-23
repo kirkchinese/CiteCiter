@@ -22,11 +22,14 @@ import type {} from '@deepseek-ai/dsh-fs'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import {
   BlockAssembler,
+  MessageId,
   ReasoningEffortId,
   createUserMessage,
+  freezeMessage,
   type ContentBlock,
   type LlmCallConfig,
   type LlmModelInfo,
+  type UserMessage,
 } from '@deepseek-ai/dsh-llm'
 import { effectiveSandboxMode, setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 import SessionStore, {
@@ -87,6 +90,7 @@ import {
 } from './topic.ts'
 
 type CreateRequest = Extract<CiteCiterRequest, { action: 'create' }>
+type AskRequest = Extract<CiteCiterRequest, { action: 'ask' }>
 
 const TOPIC_INDEX_ROOT = dshHomePath('citeciter', 'workspaces')
 const TOPIC_SESSION_ROOT = dshHomePath('citeciter', 'sessions')
@@ -101,6 +105,11 @@ const TOPIC_TITLE_CONFIG = resolveSessionTitleLlmConfig({
   maxOutputTokens: 64,
   timeoutMs: 60_000,
 })
+const CITECITER_SHUTTING_DOWN = 'CiteCiter is shutting down'
+
+function citeCiterShuttingDownError(): Error {
+  return new Error(CITECITER_SHUTTING_DOWN)
+}
 
 /** Decide both model visibility and execution access for one private Topic tool. */
 export function citeCiterToolAvailable(name: string, allowSourceFiles: boolean): boolean {
@@ -147,7 +156,8 @@ const TopicTitleProvider = Object.assign((ctx: Context) => {
   })
 }, { inject: ['sessionTitle', 'llm', 'sessions'] })
 
-interface RuntimeTopicLog {
+/** Session header and events used to project one private Topic. */
+export interface RuntimeTopicLog {
   readonly header: SessionHeader
   readonly events: readonly SessionEvent[]
 }
@@ -494,6 +504,68 @@ function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[], error:
   return { messages, error }
 }
 
+/**
+ * Return the first genuine Topic question after any Exact Fork seed.
+ * @param log - private Topic Session contents.
+ * @returns the first post-seed question, or `null` when it has not been committed.
+ */
+export function firstPostSeedUserQuestion(log: RuntimeTopicLog): string | null {
+  for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+    if (event.type !== 'user/message' || event.data.source.kind !== 'user') continue
+    const text = textBlocks(event.data.content, 'text')
+    if (text !== '') return text
+  }
+  for (const message of pendingPostSeedUserMessages(log)) {
+    if (message.source.kind !== 'user') continue
+    const text = textBlocks(message.content, 'text')
+    if (text !== '') return text
+  }
+  return null
+}
+
+function pendingPostSeedUserMessages(log: RuntimeTopicLog) {
+  const pending: Record<'next-turn' | 'next-step', SessionEvent<'agent/inbox/spliced'>['data']['inserted'][number][]> = {
+    'next-turn': [],
+    'next-step': [],
+  }
+  for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+    if (event.type !== 'agent/inbox/spliced') continue
+    pending[event.data.target].splice(
+      event.data.start,
+      event.data.removedCount ?? 0,
+      ...event.data.inserted,
+    )
+  }
+  return [...pending['next-step'], ...pending['next-turn']]
+}
+
+/**
+ * Find a post-seed user question by its durable message identifier.
+ * @param log - private Topic Session contents.
+ * @param messageId - request identity stored as the user-message identity.
+ * @returns the matching question, or `null` when the request is not committed.
+ */
+export function postSeedUserQuestionById(log: RuntimeTopicLog, messageId: string): string | null {
+  const committed = committedPostSeedUserQuestionById(log, messageId)
+  if (committed !== null) return committed
+  const pending = pendingPostSeedUserMessages(log).find((message) => (
+    message.source.kind === 'user' && String(message.id) === messageId
+  ))
+  return pending === undefined ? null : textBlocks(pending.content, 'text')
+}
+
+function committedPostSeedUserQuestionById(log: RuntimeTopicLog, messageId: string): string | null {
+  for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+    if (
+      event.type !== 'user/message'
+      || event.data.source.kind !== 'user'
+      || String(event.data.id) !== messageId
+    ) continue
+    return textBlocks(event.data.content, 'text')
+  }
+  return null
+}
+
 function titleSourceKind(value: ReturnType<typeof foldSessionTitle>): TopicMetadata['cachedTitleSource'] {
   if (value === undefined) return null
   return value.source.kind === 'fallback' || value.source.kind === 'provider' || value.source.kind === 'user'
@@ -573,16 +645,30 @@ function createSourceSessionId(request: CreateRequest): string {
     : request.citation.sourceSessionId
 }
 
+function identifiedQuestion(requestId: string, question: string): UserMessage {
+  return freezeMessage({
+    id: MessageId(requestId),
+    role: 'user',
+    content: [{ type: 'text', text: question }],
+    source: { kind: 'user' },
+  })
+}
+
 /** One process-local private DSH tree with standard Session logs and Agent loop. */
 export class TopicRuntime {
   private readonly runtime = new Context()
   private readonly index = new TopicIndex()
+  private readonly lifecycleAbort = new AbortController()
   private readonly fibers: Fiber[] = []
   private readonly handles = new Map<string, AgentHandle>()
   private readonly selections = new Map<string, ModelSelectionRef>()
   private readonly opening = new Map<string, Promise<AgentHandle>>()
+  private readonly requests = new Set<Promise<unknown>>()
+  private readonly cleanupFailures: unknown[] = []
   private readonly pendingQuestions = new Map<string, RuntimePendingQuestion>()
-  private readonly creations = new Map<string, Promise<TopicSnapshot>>()
+  private readonly creations = new Map<string, { readonly intent: string, readonly result: Promise<TopicSnapshot> }>()
+  private readonly asks = new Map<string, { readonly question: string, readonly result: Promise<TopicSnapshot> }>()
+  private readonly topicAdmissions = new Map<string, Promise<void>>()
   private readonly modelChanges = new Map<string, Promise<TopicSnapshot>>()
   private readonly titleRefreshes = new Map<string, Promise<void>>()
   private readonly titleRefreshAttempted = new Set<string>()
@@ -615,39 +701,51 @@ export class TopicRuntime {
   }
 
   /** Execute one validated browser command against private Topics. */
-  async request(rawRequest: CiteCiterRequest): Promise<CiteCiterResponse> {
+  async request(rawRequest: CiteCiterRequest, callerSignal: AbortSignal): Promise<CiteCiterResponse> {
     const request = citeCiterRequestSchema.parse(rawRequest) as CiteCiterRequest
     await this.ready
-    if (this.closed) throw new Error('CiteCiter is shutting down')
+    const signal = AbortSignal.any([this.lifecycleAbort.signal, callerSignal])
+    this.assertOpen(signal)
+    const operation = this.executeRequest(request, signal)
+    this.requests.add(operation)
+    void operation.then(
+      () => this.requests.delete(operation),
+      () => this.requests.delete(operation),
+    )
+    return operation
+  }
+
+  private async executeRequest(request: CiteCiterRequest, signal: AbortSignal): Promise<CiteCiterResponse> {
+    this.assertOpen(signal)
     switch (request.action) {
       case 'create':
-        return { kind: 'topic', topic: await this.createIdempotent(request) }
+        return { kind: 'topic', topic: await this.createIdempotent(request, signal) }
       case 'list':
-        return { kind: 'topics', topics: await this.list(request.sourceSessionId, request.includeArchived ?? false) }
+        return { kind: 'topics', topics: await this.list(request.sourceSessionId, request.includeArchived ?? false, signal) }
       case 'get':
-        return { kind: 'topic', topic: await this.snapshot(await this.index.loadBySessionId(request.topicSessionId)) }
+        return { kind: 'topic', topic: await this.get(request.topicSessionId, signal) }
       case 'ask':
-        return { kind: 'topic', topic: await this.ask(request.topicSessionId, request.question) }
+        return { kind: 'topic', topic: await this.askIdempotent(request, signal) }
       case 'stop':
-        return { kind: 'topic', topic: await this.stop(request.topicSessionId) }
+        return { kind: 'topic', topic: await this.stop(request.topicSessionId, signal) }
       case 'answer-question':
-        return { kind: 'topic', topic: await this.answerQuestion(request) }
+        return { kind: 'topic', topic: await this.answerQuestion(request, signal) }
       case 'cancel-question':
-        return { kind: 'topic', topic: await this.cancelQuestion(request.topicSessionId, request.key) }
+        return { kind: 'topic', topic: await this.cancelQuestion(request.topicSessionId, request.key, signal) }
       case 'rename':
-        return { kind: 'topic', topic: await this.rename(request.topicSessionId, request.title) }
+        return { kind: 'topic', topic: await this.rename(request.topicSessionId, request.title, signal) }
       case 'archive':
-        return { kind: 'topic', topic: await this.archive(request.topicSessionId, request.archived) }
+        return { kind: 'topic', topic: await this.archive(request.topicSessionId, request.archived, signal) }
       case 'delete':
-        return { kind: 'deleted', sessionId: await this.delete(request.topicSessionId, request.confirmSessionId) }
+        return { kind: 'deleted', sessionId: await this.delete(request.topicSessionId, request.confirmSessionId, signal) }
       case 'models':
-        return { kind: 'models', providers: await this.models() }
+        return { kind: 'models', providers: await this.models(signal) }
       case 'set-model-route':
-        return { kind: 'topic', topic: await this.setModelRoute(request) }
+        return { kind: 'topic', topic: await this.setModelRoute(request, signal) }
       case 'set-reasoning-effort':
-        return { kind: 'topic', topic: await this.setReasoningEffort(request) }
+        return { kind: 'topic', topic: await this.setReasoningEffort(request, signal) }
       case 'select-model':
-        return { kind: 'topic', topic: await this.selectModel(request) }
+        return { kind: 'topic', topic: await this.selectModel(request, signal) }
       default:
         return request satisfies never
     }
@@ -660,9 +758,20 @@ export class TopicRuntime {
   }
 
   private async disposeOwned(): Promise<void> {
-    this.closed = true
+    this.beginClosing()
     await this.ready.catch(() => undefined)
     await this.releaseRuntime()
+  }
+
+  private beginClosing(): void {
+    if (this.closed) return
+    this.closed = true
+    this.lifecycleAbort.abort(citeCiterShuttingDownError())
+  }
+
+  private assertOpen(signal?: AbortSignal): void {
+    if (this.closed) throw citeCiterShuttingDownError()
+    signal?.throwIfAborted()
   }
 
   private async start(): Promise<void> {
@@ -718,6 +827,7 @@ export class TopicRuntime {
       this.fibers.push(await this.runtime.plugin(TopicTitleProvider))
       this.fibers.push(await this.runtime.plugin(AgentLoop, { agents: [] }))
     } catch (error) {
+      this.beginClosing()
       try {
         await this.releaseRuntime()
       } catch (cleanupError) {
@@ -733,28 +843,32 @@ export class TopicRuntime {
   }
 
   private async releaseOwnedRuntime(): Promise<void> {
-    await Promise.allSettled([...this.opening.values()])
-    this.opening.clear()
     const failures: unknown[] = []
-    for (const pending of this.pendingQuestions.values()) {
-      pending.signal?.removeEventListener('abort', pending.onAbort)
-      pending.reject(new UserQuestionError('CiteCiter is shutting down', 'ASK_ABORTED'))
-    }
-    this.pendingQuestions.clear()
     try {
       this.releaseQuestionProvider?.()
     } catch (error) {
       failures.push(error)
     }
     this.releaseQuestionProvider = undefined
+    for (const pending of this.pendingQuestions.values()) {
+      pending.signal?.removeEventListener('abort', pending.onAbort)
+      pending.reject(new UserQuestionError(CITECITER_SHUTTING_DOWN, 'ASK_ABORTED'))
+    }
+    this.pendingQuestions.clear()
+    const handleDisposals: Promise<void>[] = []
     for (const handle of [...this.handles.values()]) {
       try {
-        await handle.dispose()
+        handleDisposals.push(handle.dispose().catch((error: unknown) => {
+          failures.push(error)
+        }))
       } catch (error) {
         failures.push(error)
       }
     }
     this.handles.clear()
+    await this.settleOwnedOperations()
+    await Promise.all(handleDisposals)
+    failures.push(...this.cleanupFailures.splice(0))
     for (const fiber of this.fibers.splice(0).reverse()) {
       try {
         await fiber.dispose()
@@ -762,9 +876,15 @@ export class TopicRuntime {
         failures.push(error)
       }
     }
-    await Promise.allSettled([...this.titleRefreshes.values()])
+    this.requests.clear()
+    this.creations.clear()
+    this.asks.clear()
+    this.topicAdmissions.clear()
+    this.modelChanges.clear()
+    this.sourceAvailabilityChecks.clear()
     this.titleRefreshes.clear()
-    for (const release of [this.releaseSandboxPolicy, this.releaseFs, this.releaseSubprocess, this.releaseLlm]) {
+    this.opening.clear()
+    for (const release of [this.releaseSandboxPolicy, this.releaseSubprocess, this.releaseFs, this.releaseLlm]) {
       try {
         await release?.()
       } catch (error) {
@@ -778,9 +898,27 @@ export class TopicRuntime {
     if (failures.length > 0) throw new AggregateError(failures, 'CiteCiter Topic runtime cleanup failed')
   }
 
-  private async create(request: CreateRequest): Promise<TopicSnapshot> {
+  private async settleOwnedOperations(): Promise<void> {
+    while (true) {
+      const operations = new Set<Promise<unknown>>([
+        ...this.requests,
+        ...[...this.creations.values()].map(({ result }) => result),
+        ...[...this.asks.values()].map(({ result }) => result),
+        ...this.topicAdmissions.values(),
+        ...this.modelChanges.values(),
+        ...this.sourceAvailabilityChecks.values(),
+        ...this.titleRefreshes.values(),
+        ...this.opening.values(),
+      ])
+      if (operations.size === 0) return
+      await Promise.allSettled(operations)
+    }
+  }
+
+  private async create(request: CreateRequest, signal?: AbortSignal): Promise<TopicSnapshot> {
     const sourceSessionId = createSourceSessionId(request)
     const source = await this.host.sessionQuery.readSession(SessionId(sourceSessionId))
+    this.assertOpen(signal)
     this.sourceAvailability.set(sourceSessionId, true)
     const validated = 'selectionClaim' in request
       ? resolveObserverCitation(source, request.selectionClaim)
@@ -826,14 +964,11 @@ export class TopicRuntime {
     }
     let handle: AgentHandle | undefined
     try {
-      handle = await this.createHandle(metadata, mode.seed)
+      handle = await this.createHandle(metadata, mode.seed, signal)
       await this.runtime.sessions.flush(handle.agent.session)
+      this.assertOpen(signal)
       await this.index.save(metadata)
-      handle.agent.followup(createUserMessage({
-        content: [{ type: 'text', text: request.question }],
-        source: { kind: 'user' },
-      }))
-      await this.runtime.sessions.flush(handle.agent.session)
+      await this.commitFollowup(handle, identifiedQuestion(request.requestId, request.question), signal)
       return this.snapshot(metadata)
     } catch (error) {
       try {
@@ -852,18 +987,82 @@ export class TopicRuntime {
     }
   }
 
-  private async createIdempotent(request: CreateRequest): Promise<TopicSnapshot> {
-    const committed = (await this.index.list(createSourceSessionId(request)))
-      .find((topic) => topic.createRequestId === request.requestId)
-    if (committed !== undefined) return this.snapshot(committed)
-    const pending = this.creations.get(request.requestId)
-    if (pending !== undefined) return pending
-    const creation = this.create(request).finally(() => this.creations.delete(request.requestId))
-    this.creations.set(request.requestId, creation)
-    return creation
+  /** Let a caller stop waiting without cancelling an accepted idempotent mutation. */
+  private waitForCaller<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
+    if (signal === undefined) return operation
+    return new Promise<T>((resolve, reject) => {
+      const cleanup = () => signal.removeEventListener('abort', onAbort)
+      const onAbort = () => {
+        cleanup()
+        reject(signal.reason)
+      }
+      signal.addEventListener('abort', onAbort, { once: true })
+      if (signal.aborted) onAbort()
+      void operation.then(
+        (value) => {
+          cleanup()
+          resolve(value)
+        },
+        (error: unknown) => {
+          cleanup()
+          reject(error)
+        },
+      )
+    })
   }
 
-  private async createHandle(metadata: TopicMetadata, seed: readonly SessionEvent[]): Promise<AgentHandle> {
+  private createIdempotent(request: CreateRequest, signal?: AbortSignal): Promise<TopicSnapshot> {
+    const key = `${createSourceSessionId(request)}\0${request.requestId}`
+    const pending = this.creations.get(key)
+    const intent = JSON.stringify(request)
+    if (pending !== undefined) {
+      if (pending.intent !== intent) throw new Error('CiteCiter create requestId was reused for a different request')
+      return this.waitForCaller(pending.result, signal)
+    }
+    const creation = Promise.resolve().then(() => {
+      this.assertOpen(signal)
+      return this.resumeOrCreate(request, signal)
+    })
+      .finally(() => this.creations.delete(key))
+    this.creations.set(key, { intent, result: creation })
+    return this.waitForCaller(creation, signal)
+  }
+
+  private async resumeOrCreate(request: CreateRequest, signal?: AbortSignal): Promise<TopicSnapshot> {
+    const committed = (await this.index.list(createSourceSessionId(request)))
+      .find((topic) => topic.createRequestId === request.requestId)
+    this.assertOpen(signal)
+    if (committed !== undefined) {
+      return this.queueTopicAdmission(committed.sessionId, async () => {
+        const log = await this.readLog(committed, signal)
+        const identified = postSeedUserQuestionById(log, request.requestId)
+        const existingQuestion = identified
+          ?? firstPostSeedUserQuestion(log)
+        if (existingQuestion !== null && existingQuestion !== request.question) {
+          throw new Error('CiteCiter create requestId was reused for a different question')
+        }
+        if (existingQuestion === null || (
+          identified !== null && committedPostSeedUserQuestionById(log, request.requestId) === null
+        )) {
+          const handle = await this.ensureHandle(committed, signal)
+          handle.agent.inbox.remove(MessageId(request.requestId))
+          await this.commitFollowup(handle, identifiedQuestion(request.requestId, request.question), signal)
+        } else {
+          const live = this.handles.get(committed.sessionId)?.agent.session
+          if (live !== undefined) await this.runtime.sessions.flush(live)
+        }
+        return this.snapshot(committed)
+      }, signal)
+    }
+    return this.create(request, signal)
+  }
+
+  private async createHandle(
+    metadata: TopicMetadata,
+    seed: readonly SessionEvent[],
+    signal?: AbortSignal,
+  ): Promise<AgentHandle> {
+    this.assertOpen(signal)
     const handle = await this.runtime.agents.create({
       sessionId: SessionId(metadata.sessionId),
       ...(metadata.mode === 'exact-fork'
@@ -882,7 +1081,12 @@ export class TopicRuntime {
         ...(metadata.modelConfig.maxTokens === undefined ? {} : { maxTokens: metadata.modelConfig.maxTokens }),
       },
       setup: (agentCtx) => this.setupAgent(agentCtx, metadata),
+      ...(signal === undefined ? {} : { signal }),
     })
+    if (this.closed || signal?.aborted === true) {
+      await this.disposeLateHandle(handle)
+      this.assertOpen(signal)
+    }
     this.handles.set(metadata.sessionId, handle)
     return handle
   }
@@ -1020,12 +1224,13 @@ export class TopicRuntime {
         render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
         presentationMeta: (_args, value) => ({ capturedThroughSeq: value.capturedThroughSeq }),
       },
-      execute: async (args) => {
+      execute: async (args, exec) => {
         let source: ObserverSourceSnapshot
         let sourceAvailable = true
         try {
           source = await this.host.sessionQuery.readSession(SessionId(metadata.sourceSessionId))
         } catch (error) {
+          exec.signal.throwIfAborted()
           sourceAvailable = false
           const agent = agentCtx.agent
           if (metadata.mode !== 'exact-fork' || agent === undefined || agent.session.header.seedLength === undefined) {
@@ -1037,14 +1242,14 @@ export class TopicRuntime {
             events: agent.session.events.slice(0, agent.session.header.seedLength),
           }
         }
+        exec.signal.throwIfAborted()
         await this.rememberSourceAvailability(metadata, sourceAvailable)
-        const requestedThrough = args.throughSeq
-        const throughSeq = metadata.forkThroughSeq === null
-          ? requestedThrough
-          : Math.min(requestedThrough ?? metadata.forkThroughSeq, metadata.forkThroughSeq)
-        const result = formatSourceSessionRead(source, {
+        const visibleSource = metadata.forkThroughSeq === null
+          ? source
+          : { ...source, events: source.events.filter((event) => event.seq <= metadata.forkThroughSeq!) }
+        const result = formatSourceSessionRead(visibleSource, {
           ...(args.fromSeq === undefined ? {} : { fromSeq: args.fromSeq }),
-          ...(throughSeq === undefined ? {} : { throughSeq }),
+          ...(args.throughSeq === undefined ? {} : { throughSeq: args.throughSeq }),
           includeReasoning: this.settings().includeSourceReasoning,
           maxBytes: SOURCE_READ_MAX_BYTES,
         })
@@ -1055,7 +1260,8 @@ export class TopicRuntime {
     })
   }
 
-  private async ensureHandle(metadata: TopicMetadata): Promise<AgentHandle> {
+  private async ensureHandle(metadata: TopicMetadata, signal?: AbortSignal): Promise<AgentHandle> {
+    this.assertOpen(signal)
     const existing = this.handles.get(metadata.sessionId)
     if (existing !== undefined) return existing
     const pending = this.opening.get(metadata.sessionId)
@@ -1068,7 +1274,12 @@ export class TopicRuntime {
         ...(metadata.modelConfig.maxTokens === undefined ? {} : { maxTokens: metadata.modelConfig.maxTokens }),
       },
       setup: (agentCtx) => this.setupAgent(agentCtx, metadata),
-    }).then((handle) => {
+      ...(signal === undefined ? {} : { signal }),
+    }).then(async (handle) => {
+      if (this.closed || signal?.aborted === true) {
+        await this.disposeLateHandle(handle)
+        this.assertOpen(signal)
+      }
       this.handles.set(metadata.sessionId, handle)
       return handle
     }).finally(() => {
@@ -1078,19 +1289,148 @@ export class TopicRuntime {
     return opening
   }
 
-  private async ask(sessionId: string, question: string): Promise<TopicSnapshot> {
+  private async disposeLateHandle(handle: AgentHandle): Promise<void> {
+    try {
+      await handle.dispose()
+    } catch (error) {
+      this.cleanupFailures.push(error)
+      throw error
+    }
+  }
+
+  /** Resolve only after the accepted question is present in the durable model-input log. */
+  private async commitFollowup(handle: AgentHandle, message: UserMessage, admissionSignal?: AbortSignal): Promise<void> {
+    this.assertOpen(admissionSignal)
+    const signal = this.lifecycleAbort.signal
+    await new Promise<void>((resolveCommitted, rejectCommitted) => {
+      let claimedTurn: number | undefined
+      let settled = false
+      let disposeClaim = () => {}
+      let disposeDiscard = () => {}
+      let disposeEvent = () => {}
+      const onAbort = () => finish(signal?.reason ?? citeCiterShuttingDownError())
+      const finish = (error?: unknown) => {
+        if (settled) return
+        settled = true
+        signal?.removeEventListener('abort', onAbort)
+        disposeEvent()
+        disposeDiscard()
+        disposeClaim()
+        if (error === undefined) resolveCommitted()
+        else rejectCommitted(error)
+      }
+      disposeClaim = handle.agent.ctx.on('agent/inbox/claimed', ({ message: claimed, turn }) => {
+        if (claimed.id === message.id) claimedTurn = turn
+      })
+      disposeDiscard = handle.agent.ctx.on('agent/inbox/discarded', ({ message: discarded }) => {
+        if (discarded.id === message.id) finish(new Error('CiteCiter question was discarded before it became model input'))
+      })
+      disposeEvent = handle.agent.ctx.on('session/event', (session, event) => {
+        if (session !== handle.agent.session) return
+        if (
+          event.type === 'user/message'
+          && event.data.source.kind === 'user'
+          && event.data.id === message.id
+        ) {
+          finish()
+          return
+        }
+        if (event.type === 'turn/end' && event.data.turn === claimedTurn) {
+          finish(new Error('CiteCiter question was not committed before its turn ended'))
+        }
+      })
+      signal?.addEventListener('abort', onAbort, { once: true })
+      if (signal?.aborted === true) {
+        onAbort()
+        return
+      }
+      try {
+        handle.agent.followup(message)
+      } catch (error) {
+        finish(error)
+      }
+    })
+    await this.runtime.sessions.flush(handle.agent.session)
+  }
+
+  private async ask(
+    sessionId: string,
+    question: string,
+    requestId?: string,
+    signal?: AbortSignal,
+  ): Promise<TopicSnapshot> {
     const metadata = await this.index.loadBySessionId(sessionId)
-    const handle = await this.ensureHandle(metadata)
-    handle.agent.followup(createUserMessage({
-      content: [{ type: 'text', text: question }],
-      source: { kind: 'user' },
-    }))
+    this.assertOpen(signal)
+    if (requestId !== undefined) {
+      const log = await this.readLog(metadata, signal)
+      const existingQuestion = postSeedUserQuestionById(log, requestId)
+      if (existingQuestion !== null) {
+        if (existingQuestion !== question) throw new Error('CiteCiter ask requestId was reused for a different question')
+        if (committedPostSeedUserQuestionById(log, requestId) !== null) {
+          const live = this.handles.get(sessionId)?.agent.session
+          if (live !== undefined) await this.runtime.sessions.flush(live)
+          return this.snapshot(metadata)
+        }
+      }
+    }
+    const handle = await this.ensureHandle(metadata, signal)
+    if (requestId !== undefined) handle.agent.inbox.remove(MessageId(requestId))
+    await this.commitFollowup(handle, requestId === undefined
+      ? createUserMessage({
+          content: [{ type: 'text', text: question }],
+          source: { kind: 'user' },
+        })
+      : identifiedQuestion(requestId, question), signal)
     const updated = { ...metadata, updatedAt: Date.now() }
     await this.index.save(updated)
     return this.snapshot(updated)
   }
 
+  private async askIdempotent(request: AskRequest, signal?: AbortSignal): Promise<TopicSnapshot> {
+    if (request.requestId === undefined) return this.queueAsk(request, signal)
+    const key = `${request.topicSessionId}\0${request.requestId}`
+    const existing = this.asks.get(key)
+    if (existing !== undefined) {
+      if (existing.question !== request.question) {
+        throw new Error('CiteCiter ask requestId was reused for a different question')
+      }
+      return this.waitForCaller(existing.result, signal)
+    }
+    const result = this.queueAsk(request, signal)
+      .finally(() => this.asks.delete(key))
+    this.asks.set(key, { question: request.question, result })
+    return this.waitForCaller(result, signal)
+  }
+
+  private queueAsk(request: AskRequest, signal?: AbortSignal): Promise<TopicSnapshot> {
+    return this.queueTopicAdmission(request.topicSessionId, () => this.ask(
+      request.topicSessionId,
+      request.question,
+      request.requestId,
+      signal,
+    ), signal)
+  }
+
+  private queueTopicAdmission<T>(
+    sessionId: string,
+    operation: () => Promise<T>,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    const previous = this.topicAdmissions.get(sessionId) ?? Promise.resolve()
+    const result = previous.then(() => {
+      this.assertOpen(signal)
+      return operation()
+    })
+    const settled = result.then(() => undefined, () => undefined)
+    this.topicAdmissions.set(sessionId, settled)
+    void settled.then(() => {
+      if (this.topicAdmissions.get(sessionId) === settled) this.topicAdmissions.delete(sessionId)
+    })
+    return result
+  }
+
   private askUser(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer> {
+    if (this.closed) throw new UserQuestionError(CITECITER_SHUTTING_DOWN, 'ASK_ABORTED')
     const sessionId = request.agent === undefined ? undefined : String(request.agent.session.header.id)
     if (sessionId === undefined || !this.handles.has(sessionId)) {
       throw new UserQuestionError('CiteCiter cannot identify the asking Topic', 'CALLER_NOT_LIVE')
@@ -1131,24 +1471,28 @@ export class TopicRuntime {
 
   private async answerQuestion(
     request: CiteCiterRequest & { action: 'answer-question' },
+    signal?: AbortSignal,
   ): Promise<TopicSnapshot> {
     const metadata = await this.index.loadBySessionId(request.topicSessionId)
+    this.assertOpen(signal)
     const pending = this.pendingQuestions.get(request.topicSessionId)
     if (pending === undefined || pending.key !== request.key) throw new Error('这个提问已结束或已被替换')
     pending.resolve(validatedQuestionAnswer(pending.questions, request.answer))
     return this.snapshot(metadata)
   }
 
-  private async cancelQuestion(sessionId: string, key: string): Promise<TopicSnapshot> {
+  private async cancelQuestion(sessionId: string, key: string, signal?: AbortSignal): Promise<TopicSnapshot> {
     const metadata = await this.index.loadBySessionId(sessionId)
+    this.assertOpen(signal)
     const pending = this.pendingQuestions.get(sessionId)
     if (pending === undefined || pending.key !== key) throw new Error('这个提问已结束或已被替换')
     pending.reject(new UserQuestionError('the user cancelled ask_user_question', 'ASK_CANCELLED'))
     return this.snapshot(metadata)
   }
 
-  private async stop(sessionId: string): Promise<TopicSnapshot> {
+  private async stop(sessionId: string, signal?: AbortSignal): Promise<TopicSnapshot> {
     const metadata = await this.index.loadBySessionId(sessionId)
+    this.assertOpen(signal)
     const agent = this.handles.get(sessionId)?.agent
     agent?.cancel({ kind: 'user' })
     await agent?.whenIdle()
@@ -1156,9 +1500,11 @@ export class TopicRuntime {
     return this.snapshot(metadata)
   }
 
-  private async rename(sessionId: string, title: string): Promise<TopicSnapshot> {
+  private async rename(sessionId: string, title: string, signal?: AbortSignal): Promise<TopicSnapshot> {
     const metadata = await this.index.loadBySessionId(sessionId)
-    const handle = await this.ensureHandle(metadata)
+    this.assertOpen(signal)
+    const handle = await this.ensureHandle(metadata, signal)
+    this.assertOpen(signal)
     const renamed = this.runtime.sessionTitle.rename(handle.agent.session, title)
     await this.runtime.sessions.flush(handle.agent.session)
     const updated: TopicMetadata = {
@@ -1172,23 +1518,26 @@ export class TopicRuntime {
     return this.snapshot(updated)
   }
 
-  private async archive(sessionId: string, archived: boolean): Promise<TopicSnapshot> {
+  private async archive(sessionId: string, archived: boolean, signal?: AbortSignal): Promise<TopicSnapshot> {
     const metadata = await this.index.loadBySessionId(sessionId)
+    this.assertOpen(signal)
     const updated = { ...metadata, archivedAt: archived ? Date.now() : null, updatedAt: Date.now() }
     await this.index.save(updated)
     return this.snapshot(updated)
   }
 
-  private async delete(sessionId: string, confirmSessionId: string): Promise<string> {
+  private async delete(sessionId: string, confirmSessionId: string, signal?: AbortSignal): Promise<string> {
     if (sessionId !== confirmSessionId) throw new Error('Topic deletion confirmation does not match the target Session')
     const metadata = await this.index.loadBySessionId(sessionId)
+    this.assertOpen(signal)
     const pending = this.opening.get(sessionId)
     const handle = this.handles.get(sessionId) ?? (pending === undefined ? undefined : await pending)
+    this.assertOpen(signal)
     if (handle !== undefined) {
       await handle.dispose()
       this.handles.delete(sessionId)
     }
-    const inspection = await this.runtime.sessionPersistence.inspect(SessionId(sessionId))
+    const inspection = await this.runtime.sessionPersistence.inspect(SessionId(sessionId), signal)
     await this.removeSessionArtifact(inspection.meta)
     await this.index.remove(metadata)
     return sessionId
@@ -1206,11 +1555,18 @@ export class TopicRuntime {
     await rmdirIfEmpty(resolve(artifact.path, '..'))
   }
 
-  private enqueueModelChange(sessionId: string, apply: () => Promise<TopicSnapshot>): Promise<TopicSnapshot> {
+  private enqueueModelChange(
+    sessionId: string,
+    apply: () => Promise<TopicSnapshot>,
+    signal?: AbortSignal,
+  ): Promise<TopicSnapshot> {
     const previous = this.modelChanges.get(sessionId)
     let change: Promise<TopicSnapshot>
     change = (previous === undefined ? Promise.resolve() : previous.catch(() => undefined))
-      .then(apply)
+      .then(() => {
+        this.assertOpen(signal)
+        return apply()
+      })
       .finally(() => {
         if (this.modelChanges.get(sessionId) === change) this.modelChanges.delete(sessionId)
       })
@@ -1220,11 +1576,14 @@ export class TopicRuntime {
 
   private setModelRoute(
     request: CiteCiterRequest & { action: 'set-model-route' },
+    signal?: AbortSignal,
   ): Promise<TopicSnapshot> {
     return this.enqueueModelChange(request.topicSessionId, async () => {
       const metadata = await this.index.loadBySessionId(request.topicSessionId)
-      await this.host.llm.resolveModelInfo(request.provider, request.model)
-      await this.ensureHandle(metadata)
+      this.assertOpen(signal)
+      await this.host.llm.resolveModelInfo(request.provider, request.model, signal)
+      await this.ensureHandle(metadata, signal)
+      this.assertOpen(signal)
       const selection = this.selections.get(metadata.sessionId)
       if (selection === undefined) throw new Error('Topic model selector is unavailable')
       const modelConfig = { ...metadata.modelConfig, provider: request.provider, model: request.model }
@@ -1233,20 +1592,27 @@ export class TopicRuntime {
       await this.index.save(updated)
       selection.current = { provider: request.provider, model: request.model }
       return this.snapshot(updated)
-    })
+    }, signal)
   }
 
   private setReasoningEffort(
     request: CiteCiterRequest & { action: 'set-reasoning-effort' },
+    signal?: AbortSignal,
   ): Promise<TopicSnapshot> {
     return this.enqueueModelChange(request.topicSessionId, async () => {
       const metadata = await this.index.loadBySessionId(request.topicSessionId)
-      const model = await this.host.llm.resolveModelInfo(metadata.modelConfig.provider, metadata.modelConfig.model)
+      this.assertOpen(signal)
+      const model = await this.host.llm.resolveModelInfo(
+        metadata.modelConfig.provider,
+        metadata.modelConfig.model,
+        signal,
+      )
       if (
         request.reasoningEffort !== null
         && model.reasoning?.efforts.some((effort) => String(effort.id) === request.reasoningEffort) !== true
       ) throw new Error(`模型不支持思考强度 ${request.reasoningEffort}`)
-      await this.ensureHandle(metadata)
+      await this.ensureHandle(metadata, signal)
+      this.assertOpen(signal)
       const selection = this.selections.get(metadata.sessionId)
       if (selection === undefined) throw new Error('Topic model selector is unavailable')
       const modelConfig = { ...metadata.modelConfig }
@@ -1262,21 +1628,33 @@ export class TopicRuntime {
           : { reasoningEffort: ReasoningEffortId(request.reasoningEffort) }),
       }
       return this.snapshot(updated)
-    })
+    }, signal)
   }
 
-  private selectModel(request: CiteCiterRequest & { action: 'select-model' }): Promise<TopicSnapshot> {
-    return this.enqueueModelChange(request.topicSessionId, () => this.applyModelSelection(request))
+  private selectModel(
+    request: CiteCiterRequest & { action: 'select-model' },
+    signal?: AbortSignal,
+  ): Promise<TopicSnapshot> {
+    return this.enqueueModelChange(
+      request.topicSessionId,
+      () => this.applyModelSelection(request, signal),
+      signal,
+    )
   }
 
-  private async applyModelSelection(request: CiteCiterRequest & { action: 'select-model' }): Promise<TopicSnapshot> {
+  private async applyModelSelection(
+    request: CiteCiterRequest & { action: 'select-model' },
+    signal?: AbortSignal,
+  ): Promise<TopicSnapshot> {
     const metadata = await this.index.loadBySessionId(request.topicSessionId)
-    const model = await this.host.llm.resolveModelInfo(request.provider, request.model)
+    this.assertOpen(signal)
+    const model = await this.host.llm.resolveModelInfo(request.provider, request.model, signal)
     if (
       request.reasoningEffort !== null
       && model.reasoning?.efforts.some((effort) => String(effort.id) === request.reasoningEffort) !== true
     ) throw new Error(`模型不支持思考强度 ${request.reasoningEffort}`)
-    await this.ensureHandle(metadata)
+    await this.ensureHandle(metadata, signal)
+    this.assertOpen(signal)
     const selection = this.selections.get(metadata.sessionId)
     if (selection === undefined) throw new Error('Topic model selector is unavailable')
     const previousModelConfig = { ...metadata.modelConfig }
@@ -1300,13 +1678,16 @@ export class TopicRuntime {
     return this.snapshot(updated)
   }
 
-  private async models(): Promise<ProviderOption[]> {
+  private async models(signal?: AbortSignal): Promise<ProviderOption[]> {
     const providers: ProviderOption[] = []
     for (const provider of this.host.llm.listProviders()) {
+      this.assertOpen(signal)
       let catalog: LlmModelInfo[]
       try {
         catalog = await this.host.llm.listModels(provider.id)
+        this.assertOpen(signal)
       } catch (error) {
+        signal?.throwIfAborted()
         this.host.logger.warn(`CiteCiter could not list models for ${provider.id}`, error)
         catalog = []
       }
@@ -1314,8 +1695,9 @@ export class TopicRuntime {
       for (const model of catalog) {
         let resolved
         try {
-          resolved = await this.host.llm.resolveModelInfo(provider.id, model.id)
+          resolved = await this.host.llm.resolveModelInfo(provider.id, model.id, signal)
         } catch (error) {
+          signal?.throwIfAborted()
           this.host.logger.warn(`CiteCiter could not resolve ${provider.id}/${model.id}`, error)
         }
         models.push({
@@ -1333,25 +1715,30 @@ export class TopicRuntime {
     return providers
   }
 
-  private async list(sourceSessionId: string, includeArchived: boolean): Promise<TopicSummary[]> {
+  private async list(
+    sourceSessionId: string,
+    includeArchived: boolean,
+    signal?: AbortSignal,
+  ): Promise<TopicSummary[]> {
     const metadata = await this.index.list(sourceSessionId)
+    this.assertOpen(signal)
     const summaries = await Promise.all(metadata
       .filter((topic) => includeArchived ? topic.archivedAt !== null : topic.archivedAt === null)
-      .map((topic) => this.summary(topic)))
+      .map((topic) => this.summary(topic, signal)))
     return summaries.sort((left, right) => right.updatedAt - left.updatedAt)
   }
 
-  private async summary(metadata: TopicMetadata): Promise<TopicSummary> {
+  private async summary(metadata: TopicMetadata, signal?: AbortSignal): Promise<TopicSummary> {
     let current = metadata
     if (cachedTopicTitle(current) === null && !this.titleHydrated.has(current.sessionId)) {
+      const log = await this.readLog(current, signal)
       this.titleHydrated.add(current.sessionId)
-      const log = await this.readLog(current)
       const title = foldTopicTitle(current, log.events)
       if (title !== undefined) current = await this.patchMetadata(current, {
         cachedTitle: title.title,
         cachedTitleSource: titleSourceKind(title),
         cachedTitleEventSeq: title.eventSeq,
-      })
+      }, signal)
     }
     return this.summaryFromMetadata(current)
   }
@@ -1376,16 +1763,25 @@ export class TopicRuntime {
     }
   }
 
-  private async readLog(metadata: TopicMetadata): Promise<RuntimeTopicLog> {
+  private async get(sessionId: string, signal?: AbortSignal): Promise<TopicSnapshot> {
+    const metadata = await this.index.loadBySessionId(sessionId)
+    this.assertOpen(signal)
+    return this.snapshot(metadata, signal)
+  }
+
+  private async readLog(metadata: TopicMetadata, signal?: AbortSignal): Promise<RuntimeTopicLog> {
+    if (signal !== undefined) this.assertOpen(signal)
     const live = this.handles.get(metadata.sessionId)?.agent.session
     if (live !== undefined) return { header: live.header, events: live.events }
-    const inspection = await this.runtime.sessionPersistence.inspect(SessionId(metadata.sessionId))
+    const inspection = await this.runtime.sessionPersistence.inspect(SessionId(metadata.sessionId), signal)
+    if (signal !== undefined) this.assertOpen(signal)
     return { header: inspection.meta, events: inspection.events }
   }
 
   private scheduleSourceAvailabilityCheck(metadata: TopicMetadata): void {
     if (
-      this.sourceAvailability.has(metadata.sourceSessionId)
+      this.closed
+      || this.sourceAvailability.has(metadata.sourceSessionId)
       || this.sourceAvailabilityChecks.has(metadata.sourceSessionId)
     ) return
     const check = (async () => {
@@ -1414,10 +1810,10 @@ export class TopicRuntime {
     if (latest.sourceAvailable !== available) await this.patchMetadata(latest, { sourceAvailable: available })
   }
 
-  private async snapshot(metadata: TopicMetadata): Promise<TopicSnapshot> {
+  private async snapshot(metadata: TopicMetadata, signal?: AbortSignal): Promise<TopicSnapshot> {
     let current = metadata
     this.scheduleSourceAvailabilityCheck(current)
-    const log = await this.readLog(current)
+    const log = await this.readLog(current, signal)
     const title = foldTopicTitle(current, log.events)
     const latest = log.events.at(-1)?.time ?? metadata.updatedAt
     const observedThroughSeq = latestObservedSeq(log.events)
@@ -1439,7 +1835,7 @@ export class TopicRuntime {
               cachedTitleSource,
               cachedTitleEventSeq: title.eventSeq,
             }),
-      })
+      }, signal)
     }
     if (title === undefined) this.scheduleExactTitleRefresh(current, log)
     const pending = this.pendingQuestions.get(current.sessionId)
@@ -1466,8 +1862,10 @@ export class TopicRuntime {
   private async patchMetadata(
     metadata: TopicMetadata,
     patch: Partial<TopicMetadata>,
+    signal?: AbortSignal,
   ): Promise<TopicMetadata> {
     const latest = await this.index.loadBySessionId(metadata.sessionId)
+    if (signal !== undefined) this.assertOpen(signal)
     const updated = topicMetadataSchema.parse({ ...latest, ...patch }) as TopicMetadata
     await this.index.save(updated)
     return updated
@@ -1475,7 +1873,8 @@ export class TopicRuntime {
 
   private scheduleExactTitleRefresh(metadata: TopicMetadata, log: RuntimeTopicLog): void {
     if (
-      metadata.mode !== 'exact-fork'
+      this.closed
+      || metadata.mode !== 'exact-fork'
       || this.titleRefreshAttempted.has(metadata.sessionId)
       || this.handles.get(metadata.sessionId)?.agent.status === 'running'
     ) return
@@ -1487,15 +1886,17 @@ export class TopicRuntime {
     const handle = this.handles.get(metadata.sessionId)
     if (handle === undefined) return
     this.titleRefreshAttempted.add(metadata.sessionId)
-    const refresh = this.runtime.sessionTitle.refresh(handle.agent.session)
+    const refresh = this.runtime.sessionTitle.refresh(handle.agent.session, this.lifecycleAbort.signal)
       .then(async (title) => {
+        this.assertOpen(this.lifecycleAbort.signal)
         await this.runtime.sessions.flush(handle.agent.session)
+        this.assertOpen(this.lifecycleAbort.signal)
         if (title === undefined || title.eventSeq <= (metadata.forkThroughSeq ?? -1)) return
         await this.patchMetadata(metadata, {
           cachedTitle: title.title,
           cachedTitleSource: titleSourceKind(title),
           cachedTitleEventSeq: title.eventSeq,
-        })
+        }, this.lifecycleAbort.signal)
       })
       .catch((error: unknown) => {
         if (!this.closed) this.host.logger.warn(`CiteCiter could not title Topic ${metadata.sessionId}`, error)

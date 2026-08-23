@@ -2,7 +2,7 @@ import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-ty
 import type { CiteCiterRequest, CiteCiterResponse } from './topic.ts';
 declare module '@deepseek-ai/dsh-typert-protocol' {
     interface CiteCiterRemoteNamespace {
-        request: (request: CiteCiterRequest) => Promise<RemoteResult<CiteCiterResponse>>;
+        request: (request: CiteCiterRequest, signal?: AbortSignal) => Promise<RemoteResult<CiteCiterResponse>>;
     }
     interface TypertRemoteMap {
         'citeciter/request': CiteCiterRemoteNamespace['request'];

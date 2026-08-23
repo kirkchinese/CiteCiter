@@ -213,6 +213,7 @@ export declare const TYPERT: {
             topicSessionId: import("zod").ZodString;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"ask">;
+            requestId: import("zod").ZodOptional<import("zod").ZodString>;
             topicSessionId: import("zod").ZodString;
             question: import("zod").ZodString;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
@@ -486,6 +487,7 @@ export declare const TYPERT: {
                     topicSessionId: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"ask">;
+                    requestId: import("zod").ZodOptional<import("zod").ZodString>;
                     topicSessionId: import("zod").ZodString;
                     question: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
@@ -538,6 +540,9 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>], "action">]>;
             };
         }];
+        readonly cancellation: {
+            readonly parameter: "signal";
+        };
         readonly result: {
             readonly mode: "strict";
             readonly typeSymbol: "@kirkchinese/dsh-citeciter#CiteCiterResponse";
@@ -698,7 +703,7 @@ export declare const TYPERT: {
         };
         readonly sourceLocation: {
             readonly file: "src/index.ts";
-            readonly line: 63;
+            readonly line: 66;
             readonly column: 3;
         };
     }];

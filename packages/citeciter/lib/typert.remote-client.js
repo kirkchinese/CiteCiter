@@ -1,4 +1,4 @@
-import { t as citeCiterRequestDescriptor } from "./typert-common-Bvx1k2cq.js";
+import { t as citeCiterRequestDescriptor } from "./typert-common-4_cbghYz.js";
 //#region lib/types/typert.remote-client.js
 /** Browser contribution mounted by the CiteCiter Client fiber. */
 const TYPERT_REMOTE = {

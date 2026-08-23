@@ -10,6 +10,7 @@ const screenshotPath = resolve(process.argv[5] ?? `/tmp/citeciter-v03-smoke-${pr
 const firstQuestion = '为什么平行移动能检测曲率？'
 const followUpQuestion = '第二轮追问：这和 holonomy 有什么关系？'
 const secondQuestion = '路径依赖为什么能代表几何弯曲？'
+const quickQuestion = '能用球面上的例子说明吗？'
 const firstAnswer = '首轮回答：平行移动比较同一向量沿不同路径返回后的差异；这个差异由曲率刻画。'
 const followUpAnswer = '第二轮回答：曲率可以看成无穷小闭合回路的 holonomy；回路越小，偏差的一阶面积项越直接反映曲率。'
 const generatedTitle = '曲率与平行移动'
@@ -105,7 +106,7 @@ async function askFromSelection(page, needle, question) {
   await popover.waitFor({ timeout: 8_000 })
   const mode = await popover.locator('select').inputValue()
   await popover.getByLabel('CiteCiter 的第一个问题').fill(question)
-  await popover.getByRole('button', { name: 'Citer!', exact: true }).click()
+  await popover.getByRole('button', { name: 'Citer!', exact: true }).dblclick()
   return { dispatch, mode }
 }
 
@@ -178,6 +179,14 @@ try {
   }
 
   out.parentBefore = await revision(metadata.logPath)
+  await page.evaluate(() => {
+    window.__citeciterControlLeak = false
+    window.__citeciterControlObserver = new MutationObserver(() => {
+      const text = document.querySelector('[data-citeciter-panel]')?.textContent ?? ''
+      if (text.includes('<cite')) window.__citeciterControlLeak = true
+    })
+    window.__citeciterControlObserver.observe(document.body, { childList: true, characterData: true, subtree: true })
+  })
   const first = await askFromTranslatedSelection(page, sourceAnswer, translatedQuote, firstQuestion)
   out.firstDispatch = first.dispatch
   out.defaultMode = first.mode
@@ -194,7 +203,8 @@ try {
     document.querySelector('[data-citeciter-panel] input[aria-label="Topic 标题"]')?.value === expected
   ), generatedTitle, { timeout: 8_000 })
   out.panelWidth = await panel.evaluate((element) => element.getBoundingClientRect().width)
-  out.docked = await page.locator('[data-citeciter-docked="true"]').count()
+  out.hostDockWrites = await page.locator('[data-citeciter-docked]').count()
+  out.hostCiteStyles = await page.locator('[style*="--citeciter-"]:not([data-citeciter-panel])').count()
   out.sourceVisibleBesidePanel = await assistantFlow.isVisible()
   out.firstQuestionVisible = (await panel.innerText()).includes(firstQuestion)
   out.firstAnswerVisible = (await panel.innerText()).includes(firstAnswer)
@@ -202,17 +212,22 @@ try {
   out.observedThroughSeq = sourceRead === null ? null : Number(sourceRead[1])
   out.generatedTitle = await panel.getByLabel('Topic 标题').inputValue()
   out.topicCountAfterFirst = await panel.locator('[data-citeciter-topic]').count()
-  const shellFrame = page.locator('[data-citeciter-docked="true"]')
-  await page.getByRole('button', { name: /^(收起侧边栏|Collapse sidebar)$/u }).click()
-  await page.waitForTimeout(300)
-  out.collapsedSidebarWidth = await shellFrame.evaluate((element) => (
-    element.firstElementChild?.getBoundingClientRect().width ?? 0
-  ))
-  await page.getByRole('button', { name: /^(打开侧边栏|Open sidebar)$/u }).click()
-  await page.waitForTimeout(300)
-  out.expandedSidebarWidth = await shellFrame.evaluate((element) => (
-    element.firstElementChild?.getBoundingClientRect().width ?? 0
-  ))
+  const firstText = await panel.innerText()
+  out.streamingControlHidden = !(await page.evaluate(() => window.__citeciterControlLeak))
+  await page.evaluate(() => window.__citeciterControlObserver.disconnect())
+  out.firstControlHidden = !firstText.includes('<citeciter-next-questions>')
+  const quickButton = panel.getByRole('button', { name: quickQuestion, exact: true })
+  await quickButton.waitFor({ timeout: 8_000 })
+  out.firstShortcutCount = await quickButton.count()
+  await quickButton.dblclick()
+  await waitForPanelText(page, quickQuestion)
+  await waitForPanelText(page, followUpAnswer)
+  out.quickQuestionCount = await panel.locator('[class*="userTurn"]').evaluateAll((nodes, question) => (
+    nodes.filter((node) => node.textContent?.includes(question)).length
+  ), quickQuestion)
+  const quickText = await panel.innerText()
+  out.quickAnswerVisible = quickText.includes(followUpAnswer)
+  out.quickControlHidden = !quickText.includes('<citeciter-next-questions>')
 
   await panel.getByLabel('Topic 标题').fill(renamedTitle)
   await panel.getByRole('button', { name: '保存标题', exact: true }).click()
@@ -221,14 +236,23 @@ try {
   ), renamedTitle, { timeout: 8_000 })
   await panel.getByRole('button', { name: '关闭 CiteCiter' }).click()
   await page.waitForFunction(() => document.querySelector('[data-citeciter-panel]') === null)
+  await page.waitForFunction(() => (
+    document.querySelectorAll('[data-citeciter-docked]').length === 0
+      && document.querySelectorAll('[style*="--citeciter-"]:not([data-citeciter-panel])').length === 0
+  ))
+  out.hostDockWritesAfterClose = await page.locator('[data-citeciter-docked]').count()
+  out.hostCiteStylesAfterClose = await page.locator('[style*="--citeciter-"]:not([data-citeciter-panel])').count()
   out.launcherAfterFirst = await page.getByRole('button', { name: /打开 CiteCiter，共 1 个讨论/ }).count()
 
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(2_500)
   await dismissOptionalPrompts(page)
   const recoveredLauncher = page.getByRole('button', { name: /打开 CiteCiter/ })
-  await recoveredLauncher.waitFor({ timeout: 8_000 })
-  await recoveredLauncher.click()
+  out.reopenedAutomatically = await panel.isVisible()
+  if (!out.reopenedAutomatically) {
+    await recoveredLauncher.waitFor({ timeout: 8_000 })
+    await recoveredLauncher.click()
+  }
   await panel.waitFor({ timeout: 5_000 })
   const recoveredTitle = panel.getByLabel('Topic 标题')
   await recoveredTitle.waitFor({ timeout: 8_000 })
@@ -239,11 +263,16 @@ try {
   out.recoveredTitle = await recoveredTitle.inputValue()
   out.recoveredQuestion = (await panel.innerText()).includes(firstQuestion)
   out.recoveredTopics = await panel.locator('[data-citeciter-topic]').count()
+  out.recoveredControlHidden = !(await panel.innerText()).includes('<citeciter-next-questions>')
+  out.recoveredShortcutCount = await panel.getByRole('button', { name: quickQuestion, exact: true }).count()
 
+  const assistantCountBeforeFollowUp = await panel.locator('[class*="assistantTurn"]').count()
   await panel.locator('textarea').fill(followUpQuestion)
   await panel.getByRole('button', { name: '发送', exact: true }).click()
   await waitForPanelText(page, followUpQuestion)
-  await waitForPanelText(page, followUpAnswer)
+  await page.waitForFunction((expected) => (
+    document.querySelectorAll('[data-citeciter-panel] [class*="assistantTurn"]').length > expected
+  ), assistantCountBeforeFollowUp, { timeout: 20_000 })
   out.followUpQuestionVisible = (await panel.innerText()).includes(followUpQuestion)
   out.followUpAnswerVisible = (await panel.innerText()).includes(followUpAnswer)
 
@@ -264,6 +293,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('[data-citeciter-topic]').length === 1, null, { timeout: 8_000 })
   out.topicCountAfterArchive = await panel.locator('[data-citeciter-topic]').count()
   await panel.getByRole('button', { name: '查看归档', exact: true }).click()
+  await panel.locator('[data-citeciter-topic]').first().click()
   await panel.getByRole('button', { name: '恢复当前 Topic', exact: true }).waitFor({ timeout: 8_000 })
   out.archiveViewCount = await panel.locator('[data-citeciter-topic]').count()
   out.archivedTopicCanRestore = await panel.getByRole('button', { name: '恢复当前 Topic', exact: true }).count()
@@ -291,19 +321,29 @@ out.passed = out.failure === undefined
   && out.firstDispatch?.anchorKey === metadata.anchorKey
   && out.defaultMode === 'observer'
   && out.panelWidth >= 360
-  && out.docked === 1
+  && out.hostDockWrites === 1
+  && out.hostCiteStyles === 1
+  && out.hostDockWritesAfterClose === 0
+  && out.hostCiteStylesAfterClose === 0
   && out.sourceVisibleBesidePanel === true
   && out.firstQuestionVisible === true
   && out.firstAnswerVisible === true
   && out.observedThroughSeq >= metadata.anchorSeq
   && out.generatedTitle === generatedTitle
   && out.topicCountAfterFirst === 1
-  && out.collapsedSidebarWidth <= 64
-  && out.expandedSidebarWidth >= 200
+  && out.streamingControlHidden === true
+  && out.firstControlHidden === true
+  && out.firstShortcutCount === 1
+  && out.quickQuestionCount === 1
+  && out.quickAnswerVisible === true
+  && out.quickControlHidden === true
   && out.launcherAfterFirst === 1
+  && out.reopenedAutomatically === true
   && out.recoveredTitle === renamedTitle
   && out.recoveredQuestion === true
   && out.recoveredTopics === 1
+  && out.recoveredControlHidden === true
+  && out.recoveredShortcutCount === 1
   && out.followUpQuestionVisible === true
   && out.followUpAnswerVisible === true
   && out.secondDispatch?.defaultPrevented === true

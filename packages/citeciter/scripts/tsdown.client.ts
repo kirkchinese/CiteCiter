@@ -103,7 +103,7 @@ function clientConfig(id: string, entry: string): UserConfig {
     format: 'cjs',
     platform: 'browser',
     dts: false,
-    sourcemap: 'hidden',
+    sourcemap: false,
     clean: false,
     deps: {
       neverBundle: [...CLIENT_EXTERNALS],
@@ -198,7 +198,6 @@ function clientConfig(id: string, entry: string): UserConfig {
     }],
     outputOptions: {
       entryFileNames: 'client.js',
-      sourcemapPathTransform: browserSourcePath,
       banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(id)}, factory: (require) => {`,
       footer: 'return module.exports; } });',
       intro: 'var module = { exports: {} }; var exports = module.exports;',
@@ -218,5 +217,3 @@ function sourceAssetPath(source: string, importer: string): string {
   // For this standalone package, the source tree sits next to lib/types.
   return resolvePath(root, 'src', rel)
 }
-
-export { PACKAGE_ROOT }

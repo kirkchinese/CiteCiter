@@ -9,8 +9,9 @@ const MODEL = 'fixture'
 const ALTERNATE_MODEL = 'fixture-alt'
 const FIRST_ANSWER = '首轮回答：平行移动比较同一向量沿不同路径返回后的差异；这个差异由曲率刻画。'
 const FOLLOW_UP_ANSWER = '第二轮回答：曲率可以看成无穷小闭合回路的 holonomy；回路越小，偏差的一阶面积项越直接反映曲率。'
-const FIRST_ANSWER_WITH_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions>\n["能用球面上的例子说明吗？","holonomy 与曲率是什么关系？","为什么偏差与回路面积成正比？"]\n</citeciter-next-questions>`
-const MALFORMED_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions>\n["只有两个问题？","应该被静默隐藏吗？"]\n</citeciter-next-questions>`
+const FIRST_ANSWER_WITH_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions> [ "能用球面上的例子说明吗？", "holonomy 与曲率是什么关系？", "为什么偏差与回路面积成正比？" ] </citeciter-next-questions>  `
+const FOLLOW_UP_ANSWER_WITH_CONTROL = `${FOLLOW_UP_ANSWER}\n\n<citeciter-next-questions> [ "换一种直觉？", "如何形式化？", "边界是什么？" ] </citeciter-next-questions>  `
+const MALFORMED_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions> [ "只有两个问题？", "应该被静默隐藏吗？" ] </citeciter-next-questions>  `
 let callNumber = 0
 
 function textChunks(text) {
@@ -24,12 +25,17 @@ function textChunks(text) {
 }
 
 function reasoningTextChunks(reasoning, text) {
+  const marker = '<citeciter-next-'
+  const markerIndex = text.indexOf(marker)
+  const textDeltas = markerIndex < 0
+    ? [text]
+    : [text.slice(0, markerIndex + marker.length), text.slice(markerIndex + marker.length)]
   return [
     { type: 'block-start', index: 0, blockType: 'reasoning' },
     { type: 'reasoning-delta', index: 0, text: reasoning },
     { type: 'block-end', index: 0, block: { type: 'reasoning', text: reasoning } },
     { type: 'block-start', index: 1, blockType: 'text' },
-    { type: 'text-delta', index: 1, text },
+    ...textDeltas.map((delta) => ({ type: 'text-delta', index: 1, text: delta })),
     { type: 'block-end', index: 1, block: { type: 'text', text } },
     { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     { type: 'finish', reason: { kind: 'stop' } },
@@ -164,11 +170,13 @@ class FixtureAdapter extends LlmAdapter {
           ? '已收到你的学习偏好，并据此继续解释。'
           : question.includes('工具能力')
             ? `当前工具：${options.tools.map((tool) => tool.name).sort().join('、')}`
-            : alreadyAnswered(options.messages) ? FOLLOW_UP_ANSWER
+            : alreadyAnswered(options.messages) ? FOLLOW_UP_ANSWER_WITH_CONTROL
               : question.includes('错误快捷问题') ? MALFORMED_FOLLOWUPS : FIRST_ANSWER_WITH_FOLLOWUPS
       chunks = reasoningTextChunks('正在把工具证据与当前问题整理成清晰回答。', answer)
     }
-    const chunkDelayMs = question.includes('停止恢复测试') ? 500 : 90
+    const chunkDelayMs = question.includes('停止恢复测试')
+      ? 500
+      : chunks.some((chunk) => chunk.type === 'text-delta' && chunk.text.includes('<citeciter-next-')) ? 800 : 90
     for (const chunk of chunks) {
       options.signal?.throwIfAborted()
       await new Promise((resolve) => setTimeout(resolve, chunkDelayMs))

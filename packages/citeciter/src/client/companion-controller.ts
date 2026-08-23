@@ -1,5 +1,4 @@
 import {
-  createSnapshotStore,
   type ISessions,
   type SessionId,
   type SettingsScope,
@@ -18,11 +17,18 @@ import {
 } from '../topic.ts'
 import { readAssistantAnswer } from './answer.ts'
 import { normalizeQuestion } from './prompt.ts'
+import {
+  claimAskIntent,
+  claimCreateTopicIntent,
+  completeRequestIntent,
+  type CreateMode,
+  type RequestIntent,
+} from './request-guard.ts'
 import { isCurrentTopicResponse, shouldReopenLastTopic } from './response-guard.ts'
 import type { CiteSelection } from './types.ts'
 
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error'
-export type CreateMode = 'observer' | 'exact-fork' | 'exact-when-available'
+export type { CreateMode } from './request-guard.ts'
 export type TopicsStatus = 'idle' | 'loading' | 'ready' | 'error'
 export type SettingsSaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -47,7 +53,10 @@ export interface CompanionSnapshot {
   error: string | null
 }
 
-type RemoteRequest = (request: CiteCiterRequest) => Promise<RemoteResult<CiteCiterResponse>>
+type RemoteRequest = (
+  request: CiteCiterRequest,
+  signal: AbortSignal,
+) => Promise<RemoteResult<CiteCiterResponse>>
 
 export interface CompanionFace {
   getSnapshot(): CompanionSnapshot
@@ -69,7 +78,8 @@ export interface CompanionFace {
   dispose(): Promise<void>
 }
 
-const EMPTY: CompanionSnapshot = {
+/** Initial browser snapshot for the root-scoped CiteCiter controller. */
+export const INITIAL_COMPANION_SNAPSHOT: CompanionSnapshot = {
   sourceSessionId: null,
   phase: 'idle',
   draftQuote: null,
@@ -141,10 +151,13 @@ export function createCompanionController(
   sessions: ISessions,
   settingsScope: SettingsScope<CiteCiterSettings>,
   request: RemoteRequest,
-  onAutoOpen: () => void = () => undefined,
-  store: SnapshotStore<CompanionSnapshot> = createSnapshotStore(EMPTY),
+  onAutoOpen: () => void,
+  store: SnapshotStore<CompanionSnapshot>,
 ): CompanionFace {
   let disposed = false
+  const lifecycle = new AbortController()
+  const operations = new Set<Promise<unknown>>()
+  const remoteOperations = new Set<Promise<unknown>>()
   let visible = false
   let sourceGeneration = 0
   let activeGeneration = 0
@@ -163,6 +176,19 @@ export function createCompanionController(
   let effortOperation = 0
   let pendingRoute: { readonly operation: number, readonly sessionId: string, readonly provider: string, readonly model: string } | null = null
   let pendingEffort: { readonly operation: number, readonly sessionId: string, readonly reasoningEffort: string | null } | null = null
+  const pendingCreates = new Map<string, Promise<void>>()
+  const pendingAsks = new Map<string, Promise<boolean>>()
+
+  const track = <Value>(pending: Set<Promise<unknown>>, operation: Promise<Value>): Promise<Value> => {
+    let tracked: Promise<Value>
+    tracked = operation.finally(() => pending.delete(tracked))
+    pending.add(tracked)
+    return tracked
+  }
+  const admit = <Value>(fallback: Value, operation: () => Promise<Value>): Promise<Value> => {
+    if (disposed) return Promise.resolve(fallback)
+    return track(operations, Promise.resolve().then(() => disposed ? fallback : operation()))
+  }
 
   const update = (mutator: (draft: CompanionSnapshot) => void) => {
     if (!disposed) store.update(mutator)
@@ -217,9 +243,15 @@ export function createCompanionController(
     writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId)
   }
 
-  const call = async (command: CiteCiterRequest): Promise<CiteCiterResponse> => remoteValue(await request(command))
+  const call = (command: CiteCiterRequest): Promise<CiteCiterResponse> => track(remoteOperations, (async () => {
+    lifecycle.signal.throwIfAborted()
+    const result = await request(command, lifecycle.signal)
+    lifecycle.signal.throwIfAborted()
+    return remoteValue(result)
+  })())
 
   const openTopic = async (sessionId: string, operationGeneration = activeGeneration): Promise<void> => {
+    if (disposed) return
     update((draft) => {
       draft.phase = 'creating'
       draft.error = null
@@ -234,6 +266,7 @@ export function createCompanionController(
   }
 
   const refreshTopicsOnce = async (showLoading: boolean): Promise<void> => {
+    if (disposed) return
     const snapshot = store.getSnapshot()
     if (snapshot.sourceSessionId === null) return
     const generation = sourceGeneration
@@ -313,6 +346,7 @@ export function createCompanionController(
   }
 
   const refreshActive = async (operationGeneration = activeGeneration): Promise<void> => {
+    if (disposed) return
     const active = store.getSnapshot().active
     if (active === null) return
     const response = await call({ action: 'get', topicSessionId: active.topic.sessionId })
@@ -321,6 +355,8 @@ export function createCompanionController(
 
   const poll = async () => {
     if (!visible || disposed || polling) return
+    const active = store.getSnapshot().active
+    if (active !== null && pendingAsks.has(active.topic.sessionId)) return
     polling = true
     const operationGeneration = activeGeneration
     try {
@@ -334,7 +370,7 @@ export function createCompanionController(
   }
 
   const loadModels = async () => {
-    if (store.getSnapshot().providers.length > 0) return
+    if (disposed || store.getSnapshot().providers.length > 0) return
     const generation = sourceGeneration
     try {
       const response = await call({ action: 'models' })
@@ -412,9 +448,13 @@ export function createCompanionController(
     pollTimer = setInterval(() => { void poll() }, 700)
   }
 
-  const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode): Promise<void> => {
-    if (store.getSnapshot().phase === 'creating') return
-    const question = normalizeQuestion(rawQuestion)
+  async function runCreate(
+    selection: CiteSelection,
+    question: string,
+    mode: CreateMode,
+    intent: RequestIntent,
+  ): Promise<void> {
+    if (disposed) return
     const operationGeneration = ++activeGeneration
     update((draft) => {
       draft.sourceSessionId = selection.sourceSessionId
@@ -434,7 +474,7 @@ export function createCompanionController(
       }
       const response = await call({
         action: 'create',
-        requestId: crypto.randomUUID(),
+        requestId: intent.requestId,
         selectionClaim: {
           sourceSessionId: selection.sourceSessionId,
           anchorSeq: node.anchorSeq,
@@ -444,9 +484,10 @@ export function createCompanionController(
           suffixText: selection.suffixText,
         },
         question,
-        mode: mode ?? store.getSnapshot().settings.defaultMode,
+        mode,
       })
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
+      completeRequestIntent(intent)
       writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey)
       acceptTopic(response.topic, operationGeneration)
       await refreshTopics()
@@ -455,20 +496,36 @@ export function createCompanionController(
     }
   }
 
-  const ask = async (rawQuestion: string): Promise<boolean> => {
-    const active = store.getSnapshot().active
-    if (active === null) {
-      fail('请先从选区创建 Topic，或打开一个旧 Topic')
-      return false
-    }
+  const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode): Promise<void> => {
+    if (disposed) return
     const question = normalizeQuestion(rawQuestion)
+    const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode
+    const intent = await claimCreateTopicIntent(selection, question, resolvedMode)
+    if (disposed) return
+    const pending = pendingCreates.get(intent.requestId)
+    if (pending !== undefined) return pending
+    const operation = runCreate(selection, question, resolvedMode, intent).finally(() => {
+      if (pendingCreates.get(intent.requestId) === operation) pendingCreates.delete(intent.requestId)
+    })
+    pendingCreates.set(intent.requestId, operation)
+    return operation
+  }
+
+  async function runAsk(active: TopicSnapshot, question: string, intent: RequestIntent): Promise<boolean> {
+    if (disposed) return false
     const operationGeneration = ++activeGeneration
     update((draft) => {
       draft.phase = 'running'
       draft.error = null
     })
     try {
-      const response = await call({ action: 'ask', topicSessionId: active.topic.sessionId, question })
+      const response = await call({
+        action: 'ask',
+        requestId: intent.requestId,
+        topicSessionId: active.topic.sessionId,
+        question,
+      })
+      completeRequestIntent(intent)
       if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId)
       return response.kind === 'topic' && operationGeneration === activeGeneration
     } catch (error) {
@@ -477,7 +534,25 @@ export function createCompanionController(
     }
   }
 
+  const ask = async (rawQuestion: string): Promise<boolean> => {
+    if (disposed) return false
+    const snapshot = store.getSnapshot()
+    const active = snapshot.active
+    if (active === null || !['ready', 'stopped', 'error'].includes(snapshot.phase)) return false
+    const sessionId = active.topic.sessionId
+    if (pendingAsks.has(sessionId)) return false
+    const question = normalizeQuestion(rawQuestion)
+    const intent = await claimAskIntent(sessionId, question)
+    if (disposed || pendingAsks.has(sessionId)) return false
+    const operation = runAsk(active, question, intent).finally(() => {
+      if (pendingAsks.get(sessionId) === operation) pendingAsks.delete(sessionId)
+    })
+    pendingAsks.set(sessionId, operation)
+    return operation
+  }
+
   const stop = async (): Promise<void> => {
+    if (disposed) return
     const active = store.getSnapshot().active
     if (active === null) return
     const operationGeneration = ++activeGeneration
@@ -494,6 +569,7 @@ export function createCompanionController(
   }
 
   const answerQuestion = async (key: string, answer: QuestionAnswer): Promise<void> => {
+    if (disposed) return
     const active = store.getSnapshot().active
     if (active === null) return
     const operationGeneration = ++activeGeneration
@@ -511,6 +587,7 @@ export function createCompanionController(
   }
 
   const cancelQuestion = async (key: string): Promise<void> => {
+    if (disposed) return
     const active = store.getSnapshot().active
     if (active === null) return
     const operationGeneration = ++activeGeneration
@@ -527,6 +604,7 @@ export function createCompanionController(
   }
 
   const rename = async (rawTitle: string): Promise<boolean> => {
+    if (disposed) return false
     const active = store.getSnapshot().active
     const title = rawTitle.trim()
     if (active === null || title === '') return false
@@ -553,6 +631,7 @@ export function createCompanionController(
   }
 
   const archive = async (archived: boolean): Promise<boolean> => {
+    if (disposed) return false
     const active = store.getSnapshot().active
     if (active === null) return false
     const operationGeneration = ++activeGeneration
@@ -593,6 +672,7 @@ export function createCompanionController(
   }
 
   const setModelRoute = async (provider: string, model: string): Promise<void> => {
+    if (disposed) return
     const active = store.getSnapshot().active
     if (active === null) return
     const operation = ++routeOperation
@@ -630,11 +710,12 @@ export function createCompanionController(
         draft.modelRouteSaving = false
       })
       fail(error, operationGeneration)
-      await refreshActive(activeGeneration)
+      if (!disposed) await refreshActive(activeGeneration)
     }
   }
 
   const setReasoningEffort = async (reasoningEffort: string | null): Promise<void> => {
+    if (disposed) return
     const active = store.getSnapshot().active
     if (active === null) return
     const operation = ++effortOperation
@@ -667,7 +748,41 @@ export function createCompanionController(
         draft.reasoningEffortSaving = false
       })
       fail(error, operationGeneration)
-      await refreshActive(activeGeneration)
+      if (!disposed) await refreshActive(activeGeneration)
+    }
+  }
+
+  const setSetting = async <Key extends keyof CiteCiterSettings>(
+    key: Key,
+    value: CiteCiterSettings[Key],
+  ): Promise<void> => {
+    if (disposed) return
+    const operation = ++settingOperation
+    pendingSettings.set(key, { operation, value })
+    update((draft) => {
+      draft.settings = { ...draft.settings, [key]: value }
+      draft.settingsSaveStatus = 'saving'
+      draft.settingsSaveMessage = '正在保存…'
+    })
+    try {
+      await track(remoteOperations, settingsScope.set(key, value))
+      if (pendingSettings.get(key)?.operation !== operation || disposed) return
+      pendingSettings.delete(key)
+      const authoritative = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
+      update((draft) => {
+        draft.settings = settingsWithPending(authoritative)
+        draft.settingsSaveStatus = pendingSettings.size === 0 ? 'saved' : 'saving'
+        draft.settingsSaveMessage = pendingSettings.size === 0 ? '已保存' : '正在保存…'
+      })
+    } catch (error) {
+      if (pendingSettings.get(key)?.operation !== operation || disposed) return
+      pendingSettings.delete(key)
+      const restored = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
+      update((draft) => {
+        draft.settings = settingsWithPending(restored)
+        draft.settingsSaveStatus = 'error'
+        draft.settingsSaveMessage = `保存失败，已恢复：${error instanceof Error ? error.message : String(error)}`
+      })
     }
   }
 
@@ -676,15 +791,16 @@ export function createCompanionController(
     subscribe: store.subscribe,
     setSource,
     setVisible,
-    create,
-    openTopic: (sessionId) => openTopic(sessionId, ++activeGeneration),
-    ask,
-    answerQuestion,
-    cancelQuestion,
-    stop,
-    rename,
-    archive,
+    create: (selection, question, mode) => admit(undefined, () => create(selection, question, mode)),
+    openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
+    ask: (question) => admit(false, () => ask(question)),
+    answerQuestion: (key, answer) => admit(undefined, () => answerQuestion(key, answer)),
+    cancelQuestion: (key) => admit(undefined, () => cancelQuestion(key)),
+    stop: () => admit(undefined, stop),
+    rename: (title) => admit(false, () => rename(title)),
+    archive: (archived) => admit(false, () => archive(archived)),
     setIncludeArchived: (include) => {
+      if (disposed) return
       activeGeneration++
       update((draft) => {
         draft.includeArchived = include
@@ -696,42 +812,27 @@ export function createCompanionController(
       })
       void refreshTopics(true)
     },
-    setModelRoute,
-    setReasoningEffort,
-    setSetting: async (key, value) => {
-      const operation = ++settingOperation
-      pendingSettings.set(key, { operation, value })
-      update((draft) => {
-        draft.settings = { ...draft.settings, [key]: value }
-        draft.settingsSaveStatus = 'saving'
-        draft.settingsSaveMessage = '正在保存…'
-      })
-      try {
-        await settingsScope.set(key, value)
-        if (pendingSettings.get(key)?.operation !== operation || disposed) return
-        pendingSettings.delete(key)
-        const authoritative = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
-        update((draft) => {
-          draft.settings = settingsWithPending(authoritative)
-          draft.settingsSaveStatus = pendingSettings.size === 0 ? 'saved' : 'saving'
-          draft.settingsSaveMessage = pendingSettings.size === 0 ? '已保存' : '正在保存…'
-        })
-      } catch (error) {
-        if (pendingSettings.get(key)?.operation !== operation || disposed) return
-        pendingSettings.delete(key)
-        const restored = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
-        update((draft) => {
-          draft.settings = settingsWithPending(restored)
-          draft.settingsSaveStatus = 'error'
-          draft.settingsSaveMessage = `保存失败，已恢复：${error instanceof Error ? error.message : String(error)}`
-        })
-      }
-    },
+    setModelRoute: (provider, model) => admit(undefined, () => setModelRoute(provider, model)),
+    setReasoningEffort: (effort) => admit(undefined, () => setReasoningEffort(effort)),
+    setSetting: (key, value) => admit(undefined, () => setSetting(key, value)),
     dispose: async () => {
       if (disposed) return
       disposed = true
+      visible = false
+      sourceGeneration++
+      activeGeneration++
+      topicsRefreshAgain = false
       if (pollTimer !== null) clearInterval(pollTimer)
+      pollTimer = null
       unsubscribeSettings()
+      lifecycle.abort(new DOMException('CiteCiter is shutting down', 'AbortError'))
+      while (operations.size > 0 || remoteOperations.size > 0 || topicsRefresh !== null) {
+        await Promise.allSettled([
+          ...operations,
+          ...remoteOperations,
+          ...(topicsRefresh === null ? [] : [topicsRefresh]),
+        ])
+      }
     },
   }
 }

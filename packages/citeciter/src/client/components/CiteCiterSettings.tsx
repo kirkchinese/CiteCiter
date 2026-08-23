@@ -1,19 +1,26 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CompanionFace } from '../companion-controller.ts'
+import type { SettingsDocumentController } from '../settings-document.ts'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
 
 export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
   readonly companion: CompanionFace
+  readonly settingsDocument: SettingsDocumentController
 }
 
 /** Native DSH settings page for CiteCiter-owned preferences. */
-export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
+export function CiteCiterSettings({ companion, settingsDocument }: CiteCiterSettingsProps) {
   const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
+  const documentSnapshot = useSyncExternalStore(settingsDocument.subscribe, settingsDocument.getSnapshot)
   const settings = snapshot.settings
   const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent)
   const committedWidth = useRef(settings.panelWidthPercent)
+  useEffect(() => {
+    void settingsDocument.load()
+  }, [settingsDocument])
   useEffect(() => {
     committedWidth.current = settings.panelWidthPercent
     setWidthDraft(settings.panelWidthPercent)
@@ -80,6 +87,35 @@ export function CiteCiterSettings({ companion }: CiteCiterSettingsProps) {
             onChange={(event) => { void companion.setSetting('allowSourceFiles', event.currentTarget.checked) }}
           />
         </label>
+      </section>
+
+      <section className={css.settingsGroup}>
+        <h3>配置文件</h3>
+        <div className={css.settingsDocumentAction}>
+          <button
+            type="button"
+            className={css.settingsDocumentButton}
+            data-status={documentSnapshot.status}
+            disabled={['loading', 'missing', 'unavailable'].includes(documentSnapshot.status) || documentSnapshot.opening}
+            aria-busy={documentSnapshot.opening || documentSnapshot.status === 'loading'}
+            onClick={() => { void settingsDocument.open() }}
+          >
+            <IconSettingsOutline14 size={14} />
+            {documentSnapshot.opening
+              ? '正在打开…'
+              : documentSnapshot.status === 'loading' ? '正在检查…'
+                : documentSnapshot.status === 'unavailable' ? '宿主不支持打开'
+                  : documentSnapshot.status === 'missing' ? '配置文件不存在'
+                    : documentSnapshot.status === 'error' ? '重试打开配置文件' : '打开配置文件'}
+          </button>
+          {(documentSnapshot.error !== null || documentSnapshot.message !== null) && (
+            <p
+              className={css.settingsDocumentStatus}
+              data-status={documentSnapshot.error === null ? 'success' : 'error'}
+              role={documentSnapshot.error === null ? 'status' : 'alert'}
+            >{documentSnapshot.error ?? documentSnapshot.message}</p>
+          )}
+        </div>
       </section>
 
       <section className={css.settingsGroup}>

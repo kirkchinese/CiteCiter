@@ -1,18 +1,11 @@
+import { dshAssistantAnchorForTarget, dshConversationFlow, dshIntersectedAssistantAnchors, dshRangeTouchesExcludedContent, isReadFrogTranslatedContent, readFrogSelection, } from "./conversation-dom.js";
 const RANGE_CONTEXT_CHARS = 240;
-const TRANSLATED_CONTENT_SELECTOR = '[data-read-frog-translation-mode]';
-/** Resolve a DOM Node to its nearest Element parent. */
-function parentElement(node) {
-    return node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-}
-function isTranslatedContent(node) {
-    return node.nodeType === Node.ELEMENT_NODE && node.matches(TRANSLATED_CONTENT_SELECTOR);
-}
 function committedText(root, target) {
     let text = '';
     let targetStart;
     let targetEnd;
     const visit = (node) => {
-        if (isTranslatedContent(node))
+        if (isReadFrogTranslatedContent(node))
             return;
         if (node === target)
             targetStart = text.length;
@@ -31,7 +24,7 @@ function committedTextBefore(root, boundary, offset) {
     let text = '';
     let found = false;
     const visit = (node) => {
-        if (found || isTranslatedContent(node))
+        if (found || isReadFrogTranslatedContent(node))
             return;
         if (node === boundary) {
             if (node.nodeType === Node.TEXT_NODE)
@@ -66,23 +59,23 @@ function committedTextBefore(root, boundary, offset) {
  * @returns validated selection metadata, or null when CiteCiter should ignore it.
  */
 export function readSelection(event, sourceSessionId) {
+    const eventAnchor = dshAssistantAnchorForTarget(event.target);
+    if (eventAnchor === null)
+        return null;
     const selection = window.getSelection();
     if (selection === null || selection.isCollapsed || selection.rangeCount === 0)
         return null;
     const range = selection.getRangeAt(0);
-    const startFlow = parentElement(range.startContainer)?.closest('[data-chat-flow-kind]');
-    const endFlow = parentElement(range.endContainer)?.closest('[data-chat-flow-kind]');
-    if (startFlow === null || startFlow === undefined || endFlow === null || endFlow === undefined)
+    const startFlow = dshConversationFlow(range.startContainer);
+    const endFlow = dshConversationFlow(range.endContainer);
+    if (startFlow === null || endFlow === null)
         return null;
-    if (endFlow !== startFlow) {
-        const flow = [...document.querySelectorAll('[data-chat-flow-kind="assistant-step"][data-chat-anchor-key]')]
-            .filter((candidate) => range.intersectsNode(candidate))
-            .at(-1);
-        const anchorKey = flow?.dataset.chatAnchorKey;
+    if (endFlow.element !== startFlow.element) {
+        const anchor = dshIntersectedAssistantAnchors(range).at(-1);
         const displayText = range.toString().trim();
-        if (flow === undefined || anchorKey === undefined || anchorKey === '' || displayText === '')
+        if (anchor === undefined || anchor.element !== eventAnchor.element || displayText === '')
             return null;
-        const projected = committedText(flow).text;
+        const projected = committedText(anchor.element).text;
         const sourceHintText = projected.trim();
         if (sourceHintText === '')
             return null;
@@ -93,7 +86,7 @@ export function readSelection(event, sourceSessionId) {
             displayText,
             sourceHintText,
             kind: 'assistant-step',
-            anchorKey,
+            anchorKey: anchor.anchorKey,
             startOffset,
             endOffset,
             prefixText: '',
@@ -102,37 +95,18 @@ export function readSelection(event, sourceSessionId) {
             y: event.clientY,
         };
     }
-    for (const reasoning of startFlow.querySelectorAll('[data-variant="think"]')) {
-        if (range.intersectsNode(reasoning))
-            return null;
-    }
-    for (const generated of startFlow.querySelectorAll('button, .katex, [data-footnotes], sup')) {
-        if (range.intersectsNode(generated))
-            return null;
-    }
-    for (const endpoint of [range.startContainer, range.endContainer]) {
-        const element = parentElement(endpoint);
-        if (element?.closest('.md-code-block') !== null && element?.closest('pre') === null)
-            return null;
-    }
-    const kind = startFlow.dataset.chatFlowKind;
-    const anchorKey = startFlow.dataset.chatAnchorKey;
-    if (kind !== 'assistant-step' || anchorKey === undefined || anchorKey === '')
+    if (startFlow.element !== eventAnchor.element || dshRangeTouchesExcludedContent(range, startFlow.element))
         return null;
-    const translatedStart = parentElement(range.startContainer)?.closest(TRANSLATED_CONTENT_SELECTOR);
-    const translatedEnd = parentElement(range.endContainer)?.closest(TRANSLATED_CONTENT_SELECTOR);
+    const translated = readFrogSelection(range, startFlow.element);
+    if (translated.kind === 'invalid')
+        return null;
     let text;
     let flowText;
     let startOffset;
     let endOffset;
     let sourceHintText;
-    if (translatedStart !== null || translatedEnd !== null) {
-        if (translatedStart === null || translatedStart === undefined || translatedStart !== translatedEnd)
-            return null;
-        const sourceElement = translatedStart.parentElement?.closest('[data-read-frog-paragraph]');
-        if (sourceElement === null || sourceElement === undefined || !startFlow.contains(sourceElement))
-            return null;
-        const projected = committedText(startFlow, sourceElement);
+    if (translated.kind === 'translation') {
+        const projected = committedText(startFlow.element, translated.sourceParagraph);
         if (projected.targetStart === undefined || projected.targetEnd === undefined)
             return null;
         const rawSourceHint = projected.text.slice(projected.targetStart, projected.targetEnd);
@@ -145,15 +119,15 @@ export function readSelection(event, sourceSessionId) {
         sourceHintText = rawSourceHint.trim();
     }
     else {
-        const beforeStart = committedTextBefore(startFlow, range.startContainer, range.startOffset);
-        const beforeEnd = committedTextBefore(startFlow, range.endContainer, range.endOffset);
+        const beforeStart = committedTextBefore(startFlow.element, range.startContainer, range.startOffset);
+        const beforeEnd = committedTextBefore(startFlow.element, range.endContainer, range.endOffset);
         if (beforeStart === null || beforeEnd === null || beforeEnd.length < beforeStart.length)
             return null;
         const rawText = beforeEnd.slice(beforeStart.length);
         const leadingWhitespace = rawText.length - rawText.trimStart().length;
         const trailingWhitespace = rawText.length - rawText.trimEnd().length;
         text = rawText.trim();
-        flowText = committedText(startFlow).text;
+        flowText = committedText(startFlow.element).text;
         startOffset = beforeStart.length + leadingWhitespace;
         endOffset = beforeEnd.length - trailingWhitespace;
     }
@@ -165,8 +139,8 @@ export function readSelection(event, sourceSessionId) {
         sourceSessionId,
         displayText: text,
         ...(sourceHintText === undefined ? {} : { sourceHintText }),
-        kind,
-        anchorKey,
+        kind: 'assistant-step',
+        anchorKey: eventAnchor.anchorKey,
         startOffset,
         endOffset,
         prefixText: flowText.slice(Math.max(0, startOffset - RANGE_CONTEXT_CHARS), startOffset),
@@ -174,4 +148,18 @@ export function readSelection(event, sourceSessionId) {
         x: event.clientX,
         y: event.clientY,
     };
+}
+/**
+ * Claim a context menu only after resolving a valid DSH assistant selection.
+ *
+ * @param event - context-menu event to validate and optionally cancel.
+ * @param sourceSessionId - current source session captured with the selection.
+ * @returns validated selection metadata, or null while leaving the native menu untouched.
+ */
+export function claimSelectionContextMenu(event, sourceSessionId) {
+    const selection = readSelection(event, sourceSessionId);
+    if (selection === null)
+        return null;
+    event.preventDefault();
+    return selection;
 }

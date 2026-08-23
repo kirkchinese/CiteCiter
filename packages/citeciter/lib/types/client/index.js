@@ -1,13 +1,15 @@
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
 import { CITECITER_SETTINGS_NAMESPACE, citeCiterSettingsSchema, } from "../topic.js";
 import { TYPERT_REMOTE } from "../typert.remote-client.js";
-import { createCompanionController } from "./companion-controller.js";
+import { createCompanionController, INITIAL_COMPANION_SNAPSHOT } from "./companion-controller.js";
 import { CitePanel } from "./components/CitePanel.js";
 import { CiteCiterSettings as CiteCiterSettingsView } from "./components/CiteCiterSettings.js";
 import { SelectionMenu } from "./components/SelectionMenu.js";
-import { readSelection } from "./selection.js";
+import { createSettingsDocumentController } from "./settings-document.js";
+import { claimSelectionContextMenu } from "./selection.js";
 import { CiteBus } from "./types.js";
 export const name = '@kirkchinese/dsh-citeciter';
-export const inject = ['layout', 'slots', 'sessions', 'remote', 'settingsScope'];
+export const inject = ['slots', 'sessions', 'remote', 'settingsScope', 'connection'];
 function decodeSettings(section) {
     const parsed = citeCiterSettingsSchema.safeParse(section);
     return parsed.success ? parsed.data : undefined;
@@ -18,20 +20,25 @@ export async function apply(ctx) {
     ctx.effect(() => unmountRemote, 'citeciter: Remote contribution');
     ctx.inject(['remote.citeciter'], (remoteCtx) => {
         const sessions = remoteCtx.get('sessions');
-        const settings = remoteCtx.settingsScope.bind({
+        const settingsBinder = remoteCtx.settingsScope;
+        const settings = settingsBinder.bind({
             namespace: CITECITER_SETTINGS_NAMESPACE,
             decode: decodeSettings,
         });
+        const connection = remoteCtx.get('connection');
+        const settingsDocument = createSettingsDocumentController(settingsBinder.describe(), async (signal) => {
+            const response = await connection.api.settings.openDocument({}, signal);
+            if (!response.result.ok)
+                throw new Error(response.result.error.message);
+        });
         const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error));
         const openPanel = () => {
-            remoteCtx.layout.closeDetails();
             bus.setPanelOpen(true);
         };
         const closePanel = () => {
-            remoteCtx.layout.closeDetails();
             bus.setPanelOpen(false);
         };
-        const companion = createCompanionController(sessions, settings, (request) => remoteCtx.remote.citeciter.request(request), openPanel);
+        const companion = createCompanionController(sessions, settings, (request, signal) => remoteCtx.remote.citeciter.request(request, signal), openPanel, createSnapshotStore(INITIAL_COMPANION_SNAPSHOT));
         const reportedParseErrors = new Set();
         const reportParseError = (messageId) => {
             const storageKey = `citeciter:malformed-followups:${messageId}`;
@@ -58,10 +65,9 @@ export async function apply(ctx) {
                 const sourceSessionId = sessions.list.getSnapshot().current;
                 if (sourceSessionId === undefined)
                     return;
-                const selection = readSelection(event, sourceSessionId);
+                const selection = claimSelectionContextMenu(event, sourceSessionId);
                 if (selection === null)
                     return;
-                event.preventDefault();
                 bus.setMenuSelection(selection);
             };
             const onPointerDown = (event) => {
@@ -98,12 +104,12 @@ export async function apply(ctx) {
             id: 'citeciter',
             order: 45,
             label: 'CiteCiter',
-            inject: () => ({ companion }),
+            inject: () => ({ companion, settingsDocument }),
         }, CiteCiterSettingsView));
         remoteCtx.effect(() => async () => {
             unsubscribeSessions();
             closePanel();
-            await companion.dispose();
+            await Promise.all([companion.dispose(), settingsDocument.dispose()]);
         }, 'citeciter: browser controller');
     });
 }

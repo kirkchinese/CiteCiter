@@ -85,8 +85,8 @@ let CiteCiterHost = (() => {
             await this.topics.initialize();
         }
         /** Validate and execute one strict Topic command. */
-        async request(rawRequest) {
-            return this.topics.request(citeCiterRequestSchema.parse(rawRequest));
+        async request(rawRequest, signal) {
+            return this.topics.request(citeCiterRequestSchema.parse(rawRequest), signal);
         }
     };
 })();

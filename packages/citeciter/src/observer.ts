@@ -243,15 +243,19 @@ export function formatSourceSessionRead(
     throw new Error('maxBytes must be a safe integer of at least 2')
   }
 
-  const availableThroughSeq = source.events.length === 0
-    ? null
-    : source.events[source.events.length - 1]?.seq ?? null
+  let availableThroughSeq: number | null = null
+  for (const event of source.events) {
+    if (options.throughSeq !== undefined && event.seq > options.throughSeq) break
+    availableThroughSeq = event.seq
+  }
   const events: SourceEvidenceEvent[] = []
   let bytesUsed = 2 // JSON array brackets.
   let capturedThroughSeq: number | null = null
   let truncated = false
 
-  for (const event of source.events) {
+  for (let index = 0; index < source.events.length; index += 1) {
+    const event = source.events[index]
+    if (event === undefined) continue
     if (event.seq < fromSeq) continue
     if (options.throughSeq !== undefined && event.seq > options.throughSeq) break
     const formatted = formatEvidenceEvent(event, options.includeReasoning)
@@ -259,11 +263,33 @@ export function formatSourceSessionRead(
       capturedThroughSeq = event.seq
       continue
     }
-    const eventBytes = Buffer.byteLength(JSON.stringify(formatted), 'utf8')
-      + (events.length === 0 ? 0 : 1)
+    const serializedBytes = Buffer.byteLength(JSON.stringify(formatted), 'utf8')
+    const eventBytes = serializedBytes + (events.length === 0 ? 0 : 1)
     if (bytesUsed + eventBytes > options.maxBytes) {
-      truncated = true
-      break
+      if (serializedBytes <= options.maxBytes - 2) {
+        truncated = true
+        break
+      }
+      const placeholder = evidence({
+        type: event.type,
+        seq: event.seq,
+        oversized: true,
+      })
+      const serializedPlaceholderBytes = Buffer.byteLength(JSON.stringify(placeholder), 'utf8')
+      const placeholderBytes = serializedPlaceholderBytes + (events.length === 0 ? 0 : 1)
+      if (bytesUsed + placeholderBytes > options.maxBytes) {
+        if (serializedPlaceholderBytes <= options.maxBytes - 2) {
+          truncated = true
+          break
+        }
+        capturedThroughSeq = event.seq
+        truncated = true
+        break
+      }
+      events.push(placeholder)
+      bytesUsed += placeholderBytes
+      capturedThroughSeq = event.seq
+      continue
     }
     events.push(formatted)
     bytesUsed += eventBytes

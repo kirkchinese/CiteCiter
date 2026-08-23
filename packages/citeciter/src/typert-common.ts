@@ -18,6 +18,7 @@ export const citeCiterRequestDescriptor = {
       schema: citeCiterRequestSchema,
     },
   }],
+  cancellation: { parameter: 'signal' },
   result: {
     mode: 'strict',
     typeSymbol: '@kirkchinese/dsh-citeciter#CiteCiterResponse',
@@ -25,7 +26,7 @@ export const citeCiterRequestDescriptor = {
   },
   sourceLocation: {
     file: 'src/index.ts',
-    line: 63,
+    line: 66,
     column: 3,
   },
 } as const satisfies InvocationDescriptor

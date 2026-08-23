@@ -7,7 +7,7 @@ import { citeCiterRequestDescriptor } from './typert-common.ts'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface CiteCiterRemoteNamespace {
-    request: (request: CiteCiterRequest) => Promise<RemoteResult<CiteCiterResponse>>
+    request: (request: CiteCiterRequest, signal?: AbortSignal) => Promise<RemoteResult<CiteCiterResponse>>
   }
   interface TypertRemoteMap {
     'citeciter/request': CiteCiterRemoteNamespace['request']

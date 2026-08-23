@@ -1,4 +1,0 @@
-# Probe P2: mount probe package p2 (requires profile node_modules symlink).
-- insert:
-    - id: citeciter-probe-p2
-      name: citeciter-probe-p2

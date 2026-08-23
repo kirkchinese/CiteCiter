@@ -1,4 +1,4 @@
-import { a as canonicalCitationIdentity, c as citationSelectionClaimSchema, d as citeCiterSettingsSchema, f as renderCitationContext, i as TUTOR_SECTION_NAME, l as citeCiterRequestSchema, n as CITECITER_SETTINGS_NAMESPACE, o as citationDraftSchema, p as topicMetadataSchema, r as DEFAULT_CITECITER_SETTINGS, t as CITATION_CONTEXT_NAME } from "./topic-DByv84H6.js";
+import { a as canonicalCitationIdentity, c as citationSelectionClaimSchema, d as citeCiterSettingsSchema, f as renderCitationContext, i as TUTOR_SECTION_NAME, l as citeCiterRequestSchema, n as CITECITER_SETTINGS_NAMESPACE, o as citationDraftSchema, p as topicMetadataSchema, r as DEFAULT_CITECITER_SETTINGS, t as CITATION_CONTEXT_NAME } from "./topic-BVNCaVbJ.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { settingsNamespace } from "@deepseek-ai/dsh-settings";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -9,7 +9,7 @@ import { isAbsolute, matchesGlob, relative, resolve } from "node:path";
 import AgentRegistry, { installModelSelection } from "@deepseek-ai/dsh-agent";
 import AgentLoop from "@deepseek-ai/dsh-agent-loop";
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
-import { BlockAssembler, ReasoningEffortId, createUserMessage } from "@deepseek-ai/dsh-llm";
+import { BlockAssembler, MessageId, ReasoningEffortId, createUserMessage, freezeMessage } from "@deepseek-ai/dsh-llm";
 import { effectiveSandboxMode, setSandboxMode } from "@deepseek-ai/dsh-sandbox-policy";
 import SessionStore, { SessionId, foldRequestHeader, snapshotJsonValue } from "@deepseek-ai/dsh-session";
 import JsonlSessionPersistence from "@deepseek-ai/dsh-session-persistence-jsonl";
@@ -14641,12 +14641,18 @@ function formatSourceSessionRead(source, options) {
 	if (!Number.isSafeInteger(fromSeq) || fromSeq < 0) throw new Error("fromSeq must be a non-negative safe integer");
 	if (options.throughSeq !== void 0 && (!Number.isSafeInteger(options.throughSeq) || options.throughSeq < fromSeq)) throw new Error("throughSeq must be a safe integer greater than or equal to fromSeq");
 	if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes < 2) throw new Error("maxBytes must be a safe integer of at least 2");
-	const availableThroughSeq = source.events.length === 0 ? null : source.events[source.events.length - 1]?.seq ?? null;
+	let availableThroughSeq = null;
+	for (const event of source.events) {
+		if (options.throughSeq !== void 0 && event.seq > options.throughSeq) break;
+		availableThroughSeq = event.seq;
+	}
 	const events = [];
 	let bytesUsed = 2;
 	let capturedThroughSeq = null;
 	let truncated = false;
-	for (const event of source.events) {
+	for (let index = 0; index < source.events.length; index += 1) {
+		const event = source.events[index];
+		if (event === void 0) continue;
 		if (event.seq < fromSeq) continue;
 		if (options.throughSeq !== void 0 && event.seq > options.throughSeq) break;
 		const formatted = formatEvidenceEvent(event, options.includeReasoning);
@@ -14654,10 +14660,33 @@ function formatSourceSessionRead(source, options) {
 			capturedThroughSeq = event.seq;
 			continue;
 		}
-		const eventBytes = Buffer.byteLength(JSON.stringify(formatted), "utf8") + (events.length === 0 ? 0 : 1);
+		const serializedBytes = Buffer.byteLength(JSON.stringify(formatted), "utf8");
+		const eventBytes = serializedBytes + (events.length === 0 ? 0 : 1);
 		if (bytesUsed + eventBytes > options.maxBytes) {
-			truncated = true;
-			break;
+			if (serializedBytes <= options.maxBytes - 2) {
+				truncated = true;
+				break;
+			}
+			const placeholder = evidence({
+				type: event.type,
+				seq: event.seq,
+				oversized: true
+			});
+			const serializedPlaceholderBytes = Buffer.byteLength(JSON.stringify(placeholder), "utf8");
+			const placeholderBytes = serializedPlaceholderBytes + (events.length === 0 ? 0 : 1);
+			if (bytesUsed + placeholderBytes > options.maxBytes) {
+				if (serializedPlaceholderBytes <= options.maxBytes - 2) {
+					truncated = true;
+					break;
+				}
+				capturedThroughSeq = event.seq;
+				truncated = true;
+				break;
+			}
+			events.push(placeholder);
+			bytesUsed += placeholderBytes;
+			capturedThroughSeq = event.seq;
+			continue;
 		}
 		events.push(formatted);
 		bytesUsed += eventBytes;
@@ -14694,6 +14723,10 @@ const TOPIC_TITLE_CONFIG = resolveSessionTitleLlmConfig({
 	maxOutputTokens: 64,
 	timeoutMs: 6e4
 });
+const CITECITER_SHUTTING_DOWN = "CiteCiter is shutting down";
+function citeCiterShuttingDownError() {
+	return /* @__PURE__ */ new Error(CITECITER_SHUTTING_DOWN);
+}
 /** Decide both model visibility and execution access for one private Topic tool. */
 function citeCiterToolAvailable(name, allowSourceFiles) {
 	return ALWAYS_AVAILABLE_TOOLS.has(name) || allowSourceFiles && SOURCE_FILE_TOOLS.has(name);
@@ -15049,6 +15082,54 @@ function topicMessages(log) {
 		error
 	};
 }
+/**
+* Return the first genuine Topic question after any Exact Fork seed.
+* @param log - private Topic Session contents.
+* @returns the first post-seed question, or `null` when it has not been committed.
+*/
+function firstPostSeedUserQuestion(log) {
+	for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+		if (event.type !== "user/message" || event.data.source.kind !== "user") continue;
+		const text = textBlocks(event.data.content, "text");
+		if (text !== "") return text;
+	}
+	for (const message of pendingPostSeedUserMessages(log)) {
+		if (message.source.kind !== "user") continue;
+		const text = textBlocks(message.content, "text");
+		if (text !== "") return text;
+	}
+	return null;
+}
+function pendingPostSeedUserMessages(log) {
+	const pending = {
+		"next-turn": [],
+		"next-step": []
+	};
+	for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+		if (event.type !== "agent/inbox/spliced") continue;
+		pending[event.data.target].splice(event.data.start, event.data.removedCount ?? 0, ...event.data.inserted);
+	}
+	return [...pending["next-step"], ...pending["next-turn"]];
+}
+/**
+* Find a post-seed user question by its durable message identifier.
+* @param log - private Topic Session contents.
+* @param messageId - request identity stored as the user-message identity.
+* @returns the matching question, or `null` when the request is not committed.
+*/
+function postSeedUserQuestionById(log, messageId) {
+	const committed = committedPostSeedUserQuestionById(log, messageId);
+	if (committed !== null) return committed;
+	const pending = pendingPostSeedUserMessages(log).find((message) => message.source.kind === "user" && String(message.id) === messageId);
+	return pending === void 0 ? null : textBlocks(pending.content, "text");
+}
+function committedPostSeedUserQuestionById(log, messageId) {
+	for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+		if (event.type !== "user/message" || event.data.source.kind !== "user" || String(event.data.id) !== messageId) continue;
+		return textBlocks(event.data.content, "text");
+	}
+	return null;
+}
 function titleSourceKind(value) {
 	if (value === void 0) return null;
 	return value.source.kind === "fallback" || value.source.kind === "provider" || value.source.kind === "user" ? value.source.kind : null;
@@ -15110,18 +15191,34 @@ function resolveTopicModeAndSeed(requested, source, anchorSeq) {
 function createSourceSessionId(request) {
 	return "selectionClaim" in request ? request.selectionClaim.sourceSessionId : request.citation.sourceSessionId;
 }
+function identifiedQuestion(requestId, question) {
+	return freezeMessage({
+		id: MessageId(requestId),
+		role: "user",
+		content: [{
+			type: "text",
+			text: question
+		}],
+		source: { kind: "user" }
+	});
+}
 /** One process-local private DSH tree with standard Session logs and Agent loop. */
 var TopicRuntime = class {
 	host;
 	settings;
 	runtime = new Context();
 	index = new TopicIndex();
+	lifecycleAbort = new AbortController();
 	fibers = [];
 	handles = /* @__PURE__ */ new Map();
 	selections = /* @__PURE__ */ new Map();
 	opening = /* @__PURE__ */ new Map();
+	requests = /* @__PURE__ */ new Set();
+	cleanupFailures = [];
 	pendingQuestions = /* @__PURE__ */ new Map();
 	creations = /* @__PURE__ */ new Map();
+	asks = /* @__PURE__ */ new Map();
+	topicAdmissions = /* @__PURE__ */ new Map();
 	modelChanges = /* @__PURE__ */ new Map();
 	titleRefreshes = /* @__PURE__ */ new Map();
 	titleRefreshAttempted = /* @__PURE__ */ new Set();
@@ -15150,66 +15247,74 @@ var TopicRuntime = class {
 		return this.ready;
 	}
 	/** Execute one validated browser command against private Topics. */
-	async request(rawRequest) {
+	async request(rawRequest, callerSignal) {
 		const request = citeCiterRequestSchema.parse(rawRequest);
 		await this.ready;
-		if (this.closed) throw new Error("CiteCiter is shutting down");
+		const signal = AbortSignal.any([this.lifecycleAbort.signal, callerSignal]);
+		this.assertOpen(signal);
+		const operation = this.executeRequest(request, signal);
+		this.requests.add(operation);
+		operation.then(() => this.requests.delete(operation), () => this.requests.delete(operation));
+		return operation;
+	}
+	async executeRequest(request, signal) {
+		this.assertOpen(signal);
 		switch (request.action) {
 			case "create": return {
 				kind: "topic",
-				topic: await this.createIdempotent(request)
+				topic: await this.createIdempotent(request, signal)
 			};
 			case "list": return {
 				kind: "topics",
-				topics: await this.list(request.sourceSessionId, request.includeArchived ?? false)
+				topics: await this.list(request.sourceSessionId, request.includeArchived ?? false, signal)
 			};
 			case "get": return {
 				kind: "topic",
-				topic: await this.snapshot(await this.index.loadBySessionId(request.topicSessionId))
+				topic: await this.get(request.topicSessionId, signal)
 			};
 			case "ask": return {
 				kind: "topic",
-				topic: await this.ask(request.topicSessionId, request.question)
+				topic: await this.askIdempotent(request, signal)
 			};
 			case "stop": return {
 				kind: "topic",
-				topic: await this.stop(request.topicSessionId)
+				topic: await this.stop(request.topicSessionId, signal)
 			};
 			case "answer-question": return {
 				kind: "topic",
-				topic: await this.answerQuestion(request)
+				topic: await this.answerQuestion(request, signal)
 			};
 			case "cancel-question": return {
 				kind: "topic",
-				topic: await this.cancelQuestion(request.topicSessionId, request.key)
+				topic: await this.cancelQuestion(request.topicSessionId, request.key, signal)
 			};
 			case "rename": return {
 				kind: "topic",
-				topic: await this.rename(request.topicSessionId, request.title)
+				topic: await this.rename(request.topicSessionId, request.title, signal)
 			};
 			case "archive": return {
 				kind: "topic",
-				topic: await this.archive(request.topicSessionId, request.archived)
+				topic: await this.archive(request.topicSessionId, request.archived, signal)
 			};
 			case "delete": return {
 				kind: "deleted",
-				sessionId: await this.delete(request.topicSessionId, request.confirmSessionId)
+				sessionId: await this.delete(request.topicSessionId, request.confirmSessionId, signal)
 			};
 			case "models": return {
 				kind: "models",
-				providers: await this.models()
+				providers: await this.models(signal)
 			};
 			case "set-model-route": return {
 				kind: "topic",
-				topic: await this.setModelRoute(request)
+				topic: await this.setModelRoute(request, signal)
 			};
 			case "set-reasoning-effort": return {
 				kind: "topic",
-				topic: await this.setReasoningEffort(request)
+				topic: await this.setReasoningEffort(request, signal)
 			};
 			case "select-model": return {
 				kind: "topic",
-				topic: await this.selectModel(request)
+				topic: await this.selectModel(request, signal)
 			};
 			default: return request;
 		}
@@ -15220,9 +15325,18 @@ var TopicRuntime = class {
 		return this.disposal;
 	}
 	async disposeOwned() {
-		this.closed = true;
+		this.beginClosing();
 		await this.ready.catch(() => void 0);
 		await this.releaseRuntime();
+	}
+	beginClosing() {
+		if (this.closed) return;
+		this.closed = true;
+		this.lifecycleAbort.abort(citeCiterShuttingDownError());
+	}
+	assertOpen(signal) {
+		if (this.closed) throw citeCiterShuttingDownError();
+		signal?.throwIfAborted();
 	}
 	async start() {
 		try {
@@ -15275,6 +15389,7 @@ var TopicRuntime = class {
 			this.fibers.push(await this.runtime.plugin(TopicTitleProvider));
 			this.fibers.push(await this.runtime.plugin(AgentLoop, { agents: [] }));
 		} catch (error) {
+			this.beginClosing();
 			try {
 				await this.releaseRuntime();
 			} catch (cleanupError) {
@@ -15288,37 +15403,47 @@ var TopicRuntime = class {
 		return this.releasing;
 	}
 	async releaseOwnedRuntime() {
-		await Promise.allSettled([...this.opening.values()]);
-		this.opening.clear();
 		const failures = [];
-		for (const pending of this.pendingQuestions.values()) {
-			pending.signal?.removeEventListener("abort", pending.onAbort);
-			pending.reject(new UserQuestionError("CiteCiter is shutting down", "ASK_ABORTED"));
-		}
-		this.pendingQuestions.clear();
 		try {
 			this.releaseQuestionProvider?.();
 		} catch (error) {
 			failures.push(error);
 		}
 		this.releaseQuestionProvider = void 0;
+		for (const pending of this.pendingQuestions.values()) {
+			pending.signal?.removeEventListener("abort", pending.onAbort);
+			pending.reject(new UserQuestionError(CITECITER_SHUTTING_DOWN, "ASK_ABORTED"));
+		}
+		this.pendingQuestions.clear();
+		const handleDisposals = [];
 		for (const handle of [...this.handles.values()]) try {
-			await handle.dispose();
+			handleDisposals.push(handle.dispose().catch((error) => {
+				failures.push(error);
+			}));
 		} catch (error) {
 			failures.push(error);
 		}
 		this.handles.clear();
+		await this.settleOwnedOperations();
+		await Promise.all(handleDisposals);
+		failures.push(...this.cleanupFailures.splice(0));
 		for (const fiber of this.fibers.splice(0).reverse()) try {
 			await fiber.dispose();
 		} catch (error) {
 			failures.push(error);
 		}
-		await Promise.allSettled([...this.titleRefreshes.values()]);
+		this.requests.clear();
+		this.creations.clear();
+		this.asks.clear();
+		this.topicAdmissions.clear();
+		this.modelChanges.clear();
+		this.sourceAvailabilityChecks.clear();
 		this.titleRefreshes.clear();
+		this.opening.clear();
 		for (const release of [
 			this.releaseSandboxPolicy,
-			this.releaseFs,
 			this.releaseSubprocess,
+			this.releaseFs,
 			this.releaseLlm
 		]) try {
 			await release?.();
@@ -15331,9 +15456,26 @@ var TopicRuntime = class {
 		this.releaseLlm = void 0;
 		if (failures.length > 0) throw new AggregateError(failures, "CiteCiter Topic runtime cleanup failed");
 	}
-	async create(request) {
+	async settleOwnedOperations() {
+		while (true) {
+			const operations = /* @__PURE__ */ new Set([
+				...this.requests,
+				...[...this.creations.values()].map(({ result }) => result),
+				...[...this.asks.values()].map(({ result }) => result),
+				...this.topicAdmissions.values(),
+				...this.modelChanges.values(),
+				...this.sourceAvailabilityChecks.values(),
+				...this.titleRefreshes.values(),
+				...this.opening.values()
+			]);
+			if (operations.size === 0) return;
+			await Promise.allSettled(operations);
+		}
+	}
+	async create(request, signal) {
 		const sourceSessionId = createSourceSessionId(request);
 		const source = await this.host.sessionQuery.readSession(SessionId(sourceSessionId));
+		this.assertOpen(signal);
 		this.sourceAvailability.set(sourceSessionId, true);
 		const validated = "selectionClaim" in request ? resolveObserverCitation(source, request.selectionClaim) : validateObserverCitation(source, request.citation);
 		const { topicId, directory } = await this.index.reserve(sourceSessionId);
@@ -15377,17 +15519,11 @@ var TopicRuntime = class {
 		};
 		let handle;
 		try {
-			handle = await this.createHandle(metadata, mode.seed);
+			handle = await this.createHandle(metadata, mode.seed, signal);
 			await this.runtime.sessions.flush(handle.agent.session);
+			this.assertOpen(signal);
 			await this.index.save(metadata);
-			handle.agent.followup(createUserMessage({
-				content: [{
-					type: "text",
-					text: request.question
-				}],
-				source: { kind: "user" }
-			}));
-			await this.runtime.sessions.flush(handle.agent.session);
+			await this.commitFollowup(handle, identifiedQuestion(request.requestId, request.question), signal);
 			return this.snapshot(metadata);
 		} catch (error) {
 			try {
@@ -15405,16 +15541,66 @@ var TopicRuntime = class {
 			throw error;
 		}
 	}
-	async createIdempotent(request) {
-		const committed = (await this.index.list(createSourceSessionId(request))).find((topic) => topic.createRequestId === request.requestId);
-		if (committed !== void 0) return this.snapshot(committed);
-		const pending = this.creations.get(request.requestId);
-		if (pending !== void 0) return pending;
-		const creation = this.create(request).finally(() => this.creations.delete(request.requestId));
-		this.creations.set(request.requestId, creation);
-		return creation;
+	/** Let a caller stop waiting without cancelling an accepted idempotent mutation. */
+	waitForCaller(operation, signal) {
+		if (signal === void 0) return operation;
+		return new Promise((resolve, reject) => {
+			const cleanup = () => signal.removeEventListener("abort", onAbort);
+			const onAbort = () => {
+				cleanup();
+				reject(signal.reason);
+			};
+			signal.addEventListener("abort", onAbort, { once: true });
+			if (signal.aborted) onAbort();
+			operation.then((value) => {
+				cleanup();
+				resolve(value);
+			}, (error) => {
+				cleanup();
+				reject(error);
+			});
+		});
 	}
-	async createHandle(metadata, seed) {
+	createIdempotent(request, signal) {
+		const key = `${createSourceSessionId(request)}\0${request.requestId}`;
+		const pending = this.creations.get(key);
+		const intent = JSON.stringify(request);
+		if (pending !== void 0) {
+			if (pending.intent !== intent) throw new Error("CiteCiter create requestId was reused for a different request");
+			return this.waitForCaller(pending.result, signal);
+		}
+		const creation = Promise.resolve().then(() => {
+			this.assertOpen(signal);
+			return this.resumeOrCreate(request, signal);
+		}).finally(() => this.creations.delete(key));
+		this.creations.set(key, {
+			intent,
+			result: creation
+		});
+		return this.waitForCaller(creation, signal);
+	}
+	async resumeOrCreate(request, signal) {
+		const committed = (await this.index.list(createSourceSessionId(request))).find((topic) => topic.createRequestId === request.requestId);
+		this.assertOpen(signal);
+		if (committed !== void 0) return this.queueTopicAdmission(committed.sessionId, async () => {
+			const log = await this.readLog(committed, signal);
+			const identified = postSeedUserQuestionById(log, request.requestId);
+			const existingQuestion = identified ?? firstPostSeedUserQuestion(log);
+			if (existingQuestion !== null && existingQuestion !== request.question) throw new Error("CiteCiter create requestId was reused for a different question");
+			if (existingQuestion === null || identified !== null && committedPostSeedUserQuestionById(log, request.requestId) === null) {
+				const handle = await this.ensureHandle(committed, signal);
+				handle.agent.inbox.remove(MessageId(request.requestId));
+				await this.commitFollowup(handle, identifiedQuestion(request.requestId, request.question), signal);
+			} else {
+				const live = this.handles.get(committed.sessionId)?.agent.session;
+				if (live !== void 0) await this.runtime.sessions.flush(live);
+			}
+			return this.snapshot(committed);
+		}, signal);
+		return this.create(request, signal);
+	}
+	async createHandle(metadata, seed, signal) {
+		this.assertOpen(signal);
 		const handle = await this.runtime.agents.create({
 			sessionId: SessionId(metadata.sessionId),
 			...metadata.mode === "exact-fork" ? {
@@ -15430,8 +15616,13 @@ var TopicRuntime = class {
 				model: metadata.modelConfig.model,
 				...metadata.modelConfig.maxTokens === void 0 ? {} : { maxTokens: metadata.modelConfig.maxTokens }
 			},
-			setup: (agentCtx) => this.setupAgent(agentCtx, metadata)
+			setup: (agentCtx) => this.setupAgent(agentCtx, metadata),
+			...signal === void 0 ? {} : { signal }
 		});
+		if (this.closed || signal?.aborted === true) {
+			await this.disposeLateHandle(handle);
+			this.assertOpen(signal);
+		}
 		this.handles.set(metadata.sessionId, handle);
 		return handle;
 	}
@@ -15644,12 +15835,13 @@ var TopicRuntime = class {
 				}],
 				presentationMeta: (_args, value) => ({ capturedThroughSeq: value.capturedThroughSeq })
 			},
-			execute: async (args) => {
+			execute: async (args, exec) => {
 				let source;
 				let sourceAvailable = true;
 				try {
 					source = await this.host.sessionQuery.readSession(SessionId(metadata.sourceSessionId));
 				} catch (error) {
+					exec.signal.throwIfAborted();
 					sourceAvailable = false;
 					const agent = agentCtx.agent;
 					if (metadata.mode !== "exact-fork" || agent === void 0 || agent.session.header.seedLength === void 0) {
@@ -15661,12 +15853,14 @@ var TopicRuntime = class {
 						events: agent.session.events.slice(0, agent.session.header.seedLength)
 					};
 				}
+				exec.signal.throwIfAborted();
 				await this.rememberSourceAvailability(metadata, sourceAvailable);
-				const requestedThrough = args.throughSeq;
-				const throughSeq = metadata.forkThroughSeq === null ? requestedThrough : Math.min(requestedThrough ?? metadata.forkThroughSeq, metadata.forkThroughSeq);
-				const result = formatSourceSessionRead(source, {
+				const result = formatSourceSessionRead(metadata.forkThroughSeq === null ? source : {
+					...source,
+					events: source.events.filter((event) => event.seq <= metadata.forkThroughSeq)
+				}, {
 					...args.fromSeq === void 0 ? {} : { fromSeq: args.fromSeq },
-					...throughSeq === void 0 ? {} : { throughSeq },
+					...args.throughSeq === void 0 ? {} : { throughSeq: args.throughSeq },
 					includeReasoning: this.settings().includeSourceReasoning,
 					maxBytes: SOURCE_READ_MAX_BYTES
 				});
@@ -15685,7 +15879,8 @@ var TopicRuntime = class {
 			})
 		});
 	}
-	async ensureHandle(metadata) {
+	async ensureHandle(metadata, signal) {
+		this.assertOpen(signal);
 		const existing = this.handles.get(metadata.sessionId);
 		if (existing !== void 0) return existing;
 		const pending = this.opening.get(metadata.sessionId);
@@ -15697,8 +15892,13 @@ var TopicRuntime = class {
 				model: metadata.modelConfig.model,
 				...metadata.modelConfig.maxTokens === void 0 ? {} : { maxTokens: metadata.modelConfig.maxTokens }
 			},
-			setup: (agentCtx) => this.setupAgent(agentCtx, metadata)
-		}).then((handle) => {
+			setup: (agentCtx) => this.setupAgent(agentCtx, metadata),
+			...signal === void 0 ? {} : { signal }
+		}).then(async (handle) => {
+			if (this.closed || signal?.aborted === true) {
+				await this.disposeLateHandle(handle);
+				this.assertOpen(signal);
+			}
 			this.handles.set(metadata.sessionId, handle);
 			return handle;
 		}).finally(() => {
@@ -15707,15 +15907,86 @@ var TopicRuntime = class {
 		this.opening.set(metadata.sessionId, opening);
 		return opening;
 	}
-	async ask(sessionId, question) {
+	async disposeLateHandle(handle) {
+		try {
+			await handle.dispose();
+		} catch (error) {
+			this.cleanupFailures.push(error);
+			throw error;
+		}
+	}
+	/** Resolve only after the accepted question is present in the durable model-input log. */
+	async commitFollowup(handle, message, admissionSignal) {
+		this.assertOpen(admissionSignal);
+		const signal = this.lifecycleAbort.signal;
+		await new Promise((resolveCommitted, rejectCommitted) => {
+			let claimedTurn;
+			let settled = false;
+			let disposeClaim = () => {};
+			let disposeDiscard = () => {};
+			let disposeEvent = () => {};
+			const onAbort = () => finish(signal?.reason ?? citeCiterShuttingDownError());
+			const finish = (error) => {
+				if (settled) return;
+				settled = true;
+				signal?.removeEventListener("abort", onAbort);
+				disposeEvent();
+				disposeDiscard();
+				disposeClaim();
+				if (error === void 0) resolveCommitted();
+				else rejectCommitted(error);
+			};
+			disposeClaim = handle.agent.ctx.on("agent/inbox/claimed", ({ message: claimed, turn }) => {
+				if (claimed.id === message.id) claimedTurn = turn;
+			});
+			disposeDiscard = handle.agent.ctx.on("agent/inbox/discarded", ({ message: discarded }) => {
+				if (discarded.id === message.id) finish(/* @__PURE__ */ new Error("CiteCiter question was discarded before it became model input"));
+			});
+			disposeEvent = handle.agent.ctx.on("session/event", (session, event) => {
+				if (session !== handle.agent.session) return;
+				if (event.type === "user/message" && event.data.source.kind === "user" && event.data.id === message.id) {
+					finish();
+					return;
+				}
+				if (event.type === "turn/end" && event.data.turn === claimedTurn) finish(/* @__PURE__ */ new Error("CiteCiter question was not committed before its turn ended"));
+			});
+			signal?.addEventListener("abort", onAbort, { once: true });
+			if (signal?.aborted === true) {
+				onAbort();
+				return;
+			}
+			try {
+				handle.agent.followup(message);
+			} catch (error) {
+				finish(error);
+			}
+		});
+		await this.runtime.sessions.flush(handle.agent.session);
+	}
+	async ask(sessionId, question, requestId, signal) {
 		const metadata = await this.index.loadBySessionId(sessionId);
-		(await this.ensureHandle(metadata)).agent.followup(createUserMessage({
+		this.assertOpen(signal);
+		if (requestId !== void 0) {
+			const log = await this.readLog(metadata, signal);
+			const existingQuestion = postSeedUserQuestionById(log, requestId);
+			if (existingQuestion !== null) {
+				if (existingQuestion !== question) throw new Error("CiteCiter ask requestId was reused for a different question");
+				if (committedPostSeedUserQuestionById(log, requestId) !== null) {
+					const live = this.handles.get(sessionId)?.agent.session;
+					if (live !== void 0) await this.runtime.sessions.flush(live);
+					return this.snapshot(metadata);
+				}
+			}
+		}
+		const handle = await this.ensureHandle(metadata, signal);
+		if (requestId !== void 0) handle.agent.inbox.remove(MessageId(requestId));
+		await this.commitFollowup(handle, requestId === void 0 ? createUserMessage({
 			content: [{
 				type: "text",
 				text: question
 			}],
 			source: { kind: "user" }
-		}));
+		}) : identifiedQuestion(requestId, question), signal);
 		const updated = {
 			...metadata,
 			updatedAt: Date.now()
@@ -15723,7 +15994,38 @@ var TopicRuntime = class {
 		await this.index.save(updated);
 		return this.snapshot(updated);
 	}
+	async askIdempotent(request, signal) {
+		if (request.requestId === void 0) return this.queueAsk(request, signal);
+		const key = `${request.topicSessionId}\0${request.requestId}`;
+		const existing = this.asks.get(key);
+		if (existing !== void 0) {
+			if (existing.question !== request.question) throw new Error("CiteCiter ask requestId was reused for a different question");
+			return this.waitForCaller(existing.result, signal);
+		}
+		const result = this.queueAsk(request, signal).finally(() => this.asks.delete(key));
+		this.asks.set(key, {
+			question: request.question,
+			result
+		});
+		return this.waitForCaller(result, signal);
+	}
+	queueAsk(request, signal) {
+		return this.queueTopicAdmission(request.topicSessionId, () => this.ask(request.topicSessionId, request.question, request.requestId, signal), signal);
+	}
+	queueTopicAdmission(sessionId, operation, signal) {
+		const result = (this.topicAdmissions.get(sessionId) ?? Promise.resolve()).then(() => {
+			this.assertOpen(signal);
+			return operation();
+		});
+		const settled = result.then(() => void 0, () => void 0);
+		this.topicAdmissions.set(sessionId, settled);
+		settled.then(() => {
+			if (this.topicAdmissions.get(sessionId) === settled) this.topicAdmissions.delete(sessionId);
+		});
+		return result;
+	}
 	askUser(request) {
+		if (this.closed) throw new UserQuestionError(CITECITER_SHUTTING_DOWN, "ASK_ABORTED");
 		const sessionId = request.agent === void 0 ? void 0 : String(request.agent.session.header.id);
 		if (sessionId === void 0 || !this.handles.has(sessionId)) throw new UserQuestionError("CiteCiter cannot identify the asking Topic", "CALLER_NOT_LIVE");
 		if (this.pendingQuestions.has(sessionId)) throw new UserQuestionError("this Topic already has a pending question", "DUPLICATE_QUESTION");
@@ -15756,31 +16058,36 @@ var TopicRuntime = class {
 			if (request.signal?.aborted === true) onAbort();
 		});
 	}
-	async answerQuestion(request) {
+	async answerQuestion(request, signal) {
 		const metadata = await this.index.loadBySessionId(request.topicSessionId);
+		this.assertOpen(signal);
 		const pending = this.pendingQuestions.get(request.topicSessionId);
 		if (pending === void 0 || pending.key !== request.key) throw new Error("这个提问已结束或已被替换");
 		pending.resolve(validatedQuestionAnswer(pending.questions, request.answer));
 		return this.snapshot(metadata);
 	}
-	async cancelQuestion(sessionId, key) {
+	async cancelQuestion(sessionId, key, signal) {
 		const metadata = await this.index.loadBySessionId(sessionId);
+		this.assertOpen(signal);
 		const pending = this.pendingQuestions.get(sessionId);
 		if (pending === void 0 || pending.key !== key) throw new Error("这个提问已结束或已被替换");
 		pending.reject(new UserQuestionError("the user cancelled ask_user_question", "ASK_CANCELLED"));
 		return this.snapshot(metadata);
 	}
-	async stop(sessionId) {
+	async stop(sessionId, signal) {
 		const metadata = await this.index.loadBySessionId(sessionId);
+		this.assertOpen(signal);
 		const agent = this.handles.get(sessionId)?.agent;
 		agent?.cancel({ kind: "user" });
 		await agent?.whenIdle();
 		if (agent !== void 0) await this.runtime.sessions.flush(agent.session);
 		return this.snapshot(metadata);
 	}
-	async rename(sessionId, title) {
+	async rename(sessionId, title, signal) {
 		const metadata = await this.index.loadBySessionId(sessionId);
-		const handle = await this.ensureHandle(metadata);
+		this.assertOpen(signal);
+		const handle = await this.ensureHandle(metadata, signal);
+		this.assertOpen(signal);
 		const renamed = this.runtime.sessionTitle.rename(handle.agent.session, title);
 		await this.runtime.sessions.flush(handle.agent.session);
 		const updated = {
@@ -15793,25 +16100,29 @@ var TopicRuntime = class {
 		await this.index.save(updated);
 		return this.snapshot(updated);
 	}
-	async archive(sessionId, archived) {
+	async archive(sessionId, archived, signal) {
+		const metadata = await this.index.loadBySessionId(sessionId);
+		this.assertOpen(signal);
 		const updated = {
-			...await this.index.loadBySessionId(sessionId),
+			...metadata,
 			archivedAt: archived ? Date.now() : null,
 			updatedAt: Date.now()
 		};
 		await this.index.save(updated);
 		return this.snapshot(updated);
 	}
-	async delete(sessionId, confirmSessionId) {
+	async delete(sessionId, confirmSessionId, signal) {
 		if (sessionId !== confirmSessionId) throw new Error("Topic deletion confirmation does not match the target Session");
 		const metadata = await this.index.loadBySessionId(sessionId);
+		this.assertOpen(signal);
 		const pending = this.opening.get(sessionId);
 		const handle = this.handles.get(sessionId) ?? (pending === void 0 ? void 0 : await pending);
+		this.assertOpen(signal);
 		if (handle !== void 0) {
 			await handle.dispose();
 			this.handles.delete(sessionId);
 		}
-		const inspection = await this.runtime.sessionPersistence.inspect(SessionId(sessionId));
+		const inspection = await this.runtime.sessionPersistence.inspect(SessionId(sessionId), signal);
 		await this.removeSessionArtifact(inspection.meta);
 		await this.index.remove(metadata);
 		return sessionId;
@@ -15826,20 +16137,25 @@ var TopicRuntime = class {
 		}) !== void 0) await unlink(artifact.path);
 		await rmdirIfEmpty(resolve(artifact.path, ".."));
 	}
-	enqueueModelChange(sessionId, apply) {
+	enqueueModelChange(sessionId, apply, signal) {
 		const previous = this.modelChanges.get(sessionId);
 		let change;
-		change = (previous === void 0 ? Promise.resolve() : previous.catch(() => void 0)).then(apply).finally(() => {
+		change = (previous === void 0 ? Promise.resolve() : previous.catch(() => void 0)).then(() => {
+			this.assertOpen(signal);
+			return apply();
+		}).finally(() => {
 			if (this.modelChanges.get(sessionId) === change) this.modelChanges.delete(sessionId);
 		});
 		this.modelChanges.set(sessionId, change);
 		return change;
 	}
-	setModelRoute(request) {
+	setModelRoute(request, signal) {
 		return this.enqueueModelChange(request.topicSessionId, async () => {
 			const metadata = await this.index.loadBySessionId(request.topicSessionId);
-			await this.host.llm.resolveModelInfo(request.provider, request.model);
-			await this.ensureHandle(metadata);
+			this.assertOpen(signal);
+			await this.host.llm.resolveModelInfo(request.provider, request.model, signal);
+			await this.ensureHandle(metadata, signal);
+			this.assertOpen(signal);
 			const selection = this.selections.get(metadata.sessionId);
 			if (selection === void 0) throw new Error("Topic model selector is unavailable");
 			const modelConfig = {
@@ -15859,14 +16175,16 @@ var TopicRuntime = class {
 				model: request.model
 			};
 			return this.snapshot(updated);
-		});
+		}, signal);
 	}
-	setReasoningEffort(request) {
+	setReasoningEffort(request, signal) {
 		return this.enqueueModelChange(request.topicSessionId, async () => {
 			const metadata = await this.index.loadBySessionId(request.topicSessionId);
-			const model = await this.host.llm.resolveModelInfo(metadata.modelConfig.provider, metadata.modelConfig.model);
+			this.assertOpen(signal);
+			const model = await this.host.llm.resolveModelInfo(metadata.modelConfig.provider, metadata.modelConfig.model, signal);
 			if (request.reasoningEffort !== null && model.reasoning?.efforts.some((effort) => String(effort.id) === request.reasoningEffort) !== true) throw new Error(`模型不支持思考强度 ${request.reasoningEffort}`);
-			await this.ensureHandle(metadata);
+			await this.ensureHandle(metadata, signal);
+			this.assertOpen(signal);
 			const selection = this.selections.get(metadata.sessionId);
 			if (selection === void 0) throw new Error("Topic model selector is unavailable");
 			const modelConfig = { ...metadata.modelConfig };
@@ -15884,16 +16202,18 @@ var TopicRuntime = class {
 				...request.reasoningEffort === null ? {} : { reasoningEffort: ReasoningEffortId(request.reasoningEffort) }
 			};
 			return this.snapshot(updated);
-		});
+		}, signal);
 	}
-	selectModel(request) {
-		return this.enqueueModelChange(request.topicSessionId, () => this.applyModelSelection(request));
+	selectModel(request, signal) {
+		return this.enqueueModelChange(request.topicSessionId, () => this.applyModelSelection(request, signal), signal);
 	}
-	async applyModelSelection(request) {
+	async applyModelSelection(request, signal) {
 		const metadata = await this.index.loadBySessionId(request.topicSessionId);
-		const model = await this.host.llm.resolveModelInfo(request.provider, request.model);
+		this.assertOpen(signal);
+		const model = await this.host.llm.resolveModelInfo(request.provider, request.model, signal);
 		if (request.reasoningEffort !== null && model.reasoning?.efforts.some((effort) => String(effort.id) === request.reasoningEffort) !== true) throw new Error(`模型不支持思考强度 ${request.reasoningEffort}`);
-		await this.ensureHandle(metadata);
+		await this.ensureHandle(metadata, signal);
+		this.assertOpen(signal);
 		const selection = this.selections.get(metadata.sessionId);
 		if (selection === void 0) throw new Error("Topic model selector is unavailable");
 		const previousModelConfig = { ...metadata.modelConfig };
@@ -15916,13 +16236,16 @@ var TopicRuntime = class {
 		};
 		return this.snapshot(updated);
 	}
-	async models() {
+	async models(signal) {
 		const providers = [];
 		for (const provider of this.host.llm.listProviders()) {
+			this.assertOpen(signal);
 			let catalog;
 			try {
 				catalog = await this.host.llm.listModels(provider.id);
+				this.assertOpen(signal);
 			} catch (error) {
+				signal?.throwIfAborted();
 				this.host.logger.warn(`CiteCiter could not list models for ${provider.id}`, error);
 				catalog = [];
 			}
@@ -15930,8 +16253,9 @@ var TopicRuntime = class {
 			for (const model of catalog) {
 				let resolved;
 				try {
-					resolved = await this.host.llm.resolveModelInfo(provider.id, model.id);
+					resolved = await this.host.llm.resolveModelInfo(provider.id, model.id, signal);
 				} catch (error) {
+					signal?.throwIfAborted();
 					this.host.logger.warn(`CiteCiter could not resolve ${provider.id}/${model.id}`, error);
 				}
 				models.push({
@@ -15952,21 +16276,22 @@ var TopicRuntime = class {
 		}
 		return providers;
 	}
-	async list(sourceSessionId, includeArchived) {
+	async list(sourceSessionId, includeArchived, signal) {
 		const metadata = await this.index.list(sourceSessionId);
-		return (await Promise.all(metadata.filter((topic) => includeArchived ? topic.archivedAt !== null : topic.archivedAt === null).map((topic) => this.summary(topic)))).sort((left, right) => right.updatedAt - left.updatedAt);
+		this.assertOpen(signal);
+		return (await Promise.all(metadata.filter((topic) => includeArchived ? topic.archivedAt !== null : topic.archivedAt === null).map((topic) => this.summary(topic, signal)))).sort((left, right) => right.updatedAt - left.updatedAt);
 	}
-	async summary(metadata) {
+	async summary(metadata, signal) {
 		let current = metadata;
 		if (cachedTopicTitle(current) === null && !this.titleHydrated.has(current.sessionId)) {
+			const log = await this.readLog(current, signal);
 			this.titleHydrated.add(current.sessionId);
-			const log = await this.readLog(current);
 			const title = foldTopicTitle(current, log.events);
 			if (title !== void 0) current = await this.patchMetadata(current, {
 				cachedTitle: title.title,
 				cachedTitleSource: titleSourceKind(title),
 				cachedTitleEventSeq: title.eventSeq
-			});
+			}, signal);
 		}
 		return this.summaryFromMetadata(current);
 	}
@@ -15989,20 +16314,27 @@ var TopicRuntime = class {
 			modelConfig: metadata.modelConfig
 		};
 	}
-	async readLog(metadata) {
+	async get(sessionId, signal) {
+		const metadata = await this.index.loadBySessionId(sessionId);
+		this.assertOpen(signal);
+		return this.snapshot(metadata, signal);
+	}
+	async readLog(metadata, signal) {
+		if (signal !== void 0) this.assertOpen(signal);
 		const live = this.handles.get(metadata.sessionId)?.agent.session;
 		if (live !== void 0) return {
 			header: live.header,
 			events: live.events
 		};
-		const inspection = await this.runtime.sessionPersistence.inspect(SessionId(metadata.sessionId));
+		const inspection = await this.runtime.sessionPersistence.inspect(SessionId(metadata.sessionId), signal);
+		if (signal !== void 0) this.assertOpen(signal);
 		return {
 			header: inspection.meta,
 			events: inspection.events
 		};
 	}
 	scheduleSourceAvailabilityCheck(metadata) {
-		if (this.sourceAvailability.has(metadata.sourceSessionId) || this.sourceAvailabilityChecks.has(metadata.sourceSessionId)) return;
+		if (this.closed || this.sourceAvailability.has(metadata.sourceSessionId) || this.sourceAvailabilityChecks.has(metadata.sourceSessionId)) return;
 		const check = (async () => {
 			let available = true;
 			try {
@@ -16026,10 +16358,10 @@ var TopicRuntime = class {
 		const latest = await this.index.loadBySessionId(metadata.sessionId);
 		if (latest.sourceAvailable !== available) await this.patchMetadata(latest, { sourceAvailable: available });
 	}
-	async snapshot(metadata) {
+	async snapshot(metadata, signal) {
 		let current = metadata;
 		this.scheduleSourceAvailabilityCheck(current);
-		const log = await this.readLog(current);
+		const log = await this.readLog(current, signal);
 		const title = foldTopicTitle(current, log.events);
 		const latest = log.events.at(-1)?.time ?? metadata.updatedAt;
 		const observedThroughSeq = latestObservedSeq(log.events);
@@ -16042,7 +16374,7 @@ var TopicRuntime = class {
 				cachedTitleSource,
 				cachedTitleEventSeq: title.eventSeq
 			}
-		});
+		}, signal);
 		if (title === void 0) this.scheduleExactTitleRefresh(current, log);
 		const pending = this.pendingQuestions.get(current.sessionId);
 		return {
@@ -16060,8 +16392,9 @@ var TopicRuntime = class {
 			}
 		};
 	}
-	async patchMetadata(metadata, patch) {
+	async patchMetadata(metadata, patch, signal) {
 		const latest = await this.index.loadBySessionId(metadata.sessionId);
+		if (signal !== void 0) this.assertOpen(signal);
 		const updated = topicMetadataSchema.parse({
 			...latest,
 			...patch
@@ -16070,20 +16403,22 @@ var TopicRuntime = class {
 		return updated;
 	}
 	scheduleExactTitleRefresh(metadata, log) {
-		if (metadata.mode !== "exact-fork" || this.titleRefreshAttempted.has(metadata.sessionId) || this.handles.get(metadata.sessionId)?.agent.status === "running") return;
+		if (this.closed || metadata.mode !== "exact-fork" || this.titleRefreshAttempted.has(metadata.sessionId) || this.handles.get(metadata.sessionId)?.agent.status === "running") return;
 		const postSeed = log.events.slice(log.header.seedLength ?? 0);
 		if (!postSeed.some((event) => event.type === "request/header") || !postSeed.some((event) => event.type === "assistant/message")) return;
 		const handle = this.handles.get(metadata.sessionId);
 		if (handle === void 0) return;
 		this.titleRefreshAttempted.add(metadata.sessionId);
-		const refresh = this.runtime.sessionTitle.refresh(handle.agent.session).then(async (title) => {
+		const refresh = this.runtime.sessionTitle.refresh(handle.agent.session, this.lifecycleAbort.signal).then(async (title) => {
+			this.assertOpen(this.lifecycleAbort.signal);
 			await this.runtime.sessions.flush(handle.agent.session);
+			this.assertOpen(this.lifecycleAbort.signal);
 			if (title === void 0 || title.eventSeq <= (metadata.forkThroughSeq ?? -1)) return;
 			await this.patchMetadata(metadata, {
 				cachedTitle: title.title,
 				cachedTitleSource: titleSourceKind(title),
 				cachedTitleEventSeq: title.eventSeq
-			});
+			}, this.lifecycleAbort.signal);
 		}).catch((error) => {
 			if (!this.closed) this.host.logger.warn(`CiteCiter could not title Topic ${metadata.sessionId}`, error);
 		}).finally(() => {
@@ -16200,8 +16535,8 @@ let CiteCiterHost = (() => {
 			await this.topics.initialize();
 		}
 		/** Validate and execute one strict Topic command. */
-		async request(rawRequest) {
-			return this.topics.request(citeCiterRequestSchema.parse(rawRequest));
+		async request(rawRequest, signal) {
+			return this.topics.request(citeCiterRequestSchema.parse(rawRequest), signal);
 		}
 	};
 })();

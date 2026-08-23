@@ -1,7 +1,8 @@
 /** CiteCiter browser entry: selection question, private Topic dock, and settings page. */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-gateway/client'
-import type { ISessions } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
+import { createSnapshotStore, type ISessions } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
@@ -10,15 +11,16 @@ import {
   type CiteCiterSettings,
 } from '../topic.ts'
 import { TYPERT_REMOTE } from '../typert.remote-client.ts'
-import { createCompanionController } from './companion-controller.ts'
+import { createCompanionController, INITIAL_COMPANION_SNAPSHOT } from './companion-controller.ts'
 import { CitePanel } from './components/CitePanel.tsx'
 import { CiteCiterSettings as CiteCiterSettingsView } from './components/CiteCiterSettings.tsx'
 import { SelectionMenu } from './components/SelectionMenu.tsx'
-import { readSelection } from './selection.ts'
+import { createSettingsDocumentController } from './settings-document.ts'
+import { claimSelectionContextMenu } from './selection.ts'
 import { CiteBus } from './types.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
-export const inject = ['layout', 'slots', 'sessions', 'remote', 'settingsScope']
+export const inject = ['slots', 'sessions', 'remote', 'settingsScope', 'connection']
 
 function decodeSettings(section: unknown): CiteCiterSettings | undefined {
   const parsed = citeCiterSettingsSchema.safeParse(section)
@@ -32,24 +34,32 @@ export async function apply(ctx: Context): Promise<void> {
 
   ctx.inject(['remote.citeciter'], (remoteCtx) => {
     const sessions = remoteCtx.get('sessions') as unknown as ISessions
-    const settings = remoteCtx.settingsScope.bind({
+    const settingsBinder = remoteCtx.settingsScope
+    const settings = settingsBinder.bind({
       namespace: CITECITER_SETTINGS_NAMESPACE,
       decode: decodeSettings,
     })
+    const connection = remoteCtx.get('connection') as ConnectionHandle
+    const settingsDocument = createSettingsDocumentController(
+      settingsBinder.describe(),
+      async (signal) => {
+        const response = await connection.api.settings.openDocument({}, signal)
+        if (!response.result.ok) throw new Error(response.result.error.message)
+      },
+    )
     const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error))
     const openPanel = () => {
-      remoteCtx.layout.closeDetails()
       bus.setPanelOpen(true)
     }
     const closePanel = () => {
-      remoteCtx.layout.closeDetails()
       bus.setPanelOpen(false)
     }
     const companion = createCompanionController(
       sessions,
       settings,
-      (request) => remoteCtx.remote.citeciter.request(request),
+      (request, signal) => remoteCtx.remote.citeciter.request(request, signal),
       openPanel,
+      createSnapshotStore(INITIAL_COMPANION_SNAPSHOT),
     )
     const reportedParseErrors = new Set<string>()
     const reportParseError = (messageId: string) => {
@@ -75,9 +85,8 @@ export async function apply(ctx: Context): Promise<void> {
       const onContextMenu = (event: MouseEvent) => {
         const sourceSessionId = sessions.list.getSnapshot().current
         if (sourceSessionId === undefined) return
-        const selection = readSelection(event, sourceSessionId)
+        const selection = claimSelectionContextMenu(event, sourceSessionId)
         if (selection === null) return
-        event.preventDefault()
         bus.setMenuSelection(selection)
       }
       const onPointerDown = (event: PointerEvent) => {
@@ -114,13 +123,13 @@ export async function apply(ctx: Context): Promise<void> {
       id: 'citeciter',
       order: 45,
       label: 'CiteCiter',
-      inject: () => ({ companion }),
+      inject: () => ({ companion, settingsDocument }),
     }, CiteCiterSettingsView))
 
     remoteCtx.effect(() => async () => {
       unsubscribeSessions()
       closePanel()
-      await companion.dispose()
+      await Promise.all([companion.dispose(), settingsDocument.dispose()])
     }, 'citeciter: browser controller')
   })
 }

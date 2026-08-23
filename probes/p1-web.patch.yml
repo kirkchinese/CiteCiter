@@ -1,4 +1,0 @@
-# Probe P1: mount the external package via its profile-installed name.
-- insert:
-    - id: citeciter-probe-p1
-      name: citeciter-probe-p1

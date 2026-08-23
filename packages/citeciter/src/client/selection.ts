@@ -1,17 +1,15 @@
 import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { CiteSelection } from './types.ts'
+import {
+  dshAssistantAnchorForTarget,
+  dshConversationFlow,
+  dshIntersectedAssistantAnchors,
+  dshRangeTouchesExcludedContent,
+  isReadFrogTranslatedContent,
+  readFrogSelection,
+} from './conversation-dom.ts'
 
 const RANGE_CONTEXT_CHARS = 240
-const TRANSLATED_CONTENT_SELECTOR = '[data-read-frog-translation-mode]'
-
-/** Resolve a DOM Node to its nearest Element parent. */
-function parentElement(node: Node): Element | null {
-  return node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement
-}
-
-function isTranslatedContent(node: Node): boolean {
-  return node.nodeType === Node.ELEMENT_NODE && (node as Element).matches(TRANSLATED_CONTENT_SELECTOR)
-}
 
 function committedText(
   root: Node,
@@ -21,7 +19,7 @@ function committedText(
   let targetStart: number | undefined
   let targetEnd: number | undefined
   const visit = (node: Node): void => {
-    if (isTranslatedContent(node)) return
+    if (isReadFrogTranslatedContent(node)) return
     if (node === target) targetStart = text.length
     if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? ''
     else for (const child of node.childNodes) visit(child)
@@ -35,7 +33,7 @@ function committedTextBefore(root: Node, boundary: Node, offset: number): string
   let text = ''
   let found = false
   const visit = (node: Node): void => {
-    if (found || isTranslatedContent(node)) return
+    if (found || isReadFrogTranslatedContent(node)) return
     if (node === boundary) {
       if (node.nodeType === Node.TEXT_NODE) text += (node.textContent ?? '').slice(0, offset)
       else for (let index = 0; index < offset; index++) {
@@ -64,21 +62,20 @@ function committedTextBefore(root: Node, boundary: Node, offset: number): string
  * @returns validated selection metadata, or null when CiteCiter should ignore it.
  */
 export function readSelection(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null {
+  const eventAnchor = dshAssistantAnchorForTarget(event.target)
+  if (eventAnchor === null) return null
   const selection = window.getSelection()
   if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return null
 
   const range = selection.getRangeAt(0)
-  const startFlow = parentElement(range.startContainer)?.closest<HTMLElement>('[data-chat-flow-kind]')
-  const endFlow = parentElement(range.endContainer)?.closest<HTMLElement>('[data-chat-flow-kind]')
-  if (startFlow === null || startFlow === undefined || endFlow === null || endFlow === undefined) return null
-  if (endFlow !== startFlow) {
-    const flow = [...document.querySelectorAll<HTMLElement>('[data-chat-flow-kind="assistant-step"][data-chat-anchor-key]')]
-      .filter((candidate) => range.intersectsNode(candidate))
-      .at(-1)
-    const anchorKey = flow?.dataset.chatAnchorKey
+  const startFlow = dshConversationFlow(range.startContainer)
+  const endFlow = dshConversationFlow(range.endContainer)
+  if (startFlow === null || endFlow === null) return null
+  if (endFlow.element !== startFlow.element) {
+    const anchor = dshIntersectedAssistantAnchors(range).at(-1)
     const displayText = range.toString().trim()
-    if (flow === undefined || anchorKey === undefined || anchorKey === '' || displayText === '') return null
-    const projected = committedText(flow).text
+    if (anchor === undefined || anchor.element !== eventAnchor.element || displayText === '') return null
+    const projected = committedText(anchor.element).text
     const sourceHintText = projected.trim()
     if (sourceHintText === '') return null
     const startOffset = projected.length - projected.trimStart().length
@@ -88,7 +85,7 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
       displayText,
       sourceHintText,
       kind: 'assistant-step',
-      anchorKey,
+      anchorKey: anchor.anchorKey,
       startOffset,
       endOffset,
       prefixText: '',
@@ -97,33 +94,17 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
       y: event.clientY,
     }
   }
-  for (const reasoning of startFlow.querySelectorAll('[data-variant="think"]')) {
-    if (range.intersectsNode(reasoning)) return null
-  }
-  for (const generated of startFlow.querySelectorAll('button, .katex, [data-footnotes], sup')) {
-    if (range.intersectsNode(generated)) return null
-  }
-  for (const endpoint of [range.startContainer, range.endContainer]) {
-    const element = parentElement(endpoint)
-    if (element?.closest('.md-code-block') !== null && element?.closest('pre') === null) return null
-  }
+  if (startFlow.element !== eventAnchor.element || dshRangeTouchesExcludedContent(range, startFlow.element)) return null
 
-  const kind = startFlow.dataset.chatFlowKind
-  const anchorKey = startFlow.dataset.chatAnchorKey
-  if (kind !== 'assistant-step' || anchorKey === undefined || anchorKey === '') return null
-
-  const translatedStart = parentElement(range.startContainer)?.closest<HTMLElement>(TRANSLATED_CONTENT_SELECTOR)
-  const translatedEnd = parentElement(range.endContainer)?.closest<HTMLElement>(TRANSLATED_CONTENT_SELECTOR)
+  const translated = readFrogSelection(range, startFlow.element)
+  if (translated.kind === 'invalid') return null
   let text: string
   let flowText: string
   let startOffset: number
   let endOffset: number
   let sourceHintText: string | undefined
-  if (translatedStart !== null || translatedEnd !== null) {
-    if (translatedStart === null || translatedStart === undefined || translatedStart !== translatedEnd) return null
-    const sourceElement = translatedStart.parentElement?.closest<HTMLElement>('[data-read-frog-paragraph]')
-    if (sourceElement === null || sourceElement === undefined || !startFlow.contains(sourceElement)) return null
-    const projected = committedText(startFlow, sourceElement)
+  if (translated.kind === 'translation') {
+    const projected = committedText(startFlow.element, translated.sourceParagraph)
     if (projected.targetStart === undefined || projected.targetEnd === undefined) return null
     const rawSourceHint = projected.text.slice(projected.targetStart, projected.targetEnd)
     const sourceLeading = rawSourceHint.length - rawSourceHint.trimStart().length
@@ -134,14 +115,14 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
     endOffset = projected.targetEnd - sourceTrailing
     sourceHintText = rawSourceHint.trim()
   } else {
-    const beforeStart = committedTextBefore(startFlow, range.startContainer, range.startOffset)
-    const beforeEnd = committedTextBefore(startFlow, range.endContainer, range.endOffset)
+    const beforeStart = committedTextBefore(startFlow.element, range.startContainer, range.startOffset)
+    const beforeEnd = committedTextBefore(startFlow.element, range.endContainer, range.endOffset)
     if (beforeStart === null || beforeEnd === null || beforeEnd.length < beforeStart.length) return null
     const rawText = beforeEnd.slice(beforeStart.length)
     const leadingWhitespace = rawText.length - rawText.trimStart().length
     const trailingWhitespace = rawText.length - rawText.trimEnd().length
     text = rawText.trim()
-    flowText = committedText(startFlow).text
+    flowText = committedText(startFlow.element).text
     startOffset = beforeStart.length + leadingWhitespace
     endOffset = beforeEnd.length - trailingWhitespace
   }
@@ -152,8 +133,8 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
     sourceSessionId,
     displayText: text,
     ...(sourceHintText === undefined ? {} : { sourceHintText }),
-    kind,
-    anchorKey,
+    kind: 'assistant-step',
+    anchorKey: eventAnchor.anchorKey,
     startOffset,
     endOffset,
     prefixText: flowText.slice(Math.max(0, startOffset - RANGE_CONTEXT_CHARS), startOffset),
@@ -161,4 +142,18 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
     x: event.clientX,
     y: event.clientY,
   }
+}
+
+/**
+ * Claim a context menu only after resolving a valid DSH assistant selection.
+ *
+ * @param event - context-menu event to validate and optionally cancel.
+ * @param sourceSessionId - current source session captured with the selection.
+ * @returns validated selection metadata, or null while leaving the native menu untouched.
+ */
+export function claimSelectionContextMenu(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null {
+  const selection = readSelection(event, sourceSessionId)
+  if (selection === null) return null
+  event.preventDefault()
+  return selection
 }

@@ -12,3 +12,11 @@ import type { CiteSelection } from './types.ts';
  * @returns validated selection metadata, or null when CiteCiter should ignore it.
  */
 export declare function readSelection(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null;
+/**
+ * Claim a context menu only after resolving a valid DSH assistant selection.
+ *
+ * @param event - context-menu event to validate and optionally cancel.
+ * @param sourceSessionId - current source session captured with the selection.
+ * @returns validated selection metadata, or null while leaving the native menu untouched.
+ */
+export declare function claimSelectionContextMenu(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null;

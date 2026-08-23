@@ -1,9 +1,10 @@
-import { createSnapshotStore, } from '@deepseek-ai/dsh-client-runtime/client';
 import { DEFAULT_CITECITER_SETTINGS, } from "../topic.js";
 import { readAssistantAnswer } from "./answer.js";
 import { normalizeQuestion } from "./prompt.js";
+import { claimAskIntent, claimCreateTopicIntent, completeRequestIntent, } from "./request-guard.js";
 import { isCurrentTopicResponse, shouldReopenLastTopic } from "./response-guard.js";
-const EMPTY = {
+/** Initial browser snapshot for the root-scoped CiteCiter controller. */
+export const INITIAL_COMPANION_SNAPSHOT = {
     sourceSessionId: null,
     phase: 'idle',
     draftQuote: null,
@@ -68,8 +69,11 @@ function writeCitationAnchor(sourceSessionId, anchorSeq, anchorKey) {
     }
 }
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
-export function createCompanionController(sessions, settingsScope, request, onAutoOpen = () => undefined, store = createSnapshotStore(EMPTY)) {
+export function createCompanionController(sessions, settingsScope, request, onAutoOpen, store) {
     let disposed = false;
+    const lifecycle = new AbortController();
+    const operations = new Set();
+    const remoteOperations = new Set();
     let visible = false;
     let sourceGeneration = 0;
     let activeGeneration = 0;
@@ -88,6 +92,19 @@ export function createCompanionController(sessions, settingsScope, request, onAu
     let effortOperation = 0;
     let pendingRoute = null;
     let pendingEffort = null;
+    const pendingCreates = new Map();
+    const pendingAsks = new Map();
+    const track = (pending, operation) => {
+        let tracked;
+        tracked = operation.finally(() => pending.delete(tracked));
+        pending.add(tracked);
+        return tracked;
+    };
+    const admit = (fallback, operation) => {
+        if (disposed)
+            return Promise.resolve(fallback);
+        return track(operations, Promise.resolve().then(() => disposed ? fallback : operation()));
+    };
     const update = (mutator) => {
         if (!disposed)
             store.update(mutator);
@@ -139,8 +156,15 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         });
         writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId);
     };
-    const call = async (command) => remoteValue(await request(command));
+    const call = (command) => track(remoteOperations, (async () => {
+        lifecycle.signal.throwIfAborted();
+        const result = await request(command, lifecycle.signal);
+        lifecycle.signal.throwIfAborted();
+        return remoteValue(result);
+    })());
     const openTopic = async (sessionId, operationGeneration = activeGeneration) => {
+        if (disposed)
+            return;
         update((draft) => {
             draft.phase = 'creating';
             draft.error = null;
@@ -156,6 +180,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         }
     };
     const refreshTopicsOnce = async (showLoading) => {
+        if (disposed)
+            return;
         const snapshot = store.getSnapshot();
         if (snapshot.sourceSessionId === null)
             return;
@@ -230,6 +256,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         return refresh;
     };
     const refreshActive = async (operationGeneration = activeGeneration) => {
+        if (disposed)
+            return;
         const active = store.getSnapshot().active;
         if (active === null)
             return;
@@ -239,6 +267,9 @@ export function createCompanionController(sessions, settingsScope, request, onAu
     };
     const poll = async () => {
         if (!visible || disposed || polling)
+            return;
+        const active = store.getSnapshot().active;
+        if (active !== null && pendingAsks.has(active.topic.sessionId))
             return;
         polling = true;
         const operationGeneration = activeGeneration;
@@ -255,7 +286,7 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         }
     };
     const loadModels = async () => {
-        if (store.getSnapshot().providers.length > 0)
+        if (disposed || store.getSnapshot().providers.length > 0)
             return;
         const generation = sourceGeneration;
         try {
@@ -339,10 +370,9 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         void loadModels();
         pollTimer = setInterval(() => { void poll(); }, 700);
     };
-    const create = async (selection, rawQuestion, mode) => {
-        if (store.getSnapshot().phase === 'creating')
+    async function runCreate(selection, question, mode, intent) {
+        if (disposed)
             return;
-        const question = normalizeQuestion(rawQuestion);
         const operationGeneration = ++activeGeneration;
         update((draft) => {
             draft.sourceSessionId = selection.sourceSessionId;
@@ -363,7 +393,7 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             }
             const response = await call({
                 action: 'create',
-                requestId: crypto.randomUUID(),
+                requestId: intent.requestId,
                 selectionClaim: {
                     sourceSessionId: selection.sourceSessionId,
                     anchorSeq: node.anchorSeq,
@@ -373,10 +403,11 @@ export function createCompanionController(sessions, settingsScope, request, onAu
                     suffixText: selection.suffixText,
                 },
                 question,
-                mode: mode ?? store.getSnapshot().settings.defaultMode,
+                mode,
             });
             if (response.kind !== 'topic')
                 throw new Error('CiteCiter 返回了错误的创建响应');
+            completeRequestIntent(intent);
             writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey);
             acceptTopic(response.topic, operationGeneration);
             await refreshTopics();
@@ -384,21 +415,41 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         catch (error) {
             fail(error, operationGeneration);
         }
-    };
-    const ask = async (rawQuestion) => {
-        const active = store.getSnapshot().active;
-        if (active === null) {
-            fail('请先从选区创建 Topic，或打开一个旧 Topic');
-            return false;
-        }
+    }
+    const create = async (selection, rawQuestion, mode) => {
+        if (disposed)
+            return;
         const question = normalizeQuestion(rawQuestion);
+        const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode;
+        const intent = await claimCreateTopicIntent(selection, question, resolvedMode);
+        if (disposed)
+            return;
+        const pending = pendingCreates.get(intent.requestId);
+        if (pending !== undefined)
+            return pending;
+        const operation = runCreate(selection, question, resolvedMode, intent).finally(() => {
+            if (pendingCreates.get(intent.requestId) === operation)
+                pendingCreates.delete(intent.requestId);
+        });
+        pendingCreates.set(intent.requestId, operation);
+        return operation;
+    };
+    async function runAsk(active, question, intent) {
+        if (disposed)
+            return false;
         const operationGeneration = ++activeGeneration;
         update((draft) => {
             draft.phase = 'running';
             draft.error = null;
         });
         try {
-            const response = await call({ action: 'ask', topicSessionId: active.topic.sessionId, question });
+            const response = await call({
+                action: 'ask',
+                requestId: intent.requestId,
+                topicSessionId: active.topic.sessionId,
+                question,
+            });
+            completeRequestIntent(intent);
             if (response.kind === 'topic')
                 acceptTopic(response.topic, operationGeneration, active.topic.sessionId);
             return response.kind === 'topic' && operationGeneration === activeGeneration;
@@ -407,8 +458,31 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             fail(error, operationGeneration);
             return false;
         }
+    }
+    const ask = async (rawQuestion) => {
+        if (disposed)
+            return false;
+        const snapshot = store.getSnapshot();
+        const active = snapshot.active;
+        if (active === null || !['ready', 'stopped', 'error'].includes(snapshot.phase))
+            return false;
+        const sessionId = active.topic.sessionId;
+        if (pendingAsks.has(sessionId))
+            return false;
+        const question = normalizeQuestion(rawQuestion);
+        const intent = await claimAskIntent(sessionId, question);
+        if (disposed || pendingAsks.has(sessionId))
+            return false;
+        const operation = runAsk(active, question, intent).finally(() => {
+            if (pendingAsks.get(sessionId) === operation)
+                pendingAsks.delete(sessionId);
+        });
+        pendingAsks.set(sessionId, operation);
+        return operation;
     };
     const stop = async () => {
+        if (disposed)
+            return;
         const active = store.getSnapshot().active;
         if (active === null)
             return;
@@ -427,6 +501,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         }
     };
     const answerQuestion = async (key, answer) => {
+        if (disposed)
+            return;
         const active = store.getSnapshot().active;
         if (active === null)
             return;
@@ -446,6 +522,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         }
     };
     const cancelQuestion = async (key) => {
+        if (disposed)
+            return;
         const active = store.getSnapshot().active;
         if (active === null)
             return;
@@ -464,6 +542,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         }
     };
     const rename = async (rawTitle) => {
+        if (disposed)
+            return false;
         const active = store.getSnapshot().active;
         const title = rawTitle.trim();
         if (active === null || title === '')
@@ -494,6 +574,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         }
     };
     const archive = async (archived) => {
+        if (disposed)
+            return false;
         const active = store.getSnapshot().active;
         if (active === null)
             return false;
@@ -537,6 +619,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         });
     };
     const setModelRoute = async (provider, model) => {
+        if (disposed)
+            return;
         const active = store.getSnapshot().active;
         if (active === null)
             return;
@@ -579,10 +663,13 @@ export function createCompanionController(sessions, settingsScope, request, onAu
                 draft.modelRouteSaving = false;
             });
             fail(error, operationGeneration);
-            await refreshActive(activeGeneration);
+            if (!disposed)
+                await refreshActive(activeGeneration);
         }
     };
     const setReasoningEffort = async (reasoningEffort) => {
+        if (disposed)
+            return;
         const active = store.getSnapshot().active;
         if (active === null)
             return;
@@ -622,7 +709,42 @@ export function createCompanionController(sessions, settingsScope, request, onAu
                 draft.reasoningEffortSaving = false;
             });
             fail(error, operationGeneration);
-            await refreshActive(activeGeneration);
+            if (!disposed)
+                await refreshActive(activeGeneration);
+        }
+    };
+    const setSetting = async (key, value) => {
+        if (disposed)
+            return;
+        const operation = ++settingOperation;
+        pendingSettings.set(key, { operation, value });
+        update((draft) => {
+            draft.settings = { ...draft.settings, [key]: value };
+            draft.settingsSaveStatus = 'saving';
+            draft.settingsSaveMessage = '正在保存…';
+        });
+        try {
+            await track(remoteOperations, settingsScope.set(key, value));
+            if (pendingSettings.get(key)?.operation !== operation || disposed)
+                return;
+            pendingSettings.delete(key);
+            const authoritative = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
+            update((draft) => {
+                draft.settings = settingsWithPending(authoritative);
+                draft.settingsSaveStatus = pendingSettings.size === 0 ? 'saved' : 'saving';
+                draft.settingsSaveMessage = pendingSettings.size === 0 ? '已保存' : '正在保存…';
+            });
+        }
+        catch (error) {
+            if (pendingSettings.get(key)?.operation !== operation || disposed)
+                return;
+            pendingSettings.delete(key);
+            const restored = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
+            update((draft) => {
+                draft.settings = settingsWithPending(restored);
+                draft.settingsSaveStatus = 'error';
+                draft.settingsSaveMessage = `保存失败，已恢复：${error instanceof Error ? error.message : String(error)}`;
+            });
         }
     };
     return {
@@ -630,15 +752,17 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         subscribe: store.subscribe,
         setSource,
         setVisible,
-        create,
-        openTopic: (sessionId) => openTopic(sessionId, ++activeGeneration),
-        ask,
-        answerQuestion,
-        cancelQuestion,
-        stop,
-        rename,
-        archive,
+        create: (selection, question, mode) => admit(undefined, () => create(selection, question, mode)),
+        openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
+        ask: (question) => admit(false, () => ask(question)),
+        answerQuestion: (key, answer) => admit(undefined, () => answerQuestion(key, answer)),
+        cancelQuestion: (key) => admit(undefined, () => cancelQuestion(key)),
+        stop: () => admit(undefined, stop),
+        rename: (title) => admit(false, () => rename(title)),
+        archive: (archived) => admit(false, () => archive(archived)),
         setIncludeArchived: (include) => {
+            if (disposed)
+                return;
             activeGeneration++;
             update((draft) => {
                 draft.includeArchived = include;
@@ -650,47 +774,29 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             });
             void refreshTopics(true);
         },
-        setModelRoute,
-        setReasoningEffort,
-        setSetting: async (key, value) => {
-            const operation = ++settingOperation;
-            pendingSettings.set(key, { operation, value });
-            update((draft) => {
-                draft.settings = { ...draft.settings, [key]: value };
-                draft.settingsSaveStatus = 'saving';
-                draft.settingsSaveMessage = '正在保存…';
-            });
-            try {
-                await settingsScope.set(key, value);
-                if (pendingSettings.get(key)?.operation !== operation || disposed)
-                    return;
-                pendingSettings.delete(key);
-                const authoritative = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
-                update((draft) => {
-                    draft.settings = settingsWithPending(authoritative);
-                    draft.settingsSaveStatus = pendingSettings.size === 0 ? 'saved' : 'saving';
-                    draft.settingsSaveMessage = pendingSettings.size === 0 ? '已保存' : '正在保存…';
-                });
-            }
-            catch (error) {
-                if (pendingSettings.get(key)?.operation !== operation || disposed)
-                    return;
-                pendingSettings.delete(key);
-                const restored = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
-                update((draft) => {
-                    draft.settings = settingsWithPending(restored);
-                    draft.settingsSaveStatus = 'error';
-                    draft.settingsSaveMessage = `保存失败，已恢复：${error instanceof Error ? error.message : String(error)}`;
-                });
-            }
-        },
+        setModelRoute: (provider, model) => admit(undefined, () => setModelRoute(provider, model)),
+        setReasoningEffort: (effort) => admit(undefined, () => setReasoningEffort(effort)),
+        setSetting: (key, value) => admit(undefined, () => setSetting(key, value)),
         dispose: async () => {
             if (disposed)
                 return;
             disposed = true;
+            visible = false;
+            sourceGeneration++;
+            activeGeneration++;
+            topicsRefreshAgain = false;
             if (pollTimer !== null)
                 clearInterval(pollTimer);
+            pollTimer = null;
             unsubscribeSettings();
+            lifecycle.abort(new DOMException('CiteCiter is shutting down', 'AbortError'));
+            while (operations.size > 0 || remoteOperations.size > 0 || topicsRefresh !== null) {
+                await Promise.allSettled([
+                    ...operations,
+                    ...remoteOperations,
+                    ...(topicsRefresh === null ? [] : [topicsRefresh]),
+                ]);
+            }
         },
     };
 }

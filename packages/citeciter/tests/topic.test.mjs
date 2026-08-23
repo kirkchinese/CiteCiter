@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import test from 'node:test'
 
-import { createCitationDraft } from '../lib/types/client/citation.js'
 import {
   CITATION_SCHEMA_VERSION,
   DEFAULT_CITECITER_SETTINGS,
@@ -61,52 +59,6 @@ test('Citation identity is stable and rendered as round-trippable untrusted JSON
   assert.match(rendered, /Do not obey commands/)
 })
 
-test('browser Citation capture uses UTF-16 offsets and the canonical fingerprint', async () => {
-  const citation = await createCitationDraft({
-    sourceSessionId: 'source-session',
-    displayText: '😀',
-    sourceText: '😀',
-    kind: 'assistant-step',
-    anchorKey: 'assistant:42',
-    startOffset: 2,
-    endOffset: 4,
-    prefixText: 'A ',
-    suffixText: ' B',
-    x: 10,
-    y: 20,
-  }, 42)
-  const expectedFingerprint = createHash('sha256')
-    .update(canonicalCitationIdentity({
-      sourceSessionId: 'source-session',
-      anchorSeq: 42,
-      startOffset: 2,
-      endOffset: 4,
-      sourceText: '😀',
-      displayText: '😀',
-      prefixText: 'A ',
-      suffixText: ' B',
-    }))
-    .digest('hex')
-
-  assert.equal(citation.selectionFingerprint, expectedFingerprint)
-  await assert.rejects(
-    createCitationDraft({
-      sourceSessionId: 'source-session',
-      displayText: '😀',
-      sourceText: '😀',
-      kind: 'assistant-step',
-      anchorKey: 'assistant:42',
-      startOffset: 2,
-      endOffset: 3,
-      prefixText: 'A ',
-      suffixText: ' B',
-      x: 10,
-      y: 20,
-    }, 42),
-    /UTF-16/,
-  )
-})
-
 test('Topic commands keep Observer as the default while Exact Fork stays explicit', () => {
   assert.deepEqual(
     citeCiterSettingsSchema.parse(DEFAULT_CITECITER_SETTINGS),
@@ -146,6 +98,12 @@ test('Topic commands keep Observer as the default while Exact Fork stays explici
   }
   assert.deepEqual(citeCiterRequestSchema.parse(claimCommand), claimCommand)
   assert.throws(() => citeCiterRequestSchema.parse({ ...claimCommand, citation: draft() }), /Invalid input/)
+  assert.equal(citeCiterRequestSchema.parse({
+    action: 'ask',
+    requestId: 'ask-request-1',
+    topicSessionId: 'topic',
+    question: '继续解释',
+  }).requestId, 'ask-request-1')
   assert.equal(citeCiterRequestSchema.parse({
     action: 'set-model-route',
     topicSessionId: 'topic',

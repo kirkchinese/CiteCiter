@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -23,6 +24,7 @@ import {
 import type { CompanionFace, CompanionPhase } from '../companion-controller.ts'
 import type { TopicMessage } from '../../topic.ts'
 import type { CiteBus } from '../types.ts'
+import { findDshAssistantAnchor } from '../conversation-dom.ts'
 import { parseNextQuestions } from '../prompt.ts'
 import collapseArrowUrl from '../assets/collapse-arrow.svg'
 import mascotUrl from '../assets/citeciter-mascot.png'
@@ -72,7 +74,7 @@ function CitationWaterline({ anchorKey, target }: {
   const [visible, setVisible] = useState(false)
   useEffect(() => {
     if (anchorKey === undefined) return
-    const source = document.querySelector<HTMLElement>(`[data-chat-anchor-key="${CSS.escape(anchorKey)}"]`)
+    const source = findDshAssistantAnchor(anchorKey)
     const destination = target.current
     if (source === null || destination === null) return
     const update = () => {
@@ -279,10 +281,8 @@ function AssistantTurn({
   readonly reportParseError: (messageId: string) => void
 }) {
   const parsed = useMemo(
-    () => first
-      ? parseNextQuestions(message.text)
-      : { text: message.text, questions: [], invalid: false },
-    [first, message.text],
+    () => parseNextQuestions(message.text, message.streaming),
+    [message.streaming, message.text],
   )
   useEffect(() => {
     if (parsed.invalid && !message.streaming) reportParseError(message.id)
@@ -292,7 +292,7 @@ function AssistantTurn({
       <div className={css.turnRole}>CiteCiter</div>
       {message.reasoning !== null && <ReasoningRow text={message.reasoning} running={message.streaming} />}
       {parsed.text !== '' && <RichAnswer text={parsed.text} streaming={message.streaming} />}
-      {!message.streaming && parsed.questions.length === 3 && (
+      {first && !message.streaming && parsed.questions.length === 3 && (
         <div className={css.nextQuestions} aria-label="接下来可能想问">
           {parsed.questions.map((question) => (
             <button type="button" key={question} disabled={disabled} onClick={() => { void companion.ask(question) }}>{question}</button>
@@ -303,40 +303,57 @@ function AssistantTurn({
   )
 }
 
-/** Reserve a real third DSH column while keeping the official shell and coding surface intact. */
-function useDockColumn(open: boolean, widthPercent: number): readonly [number, boolean] {
+function findContainingFrame(panel: HTMLElement | null): HTMLElement | null {
+  const frame = panel?.closest<HTMLElement>('[data-shell-overlay]')?.parentElement
+  return frame instanceof HTMLElement ? frame : null
+}
+
+/** Temporarily reserve an AppFrame column until DSH exposes a public right-dock contribution point. */
+function useDockColumn(panel: RefObject<HTMLElement | null>, open: boolean, widthPercent: number): readonly [number, boolean] {
   const [width, setWidth] = useState(0)
-  const [docked, setDocked] = useState(true)
+  const [docked, setDocked] = useState(false)
   useEffect(() => {
     if (!open) return
-    const overlay = document.querySelector<HTMLElement>('[data-shell-overlay]')
-    const frame = overlay?.parentElement
-    if (!(frame instanceof HTMLElement)) return
+    const frame = findContainingFrame(panel.current)
+    if (frame === null) {
+      setWidth(Math.min(window.innerWidth, 720))
+      setDocked(false)
+      return
+    }
+    const owner = crypto.randomUUID()
     const setTrack = (name: string, value: string) => {
       if (frame.style.getPropertyValue(name) !== value) frame.style.setProperty(name, value)
     }
+    const clearDock = () => {
+      if (frame.dataset.citeciterDocked !== owner) return
+      delete frame.dataset.citeciterDocked
+      frame.style.removeProperty('--citeciter-sidebar-width')
+      frame.style.removeProperty('--citeciter-dock-width')
+    }
     const apply = () => {
+      const activeOwner = frame.dataset.citeciterDocked
+      if (activeOwner !== undefined && activeOwner !== owner) return
       const frameWidth = frame.getBoundingClientRect().width
       const nativeTrack = /^([\d.]+)px(?:\s|$)/u.exec(frame.style.gridTemplateColumns)
       const sidebarWidth = nativeTrack === null
         ? frame.firstElementChild?.getBoundingClientRect().width ?? 0
         : Number(nativeTrack[1])
       const available = frameWidth - sidebarWidth - 480
-      setTrack('--citeciter-sidebar-width', sidebarWidth + 'px')
       if (available < 360) {
-        setTrack('--citeciter-dock-width', '0px')
+        clearDock()
         setWidth(Math.min(frameWidth, 720))
         setDocked(false)
         return
       }
       const requested = frameWidth * widthPercent / 100
       const panelWidth = Math.max(360, Math.min(requested, available))
-      setTrack('--citeciter-dock-width', panelWidth + 'px')
+      setTrack('--citeciter-sidebar-width', `${sidebarWidth}px`)
+      setTrack('--citeciter-dock-width', `${panelWidth}px`)
+      frame.dataset.citeciterDocked = owner
       setWidth(panelWidth)
       setDocked(true)
     }
     apply()
-    frame.dataset.citeciterDocked = 'true'
     const resizeObserver = new ResizeObserver(apply)
     const styleObserver = new MutationObserver(apply)
     resizeObserver.observe(frame)
@@ -344,11 +361,9 @@ function useDockColumn(open: boolean, widthPercent: number): readonly [number, b
     return () => {
       resizeObserver.disconnect()
       styleObserver.disconnect()
-      delete frame.dataset.citeciterDocked
-      frame.style.removeProperty('--citeciter-sidebar-width')
-      frame.style.removeProperty('--citeciter-dock-width')
+      clearDock()
     }
-  }, [open, widthPercent])
+  }, [open, panel, widthPercent])
   return [width, docked]
 }
 
@@ -359,7 +374,7 @@ export interface CitePanelProps {
   readonly reportParseError: (messageId: string) => void
 }
 
-/** Independent, resizable learning workspace docked beside the active coding conversation. */
+/** Independent learning workspace with a reversible Host-column compatibility adapter. */
 export function CitePanel({ bus, companion, closePanel, reportParseError }: CitePanelProps) {
   const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot)
   const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
@@ -368,10 +383,12 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
   const [titleDirty, setTitleDirty] = useState(false)
   const [widthPercent, setWidthPercent] = useState(snapshot.settings.panelWidthPercent)
   const resizeOrigin = useRef<{ x: number, width: number, frameWidth: number } | null>(null)
+  const panelRef = useRef<HTMLElement>(null)
   const titleRef = useRef<HTMLElement>(null)
   const open = overlay.panelOpen
-  const [panelWidth, docked] = useDockColumn(open, widthPercent)
+  const [panelWidth, docked] = useDockColumn(panelRef, open, widthPercent)
   const active = snapshot.active
+  const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error'
 
   useEffect(() => companion.setVisible(open), [companion, open])
   useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent])
@@ -397,7 +414,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (snapshot.phase === 'running' || snapshot.phase === 'stopping') return
+    if (!canAsk) return
     const value = question.trim()
     if (value === '') return
     const submitted = question
@@ -416,8 +433,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
     resizeOrigin.current = {
       x: event.clientX,
       width: widthPercent,
-      frameWidth: document.querySelector<HTMLElement>('[data-shell-overlay]')?.parentElement?.getBoundingClientRect().width
-        ?? window.innerWidth,
+      frameWidth: findContainingFrame(panelRef.current)?.getBoundingClientRect().width ?? window.innerWidth,
     }
   }
   const moveResize = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -445,8 +461,12 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
 
   return (
     <aside
+      ref={panelRef}
       className={css.dock}
-      style={{ width: panelWidth > 0 ? panelWidth : undefined }}
+      style={{
+        width: panelWidth > 0 ? panelWidth : undefined,
+        '--citeciter-panel-width': `${widthPercent}vw`,
+      } as CSSProperties}
       data-citeciter-panel
       data-overlay={docked ? undefined : true}
       aria-label="CiteCiter 学习伴侣"
@@ -631,7 +651,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
                   key={message.id}
                   message={message}
                   first={message.id === firstAssistantId}
-                  disabled={snapshot.phase === 'running' || snapshot.phase === 'stopping'}
+                  disabled={!canAsk}
                   companion={companion}
                   reportParseError={reportParseError}
                 />
@@ -659,7 +679,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
                 <button
                   className={css.sendButton}
                   type={snapshot.phase === 'running' ? 'button' : 'submit'}
-                  disabled={snapshot.phase === 'stopping' || snapshot.phase !== 'running' && (active === null || question.trim() === '')}
+                  disabled={snapshot.phase === 'stopping' || snapshot.phase !== 'running' && (!canAsk || active === null || question.trim() === '')}
                   aria-label={snapshot.phase === 'running' ? '停止回答' : snapshot.phase === 'stopping' ? '正在停止' : '发送'}
                   onClick={snapshot.phase === 'running' ? () => { void companion.stop() } : undefined}
                 >

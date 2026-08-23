@@ -404,6 +404,7 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     topicSessionId: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"ask">;
+    requestId: z.ZodOptional<z.ZodString>;
     topicSessionId: z.ZodString;
     question: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{

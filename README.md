@@ -1,8 +1,8 @@
 <h1 align="center">CiteCiter</h1>
 
-<p align="center"><strong>Ask about any line in a DSH response—without stopping the agent or changing the source session.</strong></p>
+<p align="center"><strong>Investigate any line in a DSH response—without interrupting the work that produced it.</strong></p>
 
-<p align="center">A source-bound, read-only learning companion for sustained side questions.</p>
+<p align="center">Verifiable, source-bound, read-only side investigations for interactive DeepSeek Harness.</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@kirkchinese/dsh-citeciter"><img src="https://img.shields.io/npm/v/@kirkchinese/dsh-citeciter" alt="npm version"></a>
@@ -16,95 +16,128 @@
 </p>
 
 <p align="center">
-  <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="Select a DSH response and continue asking in a private CiteCiter learning Topic">
+  <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="Select a DSH response and continue asking in a private CiteCiter Topic">
 </p>
 
-<p align="center"><sub>Select a line, ask beside it, and keep learning while the source Agent continues its work.</sub></p>
+<p align="center"><sub>Select, right-click, and ask beside the source while the main Agent keeps working. Recorded in a deterministic test environment; this demonstrates the workflow rather than real-provider acceptance.</sub></p>
 
-<p align="center">
-  <img src="assets/citeciter-whale-sticker.png" width="180" alt="CiteCiter whale mascot">
-</p>
+CiteCiter is for the moments when a long-running Agent says something worth pausing over, but the task itself should not pause. It opens a separate investigation beside the conversation, keeps that investigation tied to the exact source text, and leaves the source Session and workspace unchanged.
 
-CiteCiter lets you select text from a committed AI response, ask beside the source, and continue learning in an independent Topic bound to source evidence. It can inspect the source Session and project files through read-only tools without modifying either one.
+## Why CiteCiter
 
-## See it in DSH
+- **Cite the exact words.** The selected excerpt is checked against the committed assistant response before a Topic is created.
+- **Ask before the Agent finishes.** A committed model response is enough; the surrounding Agent turn may still be running.
+- **Keep the investigation alive.** Each Topic supports natural follow-up questions and can be reopened after a refresh or restart.
+- **Check the evidence.** CiteCiter can inspect committed source-Session events and search or read project files through read-only tools.
+- **Protect the original task.** The investigation runs in its own read-only Session. It cannot write to the source Session or source workspace.
 
-<p align="center">
-  <img src="assets/screenshots/citeciter-learning-dock.jpg" width="100%" alt="CiteCiter learning dock beside a live DSH programming conversation">
-</p>
+## Who it is for
 
-<p align="center"><sub>Ask beside the source while CiteCiter inspects reasoning, source events, and project files through read-only tools.</sub></p>
+CiteCiter is especially useful when you:
 
-<p align="center">
-  <img src="assets/screenshots/citeciter-settings.png" width="720" alt="CiteCiter settings inside the native DSH settings dialog">
-</p>
+- run long, interactive DSH tasks and want to clarify one claim without diverting the main Agent;
+- review AI-assisted code and need to test an explanation against the Session record or repository;
+- learn an unfamiliar codebase and want a persistent thread for “why does this work?” questions.
 
-## Compatibility
+It is not intended for every DSH workflow. TUI, headless, and fully automated runs do not currently have a CiteCiter interaction adapter.
 
-| Host | CiteCiter version | Status |
-|---|---|---|
-| DSH Web `0.1.1-rc.2` | `0.4.x` | Fully verified |
-| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.x` | Linux source-shell verified; not a macOS/Windows installer claim |
-| DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
-| DSH TUI | — | Not supported yet |
+## Install after the 0.4.1 release
 
-## Install
+CiteCiter 0.4.1 is currently a source candidate and has not cleared release acceptance. It supports Node.js `^22.19.0 || >=24.0.0` and DSH `>=0.1.1-rc.1 <0.1.1-rc.3`.
 
-CiteCiter 0.4.0 requires Node.js `^22.19.0 || >=24.0.0`, DSH `>=0.1.1-rc.1 <0.1.1-rc.3`, and a configured model provider.
+For DSH Web:
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 ```
 
-Restart the corresponding DSH Web process and refresh the page after installation or upgrade.
+Restart DSH Web and refresh the page. For DSH Desktop, open the tray terminal and run:
+
+```sh
+dsh plugin add @kirkchinese/dsh-citeciter@0.4.1
+```
+
+Packaged Desktop already includes Node.js, pnpm, and its pinned DSH runtime. An external DSH installation can target the Desktop profile explicitly:
+
+```sh
+dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.4.1
+```
+
+Restart DSH Desktop after installation.
 
 ## Use
 
-1. Select text inside a committed assistant model call. The surrounding Agent turn may still be running.
-2. Right-click the selection, enter your first question, and choose `Citer!`.
-3. CiteCiter creates a new Topic in the learning dock.
-4. Continue asking questions there, or reopen an earlier Topic from CiteCiter's Topic rail.
-5. Change the Topic model, reasoning effort, title, archive state, or dock width without changing the source Session.
+1. Select text inside a committed assistant response. The surrounding Agent turn may still be running.
+2. Right-click the selection, enter the first question, and choose `Citer!`.
+3. Continue the discussion in the panel beside the source conversation.
+4. Reopen, rename, archive, or resume earlier Topics from the Topic rail.
 
-## Highlights
+Each Topic keeps its own model, reasoning effort, title, messages, and source binding. Changing any of them does not change the source Session.
 
-- **Model-call citations.** Start learning as soon as an `assistant/message` is committed; there is no need to wait for the full Agent turn to end.
-- **Private Topics.** Each submission creates an independent DSH Session under `$DSH_HOME/citeciter/`, outside the ordinary Session list.
-- **Precise selections.** Visible Markdown selections map back to Host-verifiable source ranges.
-- **Cross-flow selections.** A range spanning reasoning, tools, and body text binds to its final committed assistant call while retaining the complete visible quote in the learning workspace.
-- **Bound evidence.** `read_source_session` reads committed events from one fixed source Session without exposing its physical log path.
-- **Open-ended investigation.** The standard read-only `glob` and `grep` tools discover project files and search their contents before `read` opens a known path.
-- **Read-only operation.** CiteCiter cannot write to the source Session or source workspace.
-- **Inspectable workflow.** Live reasoning, prompt injections, tool calls, results, and user questions use compact expandable rows inside the learning dock.
-- **Natural follow-ups.** After the first answer, the model may emit three strictly formatted next questions; malformed output creates no shortcuts and is logged silently.
-- **Native workflow.** The selection popover, resizable learning dock, active/archive Topic navigation, and settings stay inside the DSH programming interface.
+## Evidence without write access
+
+| Surface | What CiteCiter can do | What it cannot do |
+|---|---|---|
+| Selected response | Recheck and preserve the exact committed source range | Anchor a still-streaming fragment |
+| Source Session | Read bounded committed events, including later events in the default mode | Append, rewrite, or steer the main Session |
+| Project workspace | Discover, search, and read files when the DSH filesystem service is available | Create, edit, or delete project files |
+| Topic | Keep a durable, multi-turn investigation under `$DSH_HOME/citeciter/` | Appear as or modify an ordinary source Session |
+
+## See the investigation workspace
+
+<p align="center">
+  <img src="assets/screenshots/citeciter-learning-dock.jpg" width="100%" alt="CiteCiter panel beside a DSH programming conversation">
+</p>
+
+<p align="center"><sub>The panel keeps the quote, questions, answers, source reads, and project-file checks together. This screenshot is a deterministic fixture, not packaged-Desktop or real-provider evidence.</sub></p>
+
+<p align="center">
+  <img src="assets/screenshots/citeciter-settings.png" width="720" alt="CiteCiter settings inside the DSH settings dialog">
+</p>
 
 ## Context modes
 
-Observer is the default. It creates an independent Topic and reads committed source evidence on demand, including while the source turn is still running.
+The default **Observer** mode reads committed source evidence on demand. It can start from a completed model response while the wider Agent turn continues, and it can see later committed events.
 
-Exact Fork is an advanced mode for a source turn that has already ended. `exact-when-available` uses Exact Fork when a stable boundary exists and otherwise falls back to Observer.
+**Exact Fork** is an advanced mode for a source turn that has already ended. `exact-when-available` uses that fixed boundary when possible and otherwise falls back to Observer. Existing Topic files and settings keep their current format in 0.4.1.
+
+## Compatibility and verification
+
+| Host | CiteCiter version | Current evidence |
+|---|---|---|
+| DSH Web `0.1.1-rc.2` | `0.4.1` candidate | Local automated and deterministic-fixture checks passed; release acceptance is pending |
+| [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop) with bundled DSH `0.1.1-rc.2` | `0.4.1` candidate | Target host; Windows x64 and macOS universal installer acceptance is pending |
+| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.0` only | Historical, conditional Linux source-shell evidence |
+| DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
 
 ## Upgrade from an earlier version
 
-Install v0.4 with the same command, then verify the installed version:
+After v0.4.1 is published, upgrade the profile you use and verify the resolved version. Web uses:
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 dsh plugin --profile web list --depth 0
 ```
 
-Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
+The Desktop tray terminal uses the same commands without `--profile web`; an external DSH installation uses `--profile desktop`. Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
 
-## Limitations
+## Known limitations
 
-- A selection must include at least one committed assistant model call. User-only ranges, tool-only ranges, and still-streaming fragments cannot anchor a Citation.
+- A selection must contain at least one committed assistant response. User-only ranges, tool-only ranges, and still-streaming fragments cannot anchor a citation.
 - Renderer-generated KaTeX layout and footnote numbers do not have stable source coordinates and cannot be cited directly.
-- Exact Fork cannot start from an open source turn.
 - Source-file access depends on the running DSH filesystem service and remains read-only.
-- Desktop validation covers dataelement's Linux development shell; it does not claim packaged macOS or Windows installer testing.
-- There is currently no TUI interaction adapter.
-- DSH is prerelease software; later DSH API versions may require a CiteCiter update.
+- Read Frog translated selections are a best-effort compatibility path on DSH rc.1/rc.2; ordinary DSH selections do not depend on it.
+- DSH does not yet expose a public additive right-dock contribution point. CiteCiter therefore uses a reversible, version-pinned AppFrame compatibility adapter whenever the frame can fit both the learning dock and a usable conversation; it temporarily hides the visible details column and otherwise falls back to an overlay.
+- On Desktop, changing the loopback port changes the browser origin. CiteCiter then reopens the most recently updated Topic; use a fixed port to restore the exact last-viewed Topic.
+- DSH is prerelease software, so later API versions may require a CiteCiter update.
+
+## Community
+
+Questions, workflow ideas, and compatibility reports are welcome in the DSH-Citeciter QQ group (`1108040435`).
+
+<p align="center">
+  <img src="assets/community/qq-group.jpg" width="360" alt="QR code for the DSH-Citeciter QQ group 1108040435">
+</p>
 
 ## Contributing
 

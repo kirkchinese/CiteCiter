@@ -1,6 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, } from 'react';
 import { DisclosureRow, IconArchiveOutline20, IconQuestionOutline14, IconSendOutline16, IconSparkle16, IconStopFill16, IconThinkOutline14, JsonTree, } from '@deepseek-ai/dsh-client-ui-primitives';
+import { findDshAssistantAnchor } from "../conversation-dom.js";
 import { parseNextQuestions } from "../prompt.js";
 import collapseArrowUrl from '../assets/collapse-arrow.svg';
 import mascotUrl from '../assets/citeciter-mascot.png';
@@ -39,7 +40,7 @@ function CitationWaterline({ anchorKey, target }) {
     useEffect(() => {
         if (anchorKey === undefined)
             return;
-        const source = document.querySelector(`[data-chat-anchor-key="${CSS.escape(anchorKey)}"]`);
+        const source = findDshAssistantAnchor(anchorKey);
         const destination = target.current;
         if (source === null || destination === null)
             return;
@@ -154,52 +155,67 @@ function ErrorTurn({ message }) {
     return (_jsxs("article", { className: css.errorTurn, "data-status": message.status, children: [_jsx("div", { className: css.turnRole, children: message.status === 'stopped' ? '已停止' : '请求失败' }), _jsx("p", { children: summary }), _jsxs("div", { className: css.errorMeta, children: [_jsxs("span", { children: ["\u7B2C ", message.attempt, " \u6B21\u8BF7\u6C42"] }), _jsx("span", { children: message.bodyRetained ? '已保留已生成正文' : '未产生可保留正文' }), _jsx("span", { children: message.status === 'stopped' ? '可继续追问' : '可修改问题后重试' })] }), summary !== message.text && _jsxs("details", { children: [_jsx("summary", { children: "\u6280\u672F\u8BE6\u60C5" }), _jsx("pre", { children: message.text })] })] }));
 }
 function AssistantTurn({ message, first, disabled, companion, reportParseError, }) {
-    const parsed = useMemo(() => first
-        ? parseNextQuestions(message.text)
-        : { text: message.text, questions: [], invalid: false }, [first, message.text]);
+    const parsed = useMemo(() => parseNextQuestions(message.text, message.streaming), [message.streaming, message.text]);
     useEffect(() => {
         if (parsed.invalid && !message.streaming)
             reportParseError(message.id);
     }, [message.id, message.streaming, parsed.invalid, reportParseError]);
-    return (_jsxs("article", { className: css.assistantTurn, children: [_jsx("div", { className: css.turnRole, children: "CiteCiter" }), message.reasoning !== null && _jsx(ReasoningRow, { text: message.reasoning, running: message.streaming }), parsed.text !== '' && _jsx(RichAnswer, { text: parsed.text, streaming: message.streaming }), !message.streaming && parsed.questions.length === 3 && (_jsx("div", { className: css.nextQuestions, "aria-label": "\u63A5\u4E0B\u6765\u53EF\u80FD\u60F3\u95EE", children: parsed.questions.map((question) => (_jsx("button", { type: "button", disabled: disabled, onClick: () => { void companion.ask(question); }, children: question }, question))) }))] }));
+    return (_jsxs("article", { className: css.assistantTurn, children: [_jsx("div", { className: css.turnRole, children: "CiteCiter" }), message.reasoning !== null && _jsx(ReasoningRow, { text: message.reasoning, running: message.streaming }), parsed.text !== '' && _jsx(RichAnswer, { text: parsed.text, streaming: message.streaming }), first && !message.streaming && parsed.questions.length === 3 && (_jsx("div", { className: css.nextQuestions, "aria-label": "\u63A5\u4E0B\u6765\u53EF\u80FD\u60F3\u95EE", children: parsed.questions.map((question) => (_jsx("button", { type: "button", disabled: disabled, onClick: () => { void companion.ask(question); }, children: question }, question))) }))] }));
 }
-/** Reserve a real third DSH column while keeping the official shell and coding surface intact. */
-function useDockColumn(open, widthPercent) {
+function findContainingFrame(panel) {
+    const frame = panel?.closest('[data-shell-overlay]')?.parentElement;
+    return frame instanceof HTMLElement ? frame : null;
+}
+/** Temporarily reserve an AppFrame column until DSH exposes a public right-dock contribution point. */
+function useDockColumn(panel, open, widthPercent) {
     const [width, setWidth] = useState(0);
-    const [docked, setDocked] = useState(true);
+    const [docked, setDocked] = useState(false);
     useEffect(() => {
         if (!open)
             return;
-        const overlay = document.querySelector('[data-shell-overlay]');
-        const frame = overlay?.parentElement;
-        if (!(frame instanceof HTMLElement))
+        const frame = findContainingFrame(panel.current);
+        if (frame === null) {
+            setWidth(Math.min(window.innerWidth, 720));
+            setDocked(false);
             return;
+        }
+        const owner = crypto.randomUUID();
         const setTrack = (name, value) => {
             if (frame.style.getPropertyValue(name) !== value)
                 frame.style.setProperty(name, value);
         };
+        const clearDock = () => {
+            if (frame.dataset.citeciterDocked !== owner)
+                return;
+            delete frame.dataset.citeciterDocked;
+            frame.style.removeProperty('--citeciter-sidebar-width');
+            frame.style.removeProperty('--citeciter-dock-width');
+        };
         const apply = () => {
+            const activeOwner = frame.dataset.citeciterDocked;
+            if (activeOwner !== undefined && activeOwner !== owner)
+                return;
             const frameWidth = frame.getBoundingClientRect().width;
             const nativeTrack = /^([\d.]+)px(?:\s|$)/u.exec(frame.style.gridTemplateColumns);
             const sidebarWidth = nativeTrack === null
                 ? frame.firstElementChild?.getBoundingClientRect().width ?? 0
                 : Number(nativeTrack[1]);
             const available = frameWidth - sidebarWidth - 480;
-            setTrack('--citeciter-sidebar-width', sidebarWidth + 'px');
             if (available < 360) {
-                setTrack('--citeciter-dock-width', '0px');
+                clearDock();
                 setWidth(Math.min(frameWidth, 720));
                 setDocked(false);
                 return;
             }
             const requested = frameWidth * widthPercent / 100;
             const panelWidth = Math.max(360, Math.min(requested, available));
-            setTrack('--citeciter-dock-width', panelWidth + 'px');
+            setTrack('--citeciter-sidebar-width', `${sidebarWidth}px`);
+            setTrack('--citeciter-dock-width', `${panelWidth}px`);
+            frame.dataset.citeciterDocked = owner;
             setWidth(panelWidth);
             setDocked(true);
         };
         apply();
-        frame.dataset.citeciterDocked = 'true';
         const resizeObserver = new ResizeObserver(apply);
         const styleObserver = new MutationObserver(apply);
         resizeObserver.observe(frame);
@@ -207,14 +223,12 @@ function useDockColumn(open, widthPercent) {
         return () => {
             resizeObserver.disconnect();
             styleObserver.disconnect();
-            delete frame.dataset.citeciterDocked;
-            frame.style.removeProperty('--citeciter-sidebar-width');
-            frame.style.removeProperty('--citeciter-dock-width');
+            clearDock();
         };
-    }, [open, widthPercent]);
+    }, [open, panel, widthPercent]);
     return [width, docked];
 }
-/** Independent, resizable learning workspace docked beside the active coding conversation. */
+/** Independent learning workspace with a reversible Host-column compatibility adapter. */
 export function CitePanel({ bus, companion, closePanel, reportParseError }) {
     const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot);
     const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot);
@@ -223,10 +237,12 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
     const [titleDirty, setTitleDirty] = useState(false);
     const [widthPercent, setWidthPercent] = useState(snapshot.settings.panelWidthPercent);
     const resizeOrigin = useRef(null);
+    const panelRef = useRef(null);
     const titleRef = useRef(null);
     const open = overlay.panelOpen;
-    const [panelWidth, docked] = useDockColumn(open, widthPercent);
+    const [panelWidth, docked] = useDockColumn(panelRef, open, widthPercent);
     const active = snapshot.active;
+    const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error';
     useEffect(() => companion.setVisible(open), [companion, open]);
     useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent]);
     useEffect(() => {
@@ -250,7 +266,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
         return null;
     const submit = (event) => {
         event.preventDefault();
-        if (snapshot.phase === 'running' || snapshot.phase === 'stopping')
+        if (!canAsk)
             return;
         const value = question.trim();
         if (value === '')
@@ -272,8 +288,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
         resizeOrigin.current = {
             x: event.clientX,
             width: widthPercent,
-            frameWidth: document.querySelector('[data-shell-overlay]')?.parentElement?.getBoundingClientRect().width
-                ?? window.innerWidth,
+            frameWidth: findContainingFrame(panelRef.current)?.getBoundingClientRect().width ?? window.innerWidth,
         };
     };
     const moveResize = (event) => {
@@ -302,7 +317,10 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
         event.preventDefault();
         updateWidth(widthPercent + (event.key === 'ArrowLeft' ? 1 : -1));
     };
-    return (_jsxs("aside", { className: css.dock, style: { width: panelWidth > 0 ? panelWidth : undefined }, "data-citeciter-panel": true, "data-overlay": docked ? undefined : true, "aria-label": "CiteCiter \u5B66\u4E60\u4F34\u4FA3", children: [docked && (_jsx("div", { className: css.resizeHandle, role: "separator", "aria-label": "\u8C03\u6574 CiteCiter \u5BBD\u5EA6", "aria-orientation": "vertical", "aria-valuemin": 28, "aria-valuemax": 55, "aria-valuenow": widthPercent, tabIndex: 0, onPointerDown: startResize, onPointerMove: moveResize, onPointerUp: endResize, onPointerCancel: cancelResize, onKeyDown: resizeKey })), _jsx("button", { className: css.closeButton, type: "button", onClick: closePanel, "aria-label": "\u5173\u95ED CiteCiter", children: _jsx("img", { src: collapseArrowUrl, alt: "" }) }), _jsx(CitationWaterline, { anchorKey: snapshot.sourceAnchorKey ?? undefined, target: titleRef }), _jsxs("nav", { className: css.topicRail, "aria-label": "CiteCiter Topics", children: [_jsxs("div", { className: css.brand, children: [_jsx(MascotStatus, { state: whaleState }), _jsxs("div", { children: [_jsx("strong", { children: "CiteCiter" }), _jsx("span", { children: "\u5B66\u4E60\u4F34\u4FA3" })] })] }), _jsxs("div", { className: css.railCaption, children: [_jsx("span", { children: snapshot.includeArchived ? '归档讨论' : '当前来源的讨论' }), _jsx("button", { type: "button", onClick: () => companion.setIncludeArchived(!snapshot.includeArchived), children: snapshot.includeArchived ? '返回活动' : '查看归档' })] }), _jsxs("div", { className: css.topicList, children: [snapshot.topics.map((topic) => (_jsxs("button", { className: css.topicItem, "data-active": active?.topic.sessionId === topic.sessionId || undefined, "data-archived": topic.archived || undefined, "data-citeciter-topic": topic.sessionId, type: "button", onClick: () => { void companion.openTopic(topic.sessionId); }, children: [_jsx("span", { className: css.topicStatus, "data-running": topic.running || undefined }), _jsxs("span", { className: css.topicCopy, children: [_jsx("strong", { "data-pending": topic.titlePending || undefined, children: topic.title }), _jsxs("small", { children: ["\u201C", quotePreview(topic.citation.displayText), "\u201D"] })] })] }, topic.sessionId))), snapshot.topicsStatus === 'loading' && _jsx("p", { className: css.railEmpty, role: "status", children: "\u6B63\u5728\u8BFB\u53D6 Topic\u2026" }), snapshot.topicsStatus === 'error' && (_jsxs("p", { className: css.railError, role: "alert", children: ["Topic \u8BFB\u53D6\u5931\u8D25", _jsx("br", {}), snapshot.topicsError] })), snapshot.topicsStatus === 'ready' && snapshot.topics.length === 0 && (_jsx("p", { className: css.railEmpty, children: snapshot.includeArchived
+    return (_jsxs("aside", { ref: panelRef, className: css.dock, style: {
+            width: panelWidth > 0 ? panelWidth : undefined,
+            '--citeciter-panel-width': `${widthPercent}vw`,
+        }, "data-citeciter-panel": true, "data-overlay": docked ? undefined : true, "aria-label": "CiteCiter \u5B66\u4E60\u4F34\u4FA3", children: [docked && (_jsx("div", { className: css.resizeHandle, role: "separator", "aria-label": "\u8C03\u6574 CiteCiter \u5BBD\u5EA6", "aria-orientation": "vertical", "aria-valuemin": 28, "aria-valuemax": 55, "aria-valuenow": widthPercent, tabIndex: 0, onPointerDown: startResize, onPointerMove: moveResize, onPointerUp: endResize, onPointerCancel: cancelResize, onKeyDown: resizeKey })), _jsx("button", { className: css.closeButton, type: "button", onClick: closePanel, "aria-label": "\u5173\u95ED CiteCiter", children: _jsx("img", { src: collapseArrowUrl, alt: "" }) }), _jsx(CitationWaterline, { anchorKey: snapshot.sourceAnchorKey ?? undefined, target: titleRef }), _jsxs("nav", { className: css.topicRail, "aria-label": "CiteCiter Topics", children: [_jsxs("div", { className: css.brand, children: [_jsx(MascotStatus, { state: whaleState }), _jsxs("div", { children: [_jsx("strong", { children: "CiteCiter" }), _jsx("span", { children: "\u5B66\u4E60\u4F34\u4FA3" })] })] }), _jsxs("div", { className: css.railCaption, children: [_jsx("span", { children: snapshot.includeArchived ? '归档讨论' : '当前来源的讨论' }), _jsx("button", { type: "button", onClick: () => companion.setIncludeArchived(!snapshot.includeArchived), children: snapshot.includeArchived ? '返回活动' : '查看归档' })] }), _jsxs("div", { className: css.topicList, children: [snapshot.topics.map((topic) => (_jsxs("button", { className: css.topicItem, "data-active": active?.topic.sessionId === topic.sessionId || undefined, "data-archived": topic.archived || undefined, "data-citeciter-topic": topic.sessionId, type: "button", onClick: () => { void companion.openTopic(topic.sessionId); }, children: [_jsx("span", { className: css.topicStatus, "data-running": topic.running || undefined }), _jsxs("span", { className: css.topicCopy, children: [_jsx("strong", { "data-pending": topic.titlePending || undefined, children: topic.title }), _jsxs("small", { children: ["\u201C", quotePreview(topic.citation.displayText), "\u201D"] })] })] }, topic.sessionId))), snapshot.topicsStatus === 'loading' && _jsx("p", { className: css.railEmpty, role: "status", children: "\u6B63\u5728\u8BFB\u53D6 Topic\u2026" }), snapshot.topicsStatus === 'error' && (_jsxs("p", { className: css.railError, role: "alert", children: ["Topic \u8BFB\u53D6\u5931\u8D25", _jsx("br", {}), snapshot.topicsError] })), snapshot.topicsStatus === 'ready' && snapshot.topics.length === 0 && (_jsx("p", { className: css.railEmpty, children: snapshot.includeArchived
                                     ? '当前来源还没有归档 Topic。'
                                     : '在中央编程对话中选中文字，右键即可开始。' }))] }), _jsxs("div", { className: css.railFoot, children: [_jsx("span", { children: snapshot.topicsStatus === 'ready' ? `${snapshot.topics.length} 个 Topic` : 'Topic 状态未知' }), _jsxs("span", { children: [widthPercent, "%"] })] })] }), _jsxs("section", { className: css.learningWorkspace, children: [_jsx("header", { className: css.dockHeader, children: _jsxs("div", { className: css.dockHeading, children: [_jsx("span", { className: css.modeBadge, children: active === null
                                         ? snapshot.phase === 'creating' ? '待确认' : '学习栏'
@@ -329,10 +347,10 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
                                             return (_jsxs("article", { className: css.userTurn, children: [_jsx("div", { className: css.turnRole, children: "\u4F60" }), _jsx("p", { children: message.text })] }, message.id));
                                         if (message.role === 'error')
                                             return (_jsx(ErrorTurn, { message: message }, message.id));
-                                        return _jsx(AssistantTurn, { message: message, first: message.id === firstAssistantId, disabled: snapshot.phase === 'running' || snapshot.phase === 'stopping', companion: companion, reportParseError: reportParseError }, message.id);
+                                        return _jsx(AssistantTurn, { message: message, first: message.id === firstAssistantId, disabled: !canAsk, companion: companion, reportParseError: reportParseError }, message.id);
                                     }), snapshot.phase === 'creating' && _jsx("div", { className: css.loadingCard, children: "\u6B63\u5728\u9A8C\u8BC1\u5F15\u7528\u5E76\u786E\u8BA4 Observer / Exact Fork\u2026" }), snapshot.error !== null && !active?.messages.some((message) => message.role === 'error') && (_jsx("p", { className: css.panelError, "data-citeciter-error": true, children: friendlyFailure(snapshot.error) }))] }), active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
                                 ? _jsx(QuestionCard, { pending: active.pendingQuestion, companion: companion }, active.pendingQuestion.key)
-                                : _jsxs("form", { className: css.composer, onSubmit: submit, children: [_jsx("textarea", { rows: 3, maxLength: 12_000, "aria-label": "\u7EE7\u7EED\u5411 CiteCiter \u63D0\u95EE", value: question, disabled: active === null, onChange: (event) => setQuestion(event.currentTarget.value), placeholder: active === null ? 'Topic 创建后可继续追问' : '继续追问，或聊点题外话…' }), _jsxs("div", { className: css.composerActions, children: [_jsx("span", { children: "\u53EA\u8BFB \u00B7 \u4E0D\u5E72\u9884\u4E3B Agent" }), _jsx("button", { className: css.sendButton, type: snapshot.phase === 'running' ? 'button' : 'submit', disabled: snapshot.phase === 'stopping' || snapshot.phase !== 'running' && (active === null || question.trim() === ''), "aria-label": snapshot.phase === 'running' ? '停止回答' : snapshot.phase === 'stopping' ? '正在停止' : '发送', onClick: snapshot.phase === 'running' ? () => { void companion.stop(); } : undefined, children: snapshot.phase === 'running' || snapshot.phase === 'stopping'
+                                : _jsxs("form", { className: css.composer, onSubmit: submit, children: [_jsx("textarea", { rows: 3, maxLength: 12_000, "aria-label": "\u7EE7\u7EED\u5411 CiteCiter \u63D0\u95EE", value: question, disabled: active === null, onChange: (event) => setQuestion(event.currentTarget.value), placeholder: active === null ? 'Topic 创建后可继续追问' : '继续追问，或聊点题外话…' }), _jsxs("div", { className: css.composerActions, children: [_jsx("span", { children: "\u53EA\u8BFB \u00B7 \u4E0D\u5E72\u9884\u4E3B Agent" }), _jsx("button", { className: css.sendButton, type: snapshot.phase === 'running' ? 'button' : 'submit', disabled: snapshot.phase === 'stopping' || snapshot.phase !== 'running' && (!canAsk || active === null || question.trim() === ''), "aria-label": snapshot.phase === 'running' ? '停止回答' : snapshot.phase === 'stopping' ? '正在停止' : '发送', onClick: snapshot.phase === 'running' ? () => { void companion.stop(); } : undefined, children: snapshot.phase === 'running' || snapshot.phase === 'stopping'
                                                         ? _jsx(IconStopFill16, { size: 16 })
                                                         : _jsx(IconSendOutline16, { size: 16 }) })] })] })] }))] })] }));
 }

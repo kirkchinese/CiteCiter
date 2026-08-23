@@ -10,5 +10,10 @@ export interface ParsedNextQuestions {
  * prose. System Tutor and Citation Context travel through their own layers.
  */
 export declare function normalizeQuestion(rawQuestion: string): string;
-/** Parse the optional exact first-answer follow-up block without exposing malformed control text as UI. */
-export declare function parseNextQuestions(text: string): ParsedNextQuestions;
+/**
+ * Parse optional follow-up control text without exposing complete or partial markers.
+ * @param text - accumulated assistant text.
+ * @param streaming - whether the text may end inside a control marker.
+ * @returns visible answer text, valid shortcut questions, and malformed-control status.
+ */
+export declare function parseNextQuestions(text: string, streaming?: boolean): ParsedNextQuestions;

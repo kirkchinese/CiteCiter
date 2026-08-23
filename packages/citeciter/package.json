@@ -1,16 +1,17 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.4.0",
-  "description": "Private, source-bound, read-only learning side threads for DeepSeek Harness",
+  "version": "0.4.1",
+  "description": "Verifiable, source-bound, read-only investigations for DeepSeek Harness responses",
   "keywords": [
     "deepseek-harness",
     "dsh",
     "dsh-plugin",
     "cordis",
     "citation",
-    "learning-companion",
-    "side-chat",
-    "conversation-branching",
+    "source-bound",
+    "verification",
+    "evidence",
+    "investigation",
     "context-management",
     "read-only",
     "explanation",
@@ -64,10 +65,10 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-client-connection",
         "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-layout",
-        "@deepseek-ai/dsh-client-ui-slots",
-        "@deepseek-ai/dsh-client-ui-primitives",
         "@deepseek-ai/dsh-client-ui-settings"
       ],
       "platform": "web"
@@ -98,11 +99,11 @@
     "@deepseek-ai/dsh-agent": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-agent-loop": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-api-gateway": ">=0.1.1-rc.1 <0.1.1-rc.3",
+    "@deepseek-ai/dsh-client-connection": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-client-runtime": ">=0.1.1-rc.1 <0.1.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-client-ui-layout": ">=0.1.1-rc.1 <0.1.1-rc.3",
-    "@deepseek-ai/dsh-client-ui-primitives": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-client-ui-settings": ">=0.1.1-rc.1 <0.1.1-rc.3",
-    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-fs": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-home-paths": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-llm": ">=0.1.1-rc.1 <0.1.1-rc.3",
@@ -124,7 +125,6 @@
     "@deepseek-ai/dsh-typert-protocol": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-user-questions": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/schemastery": "^3.18.1",
-    "react": "^18.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -132,7 +132,9 @@
     "@deepseek-ai/dsh-agent": "0.1.1-rc.2",
     "@deepseek-ai/dsh-agent-loop": "0.1.1-rc.2",
     "@deepseek-ai/dsh-api-gateway": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-runtime": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-layout": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-primitives": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-settings": "0.1.1-rc.2",

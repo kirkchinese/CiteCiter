@@ -15,6 +15,7 @@ test('Topic scans ignore a reserved directory until topic.json is committed', as
   const metadata = {
     schemaVersion: 1,
     topicId: committed.topicId,
+    createRequestId: 'create-request-1',
     sessionId: 'citeciter-committed',
     sourceSessionId: 'source-session',
     sourceCwd: '/workspace',
@@ -46,4 +47,6 @@ test('Topic scans ignore a reserved directory until topic.json is committed', as
 
   assert.deepEqual(await index.list('source-session'), [metadata])
   assert.deepEqual(await index.loadBySessionId(metadata.sessionId), metadata)
+  const reopened = new TopicIndex(root)
+  assert.equal((await reopened.list('source-session'))[0]?.createRequestId, 'create-request-1')
 })

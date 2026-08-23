@@ -257,6 +257,7 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
   z.object({ action: z.literal('get'), topicSessionId: topicSessionIdSchema }).strict(),
   z.object({
     action: z.literal('ask'),
+    requestId: z.string().min(1).optional(),
     topicSessionId: topicSessionIdSchema,
     question: questionSchema,
   }).strict(),

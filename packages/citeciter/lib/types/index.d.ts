@@ -31,7 +31,7 @@ export declare class CiteCiterHost extends TypertRemoteService {
     /** Do not publish the Remote service until its private runtime is ready. */
     [Service.init](): Promise<void>;
     /** Validate and execute one strict Topic command. */
-    request(rawRequest: CiteCiterRequest): Promise<CiteCiterResponse>;
+    request(rawRequest: CiteCiterRequest, signal: AbortSignal): Promise<CiteCiterResponse>;
 }
 /** Register optional settings and mount the Host Remote service. */
 export declare function apply(ctx: Context): Promise<void>;

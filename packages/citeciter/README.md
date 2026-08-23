@@ -1,8 +1,10 @@
 # `@kirkchinese/dsh-citeciter`
 
-Ask about any line in a DSH response—without stopping the agent or changing the source session. CiteCiter is a source-bound, read-only learning companion for sustained side questions.
+Investigate any line in a DSH response—without stopping the Agent or changing the source Session. CiteCiter provides verifiable, source-bound, read-only side investigations for interactive DSH.
 
-![Select a DSH response and continue asking in a private CiteCiter learning Topic](https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/demo/citeciter-0.4.0.gif)
+![Select a DSH response and continue investigating in a private CiteCiter Topic](https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/demo/citeciter-0.4.0.gif)
+
+*Deterministic demo; not real-provider acceptance evidence.*
 
 [简体中文](README.zh.md) · [GitHub](https://github.com/kirkchinese/CiteCiter) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
@@ -10,41 +12,46 @@ Ask about any line in a DSH response—without stopping the agent or changing th
 
 | Host | CiteCiter version | Status |
 |---|---|---|
-| DSH Web `0.1.1-rc.2` | `0.4.x` | Fully verified |
-| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.x` | Linux source-shell verified; not a macOS/Windows installer claim |
+| DSH Web `0.1.1-rc.2` | `0.4.1` | Tested DSH line; release-specific evidence is published with the GitHub Release |
+| [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop) with bundled DSH `0.1.1-rc.2` | `0.4.1` | Release-gated target; consult the GitHub Release for platform evidence |
+| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.0` only | Historical conditional Linux source-shell evidence |
 | DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
 | DSH TUI | — | Not supported yet |
 
-## Install
+## Install v0.4.1
 
-CiteCiter 0.4.0 requires Node.js `^22.19.0 || >=24.0.0`, DSH `>=0.1.1-rc.1 <0.1.1-rc.3`, and a configured model provider.
+CiteCiter 0.4.1 requires Node.js `^22.19.0 || >=24.0.0` and DSH `>=0.1.1-rc.1 <0.1.1-rc.3`; packaged DSH Desktop already includes Node.js, pnpm, and its pinned DSH runtime.
+
+For DSH Web:
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 ```
 
-Restart the corresponding DSH Web process and refresh the page after installation or upgrade.
+Restart DSH Web and refresh the page. For DSH Desktop, open its tray terminal and run:
+
+```sh
+dsh plugin add @kirkchinese/dsh-citeciter@0.4.1
+```
+
+An external DSH installation can target the same profile explicitly with `dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.4.1`. Restart DSH Desktop after installation.
 
 ## Use
 
 1. Select text inside a committed assistant model call. The surrounding Agent turn may still be running.
 2. Right-click the selection, enter your first question, and choose `Citer!`.
-3. CiteCiter creates a new Topic in the learning dock.
+3. CiteCiter creates a new Topic in the investigation panel.
 4. Continue asking questions there, or reopen an earlier Topic from CiteCiter's Topic rail.
-5. Change the Topic model, reasoning effort, title, archive state, or dock width without changing the source Session.
+5. Change the Topic model, reasoning effort, title, archive state, or panel width without changing the source Session.
 
 ## Highlights
 
-- **Model-call citations.** Start as soon as an `assistant/message` is committed; there is no need to wait for the full Agent turn.
-- **Private Topics.** Each submission creates an independent DSH Session under `$DSH_HOME/citeciter/`, outside the ordinary Session list.
-- **Precise selections.** Visible Markdown selections map back to Host-verifiable source ranges.
-- **Cross-flow selections.** A range spanning reasoning, tools, and body text binds to its final committed assistant call while retaining the complete visible quote in the learning workspace.
-- **Bound evidence.** `read_source_session` reads committed events from one fixed source Session without exposing its physical log path.
-- **Open-ended investigation.** The standard read-only `glob` and `grep` tools discover project files and search their contents before `read` opens a known path.
-- **Read-only operation.** CiteCiter cannot write to the source Session or source workspace.
-- **Inspectable workflow.** Live reasoning, prompt injections, tool calls, results, and user questions use compact expandable rows inside the learning dock.
-- **Natural follow-ups.** After the first answer, the model may emit three strictly formatted next questions; malformed output creates no shortcuts and is logged silently.
-- **Native workflow.** The selection popover, resizable learning dock, active/archive Topic navigation, and settings remain inside the DSH programming interface.
+- **Exact source binding.** CiteCiter rechecks the visible selection against the committed response before creating a Topic.
+- **No need to wait.** A committed model response can be investigated while the surrounding Agent turn continues.
+- **Durable investigations.** Private Topics support natural follow-up questions and reopen after a refresh or restart.
+- **Evidence with no write access.** CiteCiter can inspect committed source events and search or read project files, but cannot change the source Session or workspace.
+- **Inspectable work.** Questions, answers, source reads, and project-file checks remain together in the investigation panel.
+- **Side-by-side workflow.** The conversation concedes space whenever the panel and a usable conversation fit; tighter layouts fall back to an overlay.
 
 ## Context modes
 
@@ -54,10 +61,14 @@ Exact Fork is an advanced mode for a source turn that has already ended. `exact-
 
 ## Upgrade from an earlier version
 
+To install or upgrade v0.4.1 in Web:
+
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 dsh plugin --profile web list --depth 0
 ```
+
+The DSH Desktop tray terminal uses the same commands without `--profile web`; an external DSH installation uses `--profile desktop`.
 
 Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
 
@@ -67,9 +78,20 @@ Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or so
 - Renderer-generated KaTeX layout and footnote numbers cannot be cited directly because they lack stable source coordinates.
 - Exact Fork cannot start from an open source turn.
 - Source-file access depends on the running DSH filesystem service and remains read-only.
-- Desktop validation covers dataelement's Linux development shell; it does not claim packaged macOS or Windows installer testing.
+- Read Frog translated selections are a best-effort compatibility path on DSH rc.1/rc.2 and activate only when its complete private marker set is present; ordinary DSH selection does not depend on Read Frog.
+- DSH does not yet expose a public additive right-dock contribution point. CiteCiter therefore uses a reversible private AppFrame grid adapter whenever the panel and conversation fit; it preserves the layout's details preference but temporarily hides that column while the investigation panel is open, and it must be retested for every supported DSH release.
+- Topics are Host-durable. When Desktop restarts on a different loopback port, CiteCiter falls back to the most recently updated Topic because browser local storage is origin-scoped; configure a fixed Desktop port to restore the exact last-viewed Topic.
+- Desktop support is gated on both DSH Desktop 2.0.2 installers for each release. Consult the GitHub Release rather than treating the older conditional dataelement Linux source-shell result as current packaged-Desktop evidence.
 - There is currently no TUI interaction adapter.
 - DSH is prerelease software; later DSH API versions may require a CiteCiter update.
+
+## Community
+
+Questions, workflow ideas, and compatibility reports are welcome in the DSH-Citeciter QQ group (`1108040435`).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/community/qq-group.jpg" width="360" alt="QR code for the DSH-Citeciter QQ group 1108040435">
+</p>
 
 ## Contributing
 

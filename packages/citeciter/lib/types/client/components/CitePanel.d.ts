@@ -6,5 +6,5 @@ export interface CitePanelProps {
     readonly closePanel: () => void;
     readonly reportParseError: (messageId: string) => void;
 }
-/** Independent, resizable learning workspace docked beside the active coding conversation. */
+/** Independent learning workspace with a reversible Host-column compatibility adapter. */
 export declare function CitePanel({ bus, companion, closePanel, reportParseError }: CitePanelProps): import("react").JSX.Element | null;
