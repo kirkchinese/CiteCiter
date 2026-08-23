@@ -1,0 +1,116 @@
+name: Desktop 0.4.1 candidate
+
+on:
+  push:
+    branches:
+      - validation/citeciter-0.4.1-advanced-fix
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-candidate-0.4.1
+  cancel-in-progress: false
+
+env:
+  CANDIDATE_COMMIT: ee682e6f0dbc43ba602ee031964db8237eff4c3b
+  CANDIDATE_SHA256: 9dd621452ba17bed382f756901f4ea5f8d1d53b172a84d7f62701ca28ada1c80
+  CANDIDATE_ARTIFACT: citeciter-0.4.1-9dd621452ba17bed
+
+jobs:
+  stage-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.CANDIDATE_COMMIT }}
+          path: candidate-source
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.19.0
+      - name: Reproduce the frozen tarball from committed files
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.21.0 --activate
+          mkdir -p candidate-artifact
+          pnpm --dir candidate-source --filter @kirkchinese/dsh-citeciter pack \
+            --config.ignore-scripts=true \
+            --pack-destination "$GITHUB_WORKSPACE/candidate-artifact"
+          node validation/verify-candidate.mjs candidate-artifact/kirkchinese-dsh-citeciter-0.4.1.tgz
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ env.CANDIDATE_ARTIFACT }}
+          path: candidate-artifact/kirkchinese-dsh-citeciter-0.4.1.tgz
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-x64:
+    needs: stage-candidate
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.19.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ env.CANDIDATE_ARTIFACT }}
+          path: candidate
+      - name: Verify candidate and install CDP client
+        shell: pwsh
+        run: |
+          node validation/verify-candidate.mjs candidate/kirkchinese-dsh-citeciter-0.4.1.tgz
+          npm install --prefix "$env:RUNNER_TEMP\playwright-core" --ignore-scripts --no-audit --no-fund --no-save playwright-core@1.58.2
+      - name: Validate Desktop installer, candidate modes, AdvancedFrame, ports, and recovery
+        shell: pwsh
+        run: |
+          ./validation/run-windows.ps1 -Tarball candidate/kirkchinese-dsh-citeciter-0.4.1.tgz -EvidenceDir "$env:RUNNER_TEMP\evidence"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: desktop-evidence-windows-x64
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: warn
+          retention-days: 14
+
+  macos-universal:
+    needs: stage-candidate
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.19.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ env.CANDIDATE_ARTIFACT }}
+          path: candidate
+      - name: Verify candidate and install CDP client
+        shell: bash
+        run: |
+          node validation/verify-candidate.mjs candidate/kirkchinese-dsh-citeciter-0.4.1.tgz
+          npm install --prefix "$RUNNER_TEMP/playwright-core" --ignore-scripts --no-audit --no-fund --no-save playwright-core@1.58.2
+      - name: Validate universal Desktop, candidate modes, AdvancedFrame, ports, and recovery
+        shell: bash
+        run: |
+          bash validation/run-macos.sh \
+            candidate/kirkchinese-dsh-citeciter-0.4.1.tgz \
+            "$RUNNER_TEMP/evidence"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: desktop-evidence-${{ matrix.runner }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: warn
+          retention-days: 14
