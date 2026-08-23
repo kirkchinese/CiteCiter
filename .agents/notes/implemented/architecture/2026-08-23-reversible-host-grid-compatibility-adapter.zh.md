@@ -18,7 +18,7 @@ CiteCiter 继续把面板注册在 `shell.overlay`。当所属 AppFrame 能同�
 
 宿主 details 偏好保持不变，但宽屏 dock 打开期间其列与 resize handle 会被隐藏，关闭后恢复。该实现依赖私有 AppFrame DOM 与 CSS，不属于 DSH 公开集成模式；每个受支持的 DSH 版本和 Desktop build 都必须重新进行浏览器验证。
 
-只使用 overlay 的候选仍可作为公共 API 的 A/B 基线，但不再代表当前候选。第一个冻结替代候选在 Desktop AdvancedFrame 验证中暴露了依赖子节点序号的选择器，现已否决；修正选择器后必须重新生成包与浏览器证据。上游 Discussion 请求由 AppFrame 管理的可逆右侧 dock 扩展点；上游提供该公共扩展后，CiteCiter 应删除此适配器。
+只使用 overlay 的候选仍可作为公共 API 的 A/B 基线，但不再代表当前候选。第一个冻结替代候选在 Desktop AdvancedFrame 验证中暴露了依赖子节点序号的选择器，现已否决。修正后的选择器已有新的包矩阵与组装 rc.2 Web 浏览器证据；正式 Desktop 浏览器证据仍待完成。上游 Discussion 请求由 AppFrame 管理的可逆右侧 dock 扩展点；上游提供该公共扩展后，CiteCiter 应删除此适配器。
 
 ## 考虑过的方案
 

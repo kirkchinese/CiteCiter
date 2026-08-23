@@ -18,7 +18,7 @@ When those two minimum widths do not fit, the adapter removes its Host writes an
 
 The Host details preference remains unchanged, but its column and resize handle are hidden while the wide dock is active and return when the dock closes. This implementation depends on private AppFrame DOM and CSS, is not a DSH public integration pattern, and requires browser verification for every supported DSH release and Desktop build.
 
-The overlay-only candidate remains useful as the public-API A/B baseline but no longer represents the current candidate. The first frozen replacement candidate was rejected after Desktop AdvancedFrame verification exposed its child-index selector; package and browser evidence must be regenerated for the corrected selector. An upstream Discussion requests an AppFrame-owned, reversible right-dock contribution point; when that public extension exists, CiteCiter should delete this adapter.
+The overlay-only candidate remains useful as the public-API A/B baseline but no longer represents the current candidate. The first frozen replacement candidate was rejected after Desktop AdvancedFrame verification exposed its child-index selector. The corrected selector has fresh package matrices and assembled rc.2 Web browser evidence; packaged Desktop browser evidence remains outstanding. An upstream Discussion requests an AppFrame-owned, reversible right-dock contribution point; when that public extension exists, CiteCiter should delete this adapter.
 
 ## Alternatives considered
 
