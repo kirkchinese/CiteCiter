@@ -4,7 +4,7 @@ This draft validates CiteCiter commit `ee682e6f0dbc43ba602ee031964db8237eff4c3b`
 
 ## Current facts
 
-- `ee682e6` is a local commit on `validation/citeciter-0.4.1-advanced-fix`; it is not on GitHub.
+- `ee682e6` is the frozen package commit on `validation/citeciter-0.4.1-advanced-fix`; later commits on this validation-only branch change only the hosted gate.
 - Repository Actions are enabled, all actions are allowed, default workflow permissions are read-only, and the current GitHub token has `repo` and `workflow` scopes.
 - Repacking the committed files with pnpm 11.21.0 and `--config.ignore-scripts=true` reproduced the frozen tarball byte-for-byte: 296629 bytes and the expected SHA-256 above.
 - DSH Desktop v2.0.2 assets are pinned to the upstream release at commit `9d18856ddea4f20eb3ef8c88b0436921c6b19606`:

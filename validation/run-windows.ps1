@@ -69,9 +69,8 @@ function Initialize-DesktopRuntime {
       } catch {
         $rendererReady = $false
       }
-      if ($rendererReady -and (Test-Path -LiteralPath $runtimePnpm)
-        -and (Test-Path -LiteralPath $desktopDsh)
-        -and (Test-Path -LiteralPath (Join-Path $profileDir 'package.json'))) {
+      $runtimeReady = (Test-Path -LiteralPath $runtimePnpm) -and (Test-Path -LiteralPath $desktopDsh) -and (Test-Path -LiteralPath (Join-Path $profileDir 'package.json'))
+      if ($rendererReady -and $runtimeReady) {
         return
       }
       if ($process.HasExited) { throw "Desktop exited $($process.ExitCode) before runtime bootstrap completed" }
@@ -162,7 +161,8 @@ try {
   Invoke-DesktopDsh @('plugin', 'add', '@kirkchinese/dsh-citeciter@0.4.0') | Set-Content -Encoding utf8 (Join-Path $EvidenceDir 'install-0.4.0.txt')
   Assert-InstallRecovery '0.4.0'
   Prepare-Fixture
-  & node (Join-Path $PSScriptRoot '..\packages\citeciter\dev\seed-smoke-session.mjs') $dshHome $profileDir | Set-Content -Encoding utf8 (Join-Path $EvidenceDir 'seed.json')
+  $sourceWorkspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+  & node (Join-Path $PSScriptRoot '..\packages\citeciter\dev\seed-smoke-session.mjs') $dshHome $sourceWorkspace | Set-Content -Encoding utf8 (Join-Path $EvidenceDir 'seed.json')
   if ($LASTEXITCODE -ne 0) { throw 'source Session seed failed' }
   Set-DesktopSettings 'compatibility' 43189
   Run-Ui 19222 'create-compatibility' '43189' '01-compatibility-0.4.0'

@@ -150,7 +150,8 @@ esac
 desktop_dsh plugin add '@kirkchinese/dsh-citeciter@0.4.0' > "$evidence_dir/install-0.4.0.txt"
 assert_install_recovery 0.4.0
 prepare_fixture
-node "$script_dir/../packages/citeciter/dev/seed-smoke-session.mjs" "$dsh_home" "$profile_dir" > "$evidence_dir/seed.json"
+source_workspace=$(cd -- "$script_dir/.." && pwd)
+node "$script_dir/../packages/citeciter/dev/seed-smoke-session.mjs" "$dsh_home" "$source_workspace" > "$evidence_dir/seed.json"
 set_desktop_settings compatibility 43189
 run_ui 19222 create-compatibility 43189 01-compatibility-0.4.0
 
