@@ -6,7 +6,7 @@
   display: none !important;
 }
 
-:global([data-citeciter-docked] > :nth-child(3)) {
+:global([data-citeciter-docked] > :has(+ [data-shell-overlay])) {
   visibility: hidden !important;
 }
 

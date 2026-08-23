@@ -167,7 +167,8 @@ test('the temporary Host-column workaround is scoped and reversible without clos
   assert.match(panel, /frame\.style\.removeProperty\('--citeciter-dock-width'\)/u)
   assert.match(styles, /:global\(\[data-citeciter-docked\]\)[\s\S]*?var\(--citeciter-dock-width\) !important/u)
   assert.match(styles, /:global\(\[data-citeciter-docked\] > \[data-side="details"\]\)[\s\S]*?display: none !important/u)
-  assert.match(styles, /:global\(\[data-citeciter-docked\] > :nth-child\(3\)\)[\s\S]*?visibility: hidden !important/u)
+  assert.match(styles, /:global\(\[data-citeciter-docked\] > :has\(\+ \[data-shell-overlay\]\)\)[\s\S]*?visibility: hidden !important/u)
+  assert.doesNotMatch(styles, /\[data-citeciter-docked\][^\n]*:nth-child/u)
   assert.doesNotMatch(entry, /layout\.closeDetails|data-side=["']details/u)
 })
 
