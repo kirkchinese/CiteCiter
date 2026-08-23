@@ -2,7 +2,7 @@
 
 Status: implemented
 
-Supersedes: the panel-layout decision in [Desktop overlay and lifecycle ownership](2026-08-23-desktop-overlay-and-lifecycle.md). Its lifecycle, selection, Desktop target, and acceptance decisions remain current.
+Supersedes: the panel-layout decision and release-level Desktop acceptance gate in [Desktop overlay and lifecycle ownership](2026-08-23-desktop-overlay-and-lifecycle.md). Its lifecycle and selection decisions remain current; Desktop stays a future target, with adaptation and acceptance deferred to native Windows and macOS development.
 
 ## Problem
 
@@ -10,7 +10,7 @@ The public `shell.overlay` slot is a floating layer outside the AppFrame column 
 
 ## Decision
 
-CiteCiter continues to register its panel in `shell.overlay`. When the containing AppFrame can fit the 360-pixel minimum CiteCiter width beside a 480-pixel conversation, a version-pinned compatibility adapter adds one namespaced owner attribute and two namespaced CSS variables to that frame and replaces the visible details track with the CiteCiter width. The adapter does not register in the `details` slot or call `ctx.layout.closeDetails()`.
+CiteCiter continues to register its panel in `shell.overlay`. When the containing AppFrame can fit the 360-pixel minimum CiteCiter width beside a 480-pixel conversation, a version-pinned compatibility adapter adds one namespaced owner attribute and two namespaced CSS variables to that frame and replaces the visible details track with the CiteCiter width. The hidden details occupant is selected by its position immediately before the public overlay element, not by a child index, so the Web AppFrame and Desktop AdvancedFrame caption row preserve the conversation. The adapter does not register in the `details` slot or call `ctx.layout.closeDetails()`.
 
 When those two minimum widths do not fit, the adapter removes its Host writes and renders the panel as an overlay of at most 720 pixels. Each mounted adapter has a unique owner token, so cleanup cannot remove a successor's contribution. Close, unload, and HMR cleanup remove every attribute and variable owned by that instance.
 
@@ -18,7 +18,7 @@ When those two minimum widths do not fit, the adapter removes its Host writes an
 
 The Host details preference remains unchanged, but its column and resize handle are hidden while the wide dock is active and return when the dock closes. This implementation depends on private AppFrame DOM and CSS, is not a DSH public integration pattern, and requires browser verification for every supported DSH release and Desktop build.
 
-The overlay-only candidate remains useful as the public-API A/B baseline but no longer represents the current candidate. Package and browser evidence must be regenerated after this decision. An upstream Discussion requests an AppFrame-owned, reversible right-dock contribution point; when that public extension exists, CiteCiter should delete this adapter.
+The overlay-only candidate remains useful as the public-API A/B baseline but no longer represents the current candidate. The first frozen replacement candidate was rejected after Desktop AdvancedFrame verification exposed its child-index selector. The corrected selector has fresh package matrices and assembled rc.2 Web browser evidence. A hosted Desktop attempt verified the macOS universal artifact on both native runner architectures but did not reach the candidate UI flow, and the Windows runner stopped in the validation harness; the current Linux-only acceptance environment therefore skips packaged Desktop browser verification without treating it as a pass. An upstream Discussion requests an AppFrame-owned, reversible right-dock contribution point; when that public extension exists, CiteCiter should delete this adapter.
 
 ## Alternatives considered
 

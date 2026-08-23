@@ -19,7 +19,7 @@
   <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="选中 DSH 回答后在独立 CiteCiter Topic 中继续追问">
 </p>
 
-<p align="center"><sub>划选、右键、就地追问；主 Agent 继续工作。画面录制于可复现的测试环境，用来展示交互，不代替真实模型或安装包验收。</sub></p>
+<p align="center"><sub>划选、右键、就地追问；主 Agent 继续工作。</sub></p>
 
 长任务进行到一半，Agent 的某句话值得深挖，但你又不想把主任务带偏——CiteCiter 正是为这种时刻准备的。它在来源对话旁边打开一条独立调查，把后续问题与所选原文牢牢绑定，同时保持来源 Session 和工作区不变。
 
@@ -51,19 +51,7 @@ DSH Web 使用：
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 ```
 
-安装后重启 DSH Web 并刷新页面。DSH Desktop 请打开托盘终端并运行：
-
-```sh
-dsh plugin add @kirkchinese/dsh-citeciter@0.4.1
-```
-
-正式 Desktop 安装包已经自带 Node.js、pnpm 和固定版本的 DSH。使用外部 DSH 安装时，也可以显式指定 Desktop profile：
-
-```sh
-dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.4.1
-```
-
-安装后重启 DSH Desktop。
+安装后重启 DSH Web 并刷新页面。正式 Desktop 适配已经暂缓；CiteCiter 0.4.1 不提供受支持的 Desktop 安装路径。
 
 ## 四步开始追问
 
@@ -105,10 +93,12 @@ dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.4.1
 
 | 宿主 | CiteCiter 版本 | 当前证据 |
 |---|---|---|
-| DSH Web `0.1.1-rc.2` | `0.4.1` 候选 | 本地自动化与确定性测试场景检查通过；发布验收尚未完成 |
-| [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop)（内置 DSH `0.1.1-rc.2`） | `0.4.1` 候选 | 当前目标宿主；Windows x64 与 macOS universal 安装包验收尚未完成 |
+| DSH Web `0.1.1-rc.2` | `0.4.1` 候选 | Linux 包、CI、升级与组装 keyless 浏览器检查通过；真实提供方验收未运行 |
+| [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop)（内置 DSH `0.1.1-rc.2`） | 后续目标 | 适配与原生验收暂缓；当前候选不声明正式 Desktop 安装包兼容性 |
 | [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) 源码开发壳（内置 DSH `0.1.1-rc.1`） | 仅 `0.4.0` | 历史上的有条件 Linux 源码壳证据 |
 | DSH Web `0.1.0-rc.7` | `0.3.2` | 旧版稳定线 |
+
+动图与截图使用确定性测试场景展示交互，不作为真实提供方或正式 Desktop 安装包验收证据。
 
 ## 从旧版本升级
 
@@ -119,7 +109,7 @@ dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 dsh plugin --profile web list --depth 0
 ```
 
-Desktop 托盘终端使用不带 `--profile web` 的同类命令；外部 DSH 安装使用 `--profile desktop`。从 v0.3 升级不会迁移或重写已有 Topic、设置或来源 Session。仍在 DSH `0.1.0-rc.7` 上运行的用户应继续使用 CiteCiter 0.3.2。
+正式 Desktop 适配已经暂缓，不属于 0.4.1 的受支持升级路径。从 v0.3 升级不会迁移或重写已有 Topic、设置或来源 Session。仍在 DSH `0.1.0-rc.7` 上运行的用户应继续使用 CiteCiter 0.3.2。
 
 ## 已知限制
 
@@ -141,7 +131,7 @@ Desktop 托盘终端使用不带 `--profile web` 的同类命令；外部 DSH �
 
 ## 参与贡献
 
-欢迎提交 Issue 和 Pull Request。提交代码前请阅读[贡献文档](CONTRIBUTING.zh.md)。
+欢迎提交 Issue 和 Pull Request。提交代码前请阅读[贡献文档](CONTRIBUTING.zh.md)；当前产品边界与分阶段路线见[产品策略](docs/product-strategy.zh.md)。
 
 ## 许可证
 

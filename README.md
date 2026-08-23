@@ -19,7 +19,7 @@
   <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="Select a DSH response and continue asking in a private CiteCiter Topic">
 </p>
 
-<p align="center"><sub>Select, right-click, and ask beside the source while the main Agent keeps working. Recorded in a deterministic test environment; this demonstrates the workflow rather than real-provider acceptance.</sub></p>
+<p align="center"><sub>Select, right-click, and ask beside the source while the main Agent keeps working.</sub></p>
 
 CiteCiter is for the moments when a long-running Agent says something worth pausing over, but the task itself should not pause. It opens a separate investigation beside the conversation, keeps that investigation tied to the exact source text, and leaves the source Session and workspace unchanged.
 
@@ -51,19 +51,7 @@ For DSH Web:
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 ```
 
-Restart DSH Web and refresh the page. For DSH Desktop, open the tray terminal and run:
-
-```sh
-dsh plugin add @kirkchinese/dsh-citeciter@0.4.1
-```
-
-Packaged Desktop already includes Node.js, pnpm, and its pinned DSH runtime. An external DSH installation can target the Desktop profile explicitly:
-
-```sh
-dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.4.1
-```
-
-Restart DSH Desktop after installation.
+Restart DSH Web and refresh the page. Packaged Desktop adaptation is deferred; CiteCiter 0.4.1 does not provide a supported Desktop installation path.
 
 ## Use
 
@@ -105,10 +93,12 @@ The default **Observer** mode reads committed source evidence on demand. It can 
 
 | Host | CiteCiter version | Current evidence |
 |---|---|---|
-| DSH Web `0.1.1-rc.2` | `0.4.1` candidate | Local automated and deterministic-fixture checks passed; release acceptance is pending |
-| [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop) with bundled DSH `0.1.1-rc.2` | `0.4.1` candidate | Target host; Windows x64 and macOS universal installer acceptance is pending |
+| DSH Web `0.1.1-rc.2` | `0.4.1` candidate | Linux package, CI, upgrade, and assembled keyless browser checks passed; real-provider acceptance was not run |
+| [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop) with bundled DSH `0.1.1-rc.2` | Future target | Adaptation and native acceptance are deferred; this candidate makes no packaged-Desktop compatibility claim |
 | [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.0` only | Historical, conditional Linux source-shell evidence |
 | DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
+
+The demo and screenshots use a deterministic fixture to show the workflow; they are not real-provider or packaged-Desktop acceptance evidence.
 
 ## Upgrade from an earlier version
 
@@ -119,7 +109,7 @@ dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 dsh plugin --profile web list --depth 0
 ```
 
-The Desktop tray terminal uses the same commands without `--profile web`; an external DSH installation uses `--profile desktop`. Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
+Packaged Desktop adaptation is deferred and is not part of the supported 0.4.1 upgrade path. Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
 
 ## Known limitations
 
@@ -141,7 +131,7 @@ Questions, workflow ideas, and compatibility reports are welcome in the DSH-Cite
 
 ## Contributing
 
-Issues and pull requests are welcome. Before submitting code, read the [contribution guide](CONTRIBUTING.md).
+Issues and pull requests are welcome. Before submitting code, read the [contribution guide](CONTRIBUTING.md). The current product boundaries and staged roadmap are documented in the [product strategy](docs/product-strategy.zh.md).
 
 ## License
 
