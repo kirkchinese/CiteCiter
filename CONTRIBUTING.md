@@ -7,7 +7,7 @@ Thank you for helping improve CiteCiter. Bug reports, focused fixes, tests, and 
 ## Before you start
 
 - Use Node.js `^22.19.0 || >=24.0.0` and the pnpm version declared in `package.json`.
-- Develop against DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8`.
+- Develop against DSH Web `>=0.1.1-rc.1 <0.1.1-rc.3`.
 - Keep CiteCiter external to DSH. Use supported plugin services and events; do not patch DSH core or replace its Agent Loop.
 - Open an issue before a large behavioral or architectural change so the scope can be agreed first.
 
@@ -36,7 +36,7 @@ Browser changes must also be exercised in a disposable `DSH_HOME` on a separate 
 
 ## Documentation
 
-- Keep `README.md` and `README.zh.md` synchronized and focused on users.
+- Keep `README.md` and `README.en.md` synchronized and focused on users.
 - Keep package READMEs synchronized with the root READMEs and the published version.
 - Public update history belongs in `docs/releases/`.
 - Do not commit product interviews, design drafts, internal decision records, test reports, local screenshots, or other development-process documents.

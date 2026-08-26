@@ -1,138 +1,113 @@
-<h1 align="center">CiteCiter</h1>
+# CiteCiter
 
-<p align="center"><strong>Investigate any line in a DSH response—without interrupting the work that produced it.</strong></p>
+**为 DeepSeek Harness 打造的 AI 输出学习、检查与纠偏插件。**
 
-<p align="center">Verifiable, source-bound, read-only side investigations for interactive DeepSeek Harness.</p>
+选中一段回答，即可在不打断主任务的情况下反复追问、切换模型、建立多个独立 Topic，用自己的方式理解知识、发现错误，或随时抽查长时程任务是否跑偏。
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@kirkchinese/dsh-citeciter"><img src="https://img.shields.io/npm/v/@kirkchinese/dsh-citeciter" alt="npm version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT license"></a>
-</p>
+[English](README.en.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues) · [加入社区](#社区交流) · [⭐ Star CiteCiter](https://github.com/kirkchinese/CiteCiter)
 
 <p align="center">
-  <a href="README.zh.md">简体中文</a> ·
-  <a href="https://www.npmjs.com/package/@kirkchinese/dsh-citeciter">npm</a> ·
-  <a href="https://github.com/kirkchinese/CiteCiter/issues">Issues</a>
+  <img src="assets/hero/citeciter-hero.png" width="100%" alt="CiteCiter 娘将选中的 AI 回答展开为多个独立 Topic">
 </p>
 
-<p align="center">
-  <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="Select a DSH response and continue asking in a private CiteCiter Topic">
-</p>
-
-<p align="center"><sub>Select, right-click, and ask beside the source while the main Agent keeps working.</sub></p>
-
-CiteCiter is for the moments when a long-running Agent says something worth pausing over, but the task itself should not pause. It opens a separate investigation beside the conversation, keeps that investigation tied to the exact source text, and leaves the source Session and workspace unchanged.
-
-## Why CiteCiter
-
-- **Cite the exact words.** The selected excerpt is checked against the committed assistant response before a Topic is created.
-- **Ask before the Agent finishes.** A committed model response is enough; the surrounding Agent turn may still be running.
-- **Keep the investigation alive.** Each Topic supports natural follow-up questions and can be reopened after a refresh or restart.
-- **Check the evidence.** CiteCiter can inspect committed source-Session events and search or read project files through read-only tools.
-- **Protect the original task.** The investigation runs in its own read-only Session. It cannot write to the source Session or source workspace.
-
-## Who it is for
-
-CiteCiter is especially useful when you:
-
-- run long, interactive DSH tasks and want to clarify one claim without diverting the main Agent;
-- review AI-assisted code and need to test an explanation against the Session record or repository;
-- learn an unfamiliar codebase and want a persistent thread for “why does this work?” questions.
-
-It is not intended for every DSH workflow. TUI, headless, and fully automated runs do not currently have a CiteCiter interaction adapter.
-
-## Install after the 0.4.1 release
-
-CiteCiter 0.4.1 is currently a source candidate and has not cleared release acceptance. It supports Node.js `^22.19.0 || >=24.0.0` and DSH `>=0.1.1-rc.1 <0.1.1-rc.3`.
-
-For DSH Web:
+## 安装
 
 ```sh
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
 ```
 
-Restart DSH Web and refresh the page. Packaged Desktop adaptation is deferred; CiteCiter 0.4.1 does not provide a supported Desktop installation path.
+安装后重启 DSH Web 并刷新页面。
 
-## Use
+## 开始
 
-1. Select text inside a committed assistant response. The surrounding Agent turn may still be running.
-2. Right-click the selection, enter the first question, and choose `Citer!`.
-3. Continue the discussion in the panel beside the source conversation.
-4. Reopen, rename, archive, or resume earlier Topics from the Topic rail.
-
-Each Topic keeps its own model, reasoning effort, title, messages, and source binding. Changing any of them does not change the source Session.
-
-## Evidence without write access
-
-| Surface | What CiteCiter can do | What it cannot do |
-|---|---|---|
-| Selected response | Recheck and preserve the exact committed source range | Anchor a still-streaming fragment |
-| Source Session | Read bounded committed events, including later events in the default mode | Append, rewrite, or steer the main Session |
-| Project workspace | Discover, search, and read files when the DSH filesystem service is available | Create, edit, or delete project files |
-| Topic | Keep a durable, multi-turn investigation under `$DSH_HOME/citeciter/` | Appear as or modify an ordinary source Session |
-
-## See the investigation workspace
+选中一段回答。右键，问个问题，然后 `Citer!`。
 
 <p align="center">
-  <img src="assets/screenshots/citeciter-learning-dock.jpg" width="100%" alt="CiteCiter panel beside a DSH programming conversation">
+  <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="选中一段 AI 回答并在 CiteCiter 中继续追问">
 </p>
 
-<p align="center"><sub>The panel keeps the quote, questions, answers, source reads, and project-file checks together. This screenshot is a deterministic fixture, not packaged-Desktop or real-provider evidence.</sub></p>
+## CiteCiter 能做什么
+
+### 理解与学习
+
+遇到没有看懂的概念、推导或结论时，Citer并让AI解答。
+
+### 比较与纠偏
+
+对一段内容有疑问，Citer并让不同模型帮助你发现遗漏、矛盾和错误。
+
+### 抽查长时程任务
+
+想知道 Agent 在干啥？Citer并了解当前进度、检查方向，看看Agent有没有搞错。
+
+### 发展自己的用法
+
+CiteCiter 希望成为你的底座，围绕你的内容与目标，逐渐形成适合你的用法。
+
+## 主要功能
+
+- **旁观模式。** 从同一段回答开始多个Citer会话，不扰乱主要会话的上下文。
+- **切换模型** 单独切换模型与思考强度。
+- **持久保存** 保留Citer历史。
+- **Agent 能力** Citer会话中的模型可以主动查看来源会话，调查代码仓库。
+- **响应式界面** 根据窗口宽度调整面板布局。
+
+## 社区交流
+
+欢迎加入 DSH-Citeciter QQ 群，分享你的使用方法、功能想法和遇到的问题。
 
 <p align="center">
-  <img src="assets/screenshots/citeciter-settings.png" width="720" alt="CiteCiter settings inside the DSH settings dialog">
+  <img src="assets/community/qq-group.jpg" width="280" alt="DSH-Citeciter QQ 群 1108040435 二维码">
 </p>
 
-## Context modes
+## 开发计划
 
-The default **Observer** mode reads committed source evidence on demand. It can start from a completed model response while the wider Agent turn continues, and it can see later committed events.
+开发计划从 v0.3.1 记起，这是 CiteCiter 正式从简陋走向可用的版本。
 
-**Exact Fork** is an advanced mode for a source turn that has already ended. `exact-when-available` uses that fixed boundary when possible and otherwise falls back to Observer. Existing Topic files and settings keep their current format in 0.4.1.
+### 已完成
 
-## Compatibility and verification
+- [x] **v0.3.1** 管理、归档和恢复。为内部AI增加工具。增加了提问工具。CiteCiter 鲸鱼娘加入 UI。
+- [x] **v0.3.2** 增加了跨轮次选取功能。增加了思考强度、模型切换能力。优化了部分用户体验。增加了预测下个问题功能。
+- [x] **v0.4.0** 适配新的 DSH rc.1 与 rc.2。修复了若干bug。
+- [x] **v0.4.1** 修复了若干bug，完善了UI界面和对话逻辑。
 
-| Host | CiteCiter version | Current evidence |
-|---|---|---|
-| DSH Web `0.1.1-rc.2` | `0.4.1` candidate | Linux package, CI, upgrade, and assembled keyless browser checks passed; real-provider acceptance was not run |
-| [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop) with bundled DSH `0.1.1-rc.2` | Future target | Adaptation and native acceptance are deferred; this candidate makes no packaged-Desktop compatibility claim |
-| [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.0` only | Historical, conditional Linux source-shell evidence |
-| DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
+### 未完成
 
-The demo and screenshots use a deterministic fixture to show the workflow; they are not real-provider or packaged-Desktop acceptance evidence.
+- [ ] **小黑板** 为AI增加一块小黑板，允许AI用 HTML、动画、图像和公式等方式，流式控制黑板上的元素，为用户提供讲解。用户可以边提问边看黑板（老师的既视感）。
+- [ ] **更多 Citer 入口** 从工具输出、终端结果和代码差异开始 Citer。
+- [ ] **读书和论文** 脱离 AI 对话，从书本、论文等内容开始 Citer。
+- [ ] **开发接口** 提供用户可自定义的快捷键和提示词。提供其他插件可调用的通用接口。
+- [ ] **DSH-Desktop 适配** 为DSH-Desktop提供适配。并入驻其插件市场。
 
-## Upgrade from an earlier version
+## 开发与二次开发
 
-After v0.4.1 is published, upgrade the profile you use and verify the resolved version. Web uses:
+需要修改 CiteCiter，可从源码开始。需要 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0`。当前开发基于 DSH rc.2，兼容 rc.1。
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
-dsh plugin --profile web list --depth 0
+git clone https://github.com/kirkchinese/CiteCiter.git
+cd CiteCiter
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-Packaged Desktop adaptation is deferred and is not part of the supported 0.4.1 upgrade path. Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
+- [`packages/citeciter/src/index.ts`](packages/citeciter/src/index.ts)：Host 入口。
+- [`packages/citeciter/src/client/`](packages/citeciter/src/client/)：右键入口、面板和设置界面。
+- [`packages/citeciter/src/topic.ts`](packages/citeciter/src/topic.ts) 和 [`topic-runtime.ts`](packages/citeciter/src/topic-runtime.ts)：Topic 数据与运行逻辑。
+- [`packages/citeciter/tests/`](packages/citeciter/tests/)：回归测试。
+- [`packages/citeciter/lib/`](packages/citeciter/lib/)：构建产物，改完源码后记得重新构建。
 
-## Known limitations
+Topic 数据放在 `$DSH_HOME/citeciter/workspaces/`，对话日志放在 `$DSH_HOME/citeciter/sessions/`。
 
-- A selection must contain at least one committed assistant response. User-only ranges, tool-only ranges, and still-streaming fragments cannot anchor a citation.
-- Renderer-generated KaTeX layout and footnote numbers do not have stable source coordinates and cannot be cited directly.
-- Source-file access depends on the running DSH filesystem service and remains read-only.
-- Read Frog translated selections are a best-effort compatibility path on DSH rc.1/rc.2; ordinary DSH selections do not depend on it.
-- DSH does not yet expose a public additive right-dock contribution point. CiteCiter therefore uses a reversible, version-pinned AppFrame compatibility adapter whenever the frame can fit both the learning dock and a usable conversation; it temporarily hides the visible details column and otherwise falls back to an overlay.
-- On Desktop, changing the loopback port changes the browser origin. CiteCiter then reopens the most recently updated Topic; use a fixed port to restore the exact last-viewed Topic.
-- DSH is prerelease software, so later API versions may require a CiteCiter update.
+现在还没有供其他插件稳定调用的开发接口。想做自己的版本，可以先 Fork 并适时合并。
 
-## Community
+## 参与贡献
 
-Questions, workflow ideas, and compatibility reports are welcome in the DSH-Citeciter QQ group (`1108040435`).
+欢迎提交 [Issue](https://github.com/kirkchinese/CiteCiter/issues) 和 Pull Request。
 
-<p align="center">
-  <img src="assets/community/qq-group.jpg" width="360" alt="QR code for the DSH-Citeciter QQ group 1108040435">
-</p>
+如果 CiteCiter 对您有帮助，请为项目点个 [Star](https://github.com/kirkchinese/CiteCiter)。您的 Star 是我继续开发的动力。
 
-## Contributing
+## 许可证
 
-Issues and pull requests are welcome. Before submitting code, read the [contribution guide](CONTRIBUTING.md). The current product boundaries and staged roadmap are documented in the [product strategy](docs/product-strategy.zh.md).
-
-## License
-
-[MIT](LICENSE) © CiteCiter contributors
+CiteCiter 使用 [MIT License](LICENSE) 开源。

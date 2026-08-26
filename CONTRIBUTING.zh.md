@@ -7,7 +7,7 @@
 ## 开始之前
 
 - 使用 Node.js `^22.19.0 || >=24.0.0`，以及 `package.json` 声明的 pnpm 版本。
-- 基于 DSH Web `>=0.1.0-rc.7 <0.1.0-rc.8` 开发。
+- 基于 DSH Web `>=0.1.1-rc.1 <0.1.1-rc.3` 开发。
 - 保持 CiteCiter 为 DSH 外部插件。使用受支持的插件服务和事件，不修改 DSH 核心，也不替换 Agent Loop。
 - 大型行为或架构变更请先提交 Issue，确认范围后再开始实现。
 
@@ -36,7 +36,7 @@ git diff --check
 
 ## 文档
 
-- 同步维护 `README.md` 与 `README.zh.md`，内容以用户为中心。
+- 同步维护 `README.md` 与 `README.en.md`，内容以用户为中心。
 - 包内 README 应与根 README 和已发布版本保持一致。
 - 面向公众的更新记录统一放在 `docs/releases/`。
 - 不提交产品访谈、设计草稿、内部决策记录、测试报告、本地截图或其他开发过程文档。
