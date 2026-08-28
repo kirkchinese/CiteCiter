@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Verifiable, source-bound, read-only investigations for DeepSeek Harness responses",
   "keywords": [
     "deepseek-harness",

@@ -5,7 +5,8 @@ import {
   dshConversationFlow,
   dshIntersectedAssistantAnchors,
   dshRangeTouchesExcludedContent,
-  isNonAnswerContent,
+  isDshReasoningContent,
+  isNonCitableProjection,
   readFrogSelection,
 } from './conversation-dom.ts'
 
@@ -19,11 +20,13 @@ function committedText(
   let targetStart: number | undefined
   let targetEnd: number | undefined
   const visit = (node: Node): void => {
-    if (isNonAnswerContent(node)) return
+    if (isNonCitableProjection(node)) return
+    const start = text.length
     if (node === target) targetStart = text.length
     if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? ''
     else for (const child of node.childNodes) visit(child)
     if (node === target) targetEnd = text.length
+    if (isDshReasoningContent(node) && text.length > start) text += '\n\n'
   }
   visit(root)
   return { text, targetStart, targetEnd }
@@ -33,7 +36,7 @@ function committedTextBefore(root: Node, boundary: Node, offset: number): string
   let text = ''
   let found = false
   const visit = (node: Node): void => {
-    if (found || isNonAnswerContent(node)) return
+    if (found || isNonCitableProjection(node)) return
     if (node === boundary) {
       if (node.nodeType === Node.TEXT_NODE) text += (node.textContent ?? '').slice(0, offset)
       else for (let index = 0; index < offset; index++) {
@@ -43,8 +46,13 @@ function committedTextBefore(root: Node, boundary: Node, offset: number): string
       found = true
       return
     }
+    const start = text.length
     if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? ''
-    else for (const child of node.childNodes) visit(child)
+    else for (const child of node.childNodes) {
+      visit(child)
+      if (found) return
+    }
+    if (isDshReasoningContent(node) && text.length > start) text += '\n\n'
   }
   visit(root)
   return found ? text : null

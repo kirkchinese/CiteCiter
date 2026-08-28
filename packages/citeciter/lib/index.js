@@ -33,6 +33,26 @@ var __exportAll = (all, no_symbols) => {
 	return target;
 };
 //#endregion
+//#region lib/types/assistant-content.js
+/**
+* Project committed reasoning and answer blocks in renderer order.
+*
+* @param blocks - DSH assistant content blocks.
+* @returns reasoning and answer text separated by the renderer's paragraph break.
+*/
+function projectCitableAssistantContent(blocks) {
+	let text = "";
+	for (const block of blocks) {
+		if (block === null || typeof block !== "object") continue;
+		const candidate = block;
+		const kind = candidate.kind ?? candidate.type;
+		if (typeof candidate.text !== "string" || candidate.text === "") continue;
+		if (kind === "reasoning") text += `${candidate.text}\n\n`;
+		else if (kind === "text") text += candidate.text;
+	}
+	return text;
+}
+//#endregion
 //#region ../../node_modules/.pnpm/mdast-util-to-string@4.0.0/node_modules/mdast-util-to-string/lib/index.js
 /**
 * @typedef {import('mdast').Nodes} Nodes
@@ -14566,23 +14586,37 @@ function committedAssistantText(source, sourceSessionId, anchorSeq) {
 	if (sourceSessionId !== source.session.id) throw new Error("Citation sourceSessionId does not match the observed source Session");
 	const anchor = source.events.find((event) => event.seq === anchorSeq);
 	if (anchor?.type !== "assistant/message") throw new Error("Citation anchorSeq does not identify a committed assistant/message");
-	const text = messageText(anchor.data.message.content);
-	if (text === "") throw new Error("Citation assistant/message has no visible text");
+	const citable = projectCitableAssistantContent(anchor.data.message.content);
+	const answer = messageText(anchor.data.message.content);
+	const projections = citable === answer ? [citable] : [citable, answer].filter((text) => text !== "");
+	if (projections[0]?.trim() === "") throw new Error("Citation assistant/message has no citable text");
 	return {
 		seq: anchor.seq,
-		text
+		projections
 	};
+}
+function resolveProjectedRange(selection, projections) {
+	let failure;
+	for (const text of projections) try {
+		return {
+			range: resolveCitationRange(selection, text),
+			text
+		};
+	} catch (error) {
+		failure ??= error;
+	}
+	throw failure;
 }
 /** Resolve a browser selection claim against the authoritative committed assistant message. */
 function resolveObserverCitation(source, rawClaim) {
 	const claim = citationSelectionClaimSchema.parse(rawClaim);
 	const anchor = committedAssistantText(source, claim.sourceSessionId, claim.anchorSeq);
-	const range = resolveCitationRange({
+	const { range, text } = resolveProjectedRange({
 		displayText: claim.displayText,
 		...claim.sourceHintText === void 0 ? {} : { sourceHintText: claim.sourceHintText },
 		prefixText: claim.prefixText,
 		suffixText: claim.suffixText
-	}, anchor.text);
+	}, anchor.projections);
 	const identity = {
 		sourceSessionId: claim.sourceSessionId,
 		anchorSeq: anchor.seq,
@@ -14596,20 +14630,20 @@ function resolveObserverCitation(source, rawClaim) {
 			selectionFingerprint
 		},
 		assistantMessageSeq: anchor.seq,
-		assistantVisibleText: anchor.text,
+		assistantVisibleText: text,
 		contentFingerprint: selectionFingerprint
 	};
 }
 /**
-* Validate one Citation against a committed assistant message in the observed source snapshot.
+* Validate one Citation against committed reasoning or answer text in the observed source snapshot.
 * A matching `assistant/message` is sufficient; its step and turn may remain open.
 */
 function validateObserverCitation(source, rawDraft) {
 	const citation = citationDraftSchema.parse(rawDraft);
 	const anchor = committedAssistantText(source, citation.sourceSessionId, citation.anchorSeq);
-	const visibleText = anchor.text;
-	if (citation.endOffset <= citation.startOffset || citation.endOffset > visibleText.length || citation.endOffset - citation.startOffset !== citation.sourceText.length || visibleText.slice(citation.startOffset, citation.endOffset) !== citation.sourceText) throw new Error("Citation UTF-16 offsets and sourceText do not match the assistant/message");
-	if (visibleText.slice(Math.max(0, citation.startOffset - citation.prefixText.length), citation.startOffset) !== citation.prefixText || visibleText.slice(citation.endOffset, citation.endOffset + citation.suffixText.length) !== citation.suffixText) throw new Error("Citation surrounding context does not match the assistant/message");
+	if (anchor.projections.find((text) => citation.endOffset > citation.startOffset && citation.endOffset <= text.length && citation.endOffset - citation.startOffset === citation.sourceText.length && text.slice(citation.startOffset, citation.endOffset) === citation.sourceText) === void 0) throw new Error("Citation UTF-16 offsets and sourceText do not match the assistant/message");
+	const visibleText = anchor.projections.find((text) => citation.endOffset > citation.startOffset && citation.endOffset <= text.length && citation.endOffset - citation.startOffset === citation.sourceText.length && text.slice(citation.startOffset, citation.endOffset) === citation.sourceText && text.slice(Math.max(0, citation.startOffset - citation.prefixText.length), citation.startOffset) === citation.prefixText && text.slice(citation.endOffset, citation.endOffset + citation.suffixText.length) === citation.suffixText);
+	if (visibleText === void 0) throw new Error("Citation surrounding context does not match the assistant/message");
 	const expectedFingerprint = fingerprintCitationDraft(citation);
 	if (citation.selectionFingerprint !== expectedFingerprint) throw new Error("Citation content fingerprint does not match its evidence");
 	return {

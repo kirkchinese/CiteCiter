@@ -1,4 +1,4 @@
-/** Visible assistant text and its stream lifecycle. */
+/** Citable assistant reasoning and answer text with its stream lifecycle. */
 export type AssistantAnswer = {
     readonly status: 'running' | 'settled' | 'interrupted';
     readonly text: string;

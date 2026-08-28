@@ -66,6 +66,7 @@ async function removePreviousFixtureTree(projectDir, rootId) {
 }
 
 const messageId = '22222222-2222-4222-8222-222222222222'
+const reasoningText = 'Compare parallel transport along two paths before answering.'
 const sourceText = 'The Riemann curvature tensor measures how parallel transport depends on path.'
 const rows = [
   { type: 'session', version: 0, id: sessionId, createdAt, cwd, delegationDepth: 0, agentPreset: 'standard' },
@@ -94,7 +95,10 @@ const rows = [
       turn: 1,
       step: 1,
       message: {
-        content: [{ type: 'text', text: sourceText }],
+        content: [
+          { type: 'reasoning', text: reasoningText },
+          { type: 'text', text: sourceText },
+        ],
         source: { kind: 'model', provider: 'fixture', model: 'fixture' },
         role: 'assistant',
         id: messageId,
@@ -143,6 +147,8 @@ const metadata = {
   anchorKey: '14:assistant-step1:1',
   anchorSeq: 6,
   openTurn: true,
+  reasoningText,
+  sourceText,
   logPath,
 }
 await writeFile(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`)

@@ -41,7 +41,7 @@ export declare function dshAssistantAnchorForTarget(target: EventTarget | null):
  */
 export declare function dshIntersectedAssistantAnchors(range: Range): DshAssistantAnchor[];
 /**
- * Detect DSH-rendered reasoning, generated controls, and collapsed code chrome.
+ * Detect generated controls, reasoning summaries, and collapsed code chrome.
  *
  * @param range - current rendered selection range.
  * @param flow - assistant flow containing the range.
@@ -56,12 +56,19 @@ export declare function dshRangeTouchesExcludedContent(range: Range, flow: HTMLE
  */
 export declare function findDshAssistantAnchor(anchorKey: string): HTMLElement | null;
 /**
- * Determine whether a node is projected reasoning or translation rather than committed answer text.
+ * Determine whether a node is generated UI rather than committed citable text.
  *
  * @param node - rendered node to classify.
- * @returns whether the node must stay out of committed answer text.
+ * @returns whether the node must stay out of the citable projection.
  */
-export declare function isNonAnswerContent(node: Node): boolean;
+export declare function isNonCitableProjection(node: Node): boolean;
+/**
+ * Determine whether a node owns one DSH reasoning block.
+ *
+ * @param node - rendered node to classify.
+ * @returns whether the node is a reasoning root.
+ */
+export declare function isDshReasoningContent(node: Node): boolean;
 /**
  * Resolve a selection wholly inside one Read Frog translation to its source paragraph.
  *

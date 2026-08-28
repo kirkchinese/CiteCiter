@@ -2,6 +2,7 @@
 const DSH_FLOW_SELECTOR = '[data-chat-flow-kind]';
 const DSH_ASSISTANT_ANCHOR_SELECTOR = '[data-chat-flow-kind="assistant-step"][data-chat-anchor-key]';
 const DSH_REASONING_SELECTOR = '[data-variant="think"]';
+const DSH_REASONING_HEADER_SELECTOR = '[data-disclosure-row]';
 const DSH_GENERATED_CONTENT_SELECTOR = 'button, .katex, [data-footnotes], sup';
 const DSH_CODE_BLOCK_SELECTOR = '.md-code-block';
 const READ_FROG_TRANSLATION_SELECTOR = '[data-read-frog-translation-mode]';
@@ -62,7 +63,7 @@ export function dshIntersectedAssistantAnchors(range) {
     return anchors;
 }
 /**
- * Detect DSH-rendered reasoning, generated controls, and collapsed code chrome.
+ * Detect generated controls, reasoning summaries, and collapsed code chrome.
  *
  * @param range - current rendered selection range.
  * @param flow - assistant flow containing the range.
@@ -70,8 +71,10 @@ export function dshIntersectedAssistantAnchors(range) {
  */
 export function dshRangeTouchesExcludedContent(range, flow) {
     for (const reasoning of flow.querySelectorAll(DSH_REASONING_SELECTOR)) {
-        if (range.intersectsNode(reasoning))
-            return true;
+        for (const header of reasoning.querySelectorAll(DSH_REASONING_HEADER_SELECTOR)) {
+            if (range.intersectsNode(header))
+                return true;
+        }
     }
     for (const generated of flow.querySelectorAll(DSH_GENERATED_CONTENT_SELECTOR)) {
         if (range.intersectsNode(generated))
@@ -98,14 +101,26 @@ export function findDshAssistantAnchor(anchorKey) {
     return null;
 }
 /**
- * Determine whether a node is projected reasoning or translation rather than committed answer text.
+ * Determine whether a node is generated UI rather than committed citable text.
  *
  * @param node - rendered node to classify.
- * @returns whether the node must stay out of committed answer text.
+ * @returns whether the node must stay out of the citable projection.
  */
-export function isNonAnswerContent(node) {
-    return node.nodeType === Node.ELEMENT_NODE
-        && node.matches(`${DSH_REASONING_SELECTOR}, ${READ_FROG_TRANSLATION_SELECTOR}`);
+export function isNonCitableProjection(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE)
+        return false;
+    const element = node;
+    return element.matches(READ_FROG_TRANSLATION_SELECTOR)
+        || element.matches(DSH_REASONING_HEADER_SELECTOR) && element.closest(DSH_REASONING_SELECTOR) !== null;
+}
+/**
+ * Determine whether a node owns one DSH reasoning block.
+ *
+ * @param node - rendered node to classify.
+ * @returns whether the node is a reasoning root.
+ */
+export function isDshReasoningContent(node) {
+    return node.nodeType === Node.ELEMENT_NODE && node.matches(DSH_REASONING_SELECTOR);
 }
 /**
  * Resolve a selection wholly inside one Read Frog translation to its source paragraph.

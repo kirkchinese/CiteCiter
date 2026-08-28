@@ -38,7 +38,7 @@ export declare function fingerprintCitationDraft(draft: Omit<CitationDraft, 'sel
 /** Resolve a browser selection claim against the authoritative committed assistant message. */
 export declare function resolveObserverCitation(source: ObserverSourceSnapshot, rawClaim: CitationSelectionClaim): ValidatedObserverCitation;
 /**
- * Validate one Citation against a committed assistant message in the observed source snapshot.
+ * Validate one Citation against committed reasoning or answer text in the observed source snapshot.
  * A matching `assistant/message` is sufficient; its step and turn may remain open.
  */
 export declare function validateObserverCitation(source: ObserverSourceSnapshot, rawDraft: CitationDraft): ValidatedObserverCitation;

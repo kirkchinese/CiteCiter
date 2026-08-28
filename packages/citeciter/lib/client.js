@@ -4443,6 +4443,26 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}]
 		};
 		//#endregion
+		//#region lib/types/assistant-content.js
+		/**
+		* Project committed reasoning and answer blocks in renderer order.
+		*
+		* @param blocks - DSH assistant content blocks.
+		* @returns reasoning and answer text separated by the renderer's paragraph break.
+		*/
+		function projectCitableAssistantContent(blocks) {
+			let text = "";
+			for (const block of blocks) {
+				if (block === null || typeof block !== "object") continue;
+				const candidate = block;
+				const kind = candidate.kind ?? candidate.type;
+				if (typeof candidate.text !== "string" || candidate.text === "") continue;
+				if (kind === "reasoning") text += `${candidate.text}\n\n`;
+				else if (kind === "text") text += candidate.text;
+			}
+			return text;
+		}
+		//#endregion
 		//#region lib/types/client/answer.js
 		/**
 		* Read visible text from one assistant-step payload without retaining its live node.
@@ -4453,12 +4473,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (data === null || typeof data !== "object") return null;
 			const record = data;
 			if (record.status !== "running" && record.status !== "settled" && record.status !== "interrupted") return null;
-			let text = "";
-			for (const block of record.blocks ?? []) {
-				if (typeof block !== "object" || block === null) continue;
-				const candidate = block;
-				if (candidate.kind === "text" && typeof candidate.text === "string") text += candidate.text;
-			}
+			const text = projectCitableAssistantContent(record.blocks ?? []);
 			return text === "" ? null : {
 				status: record.status,
 				text
@@ -5365,6 +5380,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const DSH_FLOW_SELECTOR = "[data-chat-flow-kind]";
 		const DSH_ASSISTANT_ANCHOR_SELECTOR = "[data-chat-flow-kind=\"assistant-step\"][data-chat-anchor-key]";
 		const DSH_REASONING_SELECTOR = "[data-variant=\"think\"]";
+		const DSH_REASONING_HEADER_SELECTOR = "[data-disclosure-row]";
 		const DSH_GENERATED_CONTENT_SELECTOR = "button, .katex, [data-footnotes], sup";
 		const DSH_CODE_BLOCK_SELECTOR = ".md-code-block";
 		const READ_FROG_TRANSLATION_SELECTOR = "[data-read-frog-translation-mode]";
@@ -5423,14 +5439,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return anchors;
 		}
 		/**
-		* Detect DSH-rendered reasoning, generated controls, and collapsed code chrome.
+		* Detect generated controls, reasoning summaries, and collapsed code chrome.
 		*
 		* @param range - current rendered selection range.
 		* @param flow - assistant flow containing the range.
 		* @returns whether the range touches content that CiteCiter must ignore.
 		*/
 		function dshRangeTouchesExcludedContent(range, flow) {
-			for (const reasoning of flow.querySelectorAll(DSH_REASONING_SELECTOR)) if (range.intersectsNode(reasoning)) return true;
+			for (const reasoning of flow.querySelectorAll(DSH_REASONING_SELECTOR)) for (const header of reasoning.querySelectorAll(DSH_REASONING_HEADER_SELECTOR)) if (range.intersectsNode(header)) return true;
 			for (const generated of flow.querySelectorAll(DSH_GENERATED_CONTENT_SELECTOR)) if (range.intersectsNode(generated)) return true;
 			for (const endpoint of [range.startContainer, range.endContainer]) {
 				const element = elementForNode(endpoint);
@@ -5449,13 +5465,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return null;
 		}
 		/**
-		* Determine whether a node is projected reasoning or translation rather than committed answer text.
+		* Determine whether a node is generated UI rather than committed citable text.
 		*
 		* @param node - rendered node to classify.
-		* @returns whether the node must stay out of committed answer text.
+		* @returns whether the node must stay out of the citable projection.
 		*/
-		function isNonAnswerContent(node) {
-			return node.nodeType === Node.ELEMENT_NODE && node.matches(`${DSH_REASONING_SELECTOR}, ${READ_FROG_TRANSLATION_SELECTOR}`);
+		function isNonCitableProjection(node) {
+			if (node.nodeType !== Node.ELEMENT_NODE) return false;
+			const element = node;
+			return element.matches(READ_FROG_TRANSLATION_SELECTOR) || element.matches(DSH_REASONING_HEADER_SELECTOR) && element.closest(DSH_REASONING_SELECTOR) !== null;
+		}
+		/**
+		* Determine whether a node owns one DSH reasoning block.
+		*
+		* @param node - rendered node to classify.
+		* @returns whether the node is a reasoning root.
+		*/
+		function isDshReasoningContent(node) {
+			return node.nodeType === Node.ELEMENT_NODE && node.matches(DSH_REASONING_SELECTOR);
 		}
 		/**
 		* Resolve a selection wholly inside one Read Frog translation to its source paragraph.
@@ -6939,11 +6966,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			let targetStart;
 			let targetEnd;
 			const visit = (node) => {
-				if (isNonAnswerContent(node)) return;
+				if (isNonCitableProjection(node)) return;
+				const start = text.length;
 				if (node === target) targetStart = text.length;
 				if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
 				else for (const child of node.childNodes) visit(child);
 				if (node === target) targetEnd = text.length;
+				if (isDshReasoningContent(node) && text.length > start) text += "\n\n";
 			};
 			visit(root);
 			return {
@@ -6956,7 +6985,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			let text = "";
 			let found = false;
 			const visit = (node) => {
-				if (found || isNonAnswerContent(node)) return;
+				if (found || isNonCitableProjection(node)) return;
 				if (node === boundary) {
 					if (node.nodeType === Node.TEXT_NODE) text += (node.textContent ?? "").slice(0, offset);
 					else for (let index = 0; index < offset; index++) {
@@ -6966,8 +6995,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					found = true;
 					return;
 				}
+				const start = text.length;
 				if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
-				else for (const child of node.childNodes) visit(child);
+				else for (const child of node.childNodes) {
+					visit(child);
+					if (found) return;
+				}
+				if (isDshReasoningContent(node) && text.length > start) text += "\n\n";
 			};
 			visit(root);
 			return found ? text : null;

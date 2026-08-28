@@ -1,12 +1,13 @@
-import { dshAssistantAnchorForTarget, dshConversationFlow, dshIntersectedAssistantAnchors, dshRangeTouchesExcludedContent, isNonAnswerContent, readFrogSelection, } from "./conversation-dom.js";
+import { dshAssistantAnchorForTarget, dshConversationFlow, dshIntersectedAssistantAnchors, dshRangeTouchesExcludedContent, isDshReasoningContent, isNonCitableProjection, readFrogSelection, } from "./conversation-dom.js";
 const RANGE_CONTEXT_CHARS = 240;
 function committedText(root, target) {
     let text = '';
     let targetStart;
     let targetEnd;
     const visit = (node) => {
-        if (isNonAnswerContent(node))
+        if (isNonCitableProjection(node))
             return;
+        const start = text.length;
         if (node === target)
             targetStart = text.length;
         if (node.nodeType === Node.TEXT_NODE)
@@ -16,6 +17,8 @@ function committedText(root, target) {
                 visit(child);
         if (node === target)
             targetEnd = text.length;
+        if (isDshReasoningContent(node) && text.length > start)
+            text += '\n\n';
     };
     visit(root);
     return { text, targetStart, targetEnd };
@@ -24,7 +27,7 @@ function committedTextBefore(root, boundary, offset) {
     let text = '';
     let found = false;
     const visit = (node) => {
-        if (found || isNonAnswerContent(node))
+        if (found || isNonCitableProjection(node))
             return;
         if (node === boundary) {
             if (node.nodeType === Node.TEXT_NODE)
@@ -38,11 +41,17 @@ function committedTextBefore(root, boundary, offset) {
             found = true;
             return;
         }
+        const start = text.length;
         if (node.nodeType === Node.TEXT_NODE)
             text += node.textContent ?? '';
         else
-            for (const child of node.childNodes)
+            for (const child of node.childNodes) {
                 visit(child);
+                if (found)
+                    return;
+            }
+        if (isDshReasoningContent(node) && text.length > start)
+            text += '\n\n';
     };
     visit(root);
     return found ? text : null;

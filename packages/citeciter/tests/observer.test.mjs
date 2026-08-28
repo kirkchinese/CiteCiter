@@ -82,12 +82,43 @@ test('the Host resolves inherited rendered Markdown without trusting the browser
   })
 
   assert.equal(resolved.citation.sourceText, 'single_nx20_continuous_profile_signed=false')
-  assert.equal(resolved.citation.startOffset, text.indexOf('single_nx20'))
+  assert.equal(resolved.citation.startOffset, 'private reasoning\n\n'.length + text.indexOf('single_nx20'))
   assert.equal(resolved.citation.displayText, 'single_nx20_continuous_profile_signed=false')
   assert.equal(resolved.contentFingerprint, fingerprintCitationDraft({
     ...resolved.citation,
     selectionFingerprint: undefined,
   }))
+})
+
+test('the Host resolves committed reasoning-only and mixed reasoning-answer selections', () => {
+  const reasoningOnly = resolveObserverCitation({
+    session: { id: sourceId },
+    events: [assistant(12, '', 'Need the source.')],
+  }, {
+    sourceSessionId: sourceId,
+    anchorSeq: 12,
+    displayText: 'Need the source',
+    prefixText: '',
+    suffixText: '.',
+  })
+  assert.equal(reasoningOnly.citation.sourceText, 'Need the source')
+  assert.equal(reasoningOnly.citation.startOffset, 0)
+
+  const mixed = resolveObserverCitation({
+    session: { id: sourceId },
+    events: [assistant(13, 'Final answer.', 'First thought.')],
+  }, {
+    sourceSessionId: sourceId,
+    anchorSeq: 13,
+    displayText: 'thought.\n\nFinal',
+    prefixText: 'First ',
+    suffixText: ' answer.',
+  })
+  assert.equal(mixed.citation.sourceText, 'thought.\n\nFinal')
+  assert.equal(validateObserverCitation({
+    session: { id: sourceId },
+    events: [assistant(13, 'Final answer.', 'First thought.')],
+  }, mixed.citation).assistantVisibleText, 'First thought.\n\nFinal answer.')
 })
 
 test('chunk-only, stale text, invalid UTF-16 offsets, and forged fingerprints are rejected', () => {

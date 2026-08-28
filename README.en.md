@@ -13,7 +13,7 @@ Select part of an answer to ask follow-up questions, switch models, or create mu
 ## Install
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.3
 ```
 
 Restart DSH Web and refresh the page after installation.
@@ -47,6 +47,7 @@ CiteCiter wants to be a foundation you can build on. Start from your own content
 ## Main features
 
 - **Observer mode.** Start multiple Citer conversations from the same answer without disrupting the context of the main conversation.
+- **Citer while it runs.** Once an intermediate model call finishes, you can Citer it while the Agent keeps working. Reasoning and mixed reasoning-and-answer selections are supported.
 - **Switch models.** Change the model and reasoning effort separately.
 - **Persistent history.** Keep your Citer history.
 - **Agent capabilities.** Models in a Citer conversation can inspect the source conversation and investigate the codebase.
@@ -71,6 +72,7 @@ The roadmap starts with v0.3.1, when CiteCiter officially began moving from a ro
 - [x] **v0.4.0** Adapted to the new DSH rc.1 and rc.2. Fixed several bugs.
 - [x] **v0.4.1** Fixed several bugs and improved the UI and conversation logic.
 - [x] **v0.4.2** Fixed Citer creation from lists, nested lists, and other structurally complex answers.
+- [x] **v0.4.3** Restored Citer for committed intermediate calls, reasoning, and mixed reasoning-and-answer selections.
 
 ### Planned
 

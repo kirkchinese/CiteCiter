@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 import { resolveCitationRange } from '../lib/types/citation-mapping.js'
+import { readAssistantAnswer } from '../lib/types/client/answer.js'
 import { markdownSourceCandidates } from '../lib/types/client/markdown-source-map.js'
 import { isCurrentTopicResponse, shouldReopenLastTopic } from '../lib/types/client/response-guard.js'
 import { claimSelectionContextMenu } from '../lib/types/client/selection.js'
@@ -223,11 +224,43 @@ test('cross-flow DSH selection binds and claims only its final assistant anchor'
     const selection = claimSelectionContextMenu(finalEvent, 'source')
     assert.equal(finalEvent.defaultPrevented, true)
     assert.equal(selection?.anchorKey, 'assistant:2')
-    assert.equal(selection?.sourceHintText, 'Omega')
+    assert.equal(selection?.sourceHintText, 'Think secret\n\nOmega')
 
     const firstEvent = contextMenu(first)
     assert.equal(claimSelectionContextMenu(firstEvent, 'source'), null)
     assert.equal(firstEvent.defaultPrevented, false)
+  })
+})
+
+test('settled reasoning-only and mixed assistant calls remain citable during an open turn', () => {
+  assert.deepEqual(readAssistantAnswer({
+    status: 'settled',
+    blocks: [{ kind: 'reasoning', text: 'Need the source.' }],
+  }), { status: 'settled', text: 'Need the source.\n\n' })
+
+  withConversationDom(({ body, setRange }) => {
+    const assistant = new FakeElement('article', { chatFlowKind: 'assistant-step', chatAnchorKey: 'assistant:8' })
+    const reasoning = new FakeElement('div', { variant: 'think' })
+    const header = new FakeElement('div', { disclosureRow: '' }).append(text('Think Need the source.'))
+    const reasoningText = text('Need the source.')
+    const answerText = text('Final answer.')
+    const answer = new FakeElement('p').append(answerText)
+    reasoning.append(header, reasoningText)
+    assistant.append(reasoning, answer)
+    body.append(assistant)
+
+    setRange(new FakeRange(reasoningText, 0, answerText, 5, 'Need the source. Final'))
+    const mixedEvent = contextMenu(answer)
+    const mixed = claimSelectionContextMenu(mixedEvent, 'source')
+    assert.equal(mixedEvent.defaultPrevented, true)
+    assert.equal(mixed?.displayText, 'Need the source.\n\nFinal')
+    assert.equal(mixed?.startOffset, 0)
+    assert.equal(mixed?.endOffset, 'Need the source.\n\nFinal'.length)
+
+    setRange(new FakeRange(header.childNodes[0], 0, header.childNodes[0], 5, 'Think'))
+    const headerEvent = contextMenu(header)
+    assert.equal(claimSelectionContextMenu(headerEvent, 'source'), null)
+    assert.equal(headerEvent.defaultPrevented, false)
   })
 })
 
