@@ -33,9 +33,12 @@ DSH Web 使用：
 
 ```sh
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.3
+dsh plugin --profile web list --depth 0
 ```
 
-安装后重启 DSH Web 并刷新页面。正式 Desktop 适配已经暂缓；CiteCiter 0.4.3 不提供受支持的 Desktop 安装路径。
+请确认列表显示 `@kirkchinese/dsh-citeciter@0.4.3`。v0.4.2 曾导致运行中的中间输出和思考内容无法 Citer，请不要继续使用。安装后重启 DSH Web 并刷新页面。
+
+正式 Desktop 适配已经暂缓；CiteCiter 0.4.3 不提供受支持的 Desktop 安装路径。
 
 ## 上下文模式
 

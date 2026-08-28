@@ -14,9 +14,12 @@
 
 ```sh
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.3
+dsh plugin --profile web list --depth 0
 ```
 
-安装后重启 DSH Web 并刷新页面。
+请确认列表显示 `@kirkchinese/dsh-citeciter@0.4.3`。v0.4.2 曾导致运行中的中间输出和思考内容无法 Citer，请不要继续使用。安装后重启 DSH Web 并刷新页面。
+
+v0.4.3 恢复了运行中间输出、思考正文和跨越“思考+回答”选区的 Citer 功能；旧 Topic 不需要迁移。
 
 ## 开始
 

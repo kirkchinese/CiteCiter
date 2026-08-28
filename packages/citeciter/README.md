@@ -33,9 +33,12 @@ For DSH Web:
 
 ```sh
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.3
+dsh plugin --profile web list --depth 0
 ```
 
-Restart DSH Web and refresh the page. Packaged Desktop adaptation is deferred; CiteCiter 0.4.3 does not provide a supported Desktop installation path.
+Confirm that the list shows `@kirkchinese/dsh-citeciter@0.4.3`. Do not remain on v0.4.2: it prevented Citer from working with committed intermediate calls and reasoning. Restart DSH Web and refresh the page.
+
+Packaged Desktop adaptation is deferred; CiteCiter 0.4.3 does not provide a supported Desktop installation path.
 
 ## Context modes
 

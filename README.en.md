@@ -14,9 +14,12 @@ Select part of an answer to ask follow-up questions, switch models, or create mu
 
 ```sh
 dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.3
+dsh plugin --profile web list --depth 0
 ```
 
-Restart DSH Web and refresh the page after installation.
+Confirm that the list shows `@kirkchinese/dsh-citeciter@0.4.3`. Do not remain on v0.4.2: it prevented Citer from working with committed intermediate calls and reasoning. Restart DSH Web and refresh the page after installation.
+
+v0.4.3 restores Citer for committed intermediate calls, expanded reasoning, and selections spanning reasoning and answer text. Existing Topics require no migration.
 
 ## Get started
 
