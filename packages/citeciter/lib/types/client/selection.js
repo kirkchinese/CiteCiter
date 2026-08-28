@@ -1,11 +1,11 @@
-import { dshAssistantAnchorForTarget, dshConversationFlow, dshIntersectedAssistantAnchors, dshRangeTouchesExcludedContent, isReadFrogTranslatedContent, readFrogSelection, } from "./conversation-dom.js";
+import { dshAssistantAnchorForTarget, dshConversationFlow, dshIntersectedAssistantAnchors, dshRangeTouchesExcludedContent, isNonAnswerContent, readFrogSelection, } from "./conversation-dom.js";
 const RANGE_CONTEXT_CHARS = 240;
 function committedText(root, target) {
     let text = '';
     let targetStart;
     let targetEnd;
     const visit = (node) => {
-        if (isReadFrogTranslatedContent(node))
+        if (isNonAnswerContent(node))
             return;
         if (node === target)
             targetStart = text.length;
@@ -24,7 +24,7 @@ function committedTextBefore(root, boundary, offset) {
     let text = '';
     let found = false;
     const visit = (node) => {
-        if (found || isReadFrogTranslatedContent(node))
+        if (found || isNonAnswerContent(node))
             return;
         if (node === boundary) {
             if (node.nodeType === Node.TEXT_NODE)

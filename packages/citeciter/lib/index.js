@@ -14369,7 +14369,8 @@ function compactMapped(units) {
 		});
 		else compact[compact.length - 1] = {
 			...previous,
-			endOffset: unit.endOffset
+			endOffset: unit.endOffset,
+			...previous.synthetic === true || unit.synthetic === true ? { synthetic: true } : {}
 		};
 	}
 	return compact;
@@ -14384,7 +14385,8 @@ function joinMapped(parts, separator) {
 			for (const text of separator) joined.push({
 				text,
 				startOffset: before,
-				endOffset: after
+				endOffset: after,
+				synthetic: true
 			});
 		}
 		joined.push(...part);
@@ -14442,6 +14444,47 @@ function candidatesFromProjection(markdown, projection, needle) {
 	}
 	return candidates;
 }
+function candidatesIgnoringSyntheticWhitespace(markdown, projection, needle) {
+	const rendered = visibleText(projection);
+	const visibleOffsets = [0];
+	for (const unit of projection) visibleOffsets.push(visibleOffsets.at(-1) + unit.text.length);
+	const candidates = [];
+	const seen = /* @__PURE__ */ new Set();
+	for (let start = 0; start < projection.length; start++) {
+		const first = projection[start];
+		if (first.synthetic === true) continue;
+		let unitIndex = start;
+		let needleOffset = 0;
+		let lastIndex = -1;
+		while (needleOffset < needle.length && unitIndex < projection.length) {
+			const unit = projection[unitIndex];
+			if (unit.synthetic === true) {
+				while (projection[unitIndex]?.synthetic === true) unitIndex++;
+				needleOffset += /^\s+/u.exec(needle.slice(needleOffset))?.[0].length ?? 0;
+				continue;
+			}
+			if (!needle.startsWith(unit.text, needleOffset)) break;
+			needleOffset += unit.text.length;
+			lastIndex = unitIndex;
+			unitIndex++;
+		}
+		if (needleOffset !== needle.length || lastIndex < start) continue;
+		const last = projection[lastIndex];
+		const key = `${first.startOffset}:${last.endOffset}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		const visibleStart = visibleOffsets[start];
+		const visibleEnd = visibleOffsets[lastIndex + 1];
+		candidates.push({
+			startOffset: first.startOffset,
+			endOffset: last.endOffset,
+			sourceText: markdown.slice(first.startOffset, last.endOffset),
+			displayPrefix: rendered.slice(Math.max(0, visibleStart - 240), visibleStart),
+			displaySuffix: rendered.slice(visibleEnd, visibleEnd + 240)
+		});
+	}
+	return candidates;
+}
 /**
 * Locate every GFM source range that renders as one browser-visible selection.
 *
@@ -14458,7 +14501,11 @@ function markdownSourceCandidates(markdown, displayText) {
 	if (needle === "") return [];
 	const exact = candidatesFromProjection(markdown, projection, needle);
 	if (exact.length > 0) return exact;
-	return candidatesFromProjection(markdown, compactMapped(projection), needle.replace(/\s+/gu, " "));
+	const compactProjection = compactMapped(projection);
+	const compactNeedle = needle.replace(/\s+/gu, " ");
+	const compact = candidatesFromProjection(markdown, compactProjection, compactNeedle);
+	if (compact.length > 0) return compact;
+	return candidatesIgnoringSyntheticWhitespace(markdown, compactProjection, compactNeedle);
 }
 //#endregion
 //#region lib/types/citation-mapping.js

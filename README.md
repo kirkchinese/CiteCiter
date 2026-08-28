@@ -13,7 +13,7 @@
 ## 安装
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.2
 ```
 
 安装后重启 DSH Web 并刷新页面。
@@ -70,6 +70,7 @@ CiteCiter 希望成为你的底座，围绕你的内容与目标，逐渐形成�
 - [x] **v0.3.2** 增加了跨轮次选取功能。增加了思考强度、模型切换能力。优化了部分用户体验。增加了预测下个问题功能。
 - [x] **v0.4.0** 适配新的 DSH rc.1 与 rc.2。修复了若干bug。
 - [x] **v0.4.1** 修复了若干bug，完善了UI界面和对话逻辑。
+- [x] **v0.4.2** 修复列表、嵌套列表等复杂回答无法建立 Citer 的问题。
 
 ### 未完成
 

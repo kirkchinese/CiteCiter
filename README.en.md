@@ -13,7 +13,7 @@ Select part of an answer to ask follow-up questions, switch models, or create mu
 ## Install
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.2
 ```
 
 Restart DSH Web and refresh the page after installation.
@@ -70,6 +70,7 @@ The roadmap starts with v0.3.1, when CiteCiter officially began moving from a ro
 - [x] **v0.3.2** Added cross-turn selection. Added reasoning-effort and model switching. Improved parts of the user experience. Added next-question prediction.
 - [x] **v0.4.0** Adapted to the new DSH rc.1 and rc.2. Fixed several bugs.
 - [x] **v0.4.1** Fixed several bugs and improved the UI and conversation logic.
+- [x] **v0.4.2** Fixed Citer creation from lists, nested lists, and other structurally complex answers.
 
 ### Planned
 

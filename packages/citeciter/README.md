@@ -25,17 +25,17 @@ Investigate any line in a DSH response—without stopping the Agent or changing 
 4. Continue asking questions there, or reopen an earlier Topic from CiteCiter's Topic rail.
 5. Change the Topic model, reasoning effort, title, archive state, or panel width without changing the source Session.
 
-## Install v0.4.1
+## Install v0.4.2
 
-CiteCiter 0.4.1 requires Node.js `^22.19.0 || >=24.0.0` and DSH `>=0.1.1-rc.1 <0.1.1-rc.3`.
+CiteCiter 0.4.2 requires Node.js `^22.19.0 || >=24.0.0` and DSH `>=0.1.1-rc.1 <0.1.1-rc.3`.
 
 For DSH Web:
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.2
 ```
 
-Restart DSH Web and refresh the page. Packaged Desktop adaptation is deferred; CiteCiter 0.4.1 does not provide a supported Desktop installation path.
+Restart DSH Web and refresh the page. Packaged Desktop adaptation is deferred; CiteCiter 0.4.2 does not provide a supported Desktop installation path.
 
 ## Context modes
 
@@ -47,7 +47,7 @@ Exact Fork is an advanced mode for a source turn that has already ended. `exact-
 
 | Host | CiteCiter version | Status |
 |---|---|---|
-| DSH Web `0.1.1-rc.2` | `0.4.1` | Linux package, CI, upgrade, and assembled keyless browser checks passed; real-provider acceptance was not run |
+| DSH Web `0.1.1-rc.2` | `0.4.2` | Linux package, regression tests, and real-browser selection checks passed; real-provider acceptance was not run |
 | [DSH Desktop 2.0.2](https://github.com/anywhere-labs/deepseek-harness-desktop) with bundled DSH `0.1.1-rc.2` | Future target | Adaptation and native acceptance are deferred; no packaged-Desktop compatibility claim |
 | [dataelement DSH Desktop](https://github.com/dataelement/dsh-desktop) development shell with DSH `0.1.1-rc.1` | `0.4.0` only | Historical conditional Linux source-shell evidence |
 | DSH Web `0.1.0-rc.7` | `0.3.2` | Previous stable line |
@@ -57,14 +57,14 @@ The demo uses a deterministic fixture to show the workflow; it is not real-provi
 
 ## Upgrade from an earlier version
 
-To install or upgrade v0.4.1 in Web:
+To install or upgrade v0.4.2 in Web:
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.2
 dsh plugin --profile web list --depth 0
 ```
 
-Packaged Desktop adaptation is deferred and is not part of the supported 0.4.1 upgrade path.
+Packaged Desktop adaptation is deferred and is not part of the supported 0.4.2 upgrade path.
 
 Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or source Sessions. Users remaining on DSH `0.1.0-rc.7` should keep CiteCiter 0.3.2.
 
@@ -77,7 +77,7 @@ Upgrading from v0.3 does not migrate or rewrite existing Topics, settings, or so
 - Read Frog translated selections are a best-effort compatibility path on DSH rc.1/rc.2 and activate only when its complete private marker set is present; ordinary DSH selection does not depend on Read Frog.
 - DSH does not yet expose a public additive right-dock contribution point. CiteCiter therefore uses a reversible private AppFrame grid adapter whenever the panel and conversation fit; it preserves the layout's details preference but temporarily hides that column while the investigation panel is open, and it must be retested for every supported DSH release.
 - Topics are Host-durable. When Desktop restarts on a different loopback port, CiteCiter falls back to the most recently updated Topic because browser local storage is origin-scoped; configure a fixed Desktop port to restore the exact last-viewed Topic.
-- CiteCiter 0.4.1 makes no packaged-Desktop compatibility claim; native Windows and macOS adaptation continues separately.
+- CiteCiter 0.4.2 makes no packaged-Desktop compatibility claim; native Windows and macOS adaptation continues separately.
 - There is currently no TUI interaction adapter.
 - DSH is prerelease software; later DSH API versions may require a CiteCiter update.
 

@@ -5449,13 +5449,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return null;
 		}
 		/**
-		* Determine whether a node is a Read Frog translated projection rather than source text.
+		* Determine whether a node is projected reasoning or translation rather than committed answer text.
 		*
 		* @param node - rendered node to classify.
-		* @returns whether Read Frog marks the node as translated content.
+		* @returns whether the node must stay out of committed answer text.
 		*/
-		function isReadFrogTranslatedContent(node) {
-			return node.nodeType === Node.ELEMENT_NODE && node.matches(READ_FROG_TRANSLATION_SELECTOR);
+		function isNonAnswerContent(node) {
+			return node.nodeType === Node.ELEMENT_NODE && node.matches(`${DSH_REASONING_SELECTOR}, ${READ_FROG_TRANSLATION_SELECTOR}`);
 		}
 		/**
 		* Resolve a selection wholly inside one Read Frog translation to its source paragraph.
@@ -6939,7 +6939,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			let targetStart;
 			let targetEnd;
 			const visit = (node) => {
-				if (isReadFrogTranslatedContent(node)) return;
+				if (isNonAnswerContent(node)) return;
 				if (node === target) targetStart = text.length;
 				if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
 				else for (const child of node.childNodes) visit(child);
@@ -6956,7 +6956,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			let text = "";
 			let found = false;
 			const visit = (node) => {
-				if (found || isReadFrogTranslatedContent(node)) return;
+				if (found || isNonAnswerContent(node)) return;
 				if (node === boundary) {
 					if (node.nodeType === Node.TEXT_NODE) text += (node.textContent ?? "").slice(0, offset);
 					else for (let index = 0; index < offset; index++) {

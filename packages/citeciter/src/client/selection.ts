@@ -5,7 +5,7 @@ import {
   dshConversationFlow,
   dshIntersectedAssistantAnchors,
   dshRangeTouchesExcludedContent,
-  isReadFrogTranslatedContent,
+  isNonAnswerContent,
   readFrogSelection,
 } from './conversation-dom.ts'
 
@@ -19,7 +19,7 @@ function committedText(
   let targetStart: number | undefined
   let targetEnd: number | undefined
   const visit = (node: Node): void => {
-    if (isReadFrogTranslatedContent(node)) return
+    if (isNonAnswerContent(node)) return
     if (node === target) targetStart = text.length
     if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? ''
     else for (const child of node.childNodes) visit(child)
@@ -33,7 +33,7 @@ function committedTextBefore(root: Node, boundary: Node, offset: number): string
   let text = ''
   let found = false
   const visit = (node: Node): void => {
-    if (found || isReadFrogTranslatedContent(node)) return
+    if (found || isNonAnswerContent(node)) return
     if (node === boundary) {
       if (node.nodeType === Node.TEXT_NODE) text += (node.textContent ?? '').slice(0, offset)
       else for (let index = 0; index < offset; index++) {

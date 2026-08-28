@@ -10,6 +10,7 @@ interface MappedUnit {
   readonly text: string
   readonly startOffset: number
   readonly endOffset: number
+  readonly synthetic?: true
 }
 
 interface RawLine {
@@ -260,7 +261,11 @@ function compactMapped(units: MappedText): MappedUnit[] {
     if (previous === undefined || previous.text !== ' ') {
       compact.push({ ...unit, text: ' ' })
     } else {
-      compact[compact.length - 1] = { ...previous, endOffset: unit.endOffset }
+      compact[compact.length - 1] = {
+        ...previous,
+        endOffset: unit.endOffset,
+        ...(previous.synthetic === true || unit.synthetic === true ? { synthetic: true } : {}),
+      }
     }
   }
   return compact
@@ -273,7 +278,7 @@ function joinMapped(parts: readonly MappedText[], separator: string): MappedUnit
     if (index > 0) {
       const before = joined.at(-1)?.endOffset ?? part[0]!.startOffset
       const after = part[0]!.startOffset
-      for (const text of separator) joined.push({ text, startOffset: before, endOffset: after })
+      for (const text of separator) joined.push({ text, startOffset: before, endOffset: after, synthetic: true })
     }
     joined.push(...part)
   }
@@ -346,6 +351,52 @@ function candidatesFromProjection(
   return candidates
 }
 
+function candidatesIgnoringSyntheticWhitespace(
+  markdown: string,
+  projection: MappedText,
+  needle: string,
+): MarkdownSourceCandidate[] {
+  const rendered = visibleText(projection)
+  const visibleOffsets = [0]
+  for (const unit of projection) visibleOffsets.push(visibleOffsets.at(-1)! + unit.text.length)
+  const candidates: MarkdownSourceCandidate[] = []
+  const seen = new Set<string>()
+  for (let start = 0; start < projection.length; start++) {
+    const first = projection[start]!
+    if (first.synthetic === true) continue
+    let unitIndex = start
+    let needleOffset = 0
+    let lastIndex = -1
+    while (needleOffset < needle.length && unitIndex < projection.length) {
+      const unit = projection[unitIndex]!
+      if (unit.synthetic === true) {
+        while (projection[unitIndex]?.synthetic === true) unitIndex++
+        needleOffset += /^\s+/u.exec(needle.slice(needleOffset))?.[0].length ?? 0
+        continue
+      }
+      if (!needle.startsWith(unit.text, needleOffset)) break
+      needleOffset += unit.text.length
+      lastIndex = unitIndex
+      unitIndex++
+    }
+    if (needleOffset !== needle.length || lastIndex < start) continue
+    const last = projection[lastIndex]!
+    const key = `${first.startOffset}:${last.endOffset}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    const visibleStart = visibleOffsets[start]!
+    const visibleEnd = visibleOffsets[lastIndex + 1]!
+    candidates.push({
+      startOffset: first.startOffset,
+      endOffset: last.endOffset,
+      sourceText: markdown.slice(first.startOffset, last.endOffset),
+      displayPrefix: rendered.slice(Math.max(0, visibleStart - 240), visibleStart),
+      displaySuffix: rendered.slice(visibleEnd, visibleEnd + 240),
+    })
+  }
+  return candidates
+}
+
 /**
  * Locate every GFM source range that renders as one browser-visible selection.
  *
@@ -363,5 +414,9 @@ export function markdownSourceCandidates(markdown: string, displayText: string):
   if (needle === '') return []
   const exact = candidatesFromProjection(markdown, projection, needle)
   if (exact.length > 0) return exact
-  return candidatesFromProjection(markdown, compactMapped(projection), needle.replace(/\s+/gu, ' '))
+  const compactProjection = compactMapped(projection)
+  const compactNeedle = needle.replace(/\s+/gu, ' ')
+  const compact = candidatesFromProjection(markdown, compactProjection, compactNeedle)
+  if (compact.length > 0) return compact
+  return candidatesIgnoringSyntheticWhitespace(markdown, compactProjection, compactNeedle)
 }

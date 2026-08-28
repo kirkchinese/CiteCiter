@@ -7,12 +7,12 @@ import plugin, { CITECITER_SETTINGS_NS, CiteCiterHost } from '../lib/types/index
 
 const packageRoot = new URL('../', import.meta.url)
 
-test('v0.4.1 candidate declares an installable Observer Host+Client DSH bundle', async () => {
+test('v0.4.2 candidate declares an installable Observer Host+Client DSH bundle', async () => {
   const manifest = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'))
   const patch = await readFile(new URL('cordis.patch.yml', packageRoot), 'utf8')
 
   assert.equal(manifest.name, '@kirkchinese/dsh-citeciter')
-  assert.equal(manifest.version, '0.4.1')
+  assert.equal(manifest.version, '0.4.2')
   assert.equal(manifest.private, undefined)
   assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.equal(manifest.exports?.['./typert']?.default, './lib/typert.host.js')

@@ -56,12 +56,12 @@ export declare function dshRangeTouchesExcludedContent(range: Range, flow: HTMLE
  */
 export declare function findDshAssistantAnchor(anchorKey: string): HTMLElement | null;
 /**
- * Determine whether a node is a Read Frog translated projection rather than source text.
+ * Determine whether a node is projected reasoning or translation rather than committed answer text.
  *
  * @param node - rendered node to classify.
- * @returns whether Read Frog marks the node as translated content.
+ * @returns whether the node must stay out of committed answer text.
  */
-export declare function isReadFrogTranslatedContent(node: Node): boolean;
+export declare function isNonAnswerContent(node: Node): boolean;
 /**
  * Resolve a selection wholly inside one Read Frog translation to its source paragraph.
  *

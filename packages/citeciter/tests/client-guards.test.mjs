@@ -212,9 +212,10 @@ test('cross-flow DSH selection binds and claims only its final assistant anchor'
     const first = new FakeElement('article', { chatFlowKind: 'assistant-step', chatAnchorKey: 'assistant:1' })
     const second = new FakeElement('article', { chatFlowKind: 'assistant-step', chatAnchorKey: 'assistant:2' })
     const firstText = text('Alpha')
+    const reasoning = new FakeElement('div', { variant: 'think' }).append(text('Think secret'))
     const secondText = text('Omega')
     first.append(firstText)
-    second.append(secondText)
+    second.append(reasoning, secondText)
     body.append(first, second)
     setRange(new FakeRange(firstText, 0, secondText, 5, 'Alpha Omega', [first, second]))
 
@@ -309,6 +310,15 @@ test('a visible selection crossing Markdown markers maps to one exact raw range'
   assert.equal(normalized.endOffset, answer.indexOf('bar') + 'bar'.length)
   assert.equal(normalized.sourceText, 'foo **bar')
   assert.equal(selection.displayText, 'foo bar')
+})
+
+test('browser list separators map back to one Markdown source range', () => {
+  const answer = '**做了什么**\n1. A；\n2. B；\n3. C：\n   - D；\n   - E。'
+  const candidates = markdownSourceCandidates(answer, '做了什么\nA；B；C：\nD；E。')
+
+  assert.equal(candidates.length, 1)
+  assert.equal(candidates[0]?.sourceText, '做了什么**\n1. A；\n2. B；\n3. C：\n   - D；\n   - E。')
+  assert.equal(markdownSourceCandidates('foo bar', 'foobar').length, 0)
 })
 
 test('GFM source positions keep code and link labels out of hidden destinations', () => {

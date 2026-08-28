@@ -118,13 +118,14 @@ export function findDshAssistantAnchor(anchorKey: string): HTMLElement | null {
 }
 
 /**
- * Determine whether a node is a Read Frog translated projection rather than source text.
+ * Determine whether a node is projected reasoning or translation rather than committed answer text.
  *
  * @param node - rendered node to classify.
- * @returns whether Read Frog marks the node as translated content.
+ * @returns whether the node must stay out of committed answer text.
  */
-export function isReadFrogTranslatedContent(node: Node): boolean {
-  return node.nodeType === Node.ELEMENT_NODE && (node as Element).matches(READ_FROG_TRANSLATION_SELECTOR)
+export function isNonAnswerContent(node: Node): boolean {
+  return node.nodeType === Node.ELEMENT_NODE
+    && (node as Element).matches(`${DSH_REASONING_SELECTOR}, ${READ_FROG_TRANSLATION_SELECTOR}`)
 }
 
 /**
