@@ -49,7 +49,7 @@ function snapshot(active) {
     draftQuote: null,
     sourceAnchorKey: null,
     active,
-    topics: [active.topic],
+    topics: active === null ? [] : [active.topic],
     topicsStatus: 'ready',
     topicsError: null,
     providers: [],
@@ -60,10 +60,316 @@ function snapshot(active) {
     reasoningEffortSaving: false,
     renaming: false,
     archiving: false,
+    deleting: false,
+    notice: null,
     includeArchived: false,
     error: null,
   }
 }
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+test('uncited Topic is created only on first submission with the selected scenario', async () => {
+  const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage')
+  const values = new Map()
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    configurable: true,
+    value: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    },
+  })
+  let releaseCreate
+  let createStarted
+  const started = new Promise((resolve) => { createStarted = resolve })
+  const response = new Promise((resolve) => { releaseCreate = resolve })
+  const created = topic('topic-free')
+  created.topic.citation = null
+  created.topic.scenario = 'present'
+  const requests = []
+  let gets = 0
+  const request = (command) => {
+    requests.push(command)
+    if (command.action === 'create') {
+      createStarted()
+      return response
+    }
+    if (command.action === 'list') {
+      return Promise.resolve({ ok: true, value: { kind: 'topics', topics: [created.topic] } })
+    }
+    if (command.action === 'models') {
+      return Promise.resolve({ ok: true, value: { kind: 'models', providers: [] } })
+    }
+    if (command.action === 'get') {
+      gets += 1
+      return Promise.resolve({ ok: true, value: { kind: 'topic', topic: topic('topic-a') } })
+    }
+    throw new Error('unexpected ' + command.action)
+  }
+  const settingsScope = {
+    getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+    subscribe: () => () => undefined,
+    set: async () => undefined,
+  }
+  const controller = createCompanionController(
+    { binding: () => undefined },
+    settingsScope,
+    request,
+    () => undefined,
+    memoryStore(snapshot(topic('topic-a'))),
+  )
+
+  try {
+    assert.equal(requests.length, 0)
+    const creating = controller.createFree('请逐步讲解曲率', 'present')
+    await started
+    const releaseVisible = controller.retainVisible()
+    await wait(750)
+    releaseVisible()
+    assert.equal(gets, 0)
+    assert.equal(controller.getSnapshot().active.topic.sessionId, 'topic-a')
+    releaseCreate({ ok: true, value: { kind: 'topic', topic: created } })
+    assert.equal(await creating, true)
+    assert.deepEqual(requests[0], {
+      action: 'create',
+      requestId: requests[0].requestId,
+      sourceSessionId: 'source',
+      question: '请逐步讲解曲率',
+      mode: 'observer',
+      scenario: 'present',
+    })
+    assert.equal(controller.getSnapshot().active.topic.sessionId, 'topic-free')
+    assert.equal(controller.getSnapshot().active.topic.citation, null)
+  } finally {
+    await controller.dispose()
+    if (originalStorage === undefined) delete globalThis.sessionStorage
+    else Object.defineProperty(globalThis, 'sessionStorage', originalStorage)
+  }
+})
+
+test('dismissing a failed free Topic restores the empty source state', async () => {
+  const initial = snapshot(null)
+  initial.phase = 'idle'
+  const controller = createCompanionController(
+    { binding: () => undefined },
+    {
+      getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+      subscribe: () => () => undefined,
+      set: async () => undefined,
+    },
+    async (command) => command.action === 'create'
+      ? { ok: false, error: { message: 'Citation source has no model route' } }
+      : { ok: true, value: { kind: 'topics', topics: [] } },
+    () => undefined,
+    memoryStore(initial),
+  )
+
+  try {
+    assert.equal(await controller.createFree('解释幂等键', 'qa'), false)
+    assert.equal(controller.getSnapshot().phase, 'error')
+    controller.dismissError()
+    assert.equal(controller.getSnapshot().phase, 'idle')
+    assert.equal(controller.getSnapshot().error, null)
+  } finally {
+    await controller.dispose()
+  }
+})
+
+test('permanent deletion clears navigation and reports pending cleanup', async () => {
+  const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const values = new Map([['citeciter:last-topic:source', 'topic-a']])
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    },
+  })
+  const commands = []
+  const request = async (command) => {
+    commands.push(command)
+    if (command.action === 'delete') return {
+      ok: true,
+      value: { kind: 'deleted', sessionId: 'topic-a', sourceSessionId: 'source', topicId: 1, cleanup: 'pending' },
+    }
+    if (command.action === 'list') return { ok: true, value: { kind: 'topics', topics: [] } }
+    throw new Error('unexpected ' + command.action)
+  }
+  const settingsScope = {
+    getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+    subscribe: () => () => undefined,
+    set: async () => undefined,
+  }
+  const controller = createCompanionController(
+    { binding: () => undefined },
+    settingsScope,
+    request,
+    () => undefined,
+    memoryStore(snapshot(topic('topic-a'))),
+  )
+
+  try {
+    assert.equal(await controller.deleteTopic('wrong-topic'), false)
+    assert.equal(commands.length, 0)
+    assert.equal(await controller.deleteTopic('topic-a'), 'pending')
+    assert.deepEqual(commands[0], {
+      action: 'delete',
+      topicSessionId: 'topic-a',
+      confirmSessionId: 'topic-a',
+    })
+    assert.equal(values.has('citeciter:last-topic:source'), false)
+    assert.equal(controller.getSnapshot().active, null)
+    assert.equal(controller.getSnapshot().notice, 'Topic 已删除；相关资源仍在后台清理。')
+  } finally {
+    await controller.dispose()
+    if (originalStorage === undefined) delete globalThis.localStorage
+    else Object.defineProperty(globalThis, 'localStorage', originalStorage)
+  }
+})
+
+test('restoring an archived Topic returns to the active list without closing it', async () => {
+  const archived = topic('topic-a')
+  archived.topic.archived = true
+  const restored = topic('topic-a')
+  const initial = snapshot(archived)
+  initial.includeArchived = true
+  const commands = []
+  const request = async (command) => {
+    commands.push(command)
+    if (command.action === 'archive') return { ok: true, value: { kind: 'topic', topic: restored } }
+    if (command.action === 'list') return { ok: true, value: { kind: 'topics', topics: [restored.topic] } }
+    throw new Error('unexpected ' + command.action)
+  }
+  const settingsScope = {
+    getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+    subscribe: () => () => undefined,
+    set: async () => undefined,
+  }
+  const controller = createCompanionController(
+    { binding: () => undefined },
+    settingsScope,
+    request,
+    () => undefined,
+    memoryStore(initial),
+  )
+
+  try {
+    assert.equal(await controller.archive(false), true)
+    assert.deepEqual(commands[0], { action: 'archive', topicSessionId: 'topic-a', archived: false })
+    assert.equal(commands[1].action, 'list')
+    assert.equal(commands[1].includeArchived, false)
+    assert.equal(controller.getSnapshot().includeArchived, false)
+    assert.equal(controller.getSnapshot().active.topic.sessionId, 'topic-a')
+    assert.equal(controller.getSnapshot().active.topic.archived, false)
+  } finally {
+    await controller.dispose()
+  }
+})
+
+test('late deletion converges storage and list without clearing a newly opened Topic', async () => {
+  const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const values = new Map([['citeciter:last-topic:source', 'topic-a']])
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    },
+  })
+  let releaseDelete
+  let deleteStarted
+  const started = new Promise((resolve) => { deleteStarted = resolve })
+  const deleted = new Promise((resolve) => { releaseDelete = resolve })
+  const topicB = topic('topic-b')
+  const request = (command) => {
+    if (command.action === 'delete') {
+      deleteStarted()
+      return deleted
+    }
+    if (command.action === 'get') return Promise.resolve({ ok: true, value: { kind: 'topic', topic: topicB } })
+    if (command.action === 'list') return Promise.resolve({ ok: true, value: { kind: 'topics', topics: [topicB.topic] } })
+    throw new Error('unexpected ' + command.action)
+  }
+  const settingsScope = {
+    getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+    subscribe: () => () => undefined,
+    set: async () => undefined,
+  }
+  const controller = createCompanionController(
+    { binding: () => undefined },
+    settingsScope,
+    request,
+    () => undefined,
+    memoryStore(snapshot(topic('topic-a'))),
+  )
+
+  try {
+    const deleting = controller.deleteTopic('topic-a')
+    await started
+    await controller.openTopic('topic-b')
+    releaseDelete({
+      ok: true,
+      value: { kind: 'deleted', sessionId: 'topic-a', sourceSessionId: 'source', topicId: 1, cleanup: 'complete' },
+    })
+    assert.equal(await deleting, false)
+    assert.equal(values.get('citeciter:last-topic:source'), 'topic-b')
+    assert.equal(controller.getSnapshot().active.topic.sessionId, 'topic-b')
+    assert.equal(controller.getSnapshot().notice, null)
+  } finally {
+    await controller.dispose()
+    if (originalStorage === undefined) delete globalThis.localStorage
+    else Object.defineProperty(globalThis, 'localStorage', originalStorage)
+  }
+})
+
+test('visibility leases keep polling until the last mounted surface releases', async () => {
+  let gets = 0
+  const active = topic('topic-a')
+  const request = async (command) => {
+    if (command.action === 'get') {
+      gets += 1
+      return { ok: true, value: { kind: 'topic', topic: active } }
+    }
+    if (command.action === 'list') {
+      return { ok: true, value: { kind: 'topics', topics: [active.topic] } }
+    }
+    if (command.action === 'models') {
+      return { ok: true, value: { kind: 'models', providers: [] } }
+    }
+    throw new Error('unexpected ' + command.action)
+  }
+  const settingsScope = {
+    getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+    subscribe: () => () => undefined,
+    set: async () => undefined,
+  }
+  const controller = createCompanionController(
+    { binding: () => undefined },
+    settingsScope,
+    request,
+    () => undefined,
+    memoryStore(snapshot(active)),
+  )
+  const releasePanel = controller.retainVisible()
+  const releaseBoard = controller.retainVisible()
+
+  try {
+    releasePanel()
+    await wait(850)
+    assert.ok(gets > 0, 'the board lease keeps active polling alive')
+
+    releaseBoard()
+    await wait(30)
+    const afterRelease = gets
+    await wait(800)
+    assert.equal(gets, afterRelease)
+  } finally {
+    await controller.dispose()
+  }
+})
 
 test('follow-up submission is single-flight per Topic and retry-stable after failure', async () => {
   const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage')

@@ -1,5 +1,5 @@
-import { h as topicSummarySchema, l as citeCiterRequestSchema, m as topicSnapshotSchema, o as citationDraftSchema, s as citationRecordSchema, u as citeCiterResponseSchema } from "./topic-BVNCaVbJ.js";
-import { t as citeCiterRequestDescriptor } from "./typert-common-4_cbghYz.js";
+import { C as topicSummarySchema, S as topicSnapshotSchema, f as citeCiterRequestSchema, l as citationDraftSchema, p as citeCiterResponseSchema, r as updateCheckResponseSchema, u as citationRecordSchema } from "./update-u9-6c_qp.js";
+import { n as updateCheckDescriptor, t as citeCiterRequestDescriptor } from "./typert-common-DKqYKnRO.js";
 //#region lib/types/typert.host.js
 /** Handwritten strict Host contribution matching the single Remote decorator. */
 const TYPERT = {
@@ -29,6 +29,10 @@ const TYPERT = {
 		{
 			name: "CiteCiterResponse",
 			schema: citeCiterResponseSchema
+		},
+		{
+			name: "UpdateCheckResponse",
+			schema: updateCheckResponseSchema
 		}
 	],
 	model: {
@@ -36,7 +40,7 @@ const TYPERT = {
 		events: [],
 		objects: []
 	},
-	invocations: [citeCiterRequestDescriptor]
+	invocations: [citeCiterRequestDescriptor, updateCheckDescriptor]
 };
 //#endregion
 export { TYPERT, TYPERT as default };

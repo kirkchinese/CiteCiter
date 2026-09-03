@@ -17,6 +17,16 @@ export declare const citeCiterRequestDescriptor: {
             readonly schema: import("zod").ZodUnion<readonly [import("zod").ZodUnion<readonly [import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"create">;
                 requestId: import("zod").ZodString;
+                sourceSessionId: import("zod").ZodString;
+                question: import("zod").ZodString;
+                mode: import("zod").ZodLiteral<"observer">;
+                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    qa: "qa";
+                    present: "present";
+                }>>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"create">;
+                requestId: import("zod").ZodString;
                 citation: import("zod").ZodObject<{
                     sourceSessionId: import("zod").ZodString;
                     anchorSeq: import("zod").ZodNumber;
@@ -34,6 +44,12 @@ export declare const citeCiterRequestDescriptor: {
                     "exact-fork": "exact-fork";
                     "exact-when-available": "exact-when-available";
                 }>;
+                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    qa: "qa";
+                    present: "present";
+                    read: "read";
+                    investigate: "investigate";
+                }>>;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"create">;
                 requestId: import("zod").ZodString;
@@ -51,6 +67,59 @@ export declare const citeCiterRequestDescriptor: {
                     "exact-fork": "exact-fork";
                     "exact-when-available": "exact-when-available";
                 }>;
+                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    qa: "qa";
+                    present: "present";
+                    read: "read";
+                    investigate: "investigate";
+                }>>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"create">;
+                requestId: import("zod").ZodString;
+                toolClaim: import("zod").ZodObject<{
+                    sourceSessionId: import("zod").ZodString;
+                    callId: import("zod").ZodString;
+                    displayText: import("zod").ZodString;
+                    projection: import("zod").ZodOptional<import("zod").ZodEnum<{
+                        "result-text": "result-text";
+                        terminal: "terminal";
+                        diff: "diff";
+                    }>>;
+                }, import("zod/v4/core").$strict>;
+                question: import("zod").ZodString;
+                mode: import("zod").ZodEnum<{
+                    observer: "observer";
+                    "exact-fork": "exact-fork";
+                    "exact-when-available": "exact-when-available";
+                }>;
+                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    qa: "qa";
+                    present: "present";
+                    read: "read";
+                    investigate: "investigate";
+                }>>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"create">;
+                requestId: import("zod").ZodString;
+                documentClaim: import("zod").ZodObject<{
+                    sourceSessionId: import("zod").ZodString;
+                    documentId: import("zod").ZodString;
+                    displayText: import("zod").ZodString;
+                    prefixText: import("zod").ZodString;
+                    suffixText: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>;
+                question: import("zod").ZodString;
+                mode: import("zod").ZodEnum<{
+                    observer: "observer";
+                    "exact-fork": "exact-fork";
+                    "exact-when-available": "exact-when-available";
+                }>;
+                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    qa: "qa";
+                    present: "present";
+                    read: "read";
+                    investigate: "investigate";
+                }>>;
             }, import("zod/v4/core").$strict>]>, import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"list">;
                 sourceSessionId: import("zod").ZodString;
@@ -110,6 +179,20 @@ export declare const citeCiterRequestDescriptor: {
                 provider: import("zod").ZodString;
                 model: import("zod").ZodString;
                 reasoningEffort: import("zod").ZodNullable<import("zod").ZodString>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"document-import">;
+                requestId: import("zod").ZodOptional<import("zod").ZodString>;
+                title: import("zod").ZodString;
+                format: import("zod").ZodEnum<{
+                    text: "text";
+                    markdown: "markdown";
+                }>;
+                content: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"documents">;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"document-get">;
+                documentId: import("zod").ZodString;
             }, import("zod/v4/core").$strict>], "action">]>;
         };
     }];
@@ -130,7 +213,40 @@ export declare const citeCiterRequestDescriptor: {
                         observer: "observer";
                         "exact-fork": "exact-fork";
                     }>;
-                    citation: import("zod").ZodObject<{
+                    scenario: import("zod").ZodEnum<{
+                        qa: "qa";
+                        present: "present";
+                        read: "read";
+                        investigate: "investigate";
+                    }>;
+                    documentId: import("zod").ZodNullable<import("zod").ZodString>;
+                    citation: import("zod").ZodNullable<import("zod").ZodObject<{
+                        entry: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                            kind: import("zod").ZodLiteral<"assistant-message">;
+                            anchorSeq: import("zod").ZodNumber;
+                        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                            kind: import("zod").ZodLiteral<"tool-result">;
+                            anchorSeq: import("zod").ZodNumber;
+                            callId: import("zod").ZodString;
+                            toolName: import("zod").ZodString;
+                            projection: import("zod").ZodEnum<{
+                                "result-text": "result-text";
+                                terminal: "terminal";
+                                diff: "diff";
+                            }>;
+                            fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
+                            side: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                old: "old";
+                                new: "new";
+                            }>>;
+                        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                            kind: import("zod").ZodLiteral<"document-range">;
+                            documentId: import("zod").ZodString;
+                            startOffset: import("zod").ZodNumber;
+                            endOffset: import("zod").ZodNumber;
+                        }, import("zod/v4/core").$strict>], "kind">;
+                        selectionFingerprint: import("zod").ZodString;
+                        createdAt: import("zod").ZodNumber;
                         sourceSessionId: import("zod").ZodString;
                         anchorSeq: import("zod").ZodNumber;
                         startOffset: import("zod").ZodNumber;
@@ -139,10 +255,8 @@ export declare const citeCiterRequestDescriptor: {
                         displayText: import("zod").ZodString;
                         prefixText: import("zod").ZodString;
                         suffixText: import("zod").ZodString;
-                        selectionFingerprint: import("zod").ZodString;
-                        schemaVersion: import("zod").ZodLiteral<3>;
-                        createdAt: import("zod").ZodNumber;
-                    }, import("zod/v4/core").$strict>;
+                        schemaVersion: import("zod").ZodLiteral<4>;
+                    }, import("zod/v4/core").$strict>>;
                     title: import("zod").ZodString;
                     titlePending: import("zod").ZodBoolean;
                     createdAt: import("zod").ZodNumber;
@@ -213,6 +327,44 @@ export declare const citeCiterRequestDescriptor: {
                     }, import("zod/v4/core").$strict>>;
                 }, import("zod/v4/core").$strict>>;
                 error: import("zod").ZodNullable<import("zod").ZodString>;
+                board: import("zod").ZodOptional<import("zod").ZodObject<{
+                    version: import("zod").ZodLiteral<4>;
+                    revision: import("zod").ZodNumber;
+                    elements: import("zod").ZodArray<import("zod").ZodObject<{
+                        id: import("zod").ZodString;
+                        kind: import("zod").ZodEnum<{
+                            text: "text";
+                            markdown: "markdown";
+                            math: "math";
+                            svg: "svg";
+                            html: "html";
+                            image: "image";
+                            table: "table";
+                        }>;
+                        content: import("zod").ZodString;
+                        x: import("zod").ZodNumber;
+                        y: import("zod").ZodNumber;
+                        w: import("zod").ZodNumber;
+                        h: import("zod").ZodNumber;
+                        style: import("zod").ZodObject<{
+                            color: import("zod").ZodOptional<import("zod").ZodString>;
+                            fontSize: import("zod").ZodOptional<import("zod").ZodString>;
+                        }, import("zod/v4/core").$strict>;
+                        focused: import("zod").ZodBoolean;
+                        animation: import("zod").ZodOptional<import("zod").ZodObject<{
+                            name: import("zod").ZodEnum<{
+                                "fade-in": "fade-in";
+                                "slide-in": "slide-in";
+                                pulse: "pulse";
+                                highlight: "highlight";
+                            }>;
+                            durationMs: import("zod").ZodNumber;
+                            iterations: import("zod").ZodNumber;
+                            run: import("zod").ZodNumber;
+                        }, import("zod/v4/core").$strict>>;
+                    }, import("zod/v4/core").$strict>>;
+                    invalid: import("zod").ZodNumber;
+                }, import("zod/v4/core").$strict>>;
             }, import("zod/v4/core").$strict>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             kind: import("zod").ZodLiteral<"topics">;
@@ -224,7 +376,40 @@ export declare const citeCiterRequestDescriptor: {
                     observer: "observer";
                     "exact-fork": "exact-fork";
                 }>;
-                citation: import("zod").ZodObject<{
+                scenario: import("zod").ZodEnum<{
+                    qa: "qa";
+                    present: "present";
+                    read: "read";
+                    investigate: "investigate";
+                }>;
+                documentId: import("zod").ZodNullable<import("zod").ZodString>;
+                citation: import("zod").ZodNullable<import("zod").ZodObject<{
+                    entry: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                        kind: import("zod").ZodLiteral<"assistant-message">;
+                        anchorSeq: import("zod").ZodNumber;
+                    }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                        kind: import("zod").ZodLiteral<"tool-result">;
+                        anchorSeq: import("zod").ZodNumber;
+                        callId: import("zod").ZodString;
+                        toolName: import("zod").ZodString;
+                        projection: import("zod").ZodEnum<{
+                            "result-text": "result-text";
+                            terminal: "terminal";
+                            diff: "diff";
+                        }>;
+                        fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
+                        side: import("zod").ZodOptional<import("zod").ZodEnum<{
+                            old: "old";
+                            new: "new";
+                        }>>;
+                    }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                        kind: import("zod").ZodLiteral<"document-range">;
+                        documentId: import("zod").ZodString;
+                        startOffset: import("zod").ZodNumber;
+                        endOffset: import("zod").ZodNumber;
+                    }, import("zod/v4/core").$strict>], "kind">;
+                    selectionFingerprint: import("zod").ZodString;
+                    createdAt: import("zod").ZodNumber;
                     sourceSessionId: import("zod").ZodString;
                     anchorSeq: import("zod").ZodNumber;
                     startOffset: import("zod").ZodNumber;
@@ -233,10 +418,8 @@ export declare const citeCiterRequestDescriptor: {
                     displayText: import("zod").ZodString;
                     prefixText: import("zod").ZodString;
                     suffixText: import("zod").ZodString;
-                    selectionFingerprint: import("zod").ZodString;
-                    schemaVersion: import("zod").ZodLiteral<3>;
-                    createdAt: import("zod").ZodNumber;
-                }, import("zod/v4/core").$strict>;
+                    schemaVersion: import("zod").ZodLiteral<4>;
+                }, import("zod/v4/core").$strict>>;
                 title: import("zod").ZodString;
                 titlePending: import("zod").ZodBoolean;
                 createdAt: import("zod").ZodNumber;
@@ -272,11 +455,95 @@ export declare const citeCiterRequestDescriptor: {
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             kind: import("zod").ZodLiteral<"deleted">;
             sessionId: import("zod").ZodString;
+            sourceSessionId: import("zod").ZodString;
+            topicId: import("zod").ZodNumber;
+            cleanup: import("zod").ZodEnum<{
+                complete: "complete";
+                pending: "pending";
+            }>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"document">;
+            document: import("zod").ZodObject<{
+                documentId: import("zod").ZodString;
+                title: import("zod").ZodString;
+                format: import("zod").ZodEnum<{
+                    text: "text";
+                    markdown: "markdown";
+                }>;
+                size: import("zod").ZodNumber;
+                importedAt: import("zod").ZodNumber;
+            }, import("zod/v4/core").$strict>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"documents">;
+            documents: import("zod").ZodArray<import("zod").ZodObject<{
+                documentId: import("zod").ZodString;
+                title: import("zod").ZodString;
+                format: import("zod").ZodEnum<{
+                    text: "text";
+                    markdown: "markdown";
+                }>;
+                size: import("zod").ZodNumber;
+                importedAt: import("zod").ZodNumber;
+            }, import("zod/v4/core").$strict>>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"document-content">;
+            document: import("zod").ZodObject<{
+                documentId: import("zod").ZodString;
+                title: import("zod").ZodString;
+                format: import("zod").ZodEnum<{
+                    text: "text";
+                    markdown: "markdown";
+                }>;
+                content: import("zod").ZodString;
+                truncated: import("zod").ZodBoolean;
+            }, import("zod/v4/core").$strict>;
         }, import("zod/v4/core").$strict>], "kind">;
     };
     readonly sourceLocation: {
         readonly file: "src/index.ts";
-        readonly line: 66;
+        readonly line: 127;
+        readonly column: 3;
+    };
+};
+/** Strict root-scoped read-only update check shared by Host and browser manifests. */
+export declare const updateCheckDescriptor: {
+    readonly id: "@kirkchinese/dsh-citeciter#citeciter/checkUpdate";
+    readonly service: "citeciter";
+    readonly namespace: "citeciter";
+    readonly method: "checkUpdate";
+    readonly invocation: {
+        readonly kind: "direct";
+    };
+    readonly parameters: readonly [];
+    readonly cancellation: {
+        readonly parameter: "signal";
+    };
+    readonly result: {
+        readonly mode: "strict";
+        readonly typeSymbol: "@kirkchinese/dsh-citeciter#UpdateCheckResponse";
+        readonly schema: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"success">;
+            installedVersion: import("zod").ZodString;
+            latestVersion: import("zod").ZodString;
+            updateAvailable: import("zod").ZodBoolean;
+            checkedAt: import("zod").ZodNumber;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"error">;
+            code: import("zod").ZodEnum<{
+                "installed-version-invalid": "installed-version-invalid";
+                "registry-timeout": "registry-timeout";
+                "registry-network": "registry-network";
+                "registry-http": "registry-http";
+                "registry-response-too-large": "registry-response-too-large";
+                "registry-response-invalid": "registry-response-invalid";
+                "registry-version-invalid": "registry-version-invalid";
+            }>;
+            checkedAt: import("zod").ZodNumber;
+        }, import("zod/v4/core").$strict>], "kind">;
+    };
+    readonly sourceLocation: {
+        readonly file: "src/index.ts";
+        readonly line: 134;
         readonly column: 3;
     };
 };

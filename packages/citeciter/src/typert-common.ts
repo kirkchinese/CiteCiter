@@ -1,5 +1,6 @@
 import type { InvocationDescriptor } from '@deepseek-ai/dsh-typert-protocol'
 import { citeCiterRequestSchema, citeCiterResponseSchema } from './topic.ts'
+import { updateCheckResponseSchema } from './update.ts'
 
 /** Strict root-scoped Topic command shared by Host and browser manifests. */
 export const citeCiterRequestDescriptor = {
@@ -26,7 +27,28 @@ export const citeCiterRequestDescriptor = {
   },
   sourceLocation: {
     file: 'src/index.ts',
-    line: 66,
+    line: 127,
+    column: 3,
+  },
+} as const satisfies InvocationDescriptor
+
+/** Strict root-scoped read-only update check shared by Host and browser manifests. */
+export const updateCheckDescriptor = {
+  id: '@kirkchinese/dsh-citeciter#citeciter/checkUpdate',
+  service: 'citeciter',
+  namespace: 'citeciter',
+  method: 'checkUpdate',
+  invocation: { kind: 'direct' },
+  parameters: [],
+  cancellation: { parameter: 'signal' },
+  result: {
+    mode: 'strict',
+    typeSymbol: '@kirkchinese/dsh-citeciter#UpdateCheckResponse',
+    schema: updateCheckResponseSchema,
+  },
+  sourceLocation: {
+    file: 'src/index.ts',
+    line: 134,
     column: 3,
   },
 } as const satisfies InvocationDescriptor

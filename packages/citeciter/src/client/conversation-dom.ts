@@ -85,24 +85,39 @@ export function dshIntersectedAssistantAnchors(range: Range): DshAssistantAnchor
 }
 
 /**
- * Detect generated controls, reasoning summaries, and collapsed code chrome.
+ * Detect generated controls and collapsed code chrome.
  *
  * @param range - current rendered selection range.
  * @param flow - assistant flow containing the range.
  * @returns whether the range touches content that CiteCiter must ignore.
  */
 export function dshRangeTouchesExcludedContent(range: Range, flow: HTMLElement): boolean {
-  for (const reasoning of flow.querySelectorAll(DSH_REASONING_SELECTOR)) {
-    for (const header of reasoning.querySelectorAll(DSH_REASONING_HEADER_SELECTOR)) {
-      if (range.intersectsNode(header)) return true
-    }
-  }
   for (const generated of flow.querySelectorAll(DSH_GENERATED_CONTENT_SELECTOR)) {
     if (range.intersectsNode(generated)) return true
   }
   for (const endpoint of [range.startContainer, range.endContainer]) {
     const element = elementForNode(endpoint)
     if (element?.closest(DSH_CODE_BLOCK_SELECTOR) !== null && element?.closest('pre') === null) return true
+  }
+  return false
+}
+
+/**
+ * Detect a selection endpoint inside a generated reasoning disclosure row.
+ *
+ * @param range - current rendered selection range.
+ * @param flow - assistant flow containing the range.
+ * @returns whether a collapsed or expanded reasoning header anchors the selection.
+ */
+export function dshRangeHasReasoningHeaderEndpoint(range: Range, flow: HTMLElement): boolean {
+  for (const endpoint of [range.startContainer, range.endContainer]) {
+    const header = elementForNode(endpoint)?.closest<HTMLElement>(DSH_REASONING_HEADER_SELECTOR)
+    if (
+      header !== null
+      && header !== undefined
+      && flow.contains(header)
+      && header.closest(DSH_REASONING_SELECTOR) !== null
+    ) return true
   }
   return false
 }

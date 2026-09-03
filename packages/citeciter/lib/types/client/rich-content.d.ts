@@ -19,6 +19,12 @@ export type RichSegment = {
     readonly document: string;
 };
 /**
+ * Break CommonMark image openers without changing visible text or ordinary links.
+ * @param text - untrusted board Markdown or table source.
+ * @returns Markdown that cannot produce image nodes.
+ */
+export declare function neutralizeMarkdownImages(text: string): string;
+/**
  * Split complete safe rich fences from Markdown while preserving all prose.
  * @param text - current assistant response text.
  * @returns ordered Markdown and isolated rich-preview segments.

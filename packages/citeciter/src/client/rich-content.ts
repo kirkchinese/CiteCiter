@@ -17,6 +17,15 @@ const RICH_FENCE = /^```(?<kind>svg|html)[ \t]*\r?\n(?<source>[\s\S]*?)^```[ \t]
 const HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"
 
 /**
+ * Break CommonMark image openers without changing visible text or ordinary links.
+ * @param text - untrusted board Markdown or table source.
+ * @returns Markdown that cannot produce image nodes.
+ */
+export function neutralizeMarkdownImages(text: string): string {
+  return text.replaceAll('![', '!\u200B[')
+}
+
+/**
  * Split complete safe rich fences from Markdown while preserving all prose.
  * @param text - current assistant response text.
  * @returns ordered Markdown and isolated rich-preview segments.

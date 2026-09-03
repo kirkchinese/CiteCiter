@@ -1,7 +1,7 @@
 import { DEFAULT_CITECITER_SETTINGS, } from "../topic.js";
 import { readAssistantAnswer } from "./answer.js";
 import { normalizeQuestion } from "./prompt.js";
-import { claimAskIntent, claimCreateTopicIntent, completeRequestIntent, } from "./request-guard.js";
+import { claimAskIntent, claimCreateFreeTopicIntent, claimCreateDocumentIntent, claimCreateTopicIntent, completeRequestIntent, } from "./request-guard.js";
 import { isCurrentTopicResponse, shouldReopenLastTopic } from "./response-guard.js";
 /** Initial browser snapshot for the root-scoped CiteCiter controller. */
 export const INITIAL_COMPANION_SNAPSHOT = {
@@ -21,6 +21,8 @@ export const INITIAL_COMPANION_SNAPSHOT = {
     reasoningEffortSaving: false,
     renaming: false,
     archiving: false,
+    deleting: false,
+    notice: null,
     includeArchived: false,
     error: null,
 };
@@ -49,6 +51,16 @@ function writeLastTopic(sourceSessionId, topicSessionId) {
         // Topic durability is Host-owned; a blocked convenience pointer loses no data.
     }
 }
+function clearLastTopic(sourceSessionId, topicSessionId) {
+    try {
+        if (localStorage.getItem(lastTopicKey(sourceSessionId)) === topicSessionId) {
+            localStorage.removeItem(lastTopicKey(sourceSessionId));
+        }
+    }
+    catch {
+        // The Host deletion is authoritative; local storage only remembers navigation.
+    }
+}
 function citationAnchorKey(sourceSessionId, anchorSeq) {
     return `citeciter:source-anchor:${sourceSessionId}:${anchorSeq}`;
 }
@@ -75,6 +87,7 @@ export function createCompanionController(sessions, settingsScope, request, onAu
     const operations = new Set();
     const remoteOperations = new Set();
     let visible = false;
+    let visibleConsumers = 0;
     let sourceGeneration = 0;
     let activeGeneration = 0;
     let pollTimer = null;
@@ -93,6 +106,7 @@ export function createCompanionController(sessions, settingsScope, request, onAu
     let pendingRoute = null;
     let pendingEffort = null;
     const pendingCreates = new Map();
+    const pendingFreeCreates = new Map();
     const pendingAsks = new Map();
     const track = (pending, operation) => {
         let tracked;
@@ -134,13 +148,25 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         }
         return { ...topic, topic: { ...topic.topic, modelConfig } };
     };
+    const clearRecoveredError = (topic) => {
+        if (topic.error === null)
+            return topic;
+        const lastFailure = topic.messages.findLast((message) => message.role === 'error' && message.status === 'failed');
+        if (lastFailure === undefined)
+            return topic;
+        const recovered = topic.messages.some((message) => message.role === 'assistant'
+            && message.seq > lastFailure.seq
+            && !message.streaming
+            && message.text.trim() !== '');
+        return recovered ? { ...topic, error: null } : topic;
+    };
     const upsertTopic = (draft, topic) => {
         const belongs = topic.archived === draft.includeArchived;
         const topics = draft.topics.filter((candidate) => candidate.sessionId !== topic.sessionId);
         draft.topics = belongs ? [...topics, topic].sort((left, right) => right.updatedAt - left.updatedAt) : topics;
     };
     const acceptTopic = (rawTopic, operationGeneration, expectedSessionId) => {
-        const topic = withPendingModelConfig(rawTopic);
+        const topic = clearRecoveredError(withPendingModelConfig(rawTopic));
         const current = store.getSnapshot();
         if (disposed || !isCurrentTopicResponse(operationGeneration, activeGeneration, current.sourceSessionId, topic.topic.sourceSessionId, topic.topic.sessionId, expectedSessionId))
             return;
@@ -148,7 +174,9 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             const lastMessage = topic.messages.at(-1);
             draft.active = topic;
             draft.draftQuote = null;
-            draft.sourceAnchorKey = readCitationAnchor(topic.topic.sourceSessionId, topic.topic.citation.anchorSeq);
+            draft.sourceAnchorKey = topic.topic.citation === null
+                ? null
+                : readCitationAnchor(topic.topic.sourceSessionId, topic.topic.citation.anchorSeq);
             const stopped = lastMessage?.role === 'error' && lastMessage.status === 'stopped';
             draft.phase = topic.topic.running ? 'running' : stopped ? 'stopped' : topic.error === null ? 'ready' : 'error';
             draft.error = topic.error;
@@ -167,6 +195,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             return;
         update((draft) => {
             draft.phase = 'creating';
+            draft.deleting = false;
+            draft.notice = null;
             draft.error = null;
         });
         try {
@@ -268,6 +298,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
     const poll = async () => {
         if (!visible || disposed || polling)
             return;
+        if (pendingFreeCreates.size > 0)
+            return;
         const active = store.getSnapshot().active;
         if (active !== null && pendingAsks.has(active.topic.sessionId))
             return;
@@ -350,6 +382,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             draft.reasoningEffortSaving = false;
             draft.renaming = false;
             draft.archiving = false;
+            draft.deleting = false;
+            draft.notice = null;
             draft.error = null;
         });
         if (sessionId !== null)
@@ -362,15 +396,51 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         if (!visible) {
             reopenSuppressedGeneration = sourceGeneration;
             if (pollTimer !== null)
-                clearInterval(pollTimer);
+                clearTimeout(pollTimer);
             pollTimer = null;
             return;
         }
         void refreshTopics(true);
         void loadModels();
-        pollTimer = setInterval(() => { void poll(); }, 700);
+        const schedulePoll = () => {
+            if (!visible || disposed)
+                return;
+            const interval = store.getSnapshot().active?.topic.running ? 250 : 700;
+            pollTimer = setTimeout(() => { void poll().finally(schedulePoll); }, interval);
+        };
+        schedulePoll();
     };
-    async function runCreate(selection, question, mode, intent) {
+    const dismissError = () => {
+        update((draft) => {
+            if (draft.phase !== 'error')
+                return;
+            const active = draft.active;
+            const lastMessage = active?.messages.at(-1);
+            const stopped = lastMessage?.role === 'error' && lastMessage.status === 'stopped';
+            draft.phase = active === null ? 'idle'
+                : active.topic.running ? 'running'
+                    : stopped ? 'stopped'
+                        : active.error === null ? 'ready' : 'error';
+            draft.error = active?.error ?? null;
+        });
+    };
+    const retainVisible = () => {
+        if (disposed)
+            return () => { };
+        visibleConsumers++;
+        if (visibleConsumers === 1)
+            setVisible(true);
+        let released = false;
+        return () => {
+            if (released || disposed)
+                return;
+            released = true;
+            visibleConsumers--;
+            if (visibleConsumers === 0)
+                setVisible(false);
+        };
+    };
+    async function runCreate(selection, question, mode, scenario, intent) {
         if (disposed)
             return;
         const operationGeneration = ++activeGeneration;
@@ -380,35 +450,57 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             draft.draftQuote = selection.displayText;
             draft.sourceAnchorKey = selection.anchorKey;
             draft.active = null;
+            draft.notice = null;
             draft.error = null;
         });
         try {
-            const binding = sessions.binding(selection.sourceSessionId);
-            const node = binding?.session.getSnapshot().chat.nodes.get(selection.anchorKey);
-            if (node === undefined || node.kind !== 'assistant-step')
-                throw new Error('选中的模型回答已不在当前会话快照中');
-            const answer = readAssistantAnswer(node.data);
-            if (answer === null || answer.status !== 'settled') {
-                throw new Error('请在一次模型调用完成后引用；无需等待整轮长任务结束');
+            let response;
+            if (selection.kind === 'assistant-step') {
+                const binding = sessions.binding(selection.sourceSessionId);
+                const node = binding?.session.getSnapshot().chat.nodes.get(selection.anchorKey);
+                if (node === undefined || node.kind !== 'assistant-step')
+                    throw new Error('选中的模型回答已不在当前会话快照中');
+                const answer = readAssistantAnswer(node.data);
+                if (answer === null || answer.status !== 'settled') {
+                    throw new Error('请在一次模型调用完成后引用；无需等待整轮长任务结束');
+                }
+                response = await call({
+                    action: 'create',
+                    requestId: intent.requestId,
+                    selectionClaim: {
+                        sourceSessionId: selection.sourceSessionId,
+                        anchorSeq: node.anchorSeq,
+                        displayText: selection.displayText,
+                        ...(selection.sourceHintText === undefined ? {} : { sourceHintText: selection.sourceHintText }),
+                        prefixText: selection.prefixText,
+                        suffixText: selection.suffixText,
+                    },
+                    question,
+                    mode,
+                    scenario,
+                });
             }
-            const response = await call({
-                action: 'create',
-                requestId: intent.requestId,
-                selectionClaim: {
-                    sourceSessionId: selection.sourceSessionId,
-                    anchorSeq: node.anchorSeq,
-                    displayText: selection.displayText,
-                    ...(selection.sourceHintText === undefined ? {} : { sourceHintText: selection.sourceHintText }),
-                    prefixText: selection.prefixText,
-                    suffixText: selection.suffixText,
-                },
-                question,
-                mode,
-            });
+            else {
+                response = await call({
+                    action: 'create',
+                    requestId: intent.requestId,
+                    toolClaim: {
+                        sourceSessionId: selection.sourceSessionId,
+                        callId: selection.callId,
+                        displayText: selection.displayText,
+                        projection: selection.projection,
+                    },
+                    question,
+                    mode,
+                    scenario: 'investigate',
+                });
+            }
             if (response.kind !== 'topic')
                 throw new Error('CiteCiter 返回了错误的创建响应');
             completeRequestIntent(intent);
-            writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey);
+            if (response.topic.topic.citation !== null) {
+                writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey);
+            }
             acceptTopic(response.topic, operationGeneration);
             await refreshTopics();
         }
@@ -416,23 +508,118 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             fail(error, operationGeneration);
         }
     }
-    const create = async (selection, rawQuestion, mode) => {
+    const create = async (selection, rawQuestion, mode, scenario = 'qa') => {
         if (disposed)
             return;
         const question = normalizeQuestion(rawQuestion);
         const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode;
-        const intent = await claimCreateTopicIntent(selection, question, resolvedMode);
+        const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario);
         if (disposed)
             return;
         const pending = pendingCreates.get(intent.requestId);
         if (pending !== undefined)
             return pending;
-        const operation = runCreate(selection, question, resolvedMode, intent).finally(() => {
+        const operation = runCreate(selection, question, resolvedMode, scenario, intent).finally(() => {
             if (pendingCreates.get(intent.requestId) === operation)
                 pendingCreates.delete(intent.requestId);
         });
         pendingCreates.set(intent.requestId, operation);
         return operation;
+    };
+    const createFree = async (rawQuestion, scenario) => {
+        if (disposed)
+            return false;
+        const sourceSessionId = store.getSnapshot().sourceSessionId;
+        if (sourceSessionId === null)
+            return false;
+        const question = normalizeQuestion(rawQuestion);
+        const intent = await claimCreateFreeTopicIntent(sourceSessionId, question, scenario);
+        if (disposed)
+            return false;
+        const pending = pendingFreeCreates.get(intent.requestId);
+        if (pending !== undefined)
+            return pending;
+        const operationGeneration = ++activeGeneration;
+        update((draft) => {
+            draft.phase = 'creating';
+            draft.notice = null;
+            draft.error = null;
+        });
+        const operation = (async () => {
+            try {
+                const response = await call({
+                    action: 'create',
+                    requestId: intent.requestId,
+                    sourceSessionId,
+                    question,
+                    mode: 'observer',
+                    scenario,
+                });
+                if (response.kind !== 'topic')
+                    throw new Error('CiteCiter 返回了错误的创建响应');
+                completeRequestIntent(intent);
+                acceptTopic(response.topic, operationGeneration);
+                await refreshTopics();
+                return operationGeneration === activeGeneration;
+            }
+            catch (error) {
+                fail(error, operationGeneration);
+                return false;
+            }
+        })();
+        pendingFreeCreates.set(intent.requestId, operation);
+        try {
+            return await operation;
+        }
+        finally {
+            if (pendingFreeCreates.get(intent.requestId) === operation)
+                pendingFreeCreates.delete(intent.requestId);
+        }
+    };
+    const createFromDocument = async (claim, rawQuestion) => {
+        if (disposed)
+            return;
+        const sourceSessionId = store.getSnapshot().sourceSessionId;
+        if (sourceSessionId === null)
+            throw new Error('打开 CiteCiter 面板后即可创建文档 Topic');
+        const question = normalizeQuestion(rawQuestion);
+        const intent = await claimCreateDocumentIntent(claim, question);
+        if (disposed)
+            return;
+        const operationGeneration = ++activeGeneration;
+        update((draft) => {
+            draft.sourceSessionId = sourceSessionId;
+            draft.phase = 'creating';
+            draft.draftQuote = claim.displayText;
+            draft.sourceAnchorKey = null;
+            draft.active = null;
+            draft.notice = null;
+            draft.error = null;
+        });
+        try {
+            const response = await call({
+                action: 'create',
+                requestId: intent.requestId,
+                documentClaim: {
+                    sourceSessionId,
+                    documentId: claim.documentId,
+                    displayText: claim.displayText,
+                    prefixText: claim.prefixText,
+                    suffixText: claim.suffixText,
+                },
+                question,
+                mode: 'observer',
+                scenario: 'read',
+            });
+            if (response.kind !== 'topic')
+                throw new Error('CiteCiter 返回了错误的文档 Topic 响应');
+            completeRequestIntent(intent);
+            acceptTopic(response.topic, operationGeneration);
+            await refreshTopics();
+        }
+        catch (error) {
+            fail(error, operationGeneration);
+        }
     };
     async function runAsk(active, question, intent) {
         if (disposed)
@@ -590,8 +777,13 @@ export function createCompanionController(sessions, settingsScope, request, onAu
                 acceptTopic(response.topic, operationGeneration, active.topic.sessionId);
             if (archived !== store.getSnapshot().includeArchived)
                 update((draft) => {
-                    draft.active = null;
-                    draft.phase = 'idle';
+                    if (archived) {
+                        draft.active = null;
+                        draft.phase = 'idle';
+                    }
+                    else {
+                        draft.includeArchived = false;
+                    }
                 });
             await refreshTopics();
             if (operationGeneration === activeGeneration)
@@ -604,6 +796,69 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             if (operationGeneration === activeGeneration)
                 update((draft) => {
                     draft.archiving = false;
+                });
+            fail(error, operationGeneration);
+            return false;
+        }
+    };
+    const deleteTopic = async (confirmSessionId) => {
+        if (disposed)
+            return false;
+        const active = store.getSnapshot().active;
+        if (active === null || confirmSessionId !== active.topic.sessionId)
+            return false;
+        const operationGeneration = ++activeGeneration;
+        const sessionId = active.topic.sessionId;
+        const sourceSessionId = active.topic.sourceSessionId;
+        const topicId = active.topic.topicId;
+        update((draft) => {
+            draft.deleting = true;
+            draft.notice = null;
+            draft.error = null;
+        });
+        try {
+            const response = await call({
+                action: 'delete',
+                topicSessionId: sessionId,
+                confirmSessionId,
+            });
+            if (response.kind !== 'deleted')
+                throw new Error('CiteCiter 返回了错误的删除响应');
+            if (response.sessionId !== sessionId
+                || response.sourceSessionId !== sourceSessionId
+                || response.topicId !== topicId)
+                throw new Error('CiteCiter 返回的删除对象与当前 Topic 不一致');
+            clearLastTopic(sourceSessionId, sessionId);
+            const current = store.getSnapshot();
+            update((draft) => {
+                if (draft.sourceSessionId === sourceSessionId) {
+                    draft.topics = draft.topics.filter((topic) => topic.sessionId !== sessionId);
+                }
+            });
+            const isCurrent = !disposed
+                && operationGeneration === activeGeneration
+                && current.active?.topic.sessionId === sessionId;
+            if (isCurrent) {
+                reopenSuppressedGeneration = sourceGeneration;
+                update((draft) => {
+                    draft.phase = 'idle';
+                    draft.active = null;
+                    draft.sourceAnchorKey = null;
+                    draft.deleting = false;
+                    draft.notice = response.cleanup === 'complete'
+                        ? 'Topic 已永久删除。'
+                        : 'Topic 已删除；相关资源仍在后台清理。';
+                    draft.error = null;
+                });
+            }
+            if (store.getSnapshot().sourceSessionId === sourceSessionId)
+                await refreshTopics();
+            return isCurrent ? response.cleanup : false;
+        }
+        catch (error) {
+            if (operationGeneration === activeGeneration)
+                update((draft) => {
+                    draft.deleting = false;
                 });
             fail(error, operationGeneration);
             return false;
@@ -724,7 +979,10 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             draft.settingsSaveMessage = '正在保存…';
         });
         try {
-            await track(remoteOperations, settingsScope.set(key, value));
+            if (value === undefined)
+                await track(remoteOperations, settingsScope.unset(key));
+            else
+                await track(remoteOperations, settingsScope.set(key, value));
             if (pendingSettings.get(key)?.operation !== operation || disposed)
                 return;
             pendingSettings.delete(key);
@@ -751,8 +1009,10 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         getSnapshot: store.getSnapshot,
         subscribe: store.subscribe,
         setSource,
-        setVisible,
-        create: (selection, question, mode) => admit(undefined, () => create(selection, question, mode)),
+        retainVisible,
+        create: (selection, question, mode, scenario) => admit(undefined, () => create(selection, question, mode, scenario)),
+        createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
+        createFromDocument: (claim, question) => admit(undefined, () => createFromDocument(claim, question)),
         openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
         ask: (question) => admit(false, () => ask(question)),
         answerQuestion: (key, answer) => admit(undefined, () => answerQuestion(key, answer)),
@@ -760,6 +1020,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         stop: () => admit(undefined, stop),
         rename: (title) => admit(false, () => rename(title)),
         archive: (archived) => admit(false, () => archive(archived)),
+        deleteTopic: (confirmSessionId) => admit(false, () => deleteTopic(confirmSessionId)),
+        dismissError,
         setIncludeArchived: (include) => {
             if (disposed)
                 return;
@@ -771,6 +1033,8 @@ export function createCompanionController(sessions, settingsScope, request, onAu
                 draft.topicsStatus = 'loading';
                 draft.topicsError = null;
                 draft.phase = 'idle';
+                draft.deleting = false;
+                draft.notice = null;
             });
             void refreshTopics(true);
         },
@@ -781,12 +1045,13 @@ export function createCompanionController(sessions, settingsScope, request, onAu
             if (disposed)
                 return;
             disposed = true;
+            visibleConsumers = 0;
             visible = false;
             sourceGeneration++;
             activeGeneration++;
             topicsRefreshAgain = false;
             if (pollTimer !== null)
-                clearInterval(pollTimer);
+                clearTimeout(pollTimer);
             pollTimer = null;
             unsubscribeSettings();
             lifecycle.abort(new DOMException('CiteCiter is shutting down', 'AbortError'));

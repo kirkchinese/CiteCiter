@@ -1,4 +1,5 @@
-import { dshAssistantAnchorForTarget, dshConversationFlow, dshIntersectedAssistantAnchors, dshRangeTouchesExcludedContent, isDshReasoningContent, isNonCitableProjection, readFrogSelection, } from "./conversation-dom.js";
+import { ASSISTANT_ENTRY_ID } from "./entry-ids.js";
+import { dshAssistantAnchorForTarget, dshConversationFlow, dshIntersectedAssistantAnchors, dshRangeHasReasoningHeaderEndpoint, dshRangeTouchesExcludedContent, isDshReasoningContent, isNonCitableProjection, readFrogSelection, } from "./conversation-dom.js";
 const RANGE_CONTEXT_CHARS = 240;
 function committedText(root, target) {
     let text = '';
@@ -65,9 +66,10 @@ function committedTextBefore(root, boundary, offset) {
  *
  * @param event - context-menu event whose pointer position anchors the menu.
  * @param sourceSessionId - current session identity captured with the DOM range.
+ * @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
  * @returns validated selection metadata, or null when CiteCiter should ignore it.
  */
-export function readSelection(event, sourceSessionId) {
+export function readSelection(event, sourceSessionId, committedAssistantText) {
     const eventAnchor = dshAssistantAnchorForTarget(event.target);
     if (eventAnchor === null)
         return null;
@@ -91,6 +93,7 @@ export function readSelection(event, sourceSessionId) {
         const startOffset = projected.length - projected.trimStart().length;
         const endOffset = projected.length - (projected.length - projected.trimEnd().length);
         return {
+            entryId: ASSISTANT_ENTRY_ID,
             sourceSessionId,
             displayText,
             sourceHintText,
@@ -106,6 +109,25 @@ export function readSelection(event, sourceSessionId) {
     }
     if (startFlow.element !== eventAnchor.element || dshRangeTouchesExcludedContent(range, startFlow.element))
         return null;
+    if (dshRangeHasReasoningHeaderEndpoint(range, startFlow.element)) {
+        const displayText = range.toString().trim();
+        if (displayText === '' || committedAssistantText === undefined || committedAssistantText === '')
+            return null;
+        return {
+            entryId: ASSISTANT_ENTRY_ID,
+            sourceSessionId,
+            displayText,
+            sourceHintText: committedAssistantText,
+            kind: 'assistant-step',
+            anchorKey: eventAnchor.anchorKey,
+            startOffset: 0,
+            endOffset: committedAssistantText.length,
+            prefixText: '',
+            suffixText: '',
+            x: event.clientX,
+            y: event.clientY,
+        };
+    }
     const translated = readFrogSelection(range, startFlow.element);
     if (translated.kind === 'invalid')
         return null;
@@ -145,6 +167,7 @@ export function readSelection(event, sourceSessionId) {
     if (startOffset < 0 || endOffset < startOffset || endOffset > flowText.length)
         return null;
     return {
+        entryId: ASSISTANT_ENTRY_ID,
         sourceSessionId,
         displayText: text,
         ...(sourceHintText === undefined ? {} : { sourceHintText }),
@@ -163,10 +186,11 @@ export function readSelection(event, sourceSessionId) {
  *
  * @param event - context-menu event to validate and optionally cancel.
  * @param sourceSessionId - current source session captured with the selection.
+ * @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
  * @returns validated selection metadata, or null while leaving the native menu untouched.
  */
-export function claimSelectionContextMenu(event, sourceSessionId) {
-    const selection = readSelection(event, sourceSessionId);
+export function claimSelectionContextMenu(event, sourceSessionId, committedAssistantText) {
+    const selection = readSelection(event, sourceSessionId, committedAssistantText);
     if (selection === null)
         return null;
     event.preventDefault();

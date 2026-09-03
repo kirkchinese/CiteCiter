@@ -6,5 +6,9 @@ export interface CitePanelProps {
     readonly closePanel: () => void;
     readonly reportParseError: (messageId: string) => void;
 }
-/** Independent learning workspace with a reversible Host-column compatibility adapter. */
+/**
+ * Render the independent Topic workspace on the right edge of the shell.
+ * @param props - shared panel bus, Topic controller, and host callbacks.
+ * @returns the responsive Topic dock and its dialogs, or null while closed.
+ */
 export declare function CitePanel({ bus, companion, closePanel, reportParseError }: CitePanelProps): import("react").JSX.Element | null;

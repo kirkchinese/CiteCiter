@@ -14,6 +14,7 @@
  */
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { basename, dirname, relative, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { UserConfig } from 'tsdown'
@@ -35,6 +36,8 @@ const PLATFORM_MODULES = [
 
 const CSS_VIRTUAL_PREFIX = '\0dsh-css:'
 const CSS_VIRTUAL_SUFFIX = '.mjs'
+const KATEX_CSS_ID = 'katex/dist/katex.min.css'
+const KATEX_CSS_VIRTUAL_ID = '\0citeciter-katex-css.mjs'
 const PNG_VIRTUAL_PREFIX = '\0citeciter-png:'
 const SVG_VIRTUAL_PREFIX = '\0citeciter-svg:'
 
@@ -161,6 +164,33 @@ function clientConfig(id: string, entry: string): UserConfig {
           '  document.head.appendChild(tag);',
           '}',
           `export default ${JSON.stringify(classMap)};`,
+        ].join('\n')
+      },
+    }, {
+      name: 'citeciter-katex-css-inline',
+      resolveId(source: string) {
+        return source === KATEX_CSS_ID ? KATEX_CSS_VIRTUAL_ID : null
+      },
+      async load(virtualId: string) {
+        if (virtualId !== KATEX_CSS_VIRTUAL_ID) return null
+        const cssPath = createRequire(import.meta.url).resolve(KATEX_CSS_ID)
+        let css = await readFile(cssPath, 'utf8')
+        const sources = [...css.matchAll(/src:url\(([^)]+\.woff2)\) format\("woff2"\),url\([^)]+\.woff\) format\("woff"\),url\([^)]+\.ttf\) format\("truetype"\)/g)]
+        for (const source of sources) {
+          const font = await readFile(resolvePath(dirname(cssPath), source[1]))
+          css = css.replace(source[0], `src:url(data:font/woff2;base64,${font.toString('base64')}) format("woff2")`)
+        }
+        if (css.includes('url(fonts/')) throw new Error('KaTeX CSS contains an unsupported font URL')
+        const tagId = `${id}/katex.min.css`
+        return [
+          `const tagId = ${JSON.stringify(tagId)};`,
+          'if (typeof document !== \'undefined\' && document.querySelector(\'style[data-plugin-css=\' + JSON.stringify(tagId) + \']\') === null) {',
+          '  const tag = document.createElement(\'style\');',
+          `  tag.dataset.plugin = ${JSON.stringify(id)};`,
+          '  tag.dataset.pluginCss = tagId;',
+          `  tag.textContent = ${JSON.stringify(css)};`,
+          '  document.head.appendChild(tag);',
+          '}',
         ].join('\n')
       },
     }, {

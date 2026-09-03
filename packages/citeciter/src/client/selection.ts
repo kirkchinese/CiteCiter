@@ -1,9 +1,11 @@
 import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { CiteSelection } from './types.ts'
+import { ASSISTANT_ENTRY_ID } from './entry-ids.ts'
 import {
   dshAssistantAnchorForTarget,
   dshConversationFlow,
   dshIntersectedAssistantAnchors,
+  dshRangeHasReasoningHeaderEndpoint,
   dshRangeTouchesExcludedContent,
   isDshReasoningContent,
   isNonCitableProjection,
@@ -67,9 +69,14 @@ function committedTextBefore(root: Node, boundary: Node, offset: number): string
  *
  * @param event - context-menu event whose pointer position anchors the menu.
  * @param sourceSessionId - current session identity captured with the DOM range.
+ * @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
  * @returns validated selection metadata, or null when CiteCiter should ignore it.
  */
-export function readSelection(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null {
+export function readSelection(
+  event: MouseEvent,
+  sourceSessionId: SessionId,
+  committedAssistantText?: string,
+): CiteSelection | null {
   const eventAnchor = dshAssistantAnchorForTarget(event.target)
   if (eventAnchor === null) return null
   const selection = window.getSelection()
@@ -89,6 +96,7 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
     const startOffset = projected.length - projected.trimStart().length
     const endOffset = projected.length - (projected.length - projected.trimEnd().length)
     return {
+      entryId: ASSISTANT_ENTRY_ID,
       sourceSessionId,
       displayText,
       sourceHintText,
@@ -103,6 +111,24 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
     }
   }
   if (startFlow.element !== eventAnchor.element || dshRangeTouchesExcludedContent(range, startFlow.element)) return null
+  if (dshRangeHasReasoningHeaderEndpoint(range, startFlow.element)) {
+    const displayText = range.toString().trim()
+    if (displayText === '' || committedAssistantText === undefined || committedAssistantText === '') return null
+    return {
+      entryId: ASSISTANT_ENTRY_ID,
+      sourceSessionId,
+      displayText,
+      sourceHintText: committedAssistantText,
+      kind: 'assistant-step',
+      anchorKey: eventAnchor.anchorKey,
+      startOffset: 0,
+      endOffset: committedAssistantText.length,
+      prefixText: '',
+      suffixText: '',
+      x: event.clientX,
+      y: event.clientY,
+    }
+  }
 
   const translated = readFrogSelection(range, startFlow.element)
   if (translated.kind === 'invalid') return null
@@ -138,6 +164,7 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
   if (startOffset < 0 || endOffset < startOffset || endOffset > flowText.length) return null
 
   return {
+    entryId: ASSISTANT_ENTRY_ID,
     sourceSessionId,
     displayText: text,
     ...(sourceHintText === undefined ? {} : { sourceHintText }),
@@ -157,10 +184,15 @@ export function readSelection(event: MouseEvent, sourceSessionId: SessionId): Ci
  *
  * @param event - context-menu event to validate and optionally cancel.
  * @param sourceSessionId - current source session captured with the selection.
+ * @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
  * @returns validated selection metadata, or null while leaving the native menu untouched.
  */
-export function claimSelectionContextMenu(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null {
-  const selection = readSelection(event, sourceSessionId)
+export function claimSelectionContextMenu(
+  event: MouseEvent,
+  sourceSessionId: SessionId,
+  committedAssistantText?: string,
+): CiteSelection | null {
+  const selection = readSelection(event, sourceSessionId, committedAssistantText)
   if (selection === null) return null
   event.preventDefault()
   return selection

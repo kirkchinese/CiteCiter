@@ -118,7 +118,27 @@ const rows = [
       arguments: '{"path":"docs/architecture.md"}',
     },
   },
-  { type: 'session/title', seq: 8, time: createdAt + 9, data: { title, messageSeqs: [], source: { kind: 'user' } } },
+  {
+    type: 'tool/result',
+    seq: 8,
+    time: createdAt + 9,
+    data: {
+      turn: 1,
+      step: 1,
+      message: {
+        id: '55555555-5555-4555-8555-555555555555',
+        role: 'user',
+        source: { kind: 'tool', callId: '44444444-4444-4444-8444-444444444444' },
+        content: [{
+          type: 'tool-result',
+          toolCallId: '44444444-4444-4444-8444-444444444444',
+          content: [{ type: 'text', text: 'architecture.md exists with the loop overview.' }],
+        }],
+      },
+    },
+    surfaceOp: 'append',
+  },
+  { type: 'session/title', seq: 9, time: createdAt + 10, data: { title, messageSeqs: [], source: { kind: 'user' } } },
 ]
 const projectDir = join(dshHome, 'sessions', projectKey(cwd))
 const previousRoots = new Set([legacySessionId])

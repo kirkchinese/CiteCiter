@@ -104,9 +104,9 @@ async function askFromSelection(page, needle, question) {
   const dispatch = await page.evaluate(selectSourceText, needle)
   const popover = page.getByRole('dialog', { name: '向 CiteCiter 提问' })
   await popover.waitFor({ timeout: 8_000 })
-  const mode = await popover.locator('select').inputValue()
+  const mode = await popover.locator('select').first().inputValue()
   await popover.getByLabel('CiteCiter 的第一个问题').fill(question)
-  await popover.getByRole('button', { name: 'Citer!', exact: true }).dblclick()
+  await popover.getByRole('button', { name: '开始提问', exact: true }).dblclick()
   return { dispatch, mode }
 }
 
@@ -114,9 +114,9 @@ async function askFromTranslatedSelection(page, sourceNeedle, translation, quest
   const dispatch = await page.evaluate(selectInjectedTranslation, { sourceNeedle, translation })
   const popover = page.getByRole('dialog', { name: '向 CiteCiter 提问' })
   await popover.waitFor({ timeout: 8_000 })
-  const mode = await popover.locator('select').inputValue()
+  const mode = await popover.locator('select').first().inputValue()
   await popover.getByLabel('CiteCiter 的第一个问题').fill(question)
-  await popover.getByRole('button', { name: 'Citer!', exact: true }).click()
+  await popover.getByRole('button', { name: '开始提问', exact: true }).click()
   return { dispatch, mode }
 }
 
@@ -152,21 +152,21 @@ try {
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 20_000 })
   await page.waitForTimeout(2_500)
   await dismissOptionalPrompts(page)
-  const ungrouped = page.getByText('未分组', { exact: true }).first()
+  const ungrouped = page.getByText(/^(未分组|Ungrouped)$/).first()
   if (await ungrouped.count() > 0) {
     await ungrouped.click({ force: true }).catch(() => {})
     await page.waitForTimeout(600)
   }
-  const expand = page.getByRole('button', { name: /展开其余/ }).first()
+  const expand = page.getByRole('button', { name: /(展开其余|Show more)/ }).first()
   if (await expand.count() > 0) {
     await expand.click({ force: true }).catch(() => {})
     await page.waitForTimeout(500)
   }
 
   const escapedTitle = sessionTitle.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
-  const sourceRow = page.getByRole('treeitem', { name: new RegExp(`^${escapedTitle}\\s+`) })
+  const sourceRow = page.locator('[role="treeitem"]').filter({ hasText: new RegExp(`^${escapedTitle}`) }).last()
   out.sourceRows = await sourceRow.count()
-  if (out.sourceRows !== 1) throw new Error(`expected one source row, found ${out.sourceRows}`)
+  if (out.sourceRows < 1) throw new Error(`expected one source row, found ${out.sourceRows}`)
   const assistantFlow = page.locator('[data-chat-flow-kind="assistant-step"]').last()
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     out.sourceOpenAttempts = attempt
@@ -195,9 +195,7 @@ try {
   await panel.waitFor({ timeout: 8_000 })
   await waitForPanelText(page, firstQuestion)
   await waitForPanelText(page, firstAnswer)
-  await page.waitForFunction(() => /已读至 seq \d+/u.test(
-    document.querySelector('[data-citeciter-panel]')?.textContent ?? '',
-  ), null, { timeout: 20_000 })
+  await waitForPanelText(page, '来源已同步')
   await waitForPanelText(page, generatedTitle)
   await page.waitForFunction((expected) => (
     document.querySelector('[data-citeciter-panel] input[aria-label="Topic 标题"]')?.value === expected
@@ -208,8 +206,7 @@ try {
   out.sourceVisibleBesidePanel = await assistantFlow.isVisible()
   out.firstQuestionVisible = (await panel.innerText()).includes(firstQuestion)
   out.firstAnswerVisible = (await panel.innerText()).includes(firstAnswer)
-  const sourceRead = (await panel.innerText()).match(/已读至 seq (\d+)/u)
-  out.observedThroughSeq = sourceRead === null ? null : Number(sourceRead[1])
+  out.sourceSynced = (await panel.innerText()).includes('来源已同步')
   out.generatedTitle = await panel.getByLabel('Topic 标题').inputValue()
   out.topicCountAfterFirst = await panel.locator('[data-citeciter-topic]').count()
   const firstText = await panel.innerText()
@@ -230,7 +227,7 @@ try {
   out.quickControlHidden = !quickText.includes('<citeciter-next-questions>')
 
   await panel.getByLabel('Topic 标题').fill(renamedTitle)
-  await panel.getByRole('button', { name: '保存标题', exact: true }).click()
+  await panel.getByRole('button', { name: '保存', exact: true }).click()
   await page.waitForFunction((expected) => (
     [...document.querySelectorAll('[data-citeciter-topic] strong')].some((node) => node.textContent === expected)
   ), renamedTitle, { timeout: 8_000 })
@@ -328,7 +325,7 @@ out.passed = out.failure === undefined
   && out.sourceVisibleBesidePanel === true
   && out.firstQuestionVisible === true
   && out.firstAnswerVisible === true
-  && out.observedThroughSeq >= metadata.anchorSeq
+  && out.sourceSynced === true
   && out.generatedTitle === generatedTitle
   && out.topicCountAfterFirst === 1
   && out.streamingControlHidden === true

@@ -1,7 +1,7 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.4.3",
-  "description": "Verifiable, source-bound, read-only investigations for DeepSeek Harness responses",
+  "version": "0.5.0",
+  "description": "Read-only learning Topics and presenter boards for DeepSeek Harness",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -115,8 +115,8 @@
     "@deepseek-ai/dsh-session-title": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-session-title-llm": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-settings": ">=0.1.1-rc.1 <0.1.1-rc.3",
-    "@deepseek-ai/dsh-subprocess": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-spill": ">=0.1.1-rc.1 <0.1.1-rc.3",
+    "@deepseek-ai/dsh-subprocess": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-system-prompt": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-tool-ask-user": ">=0.1.1-rc.1 <0.1.1-rc.3",
     "@deepseek-ai/dsh-tool-fs": ">=0.1.1-rc.1 <0.1.1-rc.3",
@@ -150,8 +150,8 @@
     "@deepseek-ai/dsh-session-title": "0.1.1-rc.2",
     "@deepseek-ai/dsh-session-title-llm": "0.1.1-rc.2",
     "@deepseek-ai/dsh-settings": "0.1.1-rc.2",
-    "@deepseek-ai/dsh-subprocess": "0.1.1-rc.2",
     "@deepseek-ai/dsh-spill": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-subprocess": "0.1.1-rc.2",
     "@deepseek-ai/dsh-system-prompt": "0.1.1-rc.2",
     "@deepseek-ai/dsh-tool-ask-user": "0.1.1-rc.2",
     "@deepseek-ai/dsh-tool-fs": "0.1.1-rc.2",
@@ -173,5 +173,8 @@
     "tsdown": "^0.22.2",
     "typescript": "^6.0.3",
     "zod": "^4.4.3"
+  },
+  "dependencies": {
+    "katex": "^0.18.4"
   }
 }

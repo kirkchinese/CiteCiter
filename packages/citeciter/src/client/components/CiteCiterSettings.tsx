@@ -3,18 +3,21 @@ import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CompanionFace } from '../companion-controller.ts'
 import type { SettingsDocumentController } from '../settings-document.ts'
+import type { UpdateController } from '../update-controller.ts'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
 
 export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
   readonly companion: CompanionFace
   readonly settingsDocument: SettingsDocumentController
+  readonly updateController: UpdateController
 }
 
 /** Native DSH settings page for CiteCiter-owned preferences. */
-export function CiteCiterSettings({ companion, settingsDocument }: CiteCiterSettingsProps) {
+export function CiteCiterSettings({ companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
   const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
   const documentSnapshot = useSyncExternalStore(settingsDocument.subscribe, settingsDocument.getSnapshot)
+  const updateSnapshot = useSyncExternalStore(updateController.subscribe, updateController.getSnapshot)
   const settings = snapshot.settings
   const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent)
   const committedWidth = useRef(settings.panelWidthPercent)
@@ -87,6 +90,73 @@ export function CiteCiterSettings({ companion, settingsDocument }: CiteCiterSett
             onChange={(event) => { void companion.setSetting('allowSourceFiles', event.currentTarget.checked) }}
           />
         </label>
+      </section>
+
+      <section className={css.settingsGroup}>
+        <h3>提示词与快捷键</h3>
+        <label className={css.settingStack}>
+          <span><strong>自定义导师提示词</strong><small>在内置场景规则后补充教学偏好；留空只使用内置提示词。修改对之后恢复/新建的 Topic 生效。</small></span>
+          <textarea
+            className={css.promptTextarea}
+            value={settings.tutorPrompt ?? ''}
+            maxLength={4000}
+            rows={4}
+            placeholder="留空 = 使用内置导师提示词"
+            onChange={(event) => { void companion.setSetting('tutorPrompt', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }}
+          />
+        </label>
+        <label className={css.settingToggle}>
+          <span><strong>首答附追问建议</strong><small>在首个回答末尾生成三个追问候选；关闭后回答保持纯净。</small></span>
+          <input
+            type="checkbox"
+            checked={settings.followupQuestions ?? true}
+            onChange={(event) => { void companion.setSetting('followupQuestions', event.currentTarget.checked) }}
+          />
+        </label>
+        <label className={css.settingToggle}>
+          <span><strong>黑板动画</strong><small>关闭后 animate 只保留最终状态，不再播放淡入、滑入、脉冲或高亮动画。</small></span>
+          <input
+            type="checkbox"
+            checked={settings.boardAnimations ?? true}
+            onChange={(event) => { void companion.setSetting('boardAnimations', event.currentTarget.checked) }}
+          />
+        </label>
+        <label className={css.settingStack}>
+          <span><strong>打开学习栏快捷键</strong><small>格式如 Control+Shift+C；留空禁用。输入框和编辑器内的按键不会被拦截。</small></span>
+          <input
+            type="text"
+            value={settings.shortcutOpenPanel ?? ''}
+            maxLength={40}
+            placeholder="Control+Shift+C"
+            onChange={(event) => { void companion.setSetting('shortcutOpenPanel', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }}
+          />
+        </label>
+      </section>
+
+      <section className={css.settingsGroup}>
+        <h3>版本更新</h3>
+        <label className={css.settingToggle}>
+          <span>
+            <strong>版本更新提醒</strong>
+            <small>{updateSnapshot.preferencePersistence === 'browser'
+              ? '远程 Web 只在当前浏览器保存此选择；开启后会重新检查可用版本。'
+              : '在 DSH 设置中保存；关闭后可随时回到这里恢复。'}</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={updateSnapshot.notificationsEnabled}
+            disabled={!updateSnapshot.preferenceReady || updateSnapshot.preferenceStatus === 'saving'}
+            aria-busy={updateSnapshot.preferenceStatus === 'saving'}
+            onChange={(event) => { void updateController.setNotificationsEnabled(event.currentTarget.checked) }}
+          />
+        </label>
+        {updateSnapshot.preferenceMessage !== null && (
+          <p
+            className={css.settingsSaveStatus}
+            data-status={updateSnapshot.preferenceStatus}
+            role={updateSnapshot.preferenceStatus === 'error' ? 'alert' : 'status'}
+          >{updateSnapshot.preferenceMessage}</p>
+        )}
       </section>
 
       <section className={css.settingsGroup}>

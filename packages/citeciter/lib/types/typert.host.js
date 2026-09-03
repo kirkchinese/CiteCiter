@@ -1,5 +1,6 @@
 import { citeCiterRequestSchema, citeCiterResponseSchema, citationDraftSchema, citationRecordSchema, topicSnapshotSchema, topicSummarySchema, } from "./topic.js";
-import { citeCiterRequestDescriptor } from "./typert-common.js";
+import { updateCheckResponseSchema } from "./update.js";
+import { citeCiterRequestDescriptor, updateCheckDescriptor } from "./typert-common.js";
 /** Handwritten strict Host contribution matching the single Remote decorator. */
 export const TYPERT = {
     package: '@kirkchinese/dsh-citeciter',
@@ -11,12 +12,13 @@ export const TYPERT = {
         { name: 'TopicSnapshot', schema: topicSnapshotSchema },
         { name: 'CiteCiterRequest', schema: citeCiterRequestSchema },
         { name: 'CiteCiterResponse', schema: citeCiterResponseSchema },
+        { name: 'UpdateCheckResponse', schema: updateCheckResponseSchema },
     ],
     model: {
         services: [],
         events: [],
         objects: [],
     },
-    invocations: [citeCiterRequestDescriptor],
+    invocations: [citeCiterRequestDescriptor, updateCheckDescriptor],
 };
 export default TYPERT;

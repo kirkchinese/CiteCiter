@@ -1,0 +1,227 @@
+/** Bounded, read-only npm update check for the Web plugin. */
+import { z } from 'zod';
+/** Fixed registry document used to resolve the installable `latest` version. */
+export const CITECITER_NPM_LATEST_URL = 'https://registry.npmjs.org/@kirkchinese%2fdsh-citeciter/latest';
+/** Successful checks remain fresh for six hours in one Host process. */
+export const UPDATE_CHECK_TTL_MS = 6 * 60 * 60 * 1_000;
+const UPDATE_CHECK_TIMEOUT_MS = 5_000;
+const UPDATE_RESPONSE_MAX_BYTES = 64 * 1_024;
+const stableVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
+function stableVersionParts(version) {
+    const match = stableVersionPattern.exec(version);
+    if (match === null)
+        return null;
+    const parts = match.slice(1).map(Number);
+    if (parts.length !== 3 || parts.some((part) => !Number.isSafeInteger(part)))
+        return null;
+    return [parts[0], parts[1], parts[2]];
+}
+const stableVersionSchema = z.string().refine((version) => stableVersionParts(version) !== null, 'expected a stable MAJOR.MINOR.PATCH version with safe integer components');
+/** Stable failure identifiers consumed by the Web settings and notification UI. */
+export const updateCheckErrorCodeSchema = z.enum([
+    'installed-version-invalid',
+    'registry-timeout',
+    'registry-network',
+    'registry-http',
+    'registry-response-too-large',
+    'registry-response-invalid',
+    'registry-version-invalid',
+]);
+/** Strict result of one read-only npm `latest` check. */
+export const updateCheckResponseSchema = z.discriminatedUnion('kind', [
+    z.object({
+        kind: z.literal('success'),
+        installedVersion: stableVersionSchema,
+        latestVersion: stableVersionSchema,
+        updateAvailable: z.boolean(),
+        checkedAt: z.number().int().nonnegative(),
+    }).strict(),
+    z.object({
+        kind: z.literal('error'),
+        code: updateCheckErrorCodeSchema,
+        checkedAt: z.number().int().nonnegative(),
+    }).strict(),
+]);
+const registryLatestSchema = z.object({ version: z.string() }).passthrough();
+class UpdateFailure extends Error {
+    code;
+    constructor(code) {
+        super(code);
+        this.code = code;
+    }
+}
+async function readInstalledVersion() {
+    const [{ readFile }, { createRequire }] = await Promise.all([
+        import('node:fs/promises'),
+        import('node:module'),
+    ]);
+    const packageManifestPath = createRequire(import.meta.url).resolve('@kirkchinese/dsh-citeciter/package.json');
+    const raw = await readFile(packageManifestPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return z.object({ version: z.string() }).passthrough().parse(parsed).version;
+}
+async function cancelReader(reader) {
+    try {
+        await reader.cancel();
+    }
+    catch {
+        // The reader is already errored; preserve the response-size classification.
+    }
+}
+async function cancelResponseBody(response) {
+    try {
+        await response.body?.cancel();
+    }
+    catch {
+        // The transport already closed the response; preserve the original classification.
+    }
+}
+async function readBoundedText(response, signal) {
+    const declaredLength = response.headers.get('content-length');
+    if (declaredLength !== null && /^\d+$/u.test(declaredLength) && Number(declaredLength) > UPDATE_RESPONSE_MAX_BYTES) {
+        await cancelResponseBody(response);
+        throw new UpdateFailure('registry-response-too-large');
+    }
+    if (response.body === null)
+        return '';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let received = 0;
+    let text = '';
+    while (true) {
+        signal.throwIfAborted();
+        const chunk = await reader.read();
+        if (chunk.done)
+            break;
+        received += chunk.value.byteLength;
+        if (received > UPDATE_RESPONSE_MAX_BYTES) {
+            await cancelReader(reader);
+            throw new UpdateFailure('registry-response-too-large');
+        }
+        text += decoder.decode(chunk.value, { stream: true });
+    }
+    return text + decoder.decode();
+}
+/**
+ * Compare stable versions without accepting prerelease or build suffixes.
+ * @param left - first candidate version.
+ * @param right - second candidate version.
+ * @returns negative, zero, or positive for valid versions; otherwise `null`.
+ */
+export function compareStableVersions(left, right) {
+    const leftParts = stableVersionParts(left);
+    const rightParts = stableVersionParts(right);
+    if (leftParts === null || rightParts === null)
+        return null;
+    for (let index = 0; index < leftParts.length; index += 1) {
+        if (leftParts[index] < rightParts[index])
+            return -1;
+        if (leftParts[index] > rightParts[index])
+            return 1;
+    }
+    return 0;
+}
+/** Per-Host update checker with bounded I/O and a successful-result TTL cache. */
+export class UpdateChecker {
+    fetchImpl;
+    now;
+    installedVersion;
+    cached;
+    inFlight;
+    /**
+     * @param fetchImpl - HTTPS transport; injectable for deterministic tests.
+     * @param now - wall-clock provider used for response timestamps and cache expiry.
+     * @param installedVersion - installed package-version reader.
+     */
+    constructor(fetchImpl = globalThis.fetch, now = Date.now, installedVersion = readInstalledVersion) {
+        this.fetchImpl = fetchImpl;
+        this.now = now;
+        this.installedVersion = installedVersion;
+    }
+    /**
+     * Read npm's installable latest version without mutating the installation.
+     * @param callerSignal - Remote caller cancellation.
+     * @returns a strict success or stable classified failure.
+     */
+    async check(callerSignal) {
+        callerSignal.throwIfAborted();
+        const now = this.now();
+        if (this.cached !== undefined && now < this.cached.expiresAt)
+            return this.cached.response;
+        if (this.inFlight === undefined) {
+            const operation = this.checkFresh().finally(() => {
+                if (this.inFlight === operation)
+                    this.inFlight = undefined;
+            });
+            this.inFlight = operation;
+        }
+        return waitForCaller(this.inFlight, callerSignal);
+    }
+    async checkFresh() {
+        let installedVersion;
+        try {
+            installedVersion = await this.installedVersion();
+        }
+        catch {
+            return { kind: 'error', code: 'installed-version-invalid', checkedAt: this.now() };
+        }
+        if (stableVersionParts(installedVersion) === null) {
+            return { kind: 'error', code: 'installed-version-invalid', checkedAt: this.now() };
+        }
+        const timeoutSignal = AbortSignal.timeout(UPDATE_CHECK_TIMEOUT_MS);
+        const signal = timeoutSignal;
+        try {
+            const response = await this.fetchImpl(CITECITER_NPM_LATEST_URL, {
+                method: 'GET',
+                headers: { accept: 'application/json' },
+                redirect: 'error',
+                signal,
+            });
+            if (!response.ok) {
+                await cancelResponseBody(response);
+                return { kind: 'error', code: 'registry-http', checkedAt: this.now() };
+            }
+            const text = await readBoundedText(response, signal);
+            let raw;
+            try {
+                raw = JSON.parse(text);
+            }
+            catch {
+                return { kind: 'error', code: 'registry-response-invalid', checkedAt: this.now() };
+            }
+            const latest = registryLatestSchema.safeParse(raw);
+            if (!latest.success)
+                return { kind: 'error', code: 'registry-response-invalid', checkedAt: this.now() };
+            const comparison = compareStableVersions(installedVersion, latest.data.version);
+            if (comparison === null)
+                return { kind: 'error', code: 'registry-version-invalid', checkedAt: this.now() };
+            const checkedAt = this.now();
+            const result = {
+                kind: 'success',
+                installedVersion,
+                latestVersion: latest.data.version,
+                updateAvailable: comparison < 0,
+                checkedAt,
+            };
+            this.cached = { expiresAt: checkedAt + UPDATE_CHECK_TTL_MS, response: result };
+            return result;
+        }
+        catch (error) {
+            if (timeoutSignal.aborted)
+                return { kind: 'error', code: 'registry-timeout', checkedAt: this.now() };
+            if (error instanceof UpdateFailure)
+                return { kind: 'error', code: error.code, checkedAt: this.now() };
+            return { kind: 'error', code: 'registry-network', checkedAt: this.now() };
+        }
+    }
+}
+function waitForCaller(operation, signal) {
+    signal.throwIfAborted();
+    return new Promise((resolve, reject) => {
+        const onAbort = () => reject(signal.reason);
+        signal.addEventListener('abort', onAbort, { once: true });
+        void operation.then(resolve, reject).finally(() => {
+            signal.removeEventListener('abort', onAbort);
+        });
+    });
+}

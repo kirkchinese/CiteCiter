@@ -41,13 +41,21 @@ export declare function dshAssistantAnchorForTarget(target: EventTarget | null):
  */
 export declare function dshIntersectedAssistantAnchors(range: Range): DshAssistantAnchor[];
 /**
- * Detect generated controls, reasoning summaries, and collapsed code chrome.
+ * Detect generated controls and collapsed code chrome.
  *
  * @param range - current rendered selection range.
  * @param flow - assistant flow containing the range.
  * @returns whether the range touches content that CiteCiter must ignore.
  */
 export declare function dshRangeTouchesExcludedContent(range: Range, flow: HTMLElement): boolean;
+/**
+ * Detect a selection endpoint inside a generated reasoning disclosure row.
+ *
+ * @param range - current rendered selection range.
+ * @param flow - assistant flow containing the range.
+ * @returns whether a collapsed or expanded reasoning header anchors the selection.
+ */
+export declare function dshRangeHasReasoningHeaderEndpoint(range: Range, flow: HTMLElement): boolean;
 /**
  * Find the current DSH assistant element for a persisted anchor key.
  *

@@ -1,3 +1,4 @@
+import type { TopicScenario } from '../topic.ts'
 import type { CiteSelection } from './types.ts'
 
 export type CreateMode = 'observer' | 'exact-fork' | 'exact-when-available'
@@ -70,18 +71,72 @@ export function claimCreateTopicIntent(
   selection: CiteSelection,
   question: string,
   mode: CreateMode,
+  scenario: TopicScenario = 'qa',
 ): Promise<RequestIntent> {
+  const identity = selection.kind === 'assistant-step'
+    ? [
+        selection.sourceSessionId,
+        selection.anchorKey,
+        selection.startOffset,
+        selection.endOffset,
+        selection.sourceHintText ?? null,
+        selection.prefixText,
+        selection.suffixText,
+      ]
+    : [
+        selection.sourceSessionId,
+        selection.callId,
+        selection.projection,
+        selection.anchorKey,
+      ]
   return claimRequestIntent('create', JSON.stringify([
-    selection.sourceSessionId,
-    selection.anchorKey,
-    selection.startOffset,
-    selection.endOffset,
-    selection.sourceHintText ?? null,
-    selection.prefixText,
-    selection.suffixText,
+    ...identity,
     selection.displayText,
     question,
     mode,
+    scenario,
+  ]))
+}
+
+/**
+ * Claim the retry-stable request ID for one uncited Topic creation.
+ * @param sourceSessionId - owning DSH Session.
+ * @param question - normalized first question.
+ * @param scenario - requested Topic presentation.
+ * @returns the pending intent key and request ID.
+ */
+export function claimCreateFreeTopicIntent(
+  sourceSessionId: string,
+  question: string,
+  scenario: Extract<TopicScenario, 'qa' | 'present'>,
+): Promise<RequestIntent> {
+  return claimRequestIntent('create-free', JSON.stringify([sourceSessionId, question, scenario]))
+}
+
+/** Document-range claim identity shared by the Reader entry point. */
+export interface DocumentClaimIntent {
+  readonly documentId: string
+  readonly displayText: string
+  readonly prefixText: string
+  readonly suffixText: string
+}
+
+/**
+ * Claim the retry-stable request ID for one pending document Topic creation.
+ * @param claim - document identity and verified-looking quote context.
+ * @param question - normalized first question.
+ * @returns the pending intent key and request ID.
+ */
+export function claimCreateDocumentIntent(
+  claim: DocumentClaimIntent,
+  question: string,
+): Promise<RequestIntent> {
+  return claimRequestIntent('create', JSON.stringify([
+    claim.documentId,
+    claim.displayText,
+    claim.prefixText,
+    claim.suffixText,
+    question,
   ]))
 }
 

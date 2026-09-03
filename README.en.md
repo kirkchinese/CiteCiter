@@ -2,7 +2,7 @@
 
 **An AI-output learning, review, and correction plugin for DeepSeek Harness.**
 
-Select part of an answer to ask follow-up questions, switch models, or create multiple independent Topics without interrupting the main task. Use it to understand new ideas, find mistakes, or check whether a long-running task is going off track.
+Select part of an answer to ask follow-up questions, switch models, or create multiple independent Topics without interrupting the main task. You can also start a free Q&A or Presenter Topic and let AI explain with formulas, diagrams, tables, and animation on the main-workspace blackboard.
 
 [中文](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Report an issue](https://github.com/kirkchinese/CiteCiter/issues) · [Join the community](#community) · [⭐ Star CiteCiter](https://github.com/kirkchinese/CiteCiter)
 
@@ -12,107 +12,81 @@ Select part of an answer to ask follow-up questions, switch models, or create mu
 
 ## Install
 
+CiteCiter 0.5.0 requires Node.js `^22.19.0 || >=24.0.0` and DSH Web `>=0.1.1-rc.1 <0.1.1-rc.3`.
+
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.4.3
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.5.0
 dsh plugin --profile web list --depth 0
 ```
 
-Confirm that the list shows `@kirkchinese/dsh-citeciter@0.4.3`. Do not remain on v0.4.2: it prevented Citer from working with committed intermediate calls and reasoning. Restart DSH Web and refresh the page after installation.
-
-v0.4.3 restores Citer for committed intermediate calls, expanded reasoning, and selections spanning reasoning and answer text. Existing Topics require no migration.
+Confirm that the list shows `@kirkchinese/dsh-citeciter@0.5.0`, then restart DSH Web and refresh the page. Existing Topics, settings, and source Sessions need no migration or rewrite. This release ships a Web installation path only; Desktop work remains deferred.
 
 ## Get started
 
-Select part of an answer. Right-click, ask a question, then `Citer!`.
+- Select answer or reasoning text from a committed assistant model call, right-click, enter a question, then choose Start Q&A or Start presenting.
+- Open the right-side CiteCiter workspace, choose `+ New Topic`, then select Q&A or Presenter. In a new source Session, send one main-conversation message first so CiteCiter can reuse its model route.
+- Continue the Topic, switch its model or reasoning effort, rename it, archive it, restore it, or permanently delete it.
+- Presenter boards appear under the main workspace's Blackboard tab. Quote to question appends the board reference to the existing draft.
 
 <p align="center">
   <img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="Select part of an AI answer and keep asking questions in CiteCiter">
 </p>
 
-## What can CiteCiter do?
-
-### Understand and learn
-
-When a concept, derivation, or conclusion does not make sense, Citer it and let AI explain.
-
-### Compare and correct
-
-Not sure about something? Citer it and let different models help you find omissions, contradictions, and mistakes.
-
-### Check long-running tasks
-
-Want to know what an Agent is doing? Citer it to check the current progress and direction, and see whether the Agent got anything wrong.
-
-### Build your own workflow
-
-CiteCiter wants to be a foundation you can build on. Start from your own content and goals, then gradually develop the way of using it that works for you.
-
 ## Main features
 
-- **Observer mode.** Start multiple Citer conversations from the same answer without disrupting the context of the main conversation.
-- **Citer while it runs.** Once an intermediate model call finishes, you can Citer it while the Agent keeps working. Reasoning and mixed reasoning-and-answer selections are supported.
-- **Switch models.** Change the model and reasoning effort separately.
-- **Persistent history.** Keep your Citer history.
-- **Agent capabilities.** Models in a Citer conversation can inspect the source conversation and investigate the codebase.
-- **Responsive interface.** Adjust the panel layout to the window width.
+- **Verifiable source binding.** CiteCiter rechecks visible selections against committed answers. A committed intermediate model call can be cited while the surrounding source turn continues.
+- **Side investigations.** Observer Topics persist independently and can read source events or workspace files without changing the source Session or repository.
+- **Multiple entry points.** Start from assistant selections, tool results, terminal output, code diffs, free Topics, or text and Markdown documents in the Reader.
+- **Presenter blackboard.** Atomic `blackboard_apply` commits build formulas, Markdown, tables, safe SVG, isolated HTML animation, and embedded images. Failed commits leave the previous board intact.
+- **Complete Topic lifecycle.** Follow up, switch model and reasoning effort, rename, archive, restore, or permanently delete with Session-ID confirmation.
+- **Responsive side-by-side UI.** Wide layouts show the main conversation, learning workspace, and Topic rail together. Tighter layouts collapse the rail or fall back to an overlay.
+- **Version update notices.** When npm has a newer stable release, Web shows Update, Next time, and Never remind me. Update copies an install command; it never changes the environment automatically.
 
-## Community
+## Compatibility and limitations
 
-Join the DSH-Citeciter QQ group to share how you use CiteCiter, suggest features, and ask for help.
+- DSH Web `0.1.1-rc.1` and `0.1.1-rc.2` are supported. Users on DSH `0.1.0-rc.7` should remain on CiteCiter 0.3.2.
+- DSH has no public right-dock extension point yet, so CiteCiter uses a reversible layout adapter that must be retested for each DSH update.
+- Exact Fork requires a completed source turn. Uncommitted streaming text has no stable citation coordinates.
+- DSH rc.2 has no Session deletion API, so permanent deletion operates only on CiteCiter-owned storage. Multiple active CiteCiter processes must not share one DSH home.
+- Desktop and TUI are not supported yet.
 
-<p align="center">
-  <img src="assets/community/qq-group.jpg" width="280" alt="QR code for the DSH-Citeciter QQ group 1108040435">
-</p>
+## Developer API
 
-## Development roadmap
+0.5.0 provides the v1 Host service `ctx.citeciterRuntime` (`create`, `ask`, `get`, `list`, and `delete`) plus the `citeciter/topic-created`, `citeciter/topic-updated`, and `citeciter/topic-deleted` events. Browser entry registration, presets, and a separate client face remain in M4/M5, so frontend extension APIs are not stable yet.
 
-The roadmap starts with v0.3.1, when CiteCiter officially began moving from a rough prototype to something usable.
+## Roadmap
 
 ### Completed
 
-- [x] **v0.3.1** Added management, archiving, and recovery. Added tools for the internal AI. Added the question tool. The CiteCiter whale girl joined the UI.
-- [x] **v0.3.2** Added cross-turn selection. Added reasoning-effort and model switching. Improved parts of the user experience. Added next-question prediction.
-- [x] **v0.4.0** Adapted to the new DSH rc.1 and rc.2. Fixed several bugs.
-- [x] **v0.4.1** Fixed several bugs and improved the UI and conversation logic.
-- [x] **v0.4.2** Fixed Citer creation from lists, nested lists, and other structurally complex answers.
-- [x] **v0.4.3** Restored Citer for committed intermediate calls, reasoning, and mixed reasoning-and-answer selections.
+- [x] **v0.3.1–v0.4.3** Topic management, cross-turn selection, model switching, complex Markdown selection, and committed-intermediate-output fixes.
+- [x] **v0.5.0** EvidenceRef v4, multiple entry points and Reader, free Topics, Presenter blackboard, permanent deletion, Host v1 API, shortcut/prompt settings, and Web update notices.
 
-### Planned
+### Next
 
-- [ ] **Blackboard** Give AI a small blackboard. AI can stream and control HTML, animations, images, equations, and other elements on the board to explain things to the user. Users can ask questions while watching the board—like having a teacher beside them.
-- [ ] **More Citer entry points** Start a Citer from tool output, terminal results, and code diffs.
-- [ ] **Books and papers** Move beyond AI conversations and start a Citer from books, papers, and other content.
-- [ ] **Developer API** Provide user-defined shortcuts and prompts, plus a general API that other plugins can call.
-- [ ] **DSH Desktop support** Adapt CiteCiter for DSH Desktop and join its plugin marketplace.
+- [ ] Replace board polling with host push and evaluate handwritten annotation workflows.
+- [ ] Finish developer API M4/M5: public entry and preset registration, client face, compatibility matrix, and example plugin.
+- [ ] Adapt to DSH Desktop and publish in its plugin marketplace.
 
-## Development and customization
+## Development and contributing
 
-To modify CiteCiter, start from the source. You will need Node.js `^22.19.0 || >=24.0.0` and pnpm `11.21.0`. Current development targets DSH rc.2 and remains compatible with rc.1.
+Source development requires Node.js `^22.19.0 || >=24.0.0` and pnpm `11.21.0`.
 
 ```sh
-git clone https://github.com/kirkchinese/CiteCiter.git
-cd CiteCiter
 pnpm install
 pnpm typecheck
 pnpm test
 pnpm build
 ```
 
-- [`packages/citeciter/src/index.ts`](packages/citeciter/src/index.ts): Host entry point.
-- [`packages/citeciter/src/client/`](packages/citeciter/src/client/): Right-click entry point, panel, and settings interface.
-- [`packages/citeciter/src/topic.ts`](packages/citeciter/src/topic.ts) and [`topic-runtime.ts`](packages/citeciter/src/topic-runtime.ts): Topic data and runtime logic.
-- [`packages/citeciter/tests/`](packages/citeciter/tests/): Regression tests.
-- [`packages/citeciter/lib/`](packages/citeciter/lib/): Build output. Remember to rebuild after changing the source.
+Topic data lives in `$DSH_HOME/citeciter/workspaces/`; Topic logs live in `$DSH_HOME/citeciter/sessions/`. Issues and pull requests are welcome.
 
-Topic data is stored in `$DSH_HOME/citeciter/workspaces/`. Conversation logs are stored in `$DSH_HOME/citeciter/sessions/`.
+## Community
 
-There is no stable developer API for other plugins yet. If you want to build your own version, fork the project for now and merge upstream changes when needed.
+Join the DSH-Citeciter QQ group (`1108040435`).
 
-## Contributing
-
-Issues and pull requests are welcome.
-
-If CiteCiter helps you, please [star the project](https://github.com/kirkchinese/CiteCiter). Your star motivates me to keep building it.
+<p align="center">
+  <img src="assets/community/qq-group.jpg" width="280" alt="QR code for the DSH-Citeciter QQ group 1108040435">
+</p>
 
 ## License
 

@@ -1,6 +1,29 @@
 import assert from 'node:assert/strict'
+import { fromMarkdown } from 'mdast-util-from-markdown'
 import test from 'node:test'
-import { isSafeSvg, isolatedHtmlDocument, splitRichContent } from '../lib/types/client/rich-content.js'
+import {
+  isSafeSvg,
+  isolatedHtmlDocument,
+  neutralizeMarkdownImages,
+  splitRichContent,
+} from '../lib/types/client/rich-content.js'
+
+function findNode(node, type) {
+  if (node.type === type) return true
+  return Array.isArray(node.children) && node.children.some((child) => findNode(child, type))
+}
+
+test('board Markdown and tables cannot render remote images', () => {
+  for (const source of [
+    '普通 [链接](https://example.com) 与 ![tracker](https://tracker.invalid/pixel.png)',
+    '| 内容 |\n|---|\n| ![tracker][pixel] |\n\n[pixel]: https://tracker.invalid/pixel.png',
+  ]) {
+    const tree = fromMarkdown(neutralizeMarkdownImages(source))
+    assert.equal(findNode(tree, 'image'), false)
+    assert.equal(findNode(tree, 'imageReference'), false)
+    assert.equal(findNode(tree, 'link') || findNode(tree, 'linkReference'), true)
+  }
+})
 
 test('splitRichContent preserves prose and lifts a complete safe SVG fence', () => {
   const segments = splitRichContent([

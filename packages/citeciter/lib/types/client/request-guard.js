@@ -59,18 +59,54 @@ async function claimRequestIntent(namespace, identity) {
  * @param mode - resolved Topic creation mode.
  * @returns the pending intent key and request ID.
  */
-export function claimCreateTopicIntent(selection, question, mode) {
+export function claimCreateTopicIntent(selection, question, mode, scenario = 'qa') {
+    const identity = selection.kind === 'assistant-step'
+        ? [
+            selection.sourceSessionId,
+            selection.anchorKey,
+            selection.startOffset,
+            selection.endOffset,
+            selection.sourceHintText ?? null,
+            selection.prefixText,
+            selection.suffixText,
+        ]
+        : [
+            selection.sourceSessionId,
+            selection.callId,
+            selection.projection,
+            selection.anchorKey,
+        ];
     return claimRequestIntent('create', JSON.stringify([
-        selection.sourceSessionId,
-        selection.anchorKey,
-        selection.startOffset,
-        selection.endOffset,
-        selection.sourceHintText ?? null,
-        selection.prefixText,
-        selection.suffixText,
+        ...identity,
         selection.displayText,
         question,
         mode,
+        scenario,
+    ]));
+}
+/**
+ * Claim the retry-stable request ID for one uncited Topic creation.
+ * @param sourceSessionId - owning DSH Session.
+ * @param question - normalized first question.
+ * @param scenario - requested Topic presentation.
+ * @returns the pending intent key and request ID.
+ */
+export function claimCreateFreeTopicIntent(sourceSessionId, question, scenario) {
+    return claimRequestIntent('create-free', JSON.stringify([sourceSessionId, question, scenario]));
+}
+/**
+ * Claim the retry-stable request ID for one pending document Topic creation.
+ * @param claim - document identity and verified-looking quote context.
+ * @param question - normalized first question.
+ * @returns the pending intent key and request ID.
+ */
+export function claimCreateDocumentIntent(claim, question) {
+    return claimRequestIntent('create', JSON.stringify([
+        claim.documentId,
+        claim.displayText,
+        claim.prefixText,
+        claim.suffixText,
+        question,
     ]));
 }
 /**

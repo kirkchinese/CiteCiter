@@ -3,8 +3,13 @@ import test from 'node:test'
 
 import {
   fingerprintCitationDraft,
+  fingerprintCitationRecord,
   formatSourceSessionRead,
+  projectDiffMeta,
+  projectToolResultText,
+  resolveDocumentEvidence,
   resolveObserverCitation,
+  resolveToolEvidence,
   validateObserverCitation,
 } from '../lib/types/observer.js'
 
@@ -147,6 +152,169 @@ test('chunk-only, stale text, invalid UTF-16 offsets, and forged fingerprints ar
   assert.throws(
     () => validateObserverCitation(source, { ...citation, selectionFingerprint: '0'.repeat(64) }),
     /content fingerprint/,
+  )
+})
+
+function toolCall(seq, callId, name) {
+  return {
+    seq,
+    time: seq,
+    type: 'tool/call',
+    data: { turn: 1, step: 1, callId, name, arguments: '{}' },
+  }
+}
+
+function toolResult(seq, callId, text, meta) {
+  return {
+    seq,
+    time: seq,
+    type: 'tool/result',
+    data: {
+      turn: 1,
+      step: 1,
+      message: {
+        id: `result-${seq}`,
+        role: 'user',
+        source: { kind: 'tool', callId },
+        content: [{
+          type: 'tool-result',
+          toolCallId: callId,
+          content: text === '' ? [] : [{ type: 'text', text }],
+        }],
+      },
+      ...(meta === undefined ? {} : { meta }),
+    },
+    surfaceOp: 'append',
+  }
+}
+
+test('a committed tool result becomes whole-card result-text EvidenceRef', () => {
+  const source = {
+    session: { id: sourceId },
+    events: [toolCall(5, 'call-1', 'bash'), toolResult(6, 'call-1', 'tool output')],
+  }
+  const resolved = resolveToolEvidence(source, {
+    sourceSessionId: sourceId,
+    callId: 'call-1',
+    displayText: 'tool output',
+  })
+  assert.deepEqual(resolved.evidence.entry, {
+    kind: 'tool-result',
+    anchorSeq: 6,
+    callId: 'call-1',
+    toolName: 'bash',
+    projection: 'result-text',
+  })
+  assert.equal(resolved.evidence.anchorSeq, 6)
+  assert.equal(resolved.evidence.sourceText, 'tool output')
+  assert.equal(resolved.evidence.startOffset, 0)
+  assert.equal(resolved.evidence.endOffset, 'tool output'.length)
+  assert.equal(resolved.evidence.prefixText, '')
+  assert.equal(resolved.evidence.suffixText, '')
+  assert.match(fingerprintCitationRecord(resolved.evidence), /^[a-f0-9]{64}$/)
+  assert.equal(projectToolResultText([{ type: 'text', text: 'a' }, { type: 'image', text: 'skip' }, null, { type: 'text', text: 'b' }]), 'ab')
+})
+
+test('tool evidence rejects wrong sessions, missing calls, mismatched text, and empty results', () => {
+  const source = {
+    session: { id: sourceId },
+    events: [toolCall(5, 'call-1', 'bash'), toolResult(6, 'call-1', 'tool output')],
+  }
+  assert.throws(
+    () => resolveToolEvidence(source, { sourceSessionId: 'other-session', callId: 'call-1', displayText: 'tool output' }),
+    /does not match the observed source Session/u,
+  )
+  assert.throws(
+    () => resolveToolEvidence(source, { sourceSessionId: sourceId, callId: 'missing', displayText: 'tool output' }),
+    /does not identify a committed tool\/result/u,
+  )
+  assert.throws(
+    () => resolveToolEvidence(source, { sourceSessionId: sourceId, callId: 'call-1', displayText: 'forged text' }),
+    /does not match the committed tool result text/u,
+  )
+  const empty = {
+    session: { id: sourceId },
+    events: [toolCall(5, 'call-2', 'read'), toolResult(6, 'call-2', '')],
+  }
+  assert.throws(
+    () => resolveToolEvidence(empty, { sourceSessionId: sourceId, callId: 'call-2', displayText: ' ' }),
+    /no citable text/u,
+  )
+})
+
+test('document-range evidence re-resolves the Reader quote against the stored text', () => {
+  const content = '第一章 平行移动\n第二章 曲率与 holonomy'
+  const resolved = resolveDocumentEvidence(content, {
+    sourceSessionId: sourceId,
+    documentId: 'document-1',
+    displayText: '曲率与 holonomy',
+    prefixText: '第二章 ',
+    suffixText: '',
+  })
+  assert.equal(resolved.evidence.anchorSeq, 0)
+  assert.deepEqual(resolved.evidence.entry, {
+    kind: 'document-range',
+    documentId: 'document-1',
+    startOffset: content.indexOf('曲率'),
+    endOffset: content.indexOf('曲率') + '曲率与 holonomy'.length,
+  })
+  assert.equal(resolved.evidence.sourceText, '曲率与 holonomy')
+  assert.equal(resolved.evidence.displayText, '曲率与 holonomy')
+  assert.throws(
+    () => resolveDocumentEvidence(content, {
+      sourceSessionId: sourceId,
+      documentId: 'document-1',
+      displayText: '不存在的段落',
+      prefixText: '',
+      suffixText: '',
+    }),
+    /选区无法映射/u,
+  )
+})
+
+test('terminal and diff projections resolve their dedicated whole-card text', () => {  const terminal = resolveToolEvidence({
+    session: { id: sourceId },
+    events: [
+      toolCall(5, 'call-3', 'terminal_send'),
+      toolResult(6, 'call-3', 'pwd\n/home/misaka', { card: 'terminal', output: 'pwd\n/home/misaka' }),
+    ],
+  }, {
+    sourceSessionId: sourceId,
+    callId: 'call-3',
+    displayText: 'pwd\n/home/misaka',
+    projection: 'terminal',
+  })
+  assert.equal(terminal.evidence.entry.projection, 'terminal')
+  assert.equal(terminal.evidence.sourceText, 'pwd\n/home/misaka')
+
+  const diffs = [{ path: 'a.ts', oldText: 'a', newText: 'b' }]
+  const diffText = projectDiffMeta({ diffs })
+  const diff = resolveToolEvidence({
+    session: { id: sourceId },
+    events: [
+      toolCall(5, 'call-4', 'edit'),
+      toolResult(6, 'call-4', '', { diffs }),
+    ],
+  }, {
+    sourceSessionId: sourceId,
+    callId: 'call-4',
+    displayText: diffText,
+    projection: 'diff',
+  })
+  assert.equal(diff.evidence.entry.projection, 'diff')
+  assert.equal(diff.evidence.sourceText, diffText)
+
+  assert.throws(
+    () => resolveToolEvidence({
+      session: { id: sourceId },
+      events: [toolCall(5, 'call-5', 'edit'), toolResult(6, 'call-5', 'plain')],
+    }, {
+      sourceSessionId: sourceId,
+      callId: 'call-5',
+      displayText: 'plain',
+      projection: 'diff',
+    }),
+    /no citable diff projection/u,
   )
 })
 

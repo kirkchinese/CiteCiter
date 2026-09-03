@@ -9,14 +9,16 @@ import type { CiteSelection } from './types.ts';
  *
  * @param event - context-menu event whose pointer position anchors the menu.
  * @param sourceSessionId - current session identity captured with the DOM range.
+ * @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
  * @returns validated selection metadata, or null when CiteCiter should ignore it.
  */
-export declare function readSelection(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null;
+export declare function readSelection(event: MouseEvent, sourceSessionId: SessionId, committedAssistantText?: string): CiteSelection | null;
 /**
  * Claim a context menu only after resolving a valid DSH assistant selection.
  *
  * @param event - context-menu event to validate and optionally cancel.
  * @param sourceSessionId - current source session captured with the selection.
+ * @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
  * @returns validated selection metadata, or null while leaving the native menu untouched.
  */
-export declare function claimSelectionContextMenu(event: MouseEvent, sourceSessionId: SessionId): CiteSelection | null;
+export declare function claimSelectionContextMenu(event: MouseEvent, sourceSessionId: SessionId, committedAssistantText?: string): CiteSelection | null;

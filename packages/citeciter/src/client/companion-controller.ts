@@ -12,6 +12,7 @@ import {
   type CiteCiterSettings,
   type ProviderOption,
   type QuestionAnswer,
+  type TopicScenario,
   type TopicSnapshot,
   type TopicSummary,
 } from '../topic.ts'
@@ -19,9 +20,12 @@ import { readAssistantAnswer } from './answer.ts'
 import { normalizeQuestion } from './prompt.ts'
 import {
   claimAskIntent,
+  claimCreateFreeTopicIntent,
+  claimCreateDocumentIntent,
   claimCreateTopicIntent,
   completeRequestIntent,
   type CreateMode,
+  type DocumentClaimIntent,
   type RequestIntent,
 } from './request-guard.ts'
 import { isCurrentTopicResponse, shouldReopenLastTopic } from './response-guard.ts'
@@ -49,6 +53,8 @@ export interface CompanionSnapshot {
   reasoningEffortSaving: boolean
   renaming: boolean
   archiving: boolean
+  deleting: boolean
+  notice: string | null
   includeArchived: boolean
   error: string | null
 }
@@ -62,8 +68,10 @@ export interface CompanionFace {
   getSnapshot(): CompanionSnapshot
   subscribe(listener: () => void): () => void
   setSource(sessionId: SessionId | null): void
-  setVisible(visible: boolean): void
-  create(selection: CiteSelection, question: string, mode?: CreateMode): Promise<void>
+  retainVisible(): () => void
+  create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario): Promise<void>
+  createFree(question: string, scenario: Extract<TopicScenario, 'qa' | 'present'>): Promise<boolean>
+  createFromDocument(claim: DocumentClaimIntent, question: string): Promise<void>
   openTopic(sessionId: string): Promise<void>
   ask(question: string): Promise<boolean>
   answerQuestion(key: string, answer: QuestionAnswer): Promise<void>
@@ -71,6 +79,8 @@ export interface CompanionFace {
   stop(): Promise<void>
   rename(title: string): Promise<boolean>
   archive(archived: boolean): Promise<boolean>
+  deleteTopic(confirmSessionId: string): Promise<'complete' | 'pending' | false>
+  dismissError(): void
   setIncludeArchived(include: boolean): void
   setModelRoute(provider: string, model: string): Promise<void>
   setReasoningEffort(reasoningEffort: string | null): Promise<void>
@@ -96,6 +106,8 @@ export const INITIAL_COMPANION_SNAPSHOT: CompanionSnapshot = {
   reasoningEffortSaving: false,
   renaming: false,
   archiving: false,
+  deleting: false,
+  notice: null,
   includeArchived: false,
   error: null,
 }
@@ -123,6 +135,16 @@ function writeLastTopic(sourceSessionId: string, topicSessionId: string): void {
     localStorage.setItem(lastTopicKey(sourceSessionId), topicSessionId)
   } catch {
     // Topic durability is Host-owned; a blocked convenience pointer loses no data.
+  }
+}
+
+function clearLastTopic(sourceSessionId: string, topicSessionId: string): void {
+  try {
+    if (localStorage.getItem(lastTopicKey(sourceSessionId)) === topicSessionId) {
+      localStorage.removeItem(lastTopicKey(sourceSessionId))
+    }
+  } catch {
+    // The Host deletion is authoritative; local storage only remembers navigation.
   }
 }
 
@@ -159,9 +181,10 @@ export function createCompanionController(
   const operations = new Set<Promise<unknown>>()
   const remoteOperations = new Set<Promise<unknown>>()
   let visible = false
+  let visibleConsumers = 0
   let sourceGeneration = 0
   let activeGeneration = 0
-  let pollTimer: ReturnType<typeof setInterval> | null = null
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
   let polling = false
   let pollCount = 0
   let topicsRefresh: Promise<void> | null = null
@@ -177,6 +200,7 @@ export function createCompanionController(
   let pendingRoute: { readonly operation: number, readonly sessionId: string, readonly provider: string, readonly model: string } | null = null
   let pendingEffort: { readonly operation: number, readonly sessionId: string, readonly reasoningEffort: string | null } | null = null
   const pendingCreates = new Map<string, Promise<void>>()
+  const pendingFreeCreates = new Map<string, Promise<boolean>>()
   const pendingAsks = new Map<string, Promise<boolean>>()
 
   const track = <Value>(pending: Set<Promise<unknown>>, operation: Promise<Value>): Promise<Value> => {
@@ -214,13 +238,24 @@ export function createCompanionController(
     }
     return { ...topic, topic: { ...topic.topic, modelConfig } }
   }
+  const clearRecoveredError = (topic: TopicSnapshot): TopicSnapshot => {
+    if (topic.error === null) return topic
+    const lastFailure = topic.messages.findLast((message) => message.role === 'error' && message.status === 'failed')
+    if (lastFailure === undefined) return topic
+    const recovered = topic.messages.some((message) =>
+      message.role === 'assistant'
+      && message.seq > lastFailure.seq
+      && !message.streaming
+      && message.text.trim() !== '')
+    return recovered ? { ...topic, error: null } : topic
+  }
   const upsertTopic = (draft: CompanionSnapshot, topic: TopicSummary) => {
     const belongs = topic.archived === draft.includeArchived
     const topics = draft.topics.filter((candidate) => candidate.sessionId !== topic.sessionId)
     draft.topics = belongs ? [...topics, topic].sort((left, right) => right.updatedAt - left.updatedAt) : topics
   }
   const acceptTopic = (rawTopic: TopicSnapshot, operationGeneration: number, expectedSessionId?: string) => {
-    const topic = withPendingModelConfig(rawTopic)
+    const topic = clearRecoveredError(withPendingModelConfig(rawTopic))
     const current = store.getSnapshot()
     if (disposed || !isCurrentTopicResponse(
       operationGeneration,
@@ -234,7 +269,9 @@ export function createCompanionController(
       const lastMessage = topic.messages.at(-1)
       draft.active = topic
       draft.draftQuote = null
-      draft.sourceAnchorKey = readCitationAnchor(topic.topic.sourceSessionId, topic.topic.citation.anchorSeq)
+      draft.sourceAnchorKey = topic.topic.citation === null
+        ? null
+        : readCitationAnchor(topic.topic.sourceSessionId, topic.topic.citation.anchorSeq)
       const stopped = lastMessage?.role === 'error' && lastMessage.status === 'stopped'
       draft.phase = topic.topic.running ? 'running' : stopped ? 'stopped' : topic.error === null ? 'ready' : 'error'
       draft.error = topic.error
@@ -254,6 +291,8 @@ export function createCompanionController(
     if (disposed) return
     update((draft) => {
       draft.phase = 'creating'
+      draft.deleting = false
+      draft.notice = null
       draft.error = null
     })
     try {
@@ -355,6 +394,7 @@ export function createCompanionController(
 
   const poll = async () => {
     if (!visible || disposed || polling) return
+    if (pendingFreeCreates.size > 0) return
     const active = store.getSnapshot().active
     if (active !== null && pendingAsks.has(active.topic.sessionId)) return
     polling = true
@@ -429,6 +469,8 @@ export function createCompanionController(
       draft.reasoningEffortSaving = false
       draft.renaming = false
       draft.archiving = false
+      draft.deleting = false
+      draft.notice = null
       draft.error = null
     })
     if (sessionId !== null) void refreshTopics(true)
@@ -439,19 +481,52 @@ export function createCompanionController(
     visible = next
     if (!visible) {
       reopenSuppressedGeneration = sourceGeneration
-      if (pollTimer !== null) clearInterval(pollTimer)
+      if (pollTimer !== null) clearTimeout(pollTimer)
       pollTimer = null
       return
     }
     void refreshTopics(true)
     void loadModels()
-    pollTimer = setInterval(() => { void poll() }, 700)
+    const schedulePoll = () => {
+      if (!visible || disposed) return
+      const interval = store.getSnapshot().active?.topic.running ? 250 : 700
+      pollTimer = setTimeout(() => { void poll().finally(schedulePoll) }, interval)
+    }
+    schedulePoll()
+  }
+
+  const dismissError = () => {
+    update((draft) => {
+      if (draft.phase !== 'error') return
+      const active = draft.active
+      const lastMessage = active?.messages.at(-1)
+      const stopped = lastMessage?.role === 'error' && lastMessage.status === 'stopped'
+      draft.phase = active === null ? 'idle'
+        : active.topic.running ? 'running'
+          : stopped ? 'stopped'
+            : active.error === null ? 'ready' : 'error'
+      draft.error = active?.error ?? null
+    })
+  }
+
+  const retainVisible = (): (() => void) => {
+    if (disposed) return () => {}
+    visibleConsumers++
+    if (visibleConsumers === 1) setVisible(true)
+    let released = false
+    return () => {
+      if (released || disposed) return
+      released = true
+      visibleConsumers--
+      if (visibleConsumers === 0) setVisible(false)
+    }
   }
 
   async function runCreate(
     selection: CiteSelection,
     question: string,
     mode: CreateMode,
+    scenario: TopicScenario,
     intent: RequestIntent,
   ): Promise<void> {
     if (disposed) return
@@ -462,33 +537,54 @@ export function createCompanionController(
       draft.draftQuote = selection.displayText
       draft.sourceAnchorKey = selection.anchorKey
       draft.active = null
+      draft.notice = null
       draft.error = null
     })
     try {
-      const binding = sessions.binding(selection.sourceSessionId)
-      const node = binding?.session.getSnapshot().chat.nodes.get(selection.anchorKey)
-      if (node === undefined || node.kind !== 'assistant-step') throw new Error('选中的模型回答已不在当前会话快照中')
-      const answer = readAssistantAnswer(node.data)
-      if (answer === null || answer.status !== 'settled') {
-        throw new Error('请在一次模型调用完成后引用；无需等待整轮长任务结束')
+      let response: CiteCiterResponse
+      if (selection.kind === 'assistant-step') {
+        const binding = sessions.binding(selection.sourceSessionId)
+        const node = binding?.session.getSnapshot().chat.nodes.get(selection.anchorKey)
+        if (node === undefined || node.kind !== 'assistant-step') throw new Error('选中的模型回答已不在当前会话快照中')
+        const answer = readAssistantAnswer(node.data)
+        if (answer === null || answer.status !== 'settled') {
+          throw new Error('请在一次模型调用完成后引用；无需等待整轮长任务结束')
+        }
+        response = await call({
+          action: 'create',
+          requestId: intent.requestId,
+          selectionClaim: {
+            sourceSessionId: selection.sourceSessionId,
+            anchorSeq: node.anchorSeq,
+            displayText: selection.displayText,
+            ...(selection.sourceHintText === undefined ? {} : { sourceHintText: selection.sourceHintText }),
+            prefixText: selection.prefixText,
+            suffixText: selection.suffixText,
+          },
+          question,
+          mode,
+          scenario,
+        })
+      } else {
+        response = await call({
+          action: 'create',
+          requestId: intent.requestId,
+          toolClaim: {
+            sourceSessionId: selection.sourceSessionId,
+            callId: selection.callId,
+            displayText: selection.displayText,
+            projection: selection.projection,
+          },
+          question,
+          mode,
+          scenario: 'investigate',
+        })
       }
-      const response = await call({
-        action: 'create',
-        requestId: intent.requestId,
-        selectionClaim: {
-          sourceSessionId: selection.sourceSessionId,
-          anchorSeq: node.anchorSeq,
-          displayText: selection.displayText,
-          ...(selection.sourceHintText === undefined ? {} : { sourceHintText: selection.sourceHintText }),
-          prefixText: selection.prefixText,
-          suffixText: selection.suffixText,
-        },
-        question,
-        mode,
-      })
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
       completeRequestIntent(intent)
-      writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey)
+      if (response.topic.topic.citation !== null) {
+        writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey)
+      }
       acceptTopic(response.topic, operationGeneration)
       await refreshTopics()
     } catch (error) {
@@ -496,19 +592,106 @@ export function createCompanionController(
     }
   }
 
-  const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode): Promise<void> => {
+  const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode, scenario: TopicScenario = 'qa'): Promise<void> => {
     if (disposed) return
     const question = normalizeQuestion(rawQuestion)
     const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode
-    const intent = await claimCreateTopicIntent(selection, question, resolvedMode)
+    const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario)
     if (disposed) return
     const pending = pendingCreates.get(intent.requestId)
     if (pending !== undefined) return pending
-    const operation = runCreate(selection, question, resolvedMode, intent).finally(() => {
+    const operation = runCreate(selection, question, resolvedMode, scenario, intent).finally(() => {
       if (pendingCreates.get(intent.requestId) === operation) pendingCreates.delete(intent.requestId)
     })
     pendingCreates.set(intent.requestId, operation)
     return operation
+  }
+
+  const createFree = async (
+    rawQuestion: string,
+    scenario: Extract<TopicScenario, 'qa' | 'present'>,
+  ): Promise<boolean> => {
+    if (disposed) return false
+    const sourceSessionId = store.getSnapshot().sourceSessionId
+    if (sourceSessionId === null) return false
+    const question = normalizeQuestion(rawQuestion)
+    const intent = await claimCreateFreeTopicIntent(sourceSessionId, question, scenario)
+    if (disposed) return false
+    const pending = pendingFreeCreates.get(intent.requestId)
+    if (pending !== undefined) return pending
+    const operationGeneration = ++activeGeneration
+    update((draft) => {
+      draft.phase = 'creating'
+      draft.notice = null
+      draft.error = null
+    })
+    const operation = (async (): Promise<boolean> => {
+      try {
+        const response = await call({
+          action: 'create',
+          requestId: intent.requestId,
+          sourceSessionId,
+          question,
+          mode: 'observer',
+          scenario,
+        })
+        if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
+        completeRequestIntent(intent)
+        acceptTopic(response.topic, operationGeneration)
+        await refreshTopics()
+        return operationGeneration === activeGeneration
+      } catch (error) {
+        fail(error, operationGeneration)
+        return false
+      }
+    })()
+    pendingFreeCreates.set(intent.requestId, operation)
+    try {
+      return await operation
+    } finally {
+      if (pendingFreeCreates.get(intent.requestId) === operation) pendingFreeCreates.delete(intent.requestId)
+    }
+  }
+
+  const createFromDocument = async (claim: DocumentClaimIntent, rawQuestion: string): Promise<void> => {
+    if (disposed) return
+    const sourceSessionId = store.getSnapshot().sourceSessionId
+    if (sourceSessionId === null) throw new Error('打开 CiteCiter 面板后即可创建文档 Topic')
+    const question = normalizeQuestion(rawQuestion)
+    const intent = await claimCreateDocumentIntent(claim, question)
+    if (disposed) return
+    const operationGeneration = ++activeGeneration
+    update((draft) => {
+      draft.sourceSessionId = sourceSessionId
+      draft.phase = 'creating'
+      draft.draftQuote = claim.displayText
+      draft.sourceAnchorKey = null
+      draft.active = null
+      draft.notice = null
+      draft.error = null
+    })
+    try {
+      const response = await call({
+        action: 'create',
+        requestId: intent.requestId,
+        documentClaim: {
+          sourceSessionId,
+          documentId: claim.documentId,
+          displayText: claim.displayText,
+          prefixText: claim.prefixText,
+          suffixText: claim.suffixText,
+        },
+        question,
+        mode: 'observer',
+        scenario: 'read',
+      })
+      if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的文档 Topic 响应')
+      completeRequestIntent(intent)
+      acceptTopic(response.topic, operationGeneration)
+      await refreshTopics()
+    } catch (error) {
+      fail(error, operationGeneration)
+    }
   }
 
   async function runAsk(active: TopicSnapshot, question: string, intent: RequestIntent): Promise<boolean> {
@@ -643,8 +826,12 @@ export function createCompanionController(
       const response = await call({ action: 'archive', topicSessionId: active.topic.sessionId, archived })
       if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId)
       if (archived !== store.getSnapshot().includeArchived) update((draft) => {
-        draft.active = null
-        draft.phase = 'idle'
+        if (archived) {
+          draft.active = null
+          draft.phase = 'idle'
+        } else {
+          draft.includeArchived = false
+        }
       })
       await refreshTopics()
       if (operationGeneration === activeGeneration) update((draft) => {
@@ -654,6 +841,67 @@ export function createCompanionController(
     } catch (error) {
       if (operationGeneration === activeGeneration) update((draft) => {
         draft.archiving = false
+      })
+      fail(error, operationGeneration)
+      return false
+    }
+  }
+
+  const deleteTopic = async (
+    confirmSessionId: string,
+  ): Promise<'complete' | 'pending' | false> => {
+    if (disposed) return false
+    const active = store.getSnapshot().active
+    if (active === null || confirmSessionId !== active.topic.sessionId) return false
+    const operationGeneration = ++activeGeneration
+    const sessionId = active.topic.sessionId
+    const sourceSessionId = active.topic.sourceSessionId
+    const topicId = active.topic.topicId
+    update((draft) => {
+      draft.deleting = true
+      draft.notice = null
+      draft.error = null
+    })
+    try {
+      const response = await call({
+        action: 'delete',
+        topicSessionId: sessionId,
+        confirmSessionId,
+      })
+      if (response.kind !== 'deleted') throw new Error('CiteCiter 返回了错误的删除响应')
+      if (
+        response.sessionId !== sessionId
+        || response.sourceSessionId !== sourceSessionId
+        || response.topicId !== topicId
+      ) throw new Error('CiteCiter 返回的删除对象与当前 Topic 不一致')
+      clearLastTopic(sourceSessionId, sessionId)
+      const current = store.getSnapshot()
+      update((draft) => {
+        if (draft.sourceSessionId === sourceSessionId) {
+          draft.topics = draft.topics.filter((topic) => topic.sessionId !== sessionId)
+        }
+      })
+      const isCurrent = !disposed
+        && operationGeneration === activeGeneration
+        && current.active?.topic.sessionId === sessionId
+      if (isCurrent) {
+        reopenSuppressedGeneration = sourceGeneration
+        update((draft) => {
+          draft.phase = 'idle'
+          draft.active = null
+          draft.sourceAnchorKey = null
+          draft.deleting = false
+          draft.notice = response.cleanup === 'complete'
+            ? 'Topic 已永久删除。'
+            : 'Topic 已删除；相关资源仍在后台清理。'
+          draft.error = null
+        })
+      }
+      if (store.getSnapshot().sourceSessionId === sourceSessionId) await refreshTopics()
+      return isCurrent ? response.cleanup : false
+    } catch (error) {
+      if (operationGeneration === activeGeneration) update((draft) => {
+        draft.deleting = false
       })
       fail(error, operationGeneration)
       return false
@@ -765,7 +1013,8 @@ export function createCompanionController(
       draft.settingsSaveMessage = '正在保存…'
     })
     try {
-      await track(remoteOperations, settingsScope.set(key, value))
+      if (value === undefined) await track(remoteOperations, settingsScope.unset(key))
+      else await track(remoteOperations, settingsScope.set(key, value))
       if (pendingSettings.get(key)?.operation !== operation || disposed) return
       pendingSettings.delete(key)
       const authoritative = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
@@ -790,8 +1039,10 @@ export function createCompanionController(
     getSnapshot: store.getSnapshot,
     subscribe: store.subscribe,
     setSource,
-    setVisible,
-    create: (selection, question, mode) => admit(undefined, () => create(selection, question, mode)),
+    retainVisible,
+    create: (selection, question, mode, scenario) => admit(undefined, () => create(selection, question, mode, scenario)),
+    createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
+    createFromDocument: (claim, question) => admit(undefined, () => createFromDocument(claim, question)),
     openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
     ask: (question) => admit(false, () => ask(question)),
     answerQuestion: (key, answer) => admit(undefined, () => answerQuestion(key, answer)),
@@ -799,6 +1050,8 @@ export function createCompanionController(
     stop: () => admit(undefined, stop),
     rename: (title) => admit(false, () => rename(title)),
     archive: (archived) => admit(false, () => archive(archived)),
+    deleteTopic: (confirmSessionId) => admit(false, () => deleteTopic(confirmSessionId)),
+    dismissError,
     setIncludeArchived: (include) => {
       if (disposed) return
       activeGeneration++
@@ -809,6 +1062,8 @@ export function createCompanionController(
         draft.topicsStatus = 'loading'
         draft.topicsError = null
         draft.phase = 'idle'
+        draft.deleting = false
+        draft.notice = null
       })
       void refreshTopics(true)
     },
@@ -818,11 +1073,12 @@ export function createCompanionController(
     dispose: async () => {
       if (disposed) return
       disposed = true
+      visibleConsumers = 0
       visible = false
       sourceGeneration++
       activeGeneration++
       topicsRefreshAgain = false
-      if (pollTimer !== null) clearInterval(pollTimer)
+      if (pollTimer !== null) clearTimeout(pollTimer)
       pollTimer = null
       unsubscribeSettings()
       lifecycle.abort(new DOMException('CiteCiter is shutting down', 'AbortError'))

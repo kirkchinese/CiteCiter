@@ -11,6 +11,38 @@ const FIRST_ANSWER = '首轮回答：平行移动比较同一向量沿不同路�
 const FOLLOW_UP_ANSWER = '第二轮回答：曲率可以看成无穷小闭合回路的 holonomy；回路越小，偏差的一阶面积项越直接反映曲率。'
 const FIRST_ANSWER_WITH_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions> [ "能用球面上的例子说明吗？", "holonomy 与曲率是什么关系？", "为什么偏差与回路面积成正比？" ] </citeciter-next-questions>  `
 const FOLLOW_UP_ANSWER_WITH_CONTROL = `${FOLLOW_UP_ANSWER}\n\n<citeciter-next-questions> [ "换一种直觉？", "如何形式化？", "边界是什么？" ] </citeciter-next-questions>  `
+const FIRST_ANSWER_WITH_BOARD = `${FIRST_ANSWER}
+
+<citeciter-next-questions>
+[ "能不能用球面例子说明？", "曲率和 holonomy 有什么关系？", "为什么与回路面积成正比？" ]
+</citeciter-next-questions>`
+const BOARD_OPS = [{
+  op: 'set',
+  id: 'curvature',
+  kind: 'text',
+  content: '曲率 = 平行移动的路径依赖',
+  x: 4,
+  y: 4,
+  w: 42,
+  h: 10,
+}, {
+  op: 'set',
+  id: 'markdown-safety',
+  kind: 'markdown',
+  content: '![远程图片](https://remote.invalid/board.png)\n\n[普通链接](https://example.com/docs)\n\n| 项 | 含义 |\n| --- | --- |\n| 曲率 | 路径依赖 |',
+  x: 4,
+  y: 18,
+  w: 70,
+  h: 25,
+}, {
+  op: 'animate',
+  id: 'curvature',
+  animation: 'pulse',
+  durationMs: 600,
+}, {
+  op: 'focus',
+  id: 'curvature',
+}]
 const MALFORMED_FOLLOWUPS = `${FIRST_ANSWER}\n\n<citeciter-next-questions> [ "只有两个问题？", "应该被静默隐藏吗？" ] </citeciter-next-questions>  `
 let callNumber = 0
 
@@ -80,6 +112,15 @@ function hasToolResult(messages, prefix) {
 
 function hasTool(options, name) {
   return options.tools.some((tool) => tool.name === name)
+}
+
+function hasBoardV4Schema(options) {
+  const tool = options.tools.find((candidate) => candidate.name === 'blackboard_apply')
+  const branches = tool?.parameters?.properties?.ops?.items?.oneOf
+  return Array.isArray(branches)
+    && branches.length === 7
+    && branches.some((branch) => branch.properties?.op?.const === 'focus')
+    && !branches.some((branch) => branch.properties?.op?.const === 'reveal')
 }
 
 function latestHumanQuestion(messages) {
@@ -163,6 +204,9 @@ class FixtureAdapter extends LlmAdapter {
           { label: '推导优先', description: '从定义和推导逐步展开。' },
         ],
       }] }), 'citeciter-fixture-question')
+    } else if (question.includes('黑板') && hasTool(options, 'blackboard_apply') && !hasToolResult(options.messages, 'citeciter-fixture-board-')) {
+      if (!hasBoardV4Schema(options)) throw new Error('blackboard_apply must expose the complete protocol-v4 operation union')
+      chunks = toolChunks('blackboard_apply', JSON.stringify({ ops: BOARD_OPS }), 'citeciter-fixture-board')
     } else {
       const answer = question.includes('调查项目')
         ? '项目调查完成：glob 已枚举文件，grep 已完成全局内容搜索，read 已读取命中文件。'
@@ -171,7 +215,8 @@ class FixtureAdapter extends LlmAdapter {
           : question.includes('工具能力')
             ? `当前工具：${options.tools.map((tool) => tool.name).sort().join('、')}`
             : alreadyAnswered(options.messages) ? FOLLOW_UP_ANSWER_WITH_CONTROL
-              : question.includes('错误快捷问题') ? MALFORMED_FOLLOWUPS : FIRST_ANSWER_WITH_FOLLOWUPS
+              : question.includes('错误快捷问题') ? MALFORMED_FOLLOWUPS
+                : question.includes('黑板') ? FIRST_ANSWER_WITH_BOARD : FIRST_ANSWER_WITH_FOLLOWUPS
       chunks = reasoningTextChunks('正在把工具证据与当前问题整理成清晰回答。', answer)
     }
     const chunkDelayMs = question.includes('停止恢复测试')

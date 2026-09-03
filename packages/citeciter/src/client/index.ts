@@ -12,12 +12,18 @@ import {
 } from '../topic.ts'
 import { TYPERT_REMOTE } from '../typert.remote-client.ts'
 import { createCompanionController, INITIAL_COMPANION_SNAPSHOT } from './companion-controller.ts'
+import { BlackboardWorkspace } from './components/BlackboardWorkspace.tsx'
 import { CitePanel } from './components/CitePanel.tsx'
 import { CiteCiterSettings as CiteCiterSettingsView } from './components/CiteCiterSettings.tsx'
+import { DocumentReader } from './components/DocumentReader.tsx'
 import { SelectionMenu } from './components/SelectionMenu.tsx'
+import { UpdateNotice } from './components/UpdateNotice.tsx'
+import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry } from './entries.ts'
+import { installDynamicAccelerator } from './hotkeys.ts'
+import { createReaderController } from './reader-controller.ts'
 import { createSettingsDocumentController } from './settings-document.ts'
-import { claimSelectionContextMenu } from './selection.ts'
 import { CiteBus } from './types.ts'
+import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from './update-controller.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
 export const inject = ['slots', 'sessions', 'remote', 'settingsScope', 'connection']
@@ -47,6 +53,21 @@ export async function apply(ctx: Context): Promise<void> {
         if (!response.result.ok) throw new Error(response.result.error.message)
       },
     )
+    const updateController = createUpdateController(
+      settings,
+      async (signal) => {
+        const response = await remoteCtx.remote.citeciter.checkUpdate(signal)
+        if (!response.ok) throw new Error(response.error.message)
+        const result = response.value
+        if (result.kind === 'error') throw new Error(`CiteCiter update check failed: ${result.code}`)
+        return result.updateAvailable
+          ? { currentVersion: result.installedVersion, latestVersion: result.latestVersion }
+          : null
+      },
+      createSnapshotStore(INITIAL_UPDATE_SNAPSHOT),
+      undefined,
+      (error) => remoteCtx.logger.warn('CiteCiter update check failed', error),
+    )
     const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error))
     const openPanel = () => {
       bus.setPanelOpen(true)
@@ -54,12 +75,20 @@ export async function apply(ctx: Context): Promise<void> {
     const closePanel = () => {
       bus.setPanelOpen(false)
     }
+    const disposeHotkey = installDynamicAccelerator(
+      () => settings.getSnapshot().value?.shortcutOpenPanel,
+      openPanel,
+    )
     const companion = createCompanionController(
       sessions,
       settings,
       (request, signal) => remoteCtx.remote.citeciter.request(request, signal),
       openPanel,
       createSnapshotStore(INITIAL_COMPANION_SNAPSHOT),
+    )
+    const reader = createReaderController(
+      (request, signal) => remoteCtx.remote.citeciter.request(request, signal),
+      companion,
     )
     const reportedParseErrors = new Set<string>()
     const reportParseError = (messageId: string) => {
@@ -82,12 +111,21 @@ export async function apply(ctx: Context): Promise<void> {
     const unsubscribeSessions = sessions.list.subscribe(syncSource)
 
     remoteCtx.effect(() => {
+      const entries = createCiteCiterEntryRegistry()
+      const disposeAssistantEntry = remoteCtx.effect(
+        () => entries.register(createAssistantEntry()),
+        'citeciter: assistant selection entry',
+      )
+      const disposeToolEntry = remoteCtx.effect(
+        () => entries.register(createToolEvidenceEntry()),
+        'citeciter: tool evidence entry',
+      )
       const onContextMenu = (event: MouseEvent) => {
         const sourceSessionId = sessions.list.getSnapshot().current
         if (sourceSessionId === undefined) return
-        const selection = claimSelectionContextMenu(event, sourceSessionId)
-        if (selection === null) return
-        bus.setMenuSelection(selection)
+        const claim = entries.claim(event, { sessions, sourceSessionId })
+        if (claim === null) return
+        bus.setMenuSelection(claim.selection)
       }
       const onPointerDown = (event: PointerEvent) => {
         const target = event.target
@@ -102,6 +140,8 @@ export async function apply(ctx: Context): Promise<void> {
       document.addEventListener('pointerdown', onPointerDown)
       document.addEventListener('keydown', onKeyDown)
       return () => {
+        disposeAssistantEntry()
+        disposeToolEntry()
         document.removeEventListener('contextmenu', onContextMenu)
         document.removeEventListener('pointerdown', onPointerDown)
         document.removeEventListener('keydown', onKeyDown)
@@ -118,18 +158,37 @@ export async function apply(ctx: Context): Promise<void> {
       id: 'citeciter.panel',
       inject: () => ({ bus, companion, closePanel, reportParseError }),
     }, CitePanel))
+    remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
+      name: 'shell.overlay',
+      id: 'citeciter.reader',
+      inject: () => ({ reader }),
+    }, DocumentReader))
+    remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
+      name: 'shell.overlay',
+      id: 'citeciter.update-notice',
+      inject: () => ({ updateController }),
+    }, UpdateNotice))
+    remoteCtx.slots.inject('conversation.view', () => remoteCtx.slots.register({
+      name: 'conversation.view',
+      id: 'citeciter.blackboard',
+      order: 30,
+      label: '小黑板',
+      inject: () => ({ companion, bus, openPanel }),
+    }, BlackboardWorkspace))
     remoteCtx.slots.inject('settings.section', () => remoteCtx.slots.register({
       name: 'settings.section',
       id: 'citeciter',
       order: 45,
       label: 'CiteCiter',
-      inject: () => ({ companion, settingsDocument }),
+      inject: () => ({ companion, settingsDocument, updateController }),
     }, CiteCiterSettingsView))
 
     remoteCtx.effect(() => async () => {
       unsubscribeSessions()
+      disposeHotkey()
       closePanel()
-      await Promise.all([companion.dispose(), settingsDocument.dispose()])
+      await Promise.all([companion.dispose(), reader.dispose(), settingsDocument.dispose(), updateController.dispose()])
     }, 'citeciter: browser controller')
+    void updateController.start()
   })
 }
