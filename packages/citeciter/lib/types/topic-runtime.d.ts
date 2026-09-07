@@ -396,6 +396,7 @@ export declare class TopicRuntime {
     private createHandle;
     private setupAgent;
     private globTool;
+    private learningCardsTool;
     private blackboardApplyTool;
     private readDocumentTool;
     private searchDocumentTool;

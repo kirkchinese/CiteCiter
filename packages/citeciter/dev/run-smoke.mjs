@@ -31,18 +31,20 @@ await writeFile(join(dshHome, 'profiles/web/cordis.patch.yml'), `- insert:
       name: ${fixture('assembled-smoke.mjs')}
 `)
 await mkdir(new URL('../tests/snapshots/', import.meta.url), { recursive: true })
+async function bootAndVerify(file, extraEnvironment = {}) {
 const child = spawn(process.execPath, [bin, '--profile', 'web', '--host', '127.0.0.1', '--port', '0', '--no-open'], {
-  cwd: packageRoot, env: environment, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
+  cwd: packageRoot, env: { ...environment, ...extraEnvironment }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
 })
+const exited = new Promise(resolve => child.once('close', resolve))
 let diagnostics = ''
 child.stdout.on('data', bytes => { diagnostics += bytes })
 child.stderr.on('data', bytes => { diagnostics += bytes })
 const launchError = new Promise((_, reject) => child.once('error', reject))
 try {
   const result = await Promise.race([launchError, (async () => {
-    const deadline = Date.now() + 120_000
+    const deadline = Date.now() + 180_000
     while (Date.now() < deadline) {
-      try { return JSON.parse(await readFile(join(dshHome, 'assembled-smoke.json'), 'utf8')) }
+      try { return JSON.parse(await readFile(join(dshHome, file), 'utf8')) }
       catch (error) { if (error.code !== 'ENOENT') throw error }
       if (child.exitCode !== null) throw new Error(`DSH exited (${child.exitCode}): ${diagnostics}`)
       await new Promise(resolve => setTimeout(resolve, 250))
@@ -50,7 +52,11 @@ try {
     throw new Error(`DSH smoke timed out: ${diagnostics}`)
   })()])
   if (!result.ok) throw new Error(JSON.stringify(result, null, 2))
-  console.log(`Keyless Observer / Exact Fork / board snapshot passed. Artifacts: ${dshHome}`)
 } finally {
   child.kill()
+  await exited
 }
+}
+await bootAndVerify('assembled-smoke.json')
+await bootAndVerify('restored-smoke.json', { CITECITER_VERIFY_RESTORE: '1' })
+console.log(`Keyless Observer / Exact Fork / five-stage learning / board / cards / restart snapshot passed. Artifacts: ${dshHome}`)

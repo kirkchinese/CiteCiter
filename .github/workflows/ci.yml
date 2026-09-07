@@ -33,4 +33,4 @@ jobs:
       - run: pnpm build
       - run: pnpm test:snapshot
       - run: pnpm --dir packages/citeciter pack --pack-destination ../../.refs/artifacts
-      - run: node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.6.0.tgz
+      - run: node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.1.tgz

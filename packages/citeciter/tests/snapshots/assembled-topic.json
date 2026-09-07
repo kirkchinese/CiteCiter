@@ -16,7 +16,47 @@
       },
       {
         "role": "assistant",
-        "text": "当前工具：ask_user_question、blackboard_apply、glob、grep、read、read_source_session"
+        "text": "当前工具：ask_user_question、blackboard_apply、glob、grep、learning_cards、read、read_source_session"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：底层逻辑】\n请讲清当前主题的底层逻辑：先给出定义和成立条件，再解释因果机制与为什么成立。区分来源证据、一般知识和假设。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "底层逻辑：先定义平行移动，再比较向量沿闭合回路返回时的方向。曲率描述局部的路径依赖；大回路还需要考虑整体几何。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：定性分析】\n请对当前主题做定性分析：解释变量或因素之间的关系、变化方向、边界与反例，用一个具体情境说明。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "定性分析：平面的小回路没有这种局部方向偏差；球面一般会出现。缩小回路会减小偏差，但方向还取决于回路定向。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：定量分析（板书）】\n请对当前主题做定量分析，并调用 blackboard_apply 整理板书：注明变量、单位、假设、推导步骤与一个可核查算例。示例数值必须标明是假设，不得伪造来源数据。如果此主题不适合定量或信息不足，请明确说明原因。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "定量分析：板书给出小回路近似 Δθ ≈ K A。假设局部 K = 2、A = 0.01，则 Δθ ≈ 0.02 弧度。这里的数值是示例假设，不是来源测量。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：概念关联】\n请围绕当前主题给出 2–4 个最有帮助的概念关联，逐一解释是前提、推论、类比还是对比，说明关联理由与类比的边界。需要时用板书画关系。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "概念关联：联络定义如何平行移动，是前提；holonomy 描述沿回路移动的整体结果，曲率给出它的局部信息；高斯曲率是二维曲面上的对应量。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：总结学习卡片】\n请总结本 Topic 已讨论的内容，调用 learning_cards 生成 1–6 张学习卡片。每张包含核心结论、一个具体例子、可选自测问题和参考答案；不要补造未证实结论，涉及来源事实时在结论中保留来源定位。完成后简短说明，不安排复习计划。"
+      },
+      {
+        "role": "assistant",
+        "text": "已整理一张学习卡片，保留核心关系、假设算例与可选自测。可以在“学习卡”中阅读和导出。"
       }
     ],
     "tools": [
@@ -26,6 +66,14 @@
       },
       {
         "name": "blackboard_apply",
+        "isError": false
+      },
+      {
+        "name": "blackboard_apply",
+        "isError": false
+      },
+      {
+        "name": "learning_cards",
         "isError": false
       }
     ],
@@ -39,6 +87,20 @@
         "id": "markdown-safety",
         "kind": "markdown",
         "content": "![远程图片](https://remote.invalid/board.png)\n\n[普通链接](https://example.com/docs)\n\n| 项 | 含义 |\n| --- | --- |\n| 曲率 | 路径依赖 |"
+      },
+      {
+        "id": "quantitative-example",
+        "kind": "math",
+        "content": "\\Delta\\theta \\approx K A"
+      }
+    ],
+    "cards": [
+      {
+        "title": "曲率与平行移动",
+        "summary": "在定向曲面的小闭合回路上，转角的一阶面积项由高斯曲率刻画。",
+        "example": "假设局部 K = 2，回路面积 A = 0.01，则小回路近似转角约为 0.02 弧度。",
+        "question": "为什么面积减半时转角也近似减半？",
+        "answer": "局部曲率近似不变时，转角的一阶项与回路面积成正比。"
       }
     ]
   },
@@ -59,7 +121,47 @@
       },
       {
         "role": "assistant",
-        "text": "当前工具：ask_user_question、blackboard_apply、glob、grep、read、read_source_session"
+        "text": "当前工具：ask_user_question、blackboard_apply、glob、grep、learning_cards、read、read_source_session"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：底层逻辑】\n请讲清当前主题的底层逻辑：先给出定义和成立条件，再解释因果机制与为什么成立。区分来源证据、一般知识和假设。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "底层逻辑：先定义平行移动，再比较向量沿闭合回路返回时的方向。曲率描述局部的路径依赖；大回路还需要考虑整体几何。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：定性分析】\n请对当前主题做定性分析：解释变量或因素之间的关系、变化方向、边界与反例，用一个具体情境说明。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "定性分析：平面的小回路没有这种局部方向偏差；球面一般会出现。缩小回路会减小偏差，但方向还取决于回路定向。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：定量分析（板书）】\n请对当前主题做定量分析，并调用 blackboard_apply 整理板书：注明变量、单位、假设、推导步骤与一个可核查算例。示例数值必须标明是假设，不得伪造来源数据。如果此主题不适合定量或信息不足，请明确说明原因。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "定量分析：板书给出小回路近似 Δθ ≈ K A。假设局部 K = 2、A = 0.01，则 Δθ ≈ 0.02 弧度。这里的数值是示例假设，不是来源测量。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：概念关联】\n请围绕当前主题给出 2–4 个最有帮助的概念关联，逐一解释是前提、推论、类比还是对比，说明关联理由与类比的边界。需要时用板书画关系。只讲这一阶段，不自动推进。"
+      },
+      {
+        "role": "assistant",
+        "text": "概念关联：联络定义如何平行移动，是前提；holonomy 描述沿回路移动的整体结果，曲率给出它的局部信息；高斯曲率是二维曲面上的对应量。"
+      },
+      {
+        "role": "user",
+        "text": "【学习阶段：总结学习卡片】\n请总结本 Topic 已讨论的内容，调用 learning_cards 生成 1–6 张学习卡片。每张包含核心结论、一个具体例子、可选自测问题和参考答案；不要补造未证实结论，涉及来源事实时在结论中保留来源定位。完成后简短说明，不安排复习计划。"
+      },
+      {
+        "role": "assistant",
+        "text": "已整理一张学习卡片，保留核心关系、假设算例与可选自测。可以在“学习卡”中阅读和导出。"
       }
     ],
     "tools": [
@@ -69,6 +171,14 @@
       },
       {
         "name": "blackboard_apply",
+        "isError": false
+      },
+      {
+        "name": "blackboard_apply",
+        "isError": false
+      },
+      {
+        "name": "learning_cards",
         "isError": false
       }
     ],
@@ -82,6 +192,20 @@
         "id": "markdown-safety",
         "kind": "markdown",
         "content": "![远程图片](https://remote.invalid/board.png)\n\n[普通链接](https://example.com/docs)\n\n| 项 | 含义 |\n| --- | --- |\n| 曲率 | 路径依赖 |"
+      },
+      {
+        "id": "quantitative-example",
+        "kind": "math",
+        "content": "\\Delta\\theta \\approx K A"
+      }
+    ],
+    "cards": [
+      {
+        "title": "曲率与平行移动",
+        "summary": "在定向曲面的小闭合回路上，转角的一阶面积项由高斯曲率刻画。",
+        "example": "假设局部 K = 2，回路面积 A = 0.01，则小回路近似转角约为 0.02 弧度。",
+        "question": "为什么面积减半时转角也近似减半？",
+        "answer": "局部曲率近似不变时，转角的一阶项与回路面积成正比。"
       }
     ]
   }

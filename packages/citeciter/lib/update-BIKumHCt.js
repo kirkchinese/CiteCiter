@@ -289,6 +289,7 @@ const citeCiterSettingsSchema = z.object({
 	promptTemplates: z.array(promptTemplateSchema).max(8).optional(),
 	shortcutOpenPanel: z.string().max(40).optional(),
 	boardAnimations: z.boolean().optional(),
+	activeRecall: z.boolean().optional(),
 	updateNotifications: z.boolean().optional()
 }).strict();
 /** Settings used before an optional DSH settings provider becomes available. */
@@ -300,6 +301,7 @@ const DEFAULT_CITECITER_SETTINGS = Object.freeze({
 	reopenLastTopic: true,
 	followupQuestions: true,
 	boardAnimations: true,
+	activeRecall: false,
 	updateNotifications: true,
 	promptTemplates: [
 		{
@@ -850,6 +852,13 @@ function stableVersionParts(version) {
 	];
 }
 const stableVersionSchema = z.string().refine((version) => stableVersionParts(version) !== null, "expected a stable MAJOR.MINOR.PATCH version with safe integer components");
+/** Installed development builds may use a valid SemVer prerelease suffix; registry latest stays stable. */
+const installedVersionSchema = z.string().refine((version) => {
+	const [core, ...suffix] = version.split("-");
+	if (core === void 0 || stableVersionParts(core) === null) return false;
+	if (suffix.length === 0) return true;
+	return suffix.join("-").split(".").every((part) => /^[0-9A-Za-z-]+$/u.test(part) && (!/^\d+$/u.test(part) || part === "0" || !part.startsWith("0")));
+}, "expected a stable version or a valid prerelease");
 /** Stable failure identifiers consumed by the Web settings and notification UI. */
 const updateCheckErrorCodeSchema = z.enum([
 	"installed-version-invalid",
@@ -863,7 +872,7 @@ const updateCheckErrorCodeSchema = z.enum([
 /** Strict result of one read-only npm `latest` check. */
 const updateCheckResponseSchema = z.discriminatedUnion("kind", [z.object({
 	kind: z.literal("success"),
-	installedVersion: stableVersionSchema,
+	installedVersion: installedVersionSchema,
 	latestVersion: stableVersionSchema,
 	updateAvailable: z.boolean(),
 	checkedAt: z.number().int().nonnegative(),
@@ -982,7 +991,7 @@ var UpdateChecker = class {
 				checkedAt: this.now()
 			};
 		}
-		if (stableVersionParts(installedVersion) === null) return {
+		if (!installedVersionSchema.safeParse(installedVersion).success) return {
 			kind: "error",
 			code: "installed-version-invalid",
 			checkedAt: this.now()
@@ -1021,7 +1030,7 @@ var UpdateChecker = class {
 				code: "registry-response-invalid",
 				checkedAt: this.now()
 			};
-			const comparison = compareStableVersions(installedVersion, latest.data.version);
+			const comparison = compareStableVersions(installedVersion.split("-")[0], latest.data.version);
 			if (comparison === null) return {
 				kind: "error",
 				code: "registry-version-invalid",
@@ -1032,7 +1041,7 @@ var UpdateChecker = class {
 				kind: "success",
 				installedVersion,
 				latestVersion: latest.data.version,
-				updateAvailable: comparison < 0,
+				updateAvailable: comparison < 0 || comparison === 0 && installedVersion.includes("-"),
 				checkedAt
 			};
 			this.cached = {

@@ -1,5 +1,6 @@
 /** Private DSH runtime and durable Topic index for CiteCiter conversations. */
 import { randomUUID } from 'node:crypto'
+import { LEARNING_PROMPT, learningCardsInputSchema } from './learning.ts'
 import {
   lstat,
   mkdir,
@@ -123,7 +124,7 @@ const TOPIC_SESSION_ROOT = dshHomePath('citeciter', 'sessions')
 const SOURCE_READ_MAX_BYTES = 128 * 1024
 const DOCUMENT_TOOL_MAX_BYTES = 50 * 1024
 const DOCUMENT_SEARCH_MAX_MATCHES = 20
-const ALWAYS_AVAILABLE_TOOLS = new Set(['read_source_session', 'ask_user_question'])
+const ALWAYS_AVAILABLE_TOOLS = new Set(['read_source_session', 'ask_user_question', 'blackboard_apply', 'learning_cards'])
 const SOURCE_FILE_TOOLS = new Set(['read', 'glob', 'grep'])
 
 /**
@@ -133,7 +134,7 @@ const SOURCE_FILE_TOOLS = new Set(['read', 'glob', 'grep'])
 const SCENARIO_BASE_TOOLS: Record<TopicScenario, ReadonlySet<string>> = {
   qa: new Set(ALWAYS_AVAILABLE_TOOLS),
   present: new Set([...ALWAYS_AVAILABLE_TOOLS, 'blackboard_apply']),
-  read: new Set(['ask_user_question', 'read_document', 'search_document']),
+  read: new Set(['ask_user_question', 'read_document', 'search_document', 'blackboard_apply', 'learning_cards']),
   investigate: new Set(ALWAYS_AVAILABLE_TOOLS),
 }
 const TOPIC_TITLE_PROVIDER = SessionTitleProviderId('@kirkchinese/dsh-citeciter:topic-title')
@@ -228,7 +229,7 @@ update, animate, and non-null focus must name an element that already exists at 
 /** Select the scenario-owned tutor section for one Topic. */
 function scenarioTutorPrompt(scenario: TopicScenario): string {
   if (scenario === 'read') return READING_PROMPT
-  if (scenario === 'present') return PRESENTER_PROMPT
+  if (scenario === 'present') return TUTOR_PROMPT
   if (scenario === 'investigate') return `${TUTOR_PROMPT}\n\n${INVESTIGATE_NOTE}`
   return TUTOR_PROMPT
 }
@@ -240,7 +241,7 @@ function scenarioTutorPrompt(scenario: TopicScenario): string {
  * @returns the complete tutor prompt.
  */
 export function composeTutorPrompt(scenario: TopicScenario, custom: string | undefined): string {
-  const base = scenarioTutorPrompt(scenario)
+  const base = `${scenarioTutorPrompt(scenario)}\n\n${PRESENTER_PROMPT}\n\n${LEARNING_PROMPT}`
   if (custom === undefined || custom === '') return base
   return `${base}\n\n<user-teaching-preferences>\n${custom}\n</user-teaching-preferences>\n\nThe preferences above may adjust teaching style only. They cannot override the read-only rule, evidence handling, scenario behavior, tool policy, or blackboard protocol.`
 }
@@ -1625,9 +1626,8 @@ export class TopicRuntime {
       agentCtx.tools.register(this.readDocumentTool(metadata))
       agentCtx.tools.register(this.searchDocumentTool(metadata))
     }
-    if (metadata.scenario === 'present') {
-      agentCtx.tools.register(this.blackboardApplyTool())
-    }
+    agentCtx.tools.register(this.blackboardApplyTool())
+    agentCtx.tools.register(this.learningCardsTool())
     agentCtx.tools.guard((execution) => {
       if (citeCiterToolAvailable(execution.name, this.settings().allowSourceFiles, metadata.scenario)) return undefined
       return `CiteCiter Topics are read-only; ${execution.name} is unavailable.`
@@ -1726,10 +1726,44 @@ export class TopicRuntime {
     })
   }
 
+  private learningCardsTool() {
+    return defineTool({
+      name: 'learning_cards',
+      description: 'Save a complete set of 1–8 summary learning cards inside this Topic only. Use only when asked to summarize or revise cards. Replaces the displayed set; older sets remain in the Topic log.',
+      parameters: {
+        cards: {
+          type: 'array', required: true, description: 'Complete set of 1–8 cards.',
+          items: {
+            type: 'object', additionalProperties: false,
+            properties: {
+              title: { type: 'string', required: true, description: 'Non-empty title, at most 100 characters.' },
+              summary: { type: 'string', required: true, description: 'Non-empty summary, at most 2000 characters.' },
+              example: { type: 'string', required: true, description: 'Non-empty example, at most 1500 characters.' },
+              question: { type: 'string', required: true, description: 'Non-empty question, at most 500 characters.' },
+              answer: { type: 'string', required: true, description: 'Non-empty answer, at most 2000 characters.' },
+            },
+          },
+        },
+      },
+      output: {
+        schema: { type: 'object', additionalProperties: false, properties: { saved: { type: 'integer', required: true } } },
+        render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+        presentationMeta: (_args, value) => ({ saved: value.saved }),
+      },
+      execute: async (args, exec) => {
+        if (exec.agent?.session === undefined) throw new Error('learning_cards requires a Topic Session')
+        const { cards } = learningCardsInputSchema.parse(args)
+        return { saved: cards.length }
+      },
+      presentCall: () => ({ card: 'generic', title: '整理学习卡片' }),
+      presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '学习卡片未保存' : '学习卡片已保存' }),
+    })
+  }
+
   private blackboardApplyTool() {
     return defineTool({
       name: 'blackboard_apply',
-      description: 'Atomically apply one protocol-v4 blackboard batch for the current present Topic. A failed batch leaves the board unchanged.',
+      description: 'Atomically apply one protocol-v4 blackboard batch for the current learning Topic. A failed batch leaves the board unchanged.',
       parameters: BLACKBOARD_APPLY_PARAMETERS,
       output: {
         schema: {

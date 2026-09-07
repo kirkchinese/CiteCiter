@@ -8,6 +8,30 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/hero/citeciter-hero.png" width="100%" alt="CiteCiter 将选中的 AI 回答展开为独立 Topic"></p>
 
+## 0.7 学习工作台（本分支开发预览）
+
+稳定发布为 [0.6.0](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.6.0)，npm `latest` 已指向该版本。本分支为 **0.7.0-beta.1** 开发预览，尚未发布到 npm；下方安装命令仍安装稳定版。
+
+新版学习路线为 **底层逻辑 → 定性分析 → 定量分析（板书）→ 概念关联 → 总结学习卡片**。阶段可以自由选择或跳过，选择后点击发送才开始，也可随时切回自由追问。新建“学习讲解”默认从底层逻辑开始。定量阶段要求注明变量、单位、假设和算例；不适合定量时说明原因。
+
+- 学习栏内有“讲解 / 板书 / 学习卡”三个视图，Topic 改为顶部切换，模型、标题与管理动作按需展开。窄窗口默认收起阶段导航，把空间留给正文。
+- 各类 Topic 均可使用板书和学习卡。侧栏板书默认条目阅读，需要看位置关系时切换画布；原生“小黑板”入口保留。
+- 总结通过 `learning_cards` 工具保存完整卡片组。重开 Topic 或重启宿主可恢复；再次总结展示最新完整一组，旧组保留在 Topic 记录中。支持 Markdown 导出和通过追问修订。
+- **主动回忆可选、默认关闭**。关闭时直接阅读结论和例子，开启后先看问题再展开参考内容。没有间隔复习、到期提醒或打卡。
+- 追问建议和板书引用追加到草稿，随后由用户发送。切换 Topic、收起再打开面板保留本页草稿；刷新页面或重启后未发送草稿不恢复。`Ctrl/⌘ + Enter` 发送，Enter 换行。
+
+在独立测试 home 中体验源码：
+
+```powershell
+$env:DSH_HOME = "$PWD/.refs/learning-preview"
+pnpm install --frozen-lockfile
+pnpm build
+dsh plugin --profile web add "$PWD/packages/citeciter"
+dsh --profile web --host 127.0.0.1 --port 10529 --no-open
+```
+
+Desktop 预览需要另一个独立 home，并在实际选择的 profile 中安装本地包。验证与限制见 [0.7.0-beta.1 开发说明](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.7.0-beta.1.md)。卡片质量取决于模型；当前没有跨 Topic 搜索、独立手工卡片编辑器、知识图谱数据库或跨端同步。
+
 ## 0.6.0 安装与兼容
 
 CiteCiter **0.6.0** 的安装基线是 DSH `0.1.2-rc.1`，Desktop 对应 [DSH Desktop 2.0.5](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.5)。Node.js 要求 `^22.19.0 || >=24.0.0`；Windows 实测使用 Node 24.19.0。DSH alpha 与 Desktop master 不在此兼容承诺中。
@@ -18,7 +42,7 @@ CiteCiter **0.6.0** 的安装基线是 DSH `0.1.2-rc.1`，Desktop 对应 [DSH De
 | DSH Desktop 2.0.5 | Desktop 当前 profile，默认 `desktop` | 适配目标，分模式验证见 release 文档 |
 | DSH 0.1.1-rc.1 / rc.2 | 旧环境 | 保留 CiteCiter 0.5.0 |
 | DSH alpha、TUI | — | 未支持 |
-| Linux / macOS | 相同包 | 本轮未运行平台验证 |
+| Linux / macOS | 相同包 | 0.6.0 Linux CI 通过；Linux/macOS UI 未验证 |
 
 安装或升级 Web 插件：
 
@@ -48,7 +72,7 @@ npm install -g @deepseek-ai/dsh@0.1.2-rc.1 --allow-scripts=@deepseek-ai/dsh-subp
 
 这解决原生依赖安装问题；旧插件引用已移除的 `effectiveSandboxMode` 则需要升级插件，单独重装宿主不会修复。
 
-## 开始使用
+## 稳定版 0.6.0 使用流程
 
 1. 选中已提交的助手回答或思考内容，右键输入问题，选择“开始提问”或“开始讲解”。
 2. 在右侧学习栏继续追问、切换模型和思考强度，或管理 Topic 标题、归档和删除。
@@ -88,7 +112,7 @@ pnpm build
 pnpm test:snapshot
 ```
 
-实际应用快照使用临时 profile 与无密钥模型，覆盖 Observer、Exact Fork、来源读取、板书和来源日志不变性。Host API `ctx.citeciterRuntime` 提供 `create`、`ask`、`get`、`list`、`delete` 及 Topic 变化事件。前端入口注册 API 和 preset 扩展仍未稳定。开发流程见 [贡献指南](https://github.com/kirkchinese/CiteCiter/blob/main/CONTRIBUTING.zh.md)，公开变更见 [0.6.0 发布说明](https://github.com/kirkchinese/CiteCiter/blob/main/docs/releases/v0.6.0.md)。
+实际应用快照使用临时 profile 与无密钥模型，覆盖 Observer、Exact Fork、来源读取、板书和来源日志不变性。Host API `ctx.citeciterRuntime` 提供 `create`、`ask`、`get`、`list`、`delete` 及 Topic 变化事件。前端入口注册 API 和 preset 扩展仍未稳定。开发流程见 [贡献指南](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/CONTRIBUTING.zh.md)，公开变更见 [0.6.0 发布说明](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.6.0.md)。
 
 ## 社区与许可证
 
@@ -96,4 +120,4 @@ DSH-Citeciter QQ 群：`1108040435`。
 
 <p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/community/qq-group.jpg" width="280" alt="DSH-Citeciter QQ 群二维码"></p>
 
-[MIT License](https://github.com/kirkchinese/CiteCiter/blob/main/LICENSE)
+[MIT License](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/LICENSE)

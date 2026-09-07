@@ -61,6 +61,7 @@ export const CITECITER_SETTINGS_SCHEMA = z.object({
     })).max(8).default([]),
     shortcutOpenPanel: z.string().max(40).default(''),
     boardAnimations: z.boolean().default(DEFAULT_CITECITER_SETTINGS.boardAnimations ?? true),
+    activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
     updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
 });
 function currentSettings(ctx) {

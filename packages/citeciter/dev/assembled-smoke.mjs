@@ -6,6 +6,7 @@ import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { MessageId } from '@deepseek-ai/dsh-llm'
+import { LEARNING_STAGES, learningQuestion, projectLearningCards, latestLearningStage } from '../lib/types/learning.js'
 
 export const name = 'citeciter-assembled-smoke'
 export const inject = ['agents', 'sessions', 'citeciterRuntime', 'llm']
@@ -38,6 +39,19 @@ async function run(ctx) {
     const out = join(dshHome, 'assembled-smoke.json')
     let source
     try {
+      if (process.env.CITECITER_VERIFY_RESTORE === '1') {
+        const previous = JSON.parse(await readFile(out, 'utf8'))
+        assert.equal(previous.ok, true)
+        for (const saved of previous.snapshots) {
+          const restored = await ctx.citeciterRuntime.get(saved.topic.sessionId)
+          assert.equal(restored.error, null)
+          assert.deepEqual(projectLearningCards(restored.messages), projectLearningCards(saved.messages))
+          assert.equal(latestLearningStage(restored.messages), 'summary')
+          assert.deepEqual(restored.board, saved.board)
+        }
+        await writeFile(join(dshHome, 'restored-smoke.json'), JSON.stringify({ ok: true }) + '\n')
+        return
+      }
       source = await ctx.agents.create({
         sessionId: SessionId(`session-${randomUUID()}`),
         meta: { cwd: fileURLToPath(new URL('../../../', import.meta.url)), agentPreset: 'standard' },
@@ -66,7 +80,17 @@ async function run(ctx) {
         assert.equal(first.board.elements.length, 2)
         assert.ok(first.messages.some(message => message.role === 'tool' && message.name === 'blackboard_apply' && !message.isError))
         await ctx.citeciterRuntime.ask({ action: 'ask', topicSessionId: first.topic.sessionId, requestId: randomUUID(), question: '工具能力' })
-        snapshots.push(await settled(ctx.citeciterRuntime, first.topic.sessionId))
+        await settled(ctx.citeciterRuntime, first.topic.sessionId)
+        for (const stage of LEARNING_STAGES) {
+          await ctx.citeciterRuntime.ask({ action: 'ask', topicSessionId: first.topic.sessionId, requestId: randomUUID(), question: learningQuestion(stage.id) })
+          const step = await settled(ctx.citeciterRuntime, first.topic.sessionId)
+          assert.equal(step.error, null)
+          assert.equal(latestLearningStage(step.messages), stage.id)
+        }
+        const final = await ctx.citeciterRuntime.get(first.topic.sessionId)
+        assert.equal(projectLearningCards(final.messages).cards.length, 1)
+        assert.ok(final.board.elements.some(element => element.id === 'quantitative-example'))
+        snapshots.push(final)
       }
       assert.deepEqual(source.agent.session.snapshotEvents(), baseline, 'Topics must not modify source events')
       const transcript = snapshots.map(snapshot => ({
@@ -75,6 +99,7 @@ async function run(ctx) {
           .map(({ role, text }) => ({ role, text: text.trim() })),
         tools: snapshot.messages.filter(message => message.role === 'tool').map(({ name, isError }) => ({ name, isError })),
         board: snapshot.board.elements.map(({ id, kind, content }) => ({ id, kind, content })),
+        cards: projectLearningCards(snapshot.messages).cards,
       }))
       const expectedPath = new URL('../tests/snapshots/assembled-topic.json', import.meta.url)
       if (process.env.CITECITER_RECORD_SNAPSHOT === '1') {
@@ -87,6 +112,10 @@ async function run(ctx) {
       await rename(out + '.tmp', out)
       ctx.logger.info('CiteCiter assembled smoke passed: %s', out)
     } catch (error) {
+      if (process.env.CITECITER_VERIFY_RESTORE === '1') {
+        await writeFile(join(dshHome, 'restored-smoke.json'), JSON.stringify({ ok: false, error: String(error), stack: error.stack }) + '\n')
+        return
+      }
       await writeFile(out + '.tmp', JSON.stringify({ ok: false, error: String(error), stack: error.stack,
         events: source?.agent.session.snapshotEvents().filter(event => /error|end$/u.test(event.type)),
       }, null, 2) + '\n')

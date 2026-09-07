@@ -8,6 +8,30 @@ Select a committed response and explore it in a private Topic while the main tas
 
 <p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/hero/citeciter-hero.png" width="100%" alt="Explore selected AI output in private CiteCiter Topics"></p>
 
+## 0.7 learning workspace (development preview on this branch)
+
+The stable release is [0.6.0](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.6.0), now available through npm `latest`. This branch is **0.7.0-beta.1**, a development preview not published to npm. The commands below continue to install stable 0.6.0.
+
+The learning route is **underlying logic → qualitative analysis → quantitative analysis (board) → concept connections → summary learning cards**. Select or skip any stage, then send to begin. Free follow-ups remain available. New learning presentations start with underlying logic. Quantitative work must identify variables, units, assumptions and examples, or explain why quantification is inappropriate.
+
+- Explain, Board and Learning Cards share the learning panel. Topic navigation moves to the header; model, title and management controls expand on demand. Narrow windows collapse stage navigation by default to preserve reading space.
+- All Topic scenarios can use boards and cards. Panel boards default to readable entries, with an optional canvas for spatial relationships. The native blackboard view remains available.
+- `learning_cards` saves a complete card set in the Topic log. Reopening or restarting restores it. A later summary displays the latest complete set while older sets remain in the log. Export Markdown or request a revision through a follow-up.
+- **Active recall is optional and off by default**. Read conclusions and examples directly, or turn it on to answer a question before revealing reference material. There is no spaced repetition, due-date queue or check-in system.
+- Suggested questions and board citations append to the draft before sending. Drafts survive Topic switching and panel close/reopen within the page; unsent drafts do not survive page refresh or restart. `Ctrl/⌘ + Enter` sends; Enter inserts a newline.
+
+Try the source in a separate test home:
+
+```powershell
+$env:DSH_HOME = "$PWD/.refs/learning-preview"
+pnpm install --frozen-lockfile
+pnpm build
+dsh plugin --profile web add "$PWD/packages/citeciter"
+dsh --profile web --host 127.0.0.1 --port 10529 --no-open
+```
+
+Desktop previews need another independent home and a local package installation in the selected profile. See the [0.7.0-beta.1 development notes](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.7.0-beta.1.md) for evidence and limits. Card quality depends on the model. Cross-Topic search, an independent manual card editor, a knowledge-graph database and cross-device synchronization are not implemented.
+
 ## Install and compatibility
 
 CiteCiter **0.6.0** targets DSH `0.1.2-rc.1` and [DSH Desktop 2.0.5](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.5). Node.js must satisfy `^22.19.0 || >=24.0.0`; Windows validation uses Node 24.19.0. DSH alpha and Desktop master are separate targets.
@@ -18,7 +42,7 @@ CiteCiter **0.6.0** targets DSH `0.1.2-rc.1` and [DSH Desktop 2.0.5](https://git
 | DSH Desktop 2.0.5 | Current Desktop profile, default `desktop` | Targeted; see release notes for mode-specific checks |
 | DSH 0.1.1-rc.1 / rc.2 | Older environment | Keep CiteCiter 0.5.0 |
 | DSH alpha, TUI | — | Unsupported |
-| Linux / macOS | Same package | Not tested in this migration |
+| Linux / macOS | Same package | 0.6.0 Linux CI passed; Linux/macOS UI untested |
 
 Install or upgrade the Web plugin:
 
@@ -48,7 +72,7 @@ npm install -g @deepseek-ai/dsh@0.1.2-rc.1 --allow-scripts=@deepseek-ai/dsh-subp
 
 This addresses native installation. An old plugin importing the removed `effectiveSandboxMode` export requires a plugin upgrade; reinstalling the host alone does not fix it.
 
-## Use
+## Stable 0.6.0 workflow
 
 1. Select committed assistant answer or reasoning text, right-click, enter a question, and choose “开始提问” or “开始讲解”.
 2. Continue in the learning panel, change model/reasoning effort, and manage Topic titles, archives and deletion.
@@ -88,7 +112,7 @@ pnpm build
 pnpm test:snapshot
 ```
 
-The real application snapshot uses a temporary profile and keyless model for Observer, Exact Fork, source reads, boards and source-log isolation. Host `ctx.citeciterRuntime` exposes `create`, `ask`, `get`, `list`, `delete` and Topic change events. Public frontend entry registration and preset extension APIs remain unfinished. See [Contributing](https://github.com/kirkchinese/CiteCiter/blob/main/CONTRIBUTING.md) and the [0.6.0 release note](https://github.com/kirkchinese/CiteCiter/blob/main/docs/releases/v0.6.0.md).
+The real application snapshot uses a temporary profile and keyless model for Observer, Exact Fork, source reads, boards and source-log isolation. Host `ctx.citeciterRuntime` exposes `create`, `ask`, `get`, `list`, `delete` and Topic change events. Public frontend entry registration and preset extension APIs remain unfinished. See [Contributing](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/CONTRIBUTING.md) and the [0.6.0 release note](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.6.0.md).
 
 ## Community and license
 
@@ -96,4 +120,4 @@ DSH-Citeciter QQ group: `1108040435`.
 
 <p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/community/qq-group.jpg" width="280" alt="DSH-Citeciter QQ group QR code"></p>
 
-[MIT License](https://github.com/kirkchinese/CiteCiter/blob/main/LICENSE)
+[MIT License](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/LICENSE)

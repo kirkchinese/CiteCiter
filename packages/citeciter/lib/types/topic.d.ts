@@ -54,6 +54,7 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
     }, z.core.$strict>>>;
     shortcutOpenPanel: z.ZodOptional<z.ZodString>;
     boardAnimations: z.ZodOptional<z.ZodBoolean>;
+    activeRecall: z.ZodOptional<z.ZodBoolean>;
     updateNotifications: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strict>;
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>;

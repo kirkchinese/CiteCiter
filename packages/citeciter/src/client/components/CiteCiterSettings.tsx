@@ -99,6 +99,11 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
 
       <section className={css.settingsGroup}>
         <h3>提示词与快捷键</h3>
+        <label className={css.settingToggle}>
+          <span><strong>主动回忆（可选）</strong><small>默认关闭，直接阅读学习卡片；开启后先显示自测问题，点击才展开结论和答案。不安排复习任务。</small></span>
+          <input type="checkbox" checked={settings.activeRecall ?? false}
+            onChange={(event) => { void companion.setSetting('activeRecall', event.currentTarget.checked) }} />
+        </label>
         <label className={css.settingStack}>
           <span><strong>自定义导师提示词</strong><small>在内置场景规则后补充教学偏好；留空只使用内置提示词。修改对之后恢复/新建的 Topic 生效。</small></span>
           <textarea

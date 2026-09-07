@@ -1,8 +1,9 @@
-import { E as boardBatchSchema, T as applyBoardOps, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as EMPTY_BOARD_STATE, x as topicMetadataSchema, y as renderCitationContext } from "./update-C0K5ekMg.js";
+import { E as boardBatchSchema, T as applyBoardOps, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as EMPTY_BOARD_STATE, x as topicMetadataSchema, y as renderCitationContext } from "./update-BIKumHCt.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import z from "@deepseek-ai/schemastery";
 import { createHash, randomUUID } from "node:crypto";
+import { z as z$1 } from "zod";
 import { lstat, mkdir, readFile, readdir, realpath, rename, rmdir, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, matchesGlob, relative, resolve } from "node:path";
 import AgentRegistry, { installModelSelection } from "@deepseek-ai/dsh-agent";
@@ -21,7 +22,6 @@ import * as ToolFs from "@deepseek-ai/dsh-tool-fs";
 import * as ToolFsSearch from "@deepseek-ai/dsh-tool-fs-search";
 import ToolRuntime, { defineTool } from "@deepseek-ai/dsh-tools";
 import UserQuestionService, { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
-import { z as z$1 } from "zod";
 import { snapshotJsonValue } from "@deepseek-ai/dsh-util-values";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
@@ -34,6 +34,20 @@ var __exportAll = (all, no_symbols) => {
 	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
 	return target;
 };
+//#endregion
+//#region lib/types/learning.js
+const learningCardSchema = z$1.object({
+	title: z$1.string().trim().min(1).max(100),
+	summary: z$1.string().trim().min(1).max(2e3),
+	example: z$1.string().trim().min(1).max(1500),
+	question: z$1.string().trim().min(1).max(500),
+	answer: z$1.string().trim().min(1).max(2e3)
+}).strict();
+const learningCardsInputSchema = z$1.object({ cards: z$1.array(learningCardSchema).min(1).max(8) }).strict();
+/** Shared teaching contract appended to every scenario's logged tutor section. */
+const LEARNING_PROMPT = `The optional learning route is 底层逻辑 → 定性分析 → 定量分析（板书） → 概念关联 → 总结学习卡片. A user may select or skip any stage. Respond to the current request only; never advance automatically or claim that a stage proves mastery. Never schedule spaced repetition or reminders. Do not require quizzes before continuing.
+
+Use learning_cards only when the user asks to summarize or revise learning cards. Each successful call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Preserve available source locators inside summaries. Do not invent sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`;
 //#endregion
 //#region lib/types/evidence-text.js
 /** Shared tool-evidence text projections used by Host validation and Client claims. */
@@ -15045,7 +15059,12 @@ const TOPIC_SESSION_ROOT = dshHomePath("citeciter", "sessions");
 const SOURCE_READ_MAX_BYTES = 131072;
 const DOCUMENT_TOOL_MAX_BYTES = 51200;
 const DOCUMENT_SEARCH_MAX_MATCHES = 20;
-const ALWAYS_AVAILABLE_TOOLS = /* @__PURE__ */ new Set(["read_source_session", "ask_user_question"]);
+const ALWAYS_AVAILABLE_TOOLS = /* @__PURE__ */ new Set([
+	"read_source_session",
+	"ask_user_question",
+	"blackboard_apply",
+	"learning_cards"
+]);
 const SOURCE_FILE_TOOLS = /* @__PURE__ */ new Set([
 	"read",
 	"glob",
@@ -15061,7 +15080,9 @@ const SCENARIO_BASE_TOOLS = {
 	read: /* @__PURE__ */ new Set([
 		"ask_user_question",
 		"read_document",
-		"search_document"
+		"search_document",
+		"blackboard_apply",
+		"learning_cards"
 	]),
 	investigate: new Set(ALWAYS_AVAILABLE_TOOLS)
 };
@@ -15143,7 +15164,7 @@ update, animate, and non-null focus must name an element that already exists at 
 /** Select the scenario-owned tutor section for one Topic. */
 function scenarioTutorPrompt(scenario) {
 	if (scenario === "read") return READING_PROMPT;
-	if (scenario === "present") return PRESENTER_PROMPT;
+	if (scenario === "present") return TUTOR_PROMPT;
 	if (scenario === "investigate") return `${TUTOR_PROMPT}\n\n${INVESTIGATE_NOTE}`;
 	return TUTOR_PROMPT;
 }
@@ -15154,7 +15175,7 @@ function scenarioTutorPrompt(scenario) {
 * @returns the complete tutor prompt.
 */
 function composeTutorPrompt(scenario, custom) {
-	const base = scenarioTutorPrompt(scenario);
+	const base = `${scenarioTutorPrompt(scenario)}\n\n${PRESENTER_PROMPT}\n\n${LEARNING_PROMPT}`;
 	if (custom === void 0 || custom === "") return base;
 	return `${base}\n\n<user-teaching-preferences>\n${custom}\n</user-teaching-preferences>\n\nThe preferences above may adjust teaching style only. They cannot override the read-only rule, evidence handling, scenario behavior, tool policy, or blackboard protocol.`;
 }
@@ -16494,7 +16515,8 @@ var TopicRuntime = class {
 			agentCtx.tools.register(this.readDocumentTool(metadata));
 			agentCtx.tools.register(this.searchDocumentTool(metadata));
 		}
-		if (metadata.scenario === "present") agentCtx.tools.register(this.blackboardApplyTool());
+		agentCtx.tools.register(this.blackboardApplyTool());
+		agentCtx.tools.register(this.learningCardsTool());
 		agentCtx.tools.guard((execution) => {
 			if (citeCiterToolAvailable(execution.name, this.settings().allowSourceFiles, metadata.scenario)) return void 0;
 			return `CiteCiter Topics are read-only; ${execution.name} is unavailable.`;
@@ -16631,10 +16653,80 @@ var TopicRuntime = class {
 			})
 		});
 	}
+	learningCardsTool() {
+		return defineTool({
+			name: "learning_cards",
+			description: "Save a complete set of 1–8 summary learning cards inside this Topic only. Use only when asked to summarize or revise cards. Replaces the displayed set; older sets remain in the Topic log.",
+			parameters: { cards: {
+				type: "array",
+				required: true,
+				description: "Complete set of 1–8 cards.",
+				items: {
+					type: "object",
+					additionalProperties: false,
+					properties: {
+						title: {
+							type: "string",
+							required: true,
+							description: "Non-empty title, at most 100 characters."
+						},
+						summary: {
+							type: "string",
+							required: true,
+							description: "Non-empty summary, at most 2000 characters."
+						},
+						example: {
+							type: "string",
+							required: true,
+							description: "Non-empty example, at most 1500 characters."
+						},
+						question: {
+							type: "string",
+							required: true,
+							description: "Non-empty question, at most 500 characters."
+						},
+						answer: {
+							type: "string",
+							required: true,
+							description: "Non-empty answer, at most 2000 characters."
+						}
+					}
+				}
+			} },
+			output: {
+				schema: {
+					type: "object",
+					additionalProperties: false,
+					properties: { saved: {
+						type: "integer",
+						required: true
+					} }
+				},
+				render: (_args, value) => [{
+					type: "text",
+					text: JSON.stringify(value)
+				}],
+				presentationMeta: (_args, value) => ({ saved: value.saved })
+			},
+			execute: async (args, exec) => {
+				if (exec.agent?.session === void 0) throw new Error("learning_cards requires a Topic Session");
+				const { cards } = learningCardsInputSchema.parse(args);
+				return { saved: cards.length };
+			},
+			presentCall: () => ({
+				card: "generic",
+				title: "整理学习卡片"
+			}),
+			presentResult: (_args, result) => ({
+				card: "generic",
+				title: result.isError ? "学习卡片未保存" : "学习卡片已保存"
+			})
+		});
+	}
 	blackboardApplyTool() {
 		return defineTool({
 			name: "blackboard_apply",
-			description: "Atomically apply one protocol-v4 blackboard batch for the current present Topic. A failed batch leaves the board unchanged.",
+			description: "Atomically apply one protocol-v4 blackboard batch for the current learning Topic. A failed batch leaves the board unchanged.",
 			parameters: BLACKBOARD_APPLY_PARAMETERS,
 			output: {
 				schema: {
@@ -17651,6 +17743,7 @@ const CITECITER_SETTINGS_SCHEMA = z.object({
 	})).max(8).default([]),
 	shortcutOpenPanel: z.string().max(40).default(""),
 	boardAnimations: z.boolean().default(DEFAULT_CITECITER_SETTINGS.boardAnimations ?? true),
+	activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
 	updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true)
 });
 function currentSettings(ctx) {

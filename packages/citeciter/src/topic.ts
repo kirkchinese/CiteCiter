@@ -46,6 +46,7 @@ export const citeCiterSettingsSchema = z.object({
   promptTemplates: z.array(promptTemplateSchema).max(8).optional(),
   shortcutOpenPanel: z.string().max(40).optional(),
   boardAnimations: z.boolean().optional(),
+  activeRecall: z.boolean().optional(),
   updateNotifications: z.boolean().optional(),
 }).strict()
 
@@ -60,6 +61,7 @@ export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   reopenLastTopic: true,
   followupQuestions: true,
   boardAnimations: true,
+  activeRecall: false,
   updateNotifications: true,
   promptTemplates: [
     { id: 'explain', label: '解释这段', text: '请解释这段内容：讲清楚它为什么成立、关键推导和直觉。' },

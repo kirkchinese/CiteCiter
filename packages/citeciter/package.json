@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.6.0",
+  "version": "0.7.0-beta.1",
   "description": "Read-only learning Topics and presenter boards for DeepSeek Harness",
   "keywords": [
     "deepseek-harness",

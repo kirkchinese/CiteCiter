@@ -204,11 +204,23 @@ class FixtureAdapter extends LlmAdapter {
           { label: '推导优先', description: '从定义和推导逐步展开。' },
         ],
       }] }), 'citeciter-fixture-question')
+    } else if (question.startsWith('【学习阶段：定量分析（板书）】') && hasTool(options, 'blackboard_apply') && !hasToolResult(options.messages, 'citeciter-fixture-quantitative-')) {
+      chunks = toolChunks('blackboard_apply', JSON.stringify({ ops: [{ op: 'set', id: 'quantitative-example', kind: 'math', content: '\\Delta\\theta \\approx K A', x: 4, y: 52, w: 80, h: 15 }] }), 'citeciter-fixture-quantitative')
+    } else if (question.startsWith('【学习阶段：总结学习卡片】') && hasTool(options, 'learning_cards') && !hasToolResult(options.messages, 'citeciter-fixture-cards-')) {
+      chunks = toolChunks('learning_cards', JSON.stringify({ cards: [{ title: '曲率与平行移动', summary: '在定向曲面的小闭合回路上，转角的一阶面积项由高斯曲率刻画。', example: '假设局部 K = 2，回路面积 A = 0.01，则小回路近似转角约为 0.02 弧度。', question: '为什么面积减半时转角也近似减半？', answer: '局部曲率近似不变时，转角的一阶项与回路面积成正比。' }] }), 'citeciter-fixture-cards')
     } else if (question.includes('黑板') && hasTool(options, 'blackboard_apply') && !hasToolResult(options.messages, 'citeciter-fixture-board-')) {
       if (!hasBoardV4Schema(options)) throw new Error('blackboard_apply must expose the complete protocol-v4 operation union')
       chunks = toolChunks('blackboard_apply', JSON.stringify({ ops: BOARD_OPS }), 'citeciter-fixture-board')
     } else {
-      const answer = question.includes('调查项目')
+      const stage = /^【学习阶段：([^】]+)】/u.exec(question)?.[1]
+      const stageAnswers = {
+        '底层逻辑': '底层逻辑：先定义平行移动，再比较向量沿闭合回路返回时的方向。曲率描述局部的路径依赖；大回路还需要考虑整体几何。',
+        '定性分析': '定性分析：平面的小回路没有这种局部方向偏差；球面一般会出现。缩小回路会减小偏差，但方向还取决于回路定向。',
+        '定量分析（板书）': '定量分析：板书给出小回路近似 Δθ ≈ K A。假设局部 K = 2、A = 0.01，则 Δθ ≈ 0.02 弧度。这里的数值是示例假设，不是来源测量。',
+        '概念关联': '概念关联：联络定义如何平行移动，是前提；holonomy 描述沿回路移动的整体结果，曲率给出它的局部信息；高斯曲率是二维曲面上的对应量。',
+        '总结学习卡片': '已整理一张学习卡片，保留核心关系、假设算例与可选自测。可以在“学习卡”中阅读和导出。',
+      }
+      const answer = stage !== undefined ? stageAnswers[stage] ?? '请继续提问。' : question.includes('调查项目')
         ? '项目调查完成：glob 已枚举文件，grep 已完成全局内容搜索，read 已读取命中文件。'
         : question.includes('向我提问')
           ? '已收到你的学习偏好，并据此继续解释。'

@@ -122,6 +122,11 @@
   box-shadow: 0 0 0 3px rgba(52, 120, 246, 0.13);
 }
 
+.composer[data-folded] { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 12px; }
+.composer[data-folded] textarea { display: none; }
+.composer[data-folded] .composerActions { flex: 1; min-width: 0; }
+.composer[data-folded] .composerActions span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
 .popoverMode {
   margin-top: 8px;
   color: var(--dsw-alias-label-tertiary, #858c98);
@@ -300,7 +305,7 @@
 
 .dockBody {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(138px, 24%, 210px);
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -648,18 +653,19 @@
 }
 
 .dockHeader {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 160px);
   flex: none;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px 12px;
   min-height: 64px;
-  padding: 0 15px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--dsw-alias-border-l1, #e4e7ec);
 }
 
 .compactTopicSelect {
-  display: none;
+  display: block;
   min-width: 0;
   max-width: 180px;
   height: 30px;
@@ -671,7 +677,10 @@
 }
 
 .compactHeaderActions {
-  display: none;
+  display: flex;
+  grid-column: 2;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .compactHeaderActions button {

@@ -390,12 +390,13 @@ test('every Topic scenario resolves through the scenario tool table', () => {
   assert.equal(citeCiterToolAvailable('search_document', false, 'read'), true)
   for (const scenario of ['qa', 'present', 'read', 'investigate']) {
     assert.equal(citeCiterToolAvailable('bash', true, scenario), false)
+    assert.equal(citeCiterToolAvailable('blackboard_apply', false, scenario), true)
+    assert.equal(citeCiterToolAvailable('learning_cards', false, scenario), true)
   }
   assert.equal(citeCiterToolAvailable('glob', true, 'investigate'), true)
   assert.equal(citeCiterToolAvailable('glob', false, 'read'), false)
   assert.equal(citeCiterToolAvailable('glob', true, 'read'), true)
   assert.equal(citeCiterToolAvailable('blackboard_apply', false, 'present'), true)
-  assert.equal(citeCiterToolAvailable('blackboard_apply', false, 'qa'), false)
 })
 
 test('blackboard_apply exposes the complete v4 operation union to the model', () => {

@@ -56,7 +56,7 @@ test('update checker reads the installed version from the package manifest', asy
   const checker = new UpdateChecker(async () => registryResponse('0.5.0'), () => 1_500)
   assert.deepEqual(await checker.check(new AbortController().signal), {
     kind: 'success',
-    installedVersion: '0.6.0',
+    installedVersion: '0.7.0-beta.1',
     latestVersion: '0.5.0',
     updateAvailable: false,
     checkedAt: 1_500,
@@ -80,6 +80,16 @@ test('update checker fails closed for invalid versions and does not cache failur
   assert.deepEqual(await invalidInstalled.check(new AbortController().signal), {
     kind: 'error', code: 'installed-version-invalid', checkedAt: 3_000,
   })
+})
+
+test('a prerelease accepts stable latest without suggesting a downgrade', async () => {
+  for (const [latest, expected] of [['0.6.0', false], ['0.7.0', true], ['0.8.0', true]]) {
+    const checker = new UpdateChecker(async () => registryResponse(latest), () => 3500, async () => '0.7.0-beta.1')
+    const result = await checker.check(new AbortController().signal)
+    assert.equal(result.kind, 'success')
+    assert.equal(result.updateAvailable, expected)
+    assert.equal(updateCheckResponseSchema.safeParse(result).success, true)
+  }
 })
 
 test('update checker classifies HTTP, invalid, oversized, and network responses', async () => {
