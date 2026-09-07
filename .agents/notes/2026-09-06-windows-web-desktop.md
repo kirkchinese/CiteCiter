@@ -21,3 +21,5 @@ Focused tests cover inherited history, physical JSONL, geometry and profile-safe
 The sizing adapter remains version-specific. Do not claim Linux/macOS, DSH alpha, native display-scale changes or Desktop modes without completed UI checks are verified. Real provider behavior needs separate real-API checks. Detailed local measurements belong in the external development guide; release validation status belongs in the release note.
 
 Release CI pins DSH 0.1.2-rc.1 and uses the frozen lockfile on Linux / Node 22.19 and Windows / Node 24. It validates source and packed application snapshots instead of rewriting the dependency manifest to an obsolete host version. These checks do not substitute for platform UI validation.
+
+Text checkout uses LF through `.gitattributes`, with CRLF retained for batch files. This keeps the Cordis patch and snapshot bytes consistent when Windows Git enables automatic line-ending conversion; the package declaration assertion remains unchanged.
