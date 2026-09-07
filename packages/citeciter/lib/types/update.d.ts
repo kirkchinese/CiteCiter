@@ -23,6 +23,7 @@ export declare const updateCheckResponseSchema: z.ZodDiscriminatedUnion<[z.ZodOb
     latestVersion: z.ZodString;
     updateAvailable: z.ZodBoolean;
     checkedAt: z.ZodNumber;
+    profile: z.ZodOptional<z.ZodString>;
 }, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"error">;
     code: z.ZodEnum<{

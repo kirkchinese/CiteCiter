@@ -1,11 +1,15 @@
-import { type ChangeEvent, type FormEvent, useRef, useSyncExternalStore } from 'react'
-import type { ReaderFace } from '../reader-controller.ts'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
+import type { ReaderSnapshot } from '../reader-controller.ts'
+import type { ReaderActions } from '../view-actions.ts'
+import { type ChangeEvent, type FormEvent, useRef } from 'react'
 import { readTextareaSelection } from '../reader-selection.ts'
 import css from './DocumentReader.module.css'
 
 /** Reader shell-overlay entry: compact trigger plus the document library panel. */
-export function DocumentReader({ reader }: { readonly reader: ReaderFace }) {
-  const snapshot = useSyncExternalStore(reader.subscribe, reader.getSnapshot)
+export function DocumentReader({ reader, useReader }: { readonly reader: ReaderActions
+  readonly useReader: SnapshotSelectorHook<ReaderSnapshot>
+}) {
+  const snapshot = useReader(value => value)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   const syncSelection = () => {

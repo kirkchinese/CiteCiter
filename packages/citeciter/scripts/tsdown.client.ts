@@ -3,7 +3,7 @@
  *
  * This is an adaptation of the DSH repository's
  * `packages/client/tsdown.client.ts` (MIT licensed, source read from the
- * master branch via jsDelivr on 2026-08-17). It emits the same
+ * a66e4702047846cdaa10c66c9d3df3951f5ea70d (DSH 0.1.2-rc.1)). It emits the same
  * closure-factory artifact contract the product client loader consumes:
  * the bundle calls `window.__ModuleLoader__.load({ id, factory })` and
  * resolves externals through the injected `require` (module table — no
@@ -28,10 +28,8 @@ const PLATFORM_MODULES = [
   'react-dom/client',
   '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-web-react',
+  '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-ui-attachment',
-  '@deepseek-ai/dsh-client-schema-form',
 ] as const
 
 const CSS_VIRTUAL_PREFIX = '\0dsh-css:'
@@ -54,11 +52,8 @@ const VENDORED_LIBRARY = /^@deepseek-ai\/(cosmokit|schemastery)(\/|$)/
 /** Generated descriptor/codec contribution with no shared runtime identity. */
 const GENERATED_REMOTE = /^@deepseek-ai\/dsh-[a-z0-9]+(?:-[a-z0-9]+)*\/remote$/
 
-/** The documented runtime store-engine exemption (module-table entry). */
-const RUNTIME_STORE_EXEMPTION = '@deepseek-ai/dsh-client-runtime/client'
-
 /** Externals resolved from the loader module table. */
-const CLIENT_EXTERNALS: readonly string[] = [...PLATFORM_MODULES, RUNTIME_STORE_EXEMPTION]
+const CLIENT_EXTERNALS: readonly string[] = PLATFORM_MODULES
 
 const PACKAGE_ROOT = fileURLToPath(new URL('..', import.meta.url))
 

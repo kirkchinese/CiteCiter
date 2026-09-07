@@ -6,6 +6,7 @@ import 'katex/dist/katex.min.css';
 import { EMPTY_BOARD_SNAPSHOT, } from "../../board.js";
 import { isSafeSvg, isolatedHtmlDocument, neutralizeMarkdownImages } from "../rich-content.js";
 import css from './BoardView.module.css';
+import { markdownLabels } from "../copy.js";
 function inlineStyle(style) {
     return {
         ...(style.color === undefined ? {} : { color: style.color }),
@@ -30,7 +31,7 @@ function ElementBody({ kind, content }) {
     if (kind === 'math')
         return _jsx(MathElement, { content: content });
     if (kind === 'markdown' || kind === 'table') {
-        return _jsx(MarkdownText, { text: neutralizeMarkdownImages(content), streaming: false });
+        return _jsx(MarkdownText, { text: neutralizeMarkdownImages(content), streaming: false, labels: markdownLabels });
     }
     if (kind === 'svg') {
         if (!isSafeSvg(content))

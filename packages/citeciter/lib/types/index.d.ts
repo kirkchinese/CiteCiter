@@ -9,7 +9,7 @@ export declare const name = "@kirkchinese/dsh-citeciter";
 /** Services required by the private Topic runtime. */
 export declare const inject: readonly ["llm", "sessionQuery", "subprocess"];
 /** Host settings identity shared with the browser settings scope. */
-export declare const CITECITER_SETTINGS_NS: import("@deepseek-ai/dsh-settings").SettingsNamespace;
+export declare const CITECITER_SETTINGS_NS: "citeciter";
 /** Native settings schema for new Topics and the companion panel. */
 export declare const CITECITER_SETTINGS_SCHEMA: z<object>;
 /** Root-scoped Remote service owning one isolated DSH runtime. */

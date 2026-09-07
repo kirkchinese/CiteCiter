@@ -5,6 +5,7 @@
   "scripts": {
     "build": "pnpm --filter @kirkchinese/dsh-citeciter build",
     "test": "pnpm --filter @kirkchinese/dsh-citeciter test",
-    "typecheck": "pnpm --filter @kirkchinese/dsh-citeciter typecheck"
+    "typecheck": "pnpm --filter @kirkchinese/dsh-citeciter typecheck",
+    "test:snapshot": "pnpm --filter @kirkchinese/dsh-citeciter test:snapshot"
   }
 }

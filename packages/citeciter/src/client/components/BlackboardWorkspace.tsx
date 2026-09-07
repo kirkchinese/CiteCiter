@@ -1,15 +1,17 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
+import type { CompanionSnapshot } from '../companion-controller.ts'
+import type { CompanionActions, OverlayActions } from '../view-actions.ts'
+import { useEffect } from 'react'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { BoardElementState } from '../../board.ts'
-import type { CompanionFace } from '../companion-controller.ts'
-import type { CiteBus } from '../types.ts'
 import { BoardView } from './BoardView.tsx'
 import css from './BoardView.module.css'
 
 /** Additional faces owned by CiteCiter's conversation-view registration. */
 export interface BlackboardWorkspaceInjected {
-  readonly companion: CompanionFace
-  readonly bus: CiteBus
+  readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
+  readonly companion: CompanionActions
+  readonly bus: OverlayActions
   readonly openPanel: () => void
 }
 
@@ -28,8 +30,8 @@ function citationPrompt(element: BoardElementState): string {
  * @param props - active DSH conversation identity and CiteCiter browser faces.
  * @returns the matching Topic board or a source-specific empty state.
  */
-export function BlackboardWorkspace({ sessionId, companion, bus, openPanel }: BlackboardWorkspaceProps) {
-  const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
+export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, openPanel }: BlackboardWorkspaceProps) {
+  const snapshot = useCompanion(value => value)
 
   useEffect(() => companion.retainVisible(), [companion])
 

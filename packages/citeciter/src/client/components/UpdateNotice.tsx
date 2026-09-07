@@ -1,11 +1,15 @@
-import { useEffect, useId, useRef, useSyncExternalStore } from 'react'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
+import type { UpdateNoticeSnapshot } from '../update-controller.ts'
+import type { UpdateActions } from '../view-actions.ts'
+import { useEffect, useId, useRef } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
-import { citeCiterUpdateCommand, type UpdateController } from '../update-controller.ts'
+import { citeCiterUpdateCommand } from '../update-controller.ts'
 import css from './UpdateNotice.module.css'
 
 /** Injected owner of the root-scoped update state. */
 export interface UpdateNoticeProps {
-  readonly updateController: UpdateController
+  readonly useUpdate: SnapshotSelectorHook<UpdateNoticeSnapshot>
+  readonly updateController: UpdateActions
 }
 
 /**
@@ -13,8 +17,8 @@ export interface UpdateNoticeProps {
  * @param props - root-scoped update actions and observable state.
  * @returns the available-version card, or no surface while current or suppressed.
  */
-export function UpdateNotice({ updateController }: UpdateNoticeProps) {
-  const snapshot = useSyncExternalStore(updateController.subscribe, updateController.getSnapshot)
+export function UpdateNotice({ useUpdate, updateController }: UpdateNoticeProps) {
+  const snapshot = useUpdate(value => value)
   const titleId = useId()
   const descriptionId = useId()
   const previousFocus = useRef<HTMLElement | null>(null)
@@ -74,9 +78,9 @@ export function UpdateNotice({ updateController }: UpdateNoticeProps) {
         </div>
       </div>
       <p id={descriptionId} className={css.description}>
-        “更新”只会复制官方安装命令，不会自动执行。自定义 Web Profile 请替换命令中的 web；执行前请核对新版 DSH 要求，运行后请重启 DSH Web。
+        “更新”复制安装命令。执行前请核对目标 Profile 与新版 DSH 要求，完成后重启当前 DSH。
       </p>
-      <code className={css.command}>{citeCiterUpdateCommand(available.latestVersion)}</code>
+      <code className={css.command}>{citeCiterUpdateCommand(available.latestVersion, available.profile)}</code>
       {snapshot.copyMessage !== null && (
         <p
           className={css.feedback}

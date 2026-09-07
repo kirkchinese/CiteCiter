@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives';
 import { splitRichContent } from "../rich-content.js";
 import css from './CiteCiter.module.css';
+import { markdownLabels } from "../copy.js";
 /**
  * Render model Markdown plus safe SVG and sandboxed HTML fence previews.
  * @param props - response text and streaming flag.
@@ -18,6 +19,6 @@ export function RichAnswer({ text, streaming }) {
             if (segment.kind === 'html') {
                 return (_jsx("figure", { className: css.richFigure, "data-citeciter-html": true, children: _jsx("iframe", { className: css.richHtml, title: "CiteCiter HTML explanation", sandbox: "", referrerPolicy: "no-referrer", srcDoc: segment.document }) }, key));
             }
-            return _jsx(MarkdownText, { text: segment.text, streaming: streaming }, key);
+            return _jsx(MarkdownText, { text: segment.text, streaming: streaming, labels: markdownLabels }, key);
         }) }));
 }

@@ -115,9 +115,7 @@ function toolNodeStore(callId, content, meta) {
 
 function toolEntryContext(callId, content, meta) {
   return {
-    sessions: {
-      binding: () => ({ session: { getSnapshot: () => ({ chat: { nodes: toolNodeStore(callId, content, meta) } }) } }),
-    },
+    readChat: () => ({ nodes: toolNodeStore(callId, content, meta) }),
     sourceSessionId: 'source',
   }
 }

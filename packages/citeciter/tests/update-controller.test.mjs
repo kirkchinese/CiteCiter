@@ -8,6 +8,11 @@ import {
   INITIAL_UPDATE_SNAPSHOT,
 } from '../lib/types/client/update-controller.js'
 
+test('Desktop update commands target the active profile and reject shell text', () => {
+  assert.equal(citeCiterUpdateCommand('0.6.1', 'desktop-study'), 'dsh plugin --profile desktop-study add @kirkchinese/dsh-citeciter@0.6.1')
+  assert.throws(() => citeCiterUpdateCommand('0.6.1', 'desktop; echo unsafe'), /Invalid DSH profile/u)
+})
+
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial))
   return {

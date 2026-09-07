@@ -1,9 +1,7 @@
-import {
-  type ISessions,
-  type SessionId,
-  type SettingsScope,
-  type SnapshotStore,
-} from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import {
   DEFAULT_CITECITER_SETTINGS,
@@ -170,7 +168,7 @@ function writeCitationAnchor(sourceSessionId: string, anchorSeq: number, anchorK
 
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
 export function createCompanionController(
-  sessions: ISessions,
+  readChat: (sessionId: SessionId) => ChatSnapshot | undefined,
   settingsScope: SettingsScope<CiteCiterSettings>,
   request: RemoteRequest,
   onAutoOpen: () => void,
@@ -543,8 +541,7 @@ export function createCompanionController(
     try {
       let response: CiteCiterResponse
       if (selection.kind === 'assistant-step') {
-        const binding = sessions.binding(selection.sourceSessionId)
-        const node = binding?.session.getSnapshot().chat.nodes.get(selection.anchorKey)
+        const node = readChat(selection.sourceSessionId)?.nodes.get(selection.anchorKey)
         if (node === undefined || node.kind !== 'assistant-step') throw new Error('选中的模型回答已不在当前会话快照中')
         const answer = readAssistantAnswer(node.data)
         if (answer === null || answer.status !== 'settled') {

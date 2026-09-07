@@ -1,13 +1,20 @@
-:global([data-citeciter-docked]) {
-  grid-template-columns: var(--citeciter-sidebar-width) minmax(0, 1fr) var(--citeciter-dock-width) !important;
+/* The layout adapter owns only these attributes and variables. Native inline widths remain intact. */
+:global([data-citeciter-layout="columns"]) {
+  grid-template-columns: var(--citeciter-host-columns) var(--citeciter-dock-width) !important;
+  transition: none !important;
 }
 
-:global([data-citeciter-docked] > [data-side="details"]) {
-  display: none !important;
+:global([data-citeciter-layout="columns"] > [data-side="details"]) {
+  translate: calc(-1 * var(--citeciter-dock-width)) 0;
 }
 
-:global([data-citeciter-docked] > :has(+ [data-shell-overlay])) {
-  visibility: hidden !important;
+:global([data-citeciter-layout="rows"]) {
+  grid-template-rows: var(--citeciter-host-rows) var(--citeciter-dock-height) !important;
+  transition: none !important;
+}
+
+:global([data-citeciter-layout="rows"] > .dshDesktopSidebarSurface) {
+  grid-row: 1 / var(--citeciter-sidebar-row-end) !important;
 }
 
 .popoverTemplates {
@@ -241,7 +248,7 @@
   display: block;
   box-sizing: border-box;
   width: clamp(360px, var(--citeciter-panel-width), calc(100vw - 24px));
-  min-width: min(360px, 100vw);
+  min-width: 0;
   overflow: visible;
   color: var(--dsw-alias-label-primary, #20232a);
   background: var(--dsw-alias-bg-base, #fff);
@@ -249,6 +256,46 @@
   box-shadow: -12px 0 32px rgba(26, 31, 44, 0.08);
   pointer-events: auto;
   container-type: inline-size;
+}
+
+.dock[data-arrangement="rows"] {
+  border-top: 1px solid var(--dsw-alias-border-l2, #d9dde5);
+  border-left: 0;
+}
+
+.dock[data-arrangement="unsupported"] {
+  top: auto;
+  right: 12px;
+  bottom: 12px;
+  width: min(360px, calc(100% - 24px));
+  height: auto;
+  padding: 12px 18px;
+  border-radius: 12px;
+}
+
+.dock[data-arrangement="unsupported"] .dockBody {
+  display: none;
+}
+
+.layoutNotice {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dock[data-arrangement="rows"] .dockHeader {
+  min-height: 44px;
+}
+
+.dock[data-arrangement="rows"] .contextBar {
+  padding-block: 5px;
+}
+
+.dock[data-arrangement="rows"] .contextBar blockquote {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
 }
 
 .dockBody {
@@ -1595,9 +1642,6 @@
 }
 
 @media (max-width: 720px) {
-  .dock {
-    min-width: 100%;
-  }
 
   .brand {
     padding: 0 8px;
@@ -1622,7 +1666,7 @@
   }
 }
 
-@container (max-width: 420px) {
+@container (max-width: 600px) {
   .dockHeader {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(130px, 180px);

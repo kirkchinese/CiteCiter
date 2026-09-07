@@ -45,8 +45,10 @@ export function createUpdateBrowserEnvironment() {
         now: Date.now,
     };
 }
-function updateCommand(version) {
-    return `dsh plugin --profile web add @kirkchinese/dsh-citeciter@${version}`;
+function updateCommand(version, profile = 'web') {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(profile))
+        throw new Error('Invalid DSH profile name');
+    return `dsh plugin --profile ${profile} add @kirkchinese/dsh-citeciter@${version}`;
 }
 function deferredKey(version) {
     return DEFERRED_KEY_PREFIX + version;
@@ -218,18 +220,18 @@ export function createUpdateController(settings, checkUpdate, store, environment
                 try {
                     if (environment.clipboard === undefined)
                         throw new Error('clipboard unavailable');
-                    await environment.clipboard.writeText(updateCommand(available.latestVersion));
+                    await environment.clipboard.writeText(updateCommand(available.latestVersion, available.profile));
                     if (!disposed)
                         store.update((state) => {
                             state.copyStatus = 'copied';
-                            state.copyMessage = '更新命令已复制。运行后请重启 DSH Web。';
+                            state.copyMessage = '更新命令已复制。运行后请重启当前 DSH。';
                         });
                 }
                 catch {
                     if (!disposed)
                         store.update((state) => {
                             state.copyStatus = 'error';
-                            state.copyMessage = '无法自动复制，请手动复制下方命令。运行后请重启 DSH Web。';
+                            state.copyMessage = '无法自动复制，请手动复制下方命令。运行后请重启当前 DSH。';
                         });
                 }
             })();
@@ -319,7 +321,7 @@ export function createUpdateController(settings, checkUpdate, store, environment
         },
     };
 }
-/** @param version - validated latest package version. @returns the command shown and copied by the Web notice. */
-export function citeCiterUpdateCommand(version) {
-    return updateCommand(version);
+/** @param version - validated latest package version. @param profile - active Desktop profile, or Web default. @returns the command shown and copied by the notice. */
+export function citeCiterUpdateCommand(version, profile = 'web') {
+    return updateCommand(version, profile);
 }

@@ -1,8 +1,12 @@
 /** CiteCiter browser entry: selection question, private Topic dock, and settings page. */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-gateway/client'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import { createSnapshotStore, type ISessions } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-api-settings-controller/remote'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
@@ -23,10 +27,11 @@ import { installDynamicAccelerator } from './hotkeys.ts'
 import { createReaderController } from './reader-controller.ts'
 import { createSettingsDocumentController } from './settings-document.ts'
 import { CiteBus } from './types.ts'
+import { viewActions } from './view-actions.ts'
 import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from './update-controller.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
-export const inject = ['slots', 'sessions', 'remote', 'settingsScope', 'connection']
+export const inject = ['slots', 'sessions', 'uiConversation', 'remote', 'remote.settings', 'settingsScope']
 
 function decodeSettings(section: unknown): CiteCiterSettings | undefined {
   const parsed = citeCiterSettingsSchema.safeParse(section)
@@ -39,18 +44,24 @@ export async function apply(ctx: Context): Promise<void> {
   ctx.effect(() => unmountRemote, 'citeciter: Remote contribution')
 
   ctx.inject(['remote.citeciter'], (remoteCtx) => {
-    const sessions = remoteCtx.get('sessions') as unknown as ISessions
+    const sessions = remoteCtx.sessions
+    const readChat = (sessionId: SessionId) => {
+      const source = sessions.binding(sessionId)
+      if (source === undefined) return undefined
+      const conversation = remoteCtx.uiConversation.binding(source)
+      conversation.activate('chat')
+      return conversation.target('chat').getSnapshot()
+    }
     const settingsBinder = remoteCtx.settingsScope
     const settings = settingsBinder.bind({
       namespace: CITECITER_SETTINGS_NAMESPACE,
       decode: decodeSettings,
     })
-    const connection = remoteCtx.get('connection') as ConnectionHandle
     const settingsDocument = createSettingsDocumentController(
       settingsBinder.describe(),
       async (signal) => {
-        const response = await connection.api.settings.openDocument({}, signal)
-        if (!response.result.ok) throw new Error(response.result.error.message)
+        const response = await remoteCtx.remote.settings.openSettingsDocument(signal)
+        if (!response.ok) throw new Error(response.error.message)
       },
     )
     const updateController = createUpdateController(
@@ -61,7 +72,7 @@ export async function apply(ctx: Context): Promise<void> {
         const result = response.value
         if (result.kind === 'error') throw new Error(`CiteCiter update check failed: ${result.code}`)
         return result.updateAvailable
-          ? { currentVersion: result.installedVersion, latestVersion: result.latestVersion }
+          ? { currentVersion: result.installedVersion, latestVersion: result.latestVersion, profile: result.profile ?? 'web' }
           : null
       },
       createSnapshotStore(INITIAL_UPDATE_SNAPSHOT),
@@ -80,7 +91,7 @@ export async function apply(ctx: Context): Promise<void> {
       openPanel,
     )
     const companion = createCompanionController(
-      sessions,
+      readChat,
       settings,
       (request, signal) => remoteCtx.remote.citeciter.request(request, signal),
       openPanel,
@@ -123,7 +134,7 @@ export async function apply(ctx: Context): Promise<void> {
       const onContextMenu = (event: MouseEvent) => {
         const sourceSessionId = sessions.list.getSnapshot().current
         if (sourceSessionId === undefined) return
-        const claim = entries.claim(event, { sessions, sourceSessionId })
+        const claim = entries.claim(event, { readChat, sourceSessionId })
         if (claim === null) return
         bus.setMenuSelection(claim.selection)
       }
@@ -148,39 +159,50 @@ export async function apply(ctx: Context): Promise<void> {
       }
     }, 'citeciter: selection capture')
 
+    const companionActions = viewActions(companion)
+    const readerActions = viewActions(reader)
+    const updateActions = viewActions(updateController)
+    const documentActions = viewActions(settingsDocument)
+    const busActions = {
+      setMenuSelection: bus.setMenuSelection.bind(bus),
+      setPanelOpen: bus.setPanelOpen.bind(bus),
+      requestBoardCitation: bus.requestBoardCitation.bind(bus),
+      clearBoardCitation: bus.clearBoardCitation.bind(bus),
+    }
+
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.selection',
-      inject: () => ({ bus, companion, openPanel }),
+      inject: () => ({ bus: busActions, companion: companionActions, openPanel, hooks: { companion, overlay: bus } }),
     }, SelectionMenu))
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.panel',
-      inject: () => ({ bus, companion, closePanel, reportParseError }),
+      inject: () => ({ bus: busActions, companion: companionActions, closePanel, reportParseError, hooks: { companion, overlay: bus } }),
     }, CitePanel))
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.reader',
-      inject: () => ({ reader }),
+      inject: () => ({ reader: readerActions, hooks: { reader } }),
     }, DocumentReader))
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.update-notice',
-      inject: () => ({ updateController }),
+      inject: () => ({ updateController: updateActions, hooks: { update: updateController } }),
     }, UpdateNotice))
     remoteCtx.slots.inject('conversation.view', () => remoteCtx.slots.register({
       name: 'conversation.view',
       id: 'citeciter.blackboard',
       order: 30,
       label: '小黑板',
-      inject: () => ({ companion, bus, openPanel }),
+      inject: () => ({ companion: companionActions, bus: busActions, openPanel, hooks: { companion } }),
     }, BlackboardWorkspace))
     remoteCtx.slots.inject('settings.section', () => remoteCtx.slots.register({
       name: 'settings.section',
       id: 'citeciter',
       order: 45,
       label: 'CiteCiter',
-      inject: () => ({ companion, settingsDocument, updateController }),
+      inject: () => ({ companion: companionActions, settingsDocument: documentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController } }),
     }, CiteCiterSettingsView))
 
     remoteCtx.effect(() => async () => {

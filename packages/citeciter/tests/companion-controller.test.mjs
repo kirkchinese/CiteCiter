@@ -113,7 +113,7 @@ test('uncited Topic is created only on first submission with the selected scenar
     set: async () => undefined,
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     request,
     () => undefined,
@@ -152,7 +152,7 @@ test('dismissing a failed free Topic restores the empty source state', async () 
   const initial = snapshot(null)
   initial.phase = 'idle'
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     {
       getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
       subscribe: () => () => undefined,
@@ -203,7 +203,7 @@ test('permanent deletion clears navigation and reports pending cleanup', async (
     set: async () => undefined,
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     request,
     () => undefined,
@@ -248,7 +248,7 @@ test('restoring an archived Topic returns to the active list without closing it'
     set: async () => undefined,
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     request,
     () => undefined,
@@ -299,7 +299,7 @@ test('late deletion converges storage and list without clearing a newly opened T
     set: async () => undefined,
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     request,
     () => undefined,
@@ -347,7 +347,7 @@ test('visibility leases keep polling until the last mounted surface releases', a
     set: async () => undefined,
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     request,
     () => undefined,
@@ -411,7 +411,7 @@ test('follow-up submission is single-flight per Topic and retry-stable after fai
     set: async () => undefined,
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     request,
     () => undefined,
@@ -484,7 +484,7 @@ test('dispose aborts an accepted Remote call, drains it, and rejects late state'
     set: async () => undefined,
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     request,
     () => undefined,
@@ -524,7 +524,7 @@ test('dispose waits for an accepted settings write and admits no later write', a
     },
   }
   const controller = createCompanionController(
-    { binding: () => undefined },
+    () => undefined,
     settingsScope,
     async () => { throw new Error('unexpected Remote call') },
     () => undefined,

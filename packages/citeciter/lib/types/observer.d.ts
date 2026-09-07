@@ -1,5 +1,6 @@
 export { projectDiffMeta, projectToolEvidence, projectToolResultText, type ToolEvidenceProjection, } from './evidence-text.ts';
-import { type JsonValue, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session';
+import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session';
+import { type JsonValue } from '@deepseek-ai/dsh-util-values';
 import { type CitationEvidence, type CitationSelectionClaim, type CitationDraft, type DocumentEvidenceClaim, type ToolEvidenceClaim } from './topic.ts';
 /** One atomic live-preferred SessionQuery observation. */
 export interface ObserverSourceSnapshot {

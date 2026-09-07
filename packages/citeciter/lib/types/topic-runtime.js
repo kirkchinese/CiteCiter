@@ -7,9 +7,10 @@ import AgentRegistry, { installModelSelection, } from '@deepseek-ai/dsh-agent';
 import AgentLoop from '@deepseek-ai/dsh-agent-loop';
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths';
 import { BlockAssembler, MessageId, ReasoningEffortId, createUserMessage, freezeMessage, } from '@deepseek-ai/dsh-llm';
-import { effectiveSandboxMode, setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy';
-import SessionStore, { SESSION_FORMAT_VERSION, SessionId, foldRequestHeader, } from '@deepseek-ai/dsh-session';
+import SandboxPolicyService, { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy';
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, foldRequestHeader, } from '@deepseek-ai/dsh-session';
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl';
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection';
 import SessionTitleService, { SessionTitleProviderId, foldSessionTitle, } from '@deepseek-ai/dsh-session-title';
 import { generateSessionTitleWithLlm, resolveSessionTitleLlmConfig, } from '@deepseek-ai/dsh-session-title-llm';
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt';
@@ -236,9 +237,7 @@ export const BLACKBOARD_APPLY_PARAMETERS = {
 };
 /** Select the first human question added after a Topic's inherited seed. */
 export function selectTopicTitleMessage(request) {
-    const seedLength = request.session.header.seedLength ?? 0;
-    const seedBoundary = request.session.events[seedLength - 1]?.seq ?? -1;
-    const first = request.messages.find((message) => message.seq > seedBoundary);
+    const first = request.messages.find((message) => message.seq >= request.session.inheritedEventCount);
     if (first === undefined)
         throw new Error('CiteCiter title generation requires one post-seed user question');
     return first;
@@ -352,6 +351,7 @@ const topicDeletionMarkerSchema = z.object({
         version: z.number().int().nonnegative(),
         id: z.string().min(1),
         createdAt: z.number().int().nonnegative(),
+        isSeeded: z.boolean().default(false),
         cwd: z.string().optional(),
     }).strict(),
 }).strict();
@@ -466,6 +466,7 @@ export class TopicIndex {
                 version: sessionHeader.version,
                 id: sessionHeader.id,
                 createdAt: sessionHeader.createdAt,
+                isSeeded: sessionHeader.isSeeded,
                 ...(sessionHeader.cwd === undefined ? {} : { cwd: sessionHeader.cwd }),
             },
         };
@@ -610,7 +611,7 @@ function latestObservedSeq(events) {
 export function topicMessages(log) {
     const messages = [];
     const toolIndexes = new Map();
-    const start = log.header.seedLength ?? 0;
+    const start = log.inheritedEventCount;
     let partial = null;
     let error = null;
     const attemptByTurn = new Map();
@@ -750,7 +751,7 @@ export function projectBoardFromLog(log) {
     let state = EMPTY_BOARD_STATE;
     let revision = 0;
     let invalid = 0;
-    const start = log.header.seedLength ?? 0;
+    const start = log.inheritedEventCount;
     for (const event of log.events.slice(start)) {
         if (event.type === 'tool/call' && event.data.name === 'blackboard_apply') {
             calls.set(String(event.data.callId), event.data.arguments);
@@ -789,7 +790,7 @@ export function projectBoardFromLog(log) {
  * @returns the first post-seed question, or `null` when it has not been committed.
  */
 export function firstPostSeedUserQuestion(log) {
-    for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+    for (const event of log.events.slice(log.inheritedEventCount)) {
         if (event.type !== 'user/message' || event.data.source.kind !== 'user')
             continue;
         const text = textBlocks(event.data.content, 'text');
@@ -810,7 +811,7 @@ function pendingPostSeedUserMessages(log) {
         'next-turn': [],
         'next-step': [],
     };
-    for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+    for (const event of log.events.slice(log.inheritedEventCount)) {
         if (event.type !== 'agent/inbox/spliced')
             continue;
         pending[event.data.target].splice(event.data.start, event.data.removedCount ?? 0, ...event.data.inserted);
@@ -831,7 +832,7 @@ export function postSeedUserQuestionById(log, messageId) {
     return pending === undefined ? null : textBlocks(pending.content, 'text');
 }
 function committedPostSeedUserQuestionById(log, messageId) {
-    for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+    for (const event of log.events.slice(log.inheritedEventCount)) {
         if (event.type !== 'user/message'
             || event.data.source.kind !== 'user'
             || String(event.data.id) !== messageId)
@@ -982,8 +983,6 @@ export class TopicRuntime {
     releaseLlm;
     releaseFs;
     releaseSubprocess;
-    releaseSandboxPolicy;
-    releaseQuestionProvider;
     hasSourceFiles = false;
     closed = false;
     /** @param host - owning DSH context. @param settings - current user preferences. */
@@ -1097,14 +1096,14 @@ export class TopicRuntime {
             this.releaseLlm = this.runtime.provide('llm', this.host.llm);
             const sourceFs = this.host.get('fs');
             const sourceSubprocess = this.host.get('subprocess');
-            const sandboxPolicy = this.host.get('sandboxPolicy');
-            if (sourceFs !== undefined && sourceSubprocess !== undefined && sandboxPolicy !== undefined) {
+            if (sourceFs !== undefined && sourceSubprocess !== undefined) {
                 this.releaseFs = this.runtime.provide('fs', sourceFs);
                 this.releaseSubprocess = this.runtime.provide('subprocess', sourceSubprocess);
-                this.releaseSandboxPolicy = this.runtime.provide('sandboxPolicy', sandboxPolicy);
                 this.hasSourceFiles = true;
             }
             this.fibers.push(await this.runtime.plugin(SessionStore));
+            this.fibers.push(await this.runtime.plugin(SessionProjectionRegistry));
+            this.fibers.push(await this.runtime.plugin(SandboxPolicyService, { mode: 'read-only' }));
             this.fibers.push(await this.runtime.plugin(AgentRegistry));
             this.fibers.push(await this.runtime.plugin(SystemPrompt, {
                 includeHarnessIdentity: true,
@@ -1112,9 +1111,6 @@ export class TopicRuntime {
             }));
             this.fibers.push(await this.runtime.plugin(ToolRuntime, { mode: 'native' }));
             this.fibers.push(await this.runtime.plugin(UserQuestionService));
-            this.releaseQuestionProvider = this.runtime.userQuestions.registerProvider({
-                ask: (request) => this.askUser(request),
-            });
             this.fibers.push(await this.runtime.plugin(ToolAskUser));
             if (this.hasSourceFiles) {
                 this.fibers.push(await this.runtime.plugin(ToolFs, {}));
@@ -1163,13 +1159,6 @@ export class TopicRuntime {
     }
     async releaseOwnedRuntime() {
         const failures = [];
-        try {
-            this.releaseQuestionProvider?.();
-        }
-        catch (error) {
-            failures.push(error);
-        }
-        this.releaseQuestionProvider = undefined;
         for (const pending of this.pendingQuestions.values()) {
             pending.signal?.removeEventListener('abort', pending.onAbort);
             pending.reject(new UserQuestionError(CITECITER_SHUTTING_DOWN, 'ASK_ABORTED'));
@@ -1207,7 +1196,7 @@ export class TopicRuntime {
         this.sourceAvailabilityChecks.clear();
         this.titleRefreshes.clear();
         this.opening.clear();
-        for (const release of [this.releaseSandboxPolicy, this.releaseSubprocess, this.releaseFs, this.releaseLlm]) {
+        for (const release of [this.releaseSubprocess, this.releaseFs, this.releaseLlm]) {
             try {
                 await release?.();
             }
@@ -1215,7 +1204,6 @@ export class TopicRuntime {
                 failures.push(error);
             }
         }
-        this.releaseSandboxPolicy = undefined;
         this.releaseFs = undefined;
         this.releaseSubprocess = undefined;
         this.releaseLlm = undefined;
@@ -1428,10 +1416,11 @@ export class TopicRuntime {
             ...(metadata.mode === 'exact-fork'
                 ? {
                     seed,
+                    inheritedEventCount: SessionLogOffset(seed.length),
                     meta: {
                         ...(metadata.sourceCwd === '' ? {} : { cwd: metadata.sourceCwd }),
                         parentSession: SessionId(metadata.sourceSessionId),
-                        seedLength: seed.length,
+                        isSeeded: true,
                     },
                 }
                 : metadata.sourceCwd === '' ? {} : { meta: { cwd: metadata.sourceCwd } }),
@@ -1450,7 +1439,7 @@ export class TopicRuntime {
         this.handles.set(metadata.sessionId, handle);
         return handle;
     }
-    setupAgent(agentCtx, metadata) {
+    async setupAgent(agentCtx, metadata) {
         const agent = agentCtx.agent;
         if (agent === undefined)
             throw new Error('CiteCiter Topic setup has no scoped Agent');
@@ -1502,7 +1491,7 @@ export class TopicRuntime {
         });
         agentCtx.on('agent/request', async (_request, next) => {
             const current = await next();
-            if (foldRequestHeader(agent.session.events) !== undefined)
+            if (agent.session.requestHeader() !== undefined)
                 return current;
             return {
                 ...current,
@@ -1510,8 +1499,15 @@ export class TopicRuntime {
                 ...(metadata.modelConfig.stop === undefined ? {} : { stop: [...metadata.modelConfig.stop] }),
             };
         });
-        if (effectiveSandboxMode(agent.session.events) !== 'read-only')
-            setSandboxMode(agent.session, 'read-only');
+        await agentCtx.plugin({
+            name: 'citeciter-topic-policy',
+            inject: ['sandboxPolicy'],
+            apply(policyCtx) {
+                if (policyCtx.sandboxPolicy.overrideOf(agent.session) !== 'read-only')
+                    setSandboxMode(agent.session, 'read-only');
+            },
+        });
+        agentCtx.on('user-questions/request', (request) => this.askUser(request));
     }
     globTool() {
         return defineTool({
@@ -1607,7 +1603,9 @@ export class TopicRuntime {
                 const session = exec.agent?.session;
                 if (session === undefined)
                     throw new Error('blackboard_apply requires a Topic Session');
-                const current = projectBoardFromLog({ header: session.header, events: session.events });
+                const current = projectBoardFromLog({
+                    header: session.header, events: session.snapshotEvents(), inheritedEventCount: session.inheritedEventCount,
+                });
                 applyBoardOps(new Map(current.elements.map((element) => [element.id, element])), ops);
                 return { applied: ops.length };
             },
@@ -1781,13 +1779,13 @@ export class TopicRuntime {
                     exec.signal.throwIfAborted();
                     sourceAvailable = false;
                     const agent = agentCtx.agent;
-                    if (metadata.mode !== 'exact-fork' || agent === undefined || agent.session.header.seedLength === undefined) {
+                    if (metadata.mode !== 'exact-fork' || agent === undefined || !agent.session.header.isSeeded) {
                         await this.rememberSourceAvailability(metadata, false);
                         throw error;
                     }
                     source = {
                         session: { id: SessionId(metadata.sourceSessionId) },
-                        events: agent.session.events.slice(0, agent.session.header.seedLength),
+                        events: agent.session.snapshotEvents(SessionLogOffset(0), agent.session.inheritedEventCount),
                     };
                 }
                 exec.signal.throwIfAborted();
@@ -2118,10 +2116,10 @@ export class TopicRuntime {
             cleanup,
         };
     }
-    /** Await rc.2 JSONL retirement without populating its prepared-session cache. */
+    /** Await JSONL retirement without populating its prepared-session cache. */
     async readRetiredSessionHeader(metadata, signal) {
         try {
-            return (await this.runtime.sessionPersistence.readFrom(SessionId(metadata.sessionId), 0, signal)).meta;
+            return (await this.runtime.sessionPersistence.readFrom(SessionId(metadata.sessionId), SessionLogOffset(0), signal)).meta;
         }
         catch (error) {
             if (!(error instanceof Error) || error.message !== `session "${metadata.sessionId}" not found`)
@@ -2130,6 +2128,7 @@ export class TopicRuntime {
                 version: SESSION_FORMAT_VERSION,
                 id: SessionId(metadata.sessionId),
                 createdAt: metadata.createdAt,
+                isSeeded: metadata.mode === 'exact-fork',
                 ...(metadata.sourceCwd === '' ? {} : { cwd: metadata.sourceCwd }),
             };
         }
@@ -2353,11 +2352,13 @@ export class TopicRuntime {
             this.assertOpen(signal);
         const live = this.handles.get(metadata.sessionId)?.agent.session;
         if (live !== undefined)
-            return { header: live.header, events: live.events };
+            return {
+                header: live.header, events: live.snapshotEvents(), inheritedEventCount: live.inheritedEventCount,
+            };
         const inspection = await this.runtime.sessionPersistence.inspect(SessionId(metadata.sessionId), signal);
         if (signal !== undefined)
             this.assertOpen(signal);
-        return { header: inspection.meta, events: inspection.events };
+        return { header: inspection.meta, events: inspection.events, inheritedEventCount: inspection.inheritedEventCount };
     }
     scheduleSourceAvailabilityCheck(metadata) {
         if (this.closed
@@ -2463,7 +2464,7 @@ export class TopicRuntime {
             || this.titleRefreshAttempted.has(metadata.sessionId)
             || this.handles.get(metadata.sessionId)?.agent.status === 'running')
             return;
-        const postSeed = log.events.slice(log.header.seedLength ?? 0);
+        const postSeed = log.events.slice(log.inheritedEventCount);
         if (!postSeed.some((event) => event.type === 'request/header')
             || !postSeed.some((event) => event.type === 'assistant/message'))
             return;

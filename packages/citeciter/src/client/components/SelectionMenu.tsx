@@ -1,15 +1,20 @@
-import { type FormEvent, useEffect, useState, useSyncExternalStore } from 'react'
-import type { CompanionFace, CreateMode } from '../companion-controller.ts'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
+import type { CiteOverlaySnapshot } from '../types.ts'
+import type { CompanionSnapshot } from '../companion-controller.ts'
+import type { CompanionActions, OverlayActions } from '../view-actions.ts'
+import { type FormEvent, useEffect, useState } from 'react'
+import type { CreateMode } from '../companion-controller.ts'
 import type { TopicScenario } from '../../topic.ts'
-import type { CiteBus } from '../types.ts'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
 
 const PREVIEW_LIMIT = 96
 
 export interface SelectionMenuProps {
-  readonly bus: CiteBus
-  readonly companion: CompanionFace
+  readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
+  readonly useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>
+  readonly bus: OverlayActions
+  readonly companion: CompanionActions
   readonly openPanel: () => void
 }
 
@@ -18,9 +23,9 @@ export interface SelectionMenuProps {
  * @param props - shared selection state and Topic actions.
  * @returns the contextual creation popover and companion launcher.
  */
-export function SelectionMenu({ bus, companion, openPanel }: SelectionMenuProps) {
-  const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot)
-  const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
+export function SelectionMenu({ useCompanion, useOverlay, bus, companion, openPanel }: SelectionMenuProps) {
+  const overlay = useOverlay(value => value)
+  const snapshot = useCompanion(value => value)
   const [question, setQuestion] = useState('')
   const [mode, setMode] = useState<CreateMode>(snapshot.settings.defaultMode)
   const [scenario, setScenario] = useState<TopicScenario>('qa')

@@ -431,7 +431,7 @@ test('present Topic projects only successful atomic blackboard call/result pairs
   })
   const set = { op: 'set', id: 'a', kind: 'text', content: '要点', x: 4, y: 4, w: 42, h: 8 }
   const log = {
-    header: { seedLength: 0 },
+    header: { isSeeded: true }, inheritedEventCount: 0,
     events: [
       { seq: 1, type: 'assistant/message', data: { message: { content: [{ type: 'text', text: '<citeciter-board>[{"op":"clear"}]</citeciter-board>' }] } } },
       call(2, 'ok-set', [set]),
@@ -478,19 +478,19 @@ test('a later Topic turn clears the active banner but retains historical failure
       data: { turn: 1, reason: { kind: 'error', error: { message: 'first failed', code: 'UNKNOWN' } } },
     },
   ]
-  const failed = topicMessages({ header: { seedLength: 0 }, events: firstTurn })
+  const failed = topicMessages({ header: { isSeeded: true }, inheritedEventCount: 0, events: firstTurn })
   assert.equal(failed.error, 'first failed')
   assert.equal(failed.messages.at(-1)?.role, 'error')
 
   const retried = topicMessages({
-    header: { seedLength: 0 },
+    header: { isSeeded: true }, inheritedEventCount: 0,
     events: [...firstTurn, { seq: 3, type: 'turn/start', data: { turn: 2 } }],
   })
   assert.equal(retried.error, null)
   assert.equal(retried.messages.filter((message) => message.role === 'error').length, 1)
 
   const completed = topicMessages({
-    header: { seedLength: 0 },
+    header: { isSeeded: true }, inheritedEventCount: 0,
     events: [
       ...firstTurn,
       { seq: 3, type: 'turn/start', data: { turn: 2 } },
@@ -583,7 +583,7 @@ test('Exact Topics ignore inherited titles and title the first post-seed questio
 
   const selected = selectTopicTitleMessage({
     session: {
-      header: { seedLength: 3 },
+      header: { isSeeded: true }, inheritedEventCount: 3,
       events: [{ seq: 0 }, { seq: 1 }, { seq: 2 }, { seq: 4 }],
     },
     messages: [
@@ -606,11 +606,11 @@ test('creation recovery ignores inherited source questions and finds the first T
     data: { source: { kind: 'user' }, content: [{ type: 'text', text: 'Topic 首问' }] },
   }
   assert.equal(firstPostSeedUserQuestion({
-    header: { seedLength: 3 },
+    header: { isSeeded: true }, inheritedEventCount: 3,
     events: [sourceQuestion, { seq: 2 }, { seq: 3 }, topicQuestion],
   }), 'Topic 首问')
   assert.equal(firstPostSeedUserQuestion({
-    header: { seedLength: 3 },
+    header: { isSeeded: true }, inheritedEventCount: 3,
     events: [sourceQuestion, { seq: 2 }, { seq: 3 }],
   }), null)
 })
@@ -626,7 +626,7 @@ test('follow-up request identity survives browser and Host restarts in the Topic
     type: 'user/message',
     data: { id: 'same-request', source: { kind: 'user' }, content: [{ type: 'text', text: 'Topic 追问' }] },
   }
-  const log = { header: { seedLength: 3 }, events: [inherited, { seq: 2 }, { seq: 3 }, followup] }
+  const log = { header: { isSeeded: true }, inheritedEventCount: 3, events: [inherited, { seq: 2 }, { seq: 3 }, followup] }
   assert.equal(postSeedUserQuestionById(log, 'same-request'), 'Topic 追问')
   assert.equal(postSeedUserQuestionById(log, 'missing-request'), null)
 
@@ -639,7 +639,7 @@ test('follow-up request identity survives browser and Host restarts in the Topic
       inserted: [{ id: 'queued-request', role: 'user', content: [{ type: 'text', text: '待处理追问' }], source: { kind: 'user' } }],
     },
   }
-  const queuedLog = { header: { seedLength: 3 }, events: [inherited, { seq: 2 }, { seq: 3 }, queued] }
+  const queuedLog = { header: { isSeeded: true }, inheritedEventCount: 3, events: [inherited, { seq: 2 }, { seq: 3 }, queued] }
   assert.equal(firstPostSeedUserQuestion(queuedLog), '待处理追问')
   assert.equal(postSeedUserQuestionById(queuedLog, 'queued-request'), '待处理追问')
 
@@ -655,7 +655,7 @@ test('follow-up request identity survives browser and Host restarts in the Topic
   assert.equal(postSeedUserQuestionById(canceledLog, 'queued-request'), null)
 
   const pluginLog = {
-    header: { seedLength: 0 },
+    header: { isSeeded: true }, inheritedEventCount: 0,
     events: [{
       seq: 1,
       type: 'agent/inbox/spliced',
@@ -748,7 +748,7 @@ test('caller cancellation after claim preserves the idempotent follow-up', async
     loadBySessionId: async () => ({ sessionId: 'topic' }),
     save: async () => { saves += 1 },
   }
-  runtime.readLog = async () => ({ header: { seedLength: 0 }, events: [] })
+  runtime.readLog = async () => ({ header: { isSeeded: true }, inheritedEventCount: 0, events: [] })
   runtime.runtime = { sessions: { flush: async () => { flushes += 1 } } }
   runtime.snapshot = (metadata) => metadata
   const request = {
@@ -1122,7 +1122,7 @@ test('creation recovery and follow-up admission share the Topic queue', async ()
   runtime.asks = new Map()
   runtime.topicAdmissions = new Map()
   runtime.index = { list: async () => [{ sessionId: 'topic', createRequestId: 'create' }] }
-  runtime.readLog = async () => ({ header: { seedLength: 0 }, events: [] })
+  runtime.readLog = async () => ({ header: { isSeeded: true }, inheritedEventCount: 0, events: [] })
   runtime.ensureHandle = async () => ({ agent: { inbox: { remove: () => false } } })
   runtime.snapshot = async () => ({})
   let releaseRepair
@@ -1172,7 +1172,7 @@ test('live committed create and ask retries flush before the Host acknowledges t
     flushes += 1
   } } }
   runtime.readLog = async () => ({
-    header: { seedLength: 0 },
+    header: { isSeeded: true }, inheritedEventCount: 0,
     events: [{
       seq: 1,
       type: 'user/message',

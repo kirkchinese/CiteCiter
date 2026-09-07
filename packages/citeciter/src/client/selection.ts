@@ -1,4 +1,4 @@
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { CiteSelection } from './types.ts'
 import { ASSISTANT_ENTRY_ID } from './entry-ids.ts'
 import {

@@ -1,5 +1,5 @@
 import { Context } from '@deepseek-ai/cordis';
-import { type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session';
+import { SessionLogOffset, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session';
 import { type SessionTitleProviderRequest } from '@deepseek-ai/dsh-session-title';
 import { z } from 'zod';
 import { type BoardSnapshot } from './board.ts';
@@ -246,6 +246,7 @@ export declare function selectTopicTitleMessage(request: SessionTitleProviderReq
 export interface RuntimeTopicLog {
     readonly header: SessionHeader;
     readonly events: readonly SessionEvent[];
+    readonly inheritedEventCount: SessionLogOffset;
 }
 /**
  * Remove one artifact from a caller-owned JSONL root without following links.
@@ -266,6 +267,7 @@ declare const topicDeletionMarkerSchema: z.ZodObject<{
         version: z.ZodNumber;
         id: z.ZodString;
         createdAt: z.ZodNumber;
+        isSeeded: z.ZodDefault<z.ZodBoolean>;
         cwd: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>;
 }, z.core.$strict>;
@@ -362,8 +364,6 @@ export declare class TopicRuntime {
     private releaseLlm;
     private releaseFs;
     private releaseSubprocess;
-    private releaseSandboxPolicy;
-    private releaseQuestionProvider;
     private hasSourceFiles;
     private closed;
     /** @param host - owning DSH context. @param settings - current user preferences. */
@@ -416,7 +416,7 @@ export declare class TopicRuntime {
     private archive;
     private delete;
     private deleteAdmitted;
-    /** Await rc.2 JSONL retirement without populating its prepared-session cache. */
+    /** Await JSONL retirement without populating its prepared-session cache. */
     private readRetiredSessionHeader;
     /** Remove one artifact only from CiteCiter's fixed private JSONL backend. */
     private removeSessionArtifact;

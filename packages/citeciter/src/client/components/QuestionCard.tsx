@@ -1,6 +1,6 @@
+import type { CompanionActions } from '../view-actions.ts'
 import { type FormEvent, useMemo, useState } from 'react'
 import { IconQuestionOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { CompanionFace } from '../companion-controller.ts'
 import type { PendingQuestion, QuestionAnswer } from '../../topic.ts'
 import css from './CiteCiter.module.css'
 
@@ -10,7 +10,7 @@ interface DraftAnswer {
 }
 
 export interface QuestionCardProps {
-  readonly companion: CompanionFace
+  readonly companion: CompanionActions
   readonly pending: PendingQuestion
 }
 

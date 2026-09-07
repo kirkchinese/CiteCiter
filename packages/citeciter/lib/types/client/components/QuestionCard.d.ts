@@ -1,7 +1,7 @@
-import type { CompanionFace } from '../companion-controller.ts';
+import type { CompanionActions } from '../view-actions.ts';
 import type { PendingQuestion } from '../../topic.ts';
 export interface QuestionCardProps {
-    readonly companion: CompanionFace;
+    readonly companion: CompanionActions;
     readonly pending: PendingQuestion;
 }
 /** Collect one standard DSH ask_user_question answer batch inside the private Topic. */

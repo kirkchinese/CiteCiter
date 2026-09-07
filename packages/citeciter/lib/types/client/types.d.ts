@@ -1,4 +1,4 @@
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SessionId } from '@deepseek-ai/dsh-session/types';
 import type { ToolEvidenceProjection } from '../evidence-text.ts';
 /** One right-click selection inside a rendered assistant model call. */
 export interface AssistantCiteSelection {

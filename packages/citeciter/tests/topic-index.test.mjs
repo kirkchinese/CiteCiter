@@ -116,6 +116,7 @@ test('a durable deletion marker hides metadata and can be completed after restar
   await index.save(metadata)
   const marker = await index.markDeleting(metadata, {
     version: 0,
+    isSeeded: false,
     id: metadata.sessionId,
     createdAt: metadata.createdAt,
     cwd: metadata.sourceCwd,

@@ -1,10 +1,10 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useRef, useSyncExternalStore } from 'react';
+import { useRef } from 'react';
 import { readTextareaSelection } from "../reader-selection.js";
 import css from './DocumentReader.module.css';
 /** Reader shell-overlay entry: compact trigger plus the document library panel. */
-export function DocumentReader({ reader }) {
-    const snapshot = useSyncExternalStore(reader.subscribe, reader.getSnapshot);
+export function DocumentReader({ reader, useReader }) {
+    const snapshot = useReader(value => value);
     const textareaRef = useRef(null);
     const syncSelection = () => {
         const textarea = textareaRef.current;

@@ -1,15 +1,23 @@
 import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
+import { readFileSync } from 'node:fs'
 
-const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+const require = createRequire(import.meta.url)
+const packageBin = (name, command) => {
+  const manifestPath = require.resolve(`${name}/package.json`)
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  return join(dirname(manifestPath), typeof manifest.bin === 'string' ? manifest.bin : manifest.bin[command])
+}
+const tsc = packageBin('typescript', 'tsc')
+const tsdown = packageBin('tsdown', 'tsdown')
+const watch = (args) => spawn(process.execPath, args, {
+  cwd: new URL('..', import.meta.url), stdio: 'inherit', windowsHide: true,
+})
 const children = [
-  spawn(npm, ['exec', '--', 'tsc', '-p', 'tsconfig.json', '--watch', '--preserveWatchOutput'], {
-    cwd: new URL('..', import.meta.url),
-    stdio: 'inherit',
-  }),
-  spawn(npm, ['exec', '--', 'tsdown', '--watch', '--env.DSH_BUILD_FACE', 'client'], {
-    cwd: new URL('..', import.meta.url),
-    stdio: 'inherit',
-  }),
+  watch([tsc, '-p', 'tsconfig.host.json', '--watch', '--preserveWatchOutput']),
+  watch([tsc, '-p', 'tsconfig.client.json', '--watch', '--preserveWatchOutput']),
+  watch([tsdown, '--watch', '--env.DSH_BUILD_FACE', 'client']),
 ]
 
 let stopping = false

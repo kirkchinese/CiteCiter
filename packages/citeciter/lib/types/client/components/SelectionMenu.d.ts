@@ -1,8 +1,12 @@
-import type { CompanionFace } from '../companion-controller.ts';
-import type { CiteBus } from '../types.ts';
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store';
+import type { CiteOverlaySnapshot } from '../types.ts';
+import type { CompanionSnapshot } from '../companion-controller.ts';
+import type { CompanionActions, OverlayActions } from '../view-actions.ts';
 export interface SelectionMenuProps {
-    readonly bus: CiteBus;
-    readonly companion: CompanionFace;
+    readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>;
+    readonly useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>;
+    readonly bus: OverlayActions;
+    readonly companion: CompanionActions;
     readonly openPanel: () => void;
 }
 /**
@@ -10,4 +14,4 @@ export interface SelectionMenuProps {
  * @param props - shared selection state and Topic actions.
  * @returns the contextual creation popover and companion launcher.
  */
-export declare function SelectionMenu({ bus, companion, openPanel }: SelectionMenuProps): import("react").JSX.Element;
+export declare function SelectionMenu({ useCompanion, useOverlay, bus, companion, openPanel }: SelectionMenuProps): import("react").JSX.Element;

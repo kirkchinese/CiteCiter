@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import { projectToolEvidence } from "./evidence-text.js";
 export { projectDiffMeta, projectToolEvidence, projectToolResultText, } from "./evidence-text.js";
-import { snapshotJsonValue, } from '@deepseek-ai/dsh-session';
+import { snapshotJsonValue } from '@deepseek-ai/dsh-util-values';
 import { canonicalCitationIdentity, citationDraftSchema, citationSelectionClaimSchema, documentEvidenceClaimSchema, toolEvidenceClaimSchema, } from "./topic.js";
 import { projectCitableAssistantContent } from "./assistant-content.js";
 import { resolveCitationRange, } from "./citation-mapping.js";

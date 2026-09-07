@@ -7,12 +7,12 @@ import plugin, { CITECITER_SETTINGS_NS, CiteCiterHost } from '../lib/types/index
 
 const packageRoot = new URL('../', import.meta.url)
 
-test('v0.5.0 candidate declares an installable Host+Client DSH Web bundle', async () => {
+test('v0.6.0 candidate declares an installable Host+Client DSH bundle', async () => {
   const manifest = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'))
   const patch = await readFile(new URL('cordis.patch.yml', packageRoot), 'utf8')
 
   assert.equal(manifest.name, '@kirkchinese/dsh-citeciter')
-  assert.equal(manifest.version, '0.5.0')
+  assert.equal(manifest.version, '0.6.0')
   assert.equal(manifest.private, undefined)
   assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.equal(manifest.exports?.['./typert']?.default, './lib/typert.host.js')
@@ -28,13 +28,12 @@ test('v0.5.0 candidate declares an installable Host+Client DSH Web bundle', asyn
   for (const peer of [
     '@deepseek-ai/dsh-agent',
     '@deepseek-ai/dsh-agent-loop',
-    '@deepseek-ai/dsh-client-connection',
-    '@deepseek-ai/dsh-client-ui-conversation',
     '@deepseek-ai/dsh-fs',
     '@deepseek-ai/dsh-home-paths',
     '@deepseek-ai/dsh-llm',
     '@deepseek-ai/dsh-sandbox-policy',
     '@deepseek-ai/dsh-session-persistence-jsonl',
+    '@deepseek-ai/dsh-session-projection',
     '@deepseek-ai/dsh-session-query',
     '@deepseek-ai/dsh-session-title',
     '@deepseek-ai/dsh-session-title-llm',
@@ -49,18 +48,21 @@ test('v0.5.0 candidate declares an installable Host+Client DSH Web bundle', asyn
   for (const removedPeer of [
     '@deepseek-ai/dsh-commands',
     '@deepseek-ai/dsh-permission-presets',
-    '@deepseek-ai/dsh-session-projection',
     '@deepseek-ai/dsh-client-ui-primitives',
     '@deepseek-ai/dsh-client-ui-slots',
     'react',
   ]) assert.equal(manifest.peerDependencies[removedPeer], undefined)
   for (const developmentOnly of [
+    '@deepseek-ai/dsh-client-connection',
+    '@deepseek-ai/dsh-client-ui-conversation',
+    '@deepseek-ai/dsh-client-store',
+    '@deepseek-ai/dsh-api-session-controller',
     '@deepseek-ai/dsh-client-ui-primitives',
     '@deepseek-ai/dsh-client-ui-slots',
     'react',
   ]) assert.ok(manifest.devDependencies[developmentOnly], `missing development-only dependency ${developmentOnly}`)
   for (const [name, range] of Object.entries(manifest.peerDependencies)) {
-    if (name.startsWith('@deepseek-ai/dsh-')) assert.equal(range, '>=0.1.1-rc.1 <0.1.1-rc.3')
+    if (name.startsWith('@deepseek-ai/dsh-')) assert.equal(range, '0.1.2-rc.1')
   }
   assert.equal(patch, "- insert:\n    - id: citeciter\n      name: '@kirkchinese/dsh-citeciter'\n")
 })

@@ -1,53 +1,49 @@
-# 参与 CiteCiter 贡献
+# 参与 CiteCiter 开发
 
 [English](CONTRIBUTING.md)
 
-感谢你帮助改进 CiteCiter。欢迎提交问题报告、范围明确的修复、测试和面向用户的改进。
-
-## 开始之前
-
-- 使用 Node.js `^22.19.0 || >=24.0.0`，以及 `package.json` 声明的 pnpm 版本。
-- 基于 DSH Web `>=0.1.1-rc.1 <0.1.1-rc.3` 开发。
-- 保持 CiteCiter 为 DSH 外部插件。使用受支持的插件服务和事件，不修改 DSH 核心，也不替换 Agent Loop。
-- 大型行为或架构变更请先提交 Issue，确认范围后再开始实现。
-
-## 搭建仓库
+开发基线为 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0` 和 DSH `0.1.2-rc.1`。Windows 实测为 Node 24.19.0。Desktop 2.0.5 内置同一 DSH；Desktop master 与 DSH alpha 需要另行适配。
 
 ```sh
-git clone https://github.com/kirkchinese/CiteCiter.git
-cd CiteCiter
-pnpm install
-```
-
-可发布包位于 `packages/citeciter/`。仓库跟踪生成的 `lib/`；修改源码或构建配置后必须重新构建。
-
-## 检查改动
-
-请选择覆盖改动的最小检查集。修改包行为的 Pull Request 在提交前应运行：
-
-```sh
-pnpm run typecheck
-pnpm --dir packages/citeciter test
-pnpm run build
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:snapshot
 git diff --check
 ```
 
-界面改动还必须使用独立 `DSH_HOME` 和单独或动态分配的端口进行浏览器检查。不得停止或复用他人正在运行的 DSH 进程。
+发布包位于 `packages/citeciter/`，Host 与 Client 分别编译，生成的 `lib/` 纳入版本管理。`pnpm --dir packages/citeciter dev` 直接通过 Node 监视两套 TypeScript 配置和客户端打包，支持 Windows。Host 修改后重启宿主，Client 修改后刷新页面。
 
-## 文档
+## 隔离开发环境
 
-- 同步维护 `README.md` 与 `README.en.md`，内容以用户为中心。
-- 包内 README 应与根 README 和已发布版本保持一致。
-- 面向公众的更新记录统一放在 `docs/releases/`。
-- 不提交产品访谈、设计草稿、内部决策记录、测试报告、本地截图或其他开发过程文档。
-- README 不得链接 `docs/` 下的内部文件。
+在独立 PowerShell 中启动：
 
-## Pull Request
+```powershell
+$env:DSH_HOME = Join-Path $PWD '.refs/manual-web'
+dsh plugin --profile web add "$PWD/packages/citeciter"
+dsh --profile web --host 127.0.0.1 --port 10519 --no-open
+```
 
-- 每个 Pull Request 只处理一个明确主题。
-- 说明用户可见的问题和修改后的行为。
-- 添加一项没有该修改就会失败的最小测试。
-- 不提交凭据、`.npmrc`、`.env`、临时 DSH home、生成的 Session、截图或包 tarball。
-- 如果修改影响 CiteCiter Topic，请确认来源 Session 保持不变。
+选择空闲端口，一个活动进程独占一个 home。Desktop 使用另一个 `DSH_HOME`，插件装入 Desktop 当前选中的 profile，再从该环境启动已安装的 Desktop。全局 CLI 升级不会同步升级 Desktop 内置运行时。
 
-提交贡献即表示你同意该贡献按照 [MIT License](LICENSE) 许可。
+## 实际应用快照与安装包
+
+`pnpm test:snapshot` 依赖已安装的 DSH CLI，自动创建临时 home、安装插件并挂载无密钥模型。它运行真实来源会话、Observer、Exact Fork、来源读取和板书工具，对照 `tests/snapshots/assembled-topic.json`，并断言来源日志未改变。输出目录保留用于诊断，不使用真实 API Key。
+
+有意改变输出并审阅差异后，可在该命令环境中设置 `CITECITER_RECORD_SNAPSHOT=1` 更新期望文件，随后移除变量重新回放。不能为了通过失败测试直接重录。
+
+```powershell
+pnpm --dir packages/citeciter pack --pack-destination ../../.refs/artifacts
+node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.6.0.tgz
+```
+
+旧 `dev/seed-smoke-session.mjs`、`smoke*.mjs` 和 `hmr-smoke.mjs` 是 0.5 历史夹具，含旧宿主手写会话和 Linux 路径，不作为 0.6 验收入口。使用真实应用快照与隔离 UI 会话，不要对真实数据运行旧 seeder。
+
+## 变更要求
+
+Topic 使用私有日志和只读工具，不修改来源 Session。公开 UI 注册与版本相关布局适配分开维护；验收最大比例、窄窗口、原生详情栏、关闭恢复和 Desktop 各模式。
+
+同步根目录与包内中英文 README、公开 release 文档和 JSDoc；非简单变更在 `.agents/notes/` 写 Agent Note，这是排除临时设计草稿和本机验收产物规则的明确例外。不提交密钥、临时 home、截图或 tarball。只报告实际运行的检查，区分 Windows 实测与尚未验证的平台。
+
+贡献代码按 [MIT License](LICENSE) 授权。

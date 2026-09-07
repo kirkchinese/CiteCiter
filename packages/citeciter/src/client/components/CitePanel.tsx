@@ -1,15 +1,17 @@
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
+import type { CiteOverlaySnapshot } from '../types.ts'
+import type { CompanionSnapshot } from '../companion-controller.ts'
+import type { CompanionActions, OverlayActions } from '../view-actions.ts'
 import {
   type CSSProperties,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
   type ReactNode,
   useEffect,
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react'
 import {
   Button,
@@ -22,9 +24,8 @@ import {
   JsonTree,
   Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { CompanionFace, CompanionPhase } from '../companion-controller.ts'
+import type { CompanionPhase } from '../companion-controller.ts'
 import type { TopicMessage } from '../../topic.ts'
-import type { CiteBus } from '../types.ts'
 import { parseNextQuestions } from '../prompt.ts'
 import { appendBoardCitation, isTopicMessageVisible } from '../topic-presentation.ts'
 import collapseArrowUrl from '../assets/collapse-arrow.svg'
@@ -32,6 +33,8 @@ import mascotUrl from '../assets/citeciter-mascot.png'
 import { QuestionCard } from './QuestionCard.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
 import css from './CiteCiter.module.css'
+import { jsonTreeLabels } from '../copy.ts'
+import { findContainingFrame, useHostDock } from '../host-dock.ts'
 
 const PHASE_LABEL: Record<CompanionPhase, string> = {
   idle: '新建或选择 Topic',
@@ -71,72 +74,6 @@ function friendlyFailure(text: string): string {
     return '当前主会话还没有可复用的模型。请先在主对话发送一条消息，再创建 Topic。'
   }
   return text.replaceAll(/https?:\/\/[^\s)]+/gu, '模型服务地址')
-}
-
-function findContainingFrame(panel: HTMLElement | null): HTMLElement | null {
-  const frame = panel?.closest<HTMLElement>('[data-shell-overlay]')?.parentElement
-  return frame instanceof HTMLElement ? frame : null
-}
-
-function useDockColumn(panel: RefObject<HTMLElement | null>,
-  open: boolean,
-  widthPercent: number,
-): readonly [number, boolean] {
-  const [width, setWidth] = useState(0)
-  const [docked, setDocked] = useState(false)
-  useEffect(() => {
-    if (!open) return
-    const frame = findContainingFrame(panel.current)
-    if (frame === null) {
-      setWidth(Math.min(window.innerWidth, 720))
-      setDocked(false)
-      return
-    }
-    const owner = crypto.randomUUID()
-    const setTrack = (name: string, value: string) => {
-      if (frame.style.getPropertyValue(name) !== value) frame.style.setProperty(name, value)
-    }
-    const clearDock = () => {
-      if (frame.dataset.citeciterDocked !== owner) return
-      delete frame.dataset.citeciterDocked
-      frame.style.removeProperty('--citeciter-sidebar-width')
-      frame.style.removeProperty('--citeciter-dock-width')
-    }
-    const apply = () => {
-      const activeOwner = frame.dataset.citeciterDocked
-      if (activeOwner !== undefined && activeOwner !== owner) return
-      const frameWidth = frame.getBoundingClientRect().width
-      const nativeTrack = /^([\d.]+)px(?:\s|$)/u.exec(frame.style.gridTemplateColumns)
-      const sidebarWidth = nativeTrack === null
-        ? frame.firstElementChild?.getBoundingClientRect().width ?? 0
-        : Number(nativeTrack[1])
-      const available = frameWidth - sidebarWidth - 480
-      if (available < 360) {
-        clearDock()
-        setWidth(Math.min(frameWidth, 720))
-        setDocked(false)
-        return
-      }
-      const requested = frameWidth * widthPercent / 100
-      const panelWidth = Math.max(360, Math.min(requested, available))
-      setTrack('--citeciter-sidebar-width', sidebarWidth + 'px')
-      setTrack('--citeciter-dock-width', panelWidth + 'px')
-      frame.dataset.citeciterDocked = owner
-      setWidth(panelWidth)
-      setDocked(true)
-    }
-    apply()
-    const resizeObserver = new ResizeObserver(apply)
-    const styleObserver = new MutationObserver(apply)
-    resizeObserver.observe(frame)
-    styleObserver.observe(frame, { attributes: true, attributeFilter: ['style'] })
-    return () => {
-      resizeObserver.disconnect()
-      styleObserver.disconnect()
-      clearDock()
-    }
-  }, [open, panel, widthPercent])
-  return [width, docked]
 }
 
 function FlowDisclosure({
@@ -187,13 +124,13 @@ function ToolRow({ message }: { readonly message: Extract<TopicMessage, { role: 
     >
       <div className={css.toolPreview}>
         <strong>参数</strong>
-        {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label="工具参数" copyable={false} />}
+        {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label="工具参数" copyable={false} labels={jsonTreeLabels} />}
         {message.result !== null && (
           <>
             <strong>{message.isError ? '错误' : '结果'}</strong>
             {result === null
               ? <pre>{message.result}</pre>
-              : <JsonTree data={result} label="工具结果" copyable={false} />}
+            : <JsonTree data={result} label="工具结果" copyable={false} labels={jsonTreeLabels} />}
           </>
         )}
       </div>
@@ -229,7 +166,7 @@ function AssistantTurn({
 }: {
   readonly message: Extract<TopicMessage, { role: 'assistant' }>
   readonly disabled: boolean
-  readonly companion: CompanionFace
+  readonly companion: CompanionActions
   readonly reportParseError: (messageId: string) => void
 }) {
   const parsed = useMemo(
@@ -263,8 +200,10 @@ function AssistantTurn({
 }
 
 export interface CitePanelProps {
-  readonly bus: CiteBus
-  readonly companion: CompanionFace
+  readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
+  readonly useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>
+  readonly bus: OverlayActions
+  readonly companion: CompanionActions
   readonly closePanel: () => void
   readonly reportParseError: (messageId: string) => void
 }
@@ -274,9 +213,9 @@ export interface CitePanelProps {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ bus, companion, closePanel, reportParseError }: CitePanelProps) {
-  const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot)
-  const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
+export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel, reportParseError }: CitePanelProps) {
+  const overlay = useOverlay(value => value)
+  const snapshot = useCompanion(value => value)
   const [question, setQuestion] = useState('')
   const [title, setTitle] = useState('')
   const [titleDirty, setTitleDirty] = useState(false)
@@ -297,7 +236,8 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
   const open = overlay.panelOpen
   const active = snapshot.active
   const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error'
-  const [panelWidth, docked] = useDockColumn(panelRef, open, widthPercent)
+  const dock = useHostDock(panelRef, open, widthPercent)
+  const docked = dock?.mode === 'columns'
 
   useEffect(() => open ? companion.retainVisible() : undefined, [companion, open])
   useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent])
@@ -412,7 +352,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
         setNewTopicOpen(false)
         setNewTopicQuestion('')
       } else {
-        setNewTopicError(companion.getSnapshot().error ?? 'Topic 未创建，请重试。')
+        setNewTopicError('Topic 未创建，请重试。')
       }
     } finally {
       setNewTopicSubmitting(false)
@@ -426,7 +366,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
     ) return
     setDeleteError(null)
     if (await companion.deleteTopic(deleteConfirmation) === false) {
-      setDeleteError(companion.getSnapshot().error ?? 'Topic 未删除，请重试。')
+      setDeleteError('Topic 未删除，请重试。')
     }
   }
   const updateWidth = (next: number) => {
@@ -469,11 +409,13 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
       ref={panelRef}
       className={css.dock}
       style={{
-        width: panelWidth > 0 ? panelWidth : undefined,
+        width: dock?.width,
+        height: dock?.height,
+        top: dock?.top,
         '--citeciter-panel-width': `${dockWidthPercent}vw`,
       } as CSSProperties}
       data-citeciter-panel
-      data-overlay={docked ? undefined : true}
+      data-arrangement={dock?.mode ?? 'unsupported'}
       aria-label="CiteCiter 学习伴侣"
     >
       {docked && (
@@ -497,6 +439,8 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
         <img src={collapseArrowUrl} alt="" />
       </button>
 
+      {dock === null && <p className={css.layoutNotice} role="status">当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。</p>}
+
       <div className={css.dockBody}>
         <section className={css.learningWorkspace}>
           <header className={css.dockHeader}>
@@ -505,7 +449,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
                 ? snapshot.phase === 'creating' ? '待确认' : '学习栏'
                 : active.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer'}</span>
               <strong>{active?.topic.title ?? '新的学习讨论'}</strong>
-              <span>{PHASE_LABEL[snapshot.phase]}</span>
+              <span>{dock?.mode === 'rows' ? '窗口较窄，学习栏已移至下方' : PHASE_LABEL[snapshot.phase]}</span>
             </div>
             <select
               className={css.compactTopicSelect}
@@ -826,7 +770,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
             }}
           />
           {newTopicError !== null && (
-            <div className={css.modalError} role="alert">{friendlyFailure(newTopicError)}</div>
+            <div className={css.modalError} role="alert">{friendlyFailure(snapshot.error ?? newTopicError)}</div>
           )}
         </div>
       </Modal>
@@ -866,7 +810,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }: Cite
               placeholder="粘贴上方 Session ID"
               onChange={(event) => setDeleteConfirmation(event.currentTarget.value)}
             />
-            {deleteError !== null && <div className={css.modalError} role="alert">{friendlyFailure(deleteError)}</div>}
+            {deleteError !== null && <div className={css.modalError} role="alert">{friendlyFailure(snapshot.error ?? deleteError)}</div>}
           </div>
         )}
       </Modal>
