@@ -1,6 +1,5 @@
-import { E as boardBatchSchema, T as applyBoardOps, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as EMPTY_BOARD_STATE, x as topicMetadataSchema, y as renderCitationContext } from "./update-u9-6c_qp.js";
+import { E as boardBatchSchema, T as applyBoardOps, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as EMPTY_BOARD_STATE, x as topicMetadataSchema, y as renderCitationContext } from "./update-C0K5ekMg.js";
 import { Context, Service } from "@deepseek-ai/cordis";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import z from "@deepseek-ai/schemastery";
 import { createHash, randomUUID } from "node:crypto";
@@ -10,9 +9,10 @@ import AgentRegistry, { installModelSelection } from "@deepseek-ai/dsh-agent";
 import AgentLoop from "@deepseek-ai/dsh-agent-loop";
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import { BlockAssembler, MessageId, ReasoningEffortId, createUserMessage, freezeMessage } from "@deepseek-ai/dsh-llm";
-import { effectiveSandboxMode, setSandboxMode } from "@deepseek-ai/dsh-sandbox-policy";
-import SessionStore, { SESSION_FORMAT_VERSION, SessionId, foldRequestHeader, snapshotJsonValue } from "@deepseek-ai/dsh-session";
+import SandboxPolicyService, { setSandboxMode } from "@deepseek-ai/dsh-sandbox-policy";
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, foldRequestHeader } from "@deepseek-ai/dsh-session";
 import JsonlSessionPersistence from "@deepseek-ai/dsh-session-persistence-jsonl";
+import SessionProjectionRegistry from "@deepseek-ai/dsh-session-projection";
 import SessionTitleService, { SessionTitleProviderId, foldSessionTitle } from "@deepseek-ai/dsh-session-title";
 import { generateSessionTitleWithLlm, resolveSessionTitleLlmConfig } from "@deepseek-ai/dsh-session-title-llm";
 import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
@@ -22,6 +22,7 @@ import * as ToolFsSearch from "@deepseek-ai/dsh-tool-fs-search";
 import ToolRuntime, { defineTool } from "@deepseek-ai/dsh-tools";
 import UserQuestionService, { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
 import { z as z$1 } from "zod";
+import { snapshotJsonValue } from "@deepseek-ai/dsh-util-values";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {
@@ -15343,9 +15344,7 @@ const BLACKBOARD_APPLY_PARAMETERS = { ops: {
 } };
 /** Select the first human question added after a Topic's inherited seed. */
 function selectTopicTitleMessage(request) {
-	const seedLength = request.session.header.seedLength ?? 0;
-	const seedBoundary = request.session.events[seedLength - 1]?.seq ?? -1;
-	const first = request.messages.find((message) => message.seq > seedBoundary);
+	const first = request.messages.find((message) => message.seq >= request.session.inheritedEventCount);
 	if (first === void 0) throw new Error("CiteCiter title generation requires one post-seed user question");
 	return first;
 }
@@ -15447,6 +15446,7 @@ const topicDeletionMarkerSchema = z$1.object({
 		version: z$1.number().int().nonnegative(),
 		id: z$1.string().min(1),
 		createdAt: z$1.number().int().nonnegative(),
+		isSeeded: z$1.boolean().default(false),
 		cwd: z$1.string().optional()
 	}).strict()
 }).strict();
@@ -15554,6 +15554,7 @@ var TopicIndex = class {
 				version: sessionHeader.version,
 				id: sessionHeader.id,
 				createdAt: sessionHeader.createdAt,
+				isSeeded: sessionHeader.isSeeded,
 				...sessionHeader.cwd === void 0 ? {} : { cwd: sessionHeader.cwd }
 			}
 		};
@@ -15673,7 +15674,7 @@ function latestObservedSeq(events) {
 function topicMessages(log) {
 	const messages = [];
 	const toolIndexes = /* @__PURE__ */ new Map();
-	const start = log.header.seedLength ?? 0;
+	const start = log.inheritedEventCount;
 	let partial = null;
 	let error = null;
 	const attemptByTurn = /* @__PURE__ */ new Map();
@@ -15813,7 +15814,7 @@ function projectBoardFromLog(log) {
 	let state = EMPTY_BOARD_STATE;
 	let revision = 0;
 	let invalid = 0;
-	const start = log.header.seedLength ?? 0;
+	const start = log.inheritedEventCount;
 	for (const event of log.events.slice(start)) {
 		if (event.type === "tool/call" && event.data.name === "blackboard_apply") {
 			calls.set(String(event.data.callId), event.data.arguments);
@@ -15850,7 +15851,7 @@ function projectBoardFromLog(log) {
 * @returns the first post-seed question, or `null` when it has not been committed.
 */
 function firstPostSeedUserQuestion(log) {
-	for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+	for (const event of log.events.slice(log.inheritedEventCount)) {
 		if (event.type !== "user/message" || event.data.source.kind !== "user") continue;
 		const text = textBlocks(event.data.content, "text");
 		if (text !== "") return text;
@@ -15867,7 +15868,7 @@ function pendingPostSeedUserMessages(log) {
 		"next-turn": [],
 		"next-step": []
 	};
-	for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+	for (const event of log.events.slice(log.inheritedEventCount)) {
 		if (event.type !== "agent/inbox/spliced") continue;
 		pending[event.data.target].splice(event.data.start, event.data.removedCount ?? 0, ...event.data.inserted);
 	}
@@ -15886,7 +15887,7 @@ function postSeedUserQuestionById(log, messageId) {
 	return pending === void 0 ? null : textBlocks(pending.content, "text");
 }
 function committedPostSeedUserQuestionById(log, messageId) {
-	for (const event of log.events.slice(log.header.seedLength ?? 0)) {
+	for (const event of log.events.slice(log.inheritedEventCount)) {
 		if (event.type !== "user/message" || event.data.source.kind !== "user" || String(event.data.id) !== messageId) continue;
 		return textBlocks(event.data.content, "text");
 	}
@@ -16016,8 +16017,6 @@ var TopicRuntime = class {
 	releaseLlm;
 	releaseFs;
 	releaseSubprocess;
-	releaseSandboxPolicy;
-	releaseQuestionProvider;
 	hasSourceFiles = false;
 	closed = false;
 	/** @param host - owning DSH context. @param settings - current user preferences. */
@@ -16156,14 +16155,14 @@ var TopicRuntime = class {
 			this.releaseLlm = this.runtime.provide("llm", this.host.llm);
 			const sourceFs = this.host.get("fs");
 			const sourceSubprocess = this.host.get("subprocess");
-			const sandboxPolicy = this.host.get("sandboxPolicy");
-			if (sourceFs !== void 0 && sourceSubprocess !== void 0 && sandboxPolicy !== void 0) {
+			if (sourceFs !== void 0 && sourceSubprocess !== void 0) {
 				this.releaseFs = this.runtime.provide("fs", sourceFs);
 				this.releaseSubprocess = this.runtime.provide("subprocess", sourceSubprocess);
-				this.releaseSandboxPolicy = this.runtime.provide("sandboxPolicy", sandboxPolicy);
 				this.hasSourceFiles = true;
 			}
 			this.fibers.push(await this.runtime.plugin(SessionStore));
+			this.fibers.push(await this.runtime.plugin(SessionProjectionRegistry));
+			this.fibers.push(await this.runtime.plugin(SandboxPolicyService, { mode: "read-only" }));
 			this.fibers.push(await this.runtime.plugin(AgentRegistry));
 			this.fibers.push(await this.runtime.plugin(SystemPrompt, {
 				includeHarnessIdentity: true,
@@ -16171,7 +16170,6 @@ var TopicRuntime = class {
 			}));
 			this.fibers.push(await this.runtime.plugin(ToolRuntime, { mode: "native" }));
 			this.fibers.push(await this.runtime.plugin(UserQuestionService));
-			this.releaseQuestionProvider = this.runtime.userQuestions.registerProvider({ ask: (request) => this.askUser(request) });
 			this.fibers.push(await this.runtime.plugin(ToolAskUser));
 			if (this.hasSourceFiles) {
 				this.fibers.push(await this.runtime.plugin(ToolFs, {}));
@@ -16218,12 +16216,6 @@ var TopicRuntime = class {
 	}
 	async releaseOwnedRuntime() {
 		const failures = [];
-		try {
-			this.releaseQuestionProvider?.();
-		} catch (error) {
-			failures.push(error);
-		}
-		this.releaseQuestionProvider = void 0;
 		for (const pending of this.pendingQuestions.values()) {
 			pending.signal?.removeEventListener("abort", pending.onAbort);
 			pending.reject(new UserQuestionError(CITECITER_SHUTTING_DOWN, "ASK_ABORTED"));
@@ -16256,7 +16248,6 @@ var TopicRuntime = class {
 		this.titleRefreshes.clear();
 		this.opening.clear();
 		for (const release of [
-			this.releaseSandboxPolicy,
 			this.releaseSubprocess,
 			this.releaseFs,
 			this.releaseLlm
@@ -16265,7 +16256,6 @@ var TopicRuntime = class {
 		} catch (error) {
 			failures.push(error);
 		}
-		this.releaseSandboxPolicy = void 0;
 		this.releaseFs = void 0;
 		this.releaseSubprocess = void 0;
 		this.releaseLlm = void 0;
@@ -16454,10 +16444,11 @@ var TopicRuntime = class {
 			sessionId: SessionId(metadata.sessionId),
 			...metadata.mode === "exact-fork" ? {
 				seed,
+				inheritedEventCount: SessionLogOffset(seed.length),
 				meta: {
 					...metadata.sourceCwd === "" ? {} : { cwd: metadata.sourceCwd },
 					parentSession: SessionId(metadata.sourceSessionId),
-					seedLength: seed.length
+					isSeeded: true
 				}
 			} : metadata.sourceCwd === "" ? {} : { meta: { cwd: metadata.sourceCwd } },
 			agentOptions: {
@@ -16475,7 +16466,7 @@ var TopicRuntime = class {
 		this.handles.set(metadata.sessionId, handle);
 		return handle;
 	}
-	setupAgent(agentCtx, metadata) {
+	async setupAgent(agentCtx, metadata) {
 		const agent = agentCtx.agent;
 		if (agent === void 0) throw new Error("CiteCiter Topic setup has no scoped Agent");
 		const selection = metadataModelSelection(metadata);
@@ -16518,14 +16509,21 @@ var TopicRuntime = class {
 		});
 		agentCtx.on("agent/request", async (_request, next) => {
 			const current = await next();
-			if (foldRequestHeader(agent.session.events) !== void 0) return current;
+			if (agent.session.requestHeader() !== void 0) return current;
 			return {
 				...current,
 				...metadata.modelConfig.temperature === void 0 ? {} : { temperature: metadata.modelConfig.temperature },
 				...metadata.modelConfig.stop === void 0 ? {} : { stop: [...metadata.modelConfig.stop] }
 			};
 		});
-		if (effectiveSandboxMode(agent.session.events) !== "read-only") setSandboxMode(agent.session, "read-only");
+		await agentCtx.plugin({
+			name: "citeciter-topic-policy",
+			inject: ["sandboxPolicy"],
+			apply(policyCtx) {
+				if (policyCtx.sandboxPolicy.overrideOf(agent.session) !== "read-only") setSandboxMode(agent.session, "read-only");
+			}
+		});
+		agentCtx.on("user-questions/request", (request) => this.askUser(request));
 	}
 	globTool() {
 		return defineTool({
@@ -16659,7 +16657,8 @@ var TopicRuntime = class {
 				if (session === void 0) throw new Error("blackboard_apply requires a Topic Session");
 				const current = projectBoardFromLog({
 					header: session.header,
-					events: session.events
+					events: session.snapshotEvents(),
+					inheritedEventCount: session.inheritedEventCount
 				});
 				applyBoardOps(new Map(current.elements.map((element) => [element.id, element])), ops);
 				return { applied: ops.length };
@@ -16923,13 +16922,13 @@ var TopicRuntime = class {
 					exec.signal.throwIfAborted();
 					sourceAvailable = false;
 					const agent = agentCtx.agent;
-					if (metadata.mode !== "exact-fork" || agent === void 0 || agent.session.header.seedLength === void 0) {
+					if (metadata.mode !== "exact-fork" || agent === void 0 || !agent.session.header.isSeeded) {
 						await this.rememberSourceAvailability(metadata, false);
 						throw error;
 					}
 					source = {
 						session: { id: SessionId(metadata.sourceSessionId) },
-						events: agent.session.events.slice(0, agent.session.header.seedLength)
+						events: agent.session.snapshotEvents(SessionLogOffset(0), agent.session.inheritedEventCount)
 					};
 				}
 				exec.signal.throwIfAborted();
@@ -17238,16 +17237,17 @@ var TopicRuntime = class {
 			cleanup
 		};
 	}
-	/** Await rc.2 JSONL retirement without populating its prepared-session cache. */
+	/** Await JSONL retirement without populating its prepared-session cache. */
 	async readRetiredSessionHeader(metadata, signal) {
 		try {
-			return (await this.runtime.sessionPersistence.readFrom(SessionId(metadata.sessionId), 0, signal)).meta;
+			return (await this.runtime.sessionPersistence.readFrom(SessionId(metadata.sessionId), SessionLogOffset(0), signal)).meta;
 		} catch (error) {
 			if (!(error instanceof Error) || error.message !== `session "${metadata.sessionId}" not found`) throw error;
 			return {
 				version: SESSION_FORMAT_VERSION,
 				id: SessionId(metadata.sessionId),
 				createdAt: metadata.createdAt,
+				isSeeded: metadata.mode === "exact-fork",
 				...metadata.sourceCwd === "" ? {} : { cwd: metadata.sourceCwd }
 			};
 		}
@@ -17469,13 +17469,15 @@ var TopicRuntime = class {
 		const live = this.handles.get(metadata.sessionId)?.agent.session;
 		if (live !== void 0) return {
 			header: live.header,
-			events: live.events
+			events: live.snapshotEvents(),
+			inheritedEventCount: live.inheritedEventCount
 		};
 		const inspection = await this.runtime.sessionPersistence.inspect(SessionId(metadata.sessionId), signal);
 		if (signal !== void 0) this.assertOpen(signal);
 		return {
 			header: inspection.meta,
-			events: inspection.events
+			events: inspection.events,
+			inheritedEventCount: inspection.inheritedEventCount
 		};
 	}
 	scheduleSourceAvailabilityCheck(metadata) {
@@ -17556,7 +17558,7 @@ var TopicRuntime = class {
 	}
 	scheduleExactTitleRefresh(metadata, log) {
 		if (this.closed || metadata.mode !== "exact-fork" || this.titleRefreshAttempted.has(metadata.sessionId) || this.handles.get(metadata.sessionId)?.agent.status === "running") return;
-		const postSeed = log.events.slice(log.header.seedLength ?? 0);
+		const postSeed = log.events.slice(log.inheritedEventCount);
 		if (!postSeed.some((event) => event.type === "request/header") || !postSeed.some((event) => event.type === "assistant/message")) return;
 		this.titleRefreshAttempted.add(metadata.sessionId);
 		const refresh = this.queueTopicAdmission(metadata.sessionId, async () => {
@@ -17632,7 +17634,7 @@ const inject = [
 	"subprocess"
 ];
 /** Host settings identity shared with the browser settings scope. */
-const CITECITER_SETTINGS_NS = settingsNamespace(CITECITER_SETTINGS_NAMESPACE);
+const CITECITER_SETTINGS_NS = CITECITER_SETTINGS_NAMESPACE;
 /** Native settings schema for new Topics and the companion panel. */
 const CITECITER_SETTINGS_SCHEMA = z.object({
 	defaultMode: z.union(["observer", "exact-when-available"]).default(DEFAULT_CITECITER_SETTINGS.defaultMode),
@@ -17761,7 +17763,12 @@ let CiteCiterHost = (() => {
 		}
 		/** Check npm for an installable stable version without changing this installation. */
 		async checkUpdate(signal) {
-			return this.updates.check(signal);
+			const result = await this.updates.check(signal);
+			const desktop = this.ctx.get("desktopProfiles");
+			return result.kind === "success" && desktop !== void 0 ? {
+				...result,
+				profile: desktop.current.name
+			} : result;
 		}
 	};
 })();

@@ -4,11 +4,12 @@
  * Entries run in registration order; the first claim wins and is allowed to
  * prevent the native context menu.
  */
-import type { ISessions, SessionId } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SessionId } from '@deepseek-ai/dsh-session/types';
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { CiteSelection } from './types.ts';
 /** Live browser facts an entry needs to resolve one selection. */
 export interface CiteCiterEntryContext {
-    readonly sessions: ISessions;
+    readonly readChat: (sessionId: SessionId) => ChatSnapshot | undefined;
     readonly sourceSessionId: SessionId;
 }
 /** One Citer entry point: probe, capture, and claim a selection from the DOM. */

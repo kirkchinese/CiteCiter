@@ -1,23 +1,28 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
+import type { UpdateNoticeSnapshot } from '../update-controller.ts'
+import type { SettingsDocumentSnapshot } from '../settings-document.ts'
+import type { CompanionSnapshot } from '../companion-controller.ts'
+import type { CompanionActions, UpdateActions, SettingsDocumentActions } from '../view-actions.ts'
+import { useEffect, useRef, useState } from 'react'
 import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { CompanionFace } from '../companion-controller.ts'
-import type { SettingsDocumentController } from '../settings-document.ts'
-import type { UpdateController } from '../update-controller.ts'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
 
 export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
-  readonly companion: CompanionFace
-  readonly settingsDocument: SettingsDocumentController
-  readonly updateController: UpdateController
+  readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
+  readonly useDocument: SnapshotSelectorHook<SettingsDocumentSnapshot>
+  readonly useUpdate: SnapshotSelectorHook<UpdateNoticeSnapshot>
+  readonly companion: CompanionActions
+  readonly settingsDocument: SettingsDocumentActions
+  readonly updateController: UpdateActions
 }
 
 /** Native DSH settings page for CiteCiter-owned preferences. */
-export function CiteCiterSettings({ companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
-  const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot)
-  const documentSnapshot = useSyncExternalStore(settingsDocument.subscribe, settingsDocument.getSnapshot)
-  const updateSnapshot = useSyncExternalStore(updateController.subscribe, updateController.getSnapshot)
+export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
+  const snapshot = useCompanion(value => value)
+  const documentSnapshot = useDocument(value => value)
+  const updateSnapshot = useUpdate(value => value)
   const settings = snapshot.settings
   const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent)
   const committedWidth = useRef(settings.panelWidthPercent)

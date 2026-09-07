@@ -1,7 +1,5 @@
-import {
-  type SettingsScope,
-  type SnapshotStore,
-} from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { CiteCiterSettings } from '../topic.ts'
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000
@@ -13,6 +11,7 @@ type UpdateStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 export interface AvailableUpdate {
   readonly currentVersion: string
   readonly latestVersion: string
+  readonly profile?: string
 }
 
 /** Observable state shared by the update card and settings page. */
@@ -97,8 +96,9 @@ export function createUpdateBrowserEnvironment(): UpdateBrowserEnvironment {
   }
 }
 
-function updateCommand(version: string): string {
-  return `dsh plugin --profile web add @kirkchinese/dsh-citeciter@${version}`
+function updateCommand(version: string, profile = 'web'): string {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(profile)) throw new Error('Invalid DSH profile name')
+  return `dsh plugin --profile ${profile} add @kirkchinese/dsh-citeciter@${version}`
 }
 
 function deferredKey(version: string): string {
@@ -273,15 +273,15 @@ export function createUpdateController(
       const operation = (async () => {
         try {
           if (environment.clipboard === undefined) throw new Error('clipboard unavailable')
-          await environment.clipboard.writeText(updateCommand(available.latestVersion))
+          await environment.clipboard.writeText(updateCommand(available.latestVersion, available.profile))
           if (!disposed) store.update((state) => {
             state.copyStatus = 'copied'
-            state.copyMessage = '更新命令已复制。运行后请重启 DSH Web。'
+            state.copyMessage = '更新命令已复制。运行后请重启当前 DSH。'
           })
         } catch {
           if (!disposed) store.update((state) => {
             state.copyStatus = 'error'
-            state.copyMessage = '无法自动复制，请手动复制下方命令。运行后请重启 DSH Web。'
+            state.copyMessage = '无法自动复制，请手动复制下方命令。运行后请重启当前 DSH。'
           })
         }
       })()
@@ -361,7 +361,7 @@ export function createUpdateController(
   }
 }
 
-/** @param version - validated latest package version. @returns the command shown and copied by the Web notice. */
-export function citeCiterUpdateCommand(version: string): string {
-  return updateCommand(version)
+/** @param version - validated latest package version. @param profile - active Desktop profile, or Web default. @returns the command shown and copied by the notice. */
+export function citeCiterUpdateCommand(version: string, profile = 'web'): string {
+  return updateCommand(version, profile)
 }

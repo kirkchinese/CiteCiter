@@ -1,0 +1,4 @@
+# Keep source, configuration and snapshot bytes consistent across development hosts.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

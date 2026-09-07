@@ -1,5 +1,5 @@
 import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, } from 'react';
+import { useEffect, useMemo, useRef, useState, } from 'react';
 import { Button, DisclosureRow, IconArchiveOutline20, IconQuestionOutline14, IconSendOutline16, IconSparkle16, IconStopFill16, JsonTree, Modal, } from '@deepseek-ai/dsh-client-ui-primitives';
 import { parseNextQuestions } from "../prompt.js";
 import { appendBoardCitation, isTopicMessageVisible } from "../topic-presentation.js";
@@ -8,6 +8,8 @@ import mascotUrl from '../assets/citeciter-mascot.png';
 import { QuestionCard } from "./QuestionCard.js";
 import { RichAnswer } from "./RichAnswer.js";
 import css from './CiteCiter.module.css';
+import { jsonTreeLabels } from "../copy.js";
+import { findContainingFrame, useHostDock } from "../host-dock.js";
 const PHASE_LABEL = {
     idle: '新建或选择 Topic',
     creating: '正在确认上下文方式…',
@@ -43,71 +45,6 @@ function friendlyFailure(text) {
     }
     return text.replaceAll(/https?:\/\/[^\s)]+/gu, '模型服务地址');
 }
-function findContainingFrame(panel) {
-    const frame = panel?.closest('[data-shell-overlay]')?.parentElement;
-    return frame instanceof HTMLElement ? frame : null;
-}
-function useDockColumn(panel, open, widthPercent) {
-    const [width, setWidth] = useState(0);
-    const [docked, setDocked] = useState(false);
-    useEffect(() => {
-        if (!open)
-            return;
-        const frame = findContainingFrame(panel.current);
-        if (frame === null) {
-            setWidth(Math.min(window.innerWidth, 720));
-            setDocked(false);
-            return;
-        }
-        const owner = crypto.randomUUID();
-        const setTrack = (name, value) => {
-            if (frame.style.getPropertyValue(name) !== value)
-                frame.style.setProperty(name, value);
-        };
-        const clearDock = () => {
-            if (frame.dataset.citeciterDocked !== owner)
-                return;
-            delete frame.dataset.citeciterDocked;
-            frame.style.removeProperty('--citeciter-sidebar-width');
-            frame.style.removeProperty('--citeciter-dock-width');
-        };
-        const apply = () => {
-            const activeOwner = frame.dataset.citeciterDocked;
-            if (activeOwner !== undefined && activeOwner !== owner)
-                return;
-            const frameWidth = frame.getBoundingClientRect().width;
-            const nativeTrack = /^([\d.]+)px(?:\s|$)/u.exec(frame.style.gridTemplateColumns);
-            const sidebarWidth = nativeTrack === null
-                ? frame.firstElementChild?.getBoundingClientRect().width ?? 0
-                : Number(nativeTrack[1]);
-            const available = frameWidth - sidebarWidth - 480;
-            if (available < 360) {
-                clearDock();
-                setWidth(Math.min(frameWidth, 720));
-                setDocked(false);
-                return;
-            }
-            const requested = frameWidth * widthPercent / 100;
-            const panelWidth = Math.max(360, Math.min(requested, available));
-            setTrack('--citeciter-sidebar-width', sidebarWidth + 'px');
-            setTrack('--citeciter-dock-width', panelWidth + 'px');
-            frame.dataset.citeciterDocked = owner;
-            setWidth(panelWidth);
-            setDocked(true);
-        };
-        apply();
-        const resizeObserver = new ResizeObserver(apply);
-        const styleObserver = new MutationObserver(apply);
-        resizeObserver.observe(frame);
-        styleObserver.observe(frame, { attributes: true, attributeFilter: ['style'] });
-        return () => {
-            resizeObserver.disconnect();
-            styleObserver.disconnect();
-            clearDock();
-        };
-    }, [open, panel, widthPercent]);
-    return [width, docked];
-}
 function FlowDisclosure({ icon, title, summary, running = false, children, }) {
     const [open, setOpen] = useState(false);
     return (_jsx(DisclosureRow, { className: css.flowDisclosure, rowClassName: running ? css.flowRowRunning : css.flowRow, icon: icon, title: title, open: open, expandable: true, expandOnRowClick: true, onToggle: () => setOpen(!open), collapsedContent: _jsxs(_Fragment, { children: [_jsx("span", { className: css.flowDot, children: "\u00B7" }), _jsx("span", { className: css.flowSummary, children: summary })] }), children: children }));
@@ -120,9 +57,9 @@ function ToolRow({ message }) {
         : message.isError
             ? '调用失败'
             : compactPreview(message.result ?? '完成');
-    return (_jsx(FlowDisclosure, { icon: message.name === 'ask_user_question' ? _jsx(IconQuestionOutline14, {}) : _jsx(IconSparkle16, {}), title: message.name, summary: summary, running: message.running, children: _jsxs("div", { className: css.toolPreview, children: [_jsx("strong", { children: "\u53C2\u6570" }), args === null ? _jsx("pre", { children: message.arguments }) : _jsx(JsonTree, { data: args, label: "\u5DE5\u5177\u53C2\u6570", copyable: false }), message.result !== null && (_jsxs(_Fragment, { children: [_jsx("strong", { children: message.isError ? '错误' : '结果' }), result === null
+    return (_jsx(FlowDisclosure, { icon: message.name === 'ask_user_question' ? _jsx(IconQuestionOutline14, {}) : _jsx(IconSparkle16, {}), title: message.name, summary: summary, running: message.running, children: _jsxs("div", { className: css.toolPreview, children: [_jsx("strong", { children: "\u53C2\u6570" }), args === null ? _jsx("pre", { children: message.arguments }) : _jsx(JsonTree, { data: args, label: "\u5DE5\u5177\u53C2\u6570", copyable: false, labels: jsonTreeLabels }), message.result !== null && (_jsxs(_Fragment, { children: [_jsx("strong", { children: message.isError ? '错误' : '结果' }), result === null
                             ? _jsx("pre", { children: message.result })
-                            : _jsx(JsonTree, { data: result, label: "\u5DE5\u5177\u7ED3\u679C", copyable: false })] }))] }) }));
+                            : _jsx(JsonTree, { data: result, label: "\u5DE5\u5177\u7ED3\u679C", copyable: false, labels: jsonTreeLabels })] }))] }) }));
 }
 function ErrorTurn({ message }) {
     const summary = friendlyFailure(message.text);
@@ -141,9 +78,9 @@ function AssistantTurn({ message, disabled, companion, reportParseError, }) {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ bus, companion, closePanel, reportParseError }) {
-    const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot);
-    const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot);
+export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel, reportParseError }) {
+    const overlay = useOverlay(value => value);
+    const snapshot = useCompanion(value => value);
     const [question, setQuestion] = useState('');
     const [title, setTitle] = useState('');
     const [titleDirty, setTitleDirty] = useState(false);
@@ -164,7 +101,8 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
     const open = overlay.panelOpen;
     const active = snapshot.active;
     const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error';
-    const [panelWidth, docked] = useDockColumn(panelRef, open, widthPercent);
+    const dock = useHostDock(panelRef, open, widthPercent);
+    const docked = dock?.mode === 'columns';
     useEffect(() => open ? companion.retainVisible() : undefined, [companion, open]);
     useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent]);
     useEffect(() => {
@@ -291,7 +229,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
                 setNewTopicQuestion('');
             }
             else {
-                setNewTopicError(companion.getSnapshot().error ?? 'Topic 未创建，请重试。');
+                setNewTopicError('Topic 未创建，请重试。');
             }
         }
         finally {
@@ -305,7 +243,7 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
             return;
         setDeleteError(null);
         if (await companion.deleteTopic(deleteConfirmation) === false) {
-            setDeleteError(companion.getSnapshot().error ?? 'Topic 未删除，请重试。');
+            setDeleteError('Topic 未删除，请重试。');
         }
     };
     const updateWidth = (next) => {
@@ -343,11 +281,13 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
         updateWidth(widthPercent + (event.key === 'ArrowLeft' ? 1 : -1));
     };
     return (_jsxs(_Fragment, { children: [_jsxs("aside", { ref: panelRef, className: css.dock, style: {
-                    width: panelWidth > 0 ? panelWidth : undefined,
+                    width: dock?.width,
+                    height: dock?.height,
+                    top: dock?.top,
                     '--citeciter-panel-width': `${dockWidthPercent}vw`,
-                }, "data-citeciter-panel": true, "data-overlay": docked ? undefined : true, "aria-label": "CiteCiter \u5B66\u4E60\u4F34\u4FA3", children: [docked && (_jsx("div", { className: css.resizeHandle, role: "separator", "aria-label": "\u8C03\u6574 CiteCiter \u5BBD\u5EA6", "aria-orientation": "vertical", "aria-valuemin": 28, "aria-valuemax": 55, "aria-valuenow": widthPercent, tabIndex: 0, onPointerDown: startResize, onPointerMove: moveResize, onPointerUp: endResize, onPointerCancel: () => { resizeOrigin.current = null; }, onKeyDown: resizeKey })), _jsx("button", { className: css.closeButton, type: "button", onClick: closePanel, "aria-label": "\u5173\u95ED CiteCiter", children: _jsx("img", { src: collapseArrowUrl, alt: "" }) }), _jsxs("div", { className: css.dockBody, children: [_jsxs("section", { className: css.learningWorkspace, children: [_jsxs("header", { className: css.dockHeader, children: [_jsxs("div", { className: css.dockHeading, children: [_jsx("span", { className: css.modeBadge, children: active === null
+                }, "data-citeciter-panel": true, "data-arrangement": dock?.mode ?? 'unsupported', "aria-label": "CiteCiter \u5B66\u4E60\u4F34\u4FA3", children: [docked && (_jsx("div", { className: css.resizeHandle, role: "separator", "aria-label": "\u8C03\u6574 CiteCiter \u5BBD\u5EA6", "aria-orientation": "vertical", "aria-valuemin": 28, "aria-valuemax": 55, "aria-valuenow": widthPercent, tabIndex: 0, onPointerDown: startResize, onPointerMove: moveResize, onPointerUp: endResize, onPointerCancel: () => { resizeOrigin.current = null; }, onKeyDown: resizeKey })), _jsx("button", { className: css.closeButton, type: "button", onClick: closePanel, "aria-label": "\u5173\u95ED CiteCiter", children: _jsx("img", { src: collapseArrowUrl, alt: "" }) }), dock === null && _jsx("p", { className: css.layoutNotice, role: "status", children: "\u5F53\u524D\u5BBF\u4E3B\u5E03\u5C40\u6682\u4E0D\u652F\u6301\u5B66\u4E60\u680F\u3002\u8BF7\u5207\u6362\u5230\u6807\u51C6 Web \u5E03\u5C40\u6216 Desktop \u517C\u5BB9\u6A21\u5F0F\u3002" }), _jsxs("div", { className: css.dockBody, children: [_jsxs("section", { className: css.learningWorkspace, children: [_jsxs("header", { className: css.dockHeader, children: [_jsxs("div", { className: css.dockHeading, children: [_jsx("span", { className: css.modeBadge, children: active === null
                                                             ? snapshot.phase === 'creating' ? '待确认' : '学习栏'
-                                                            : active.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer' }), _jsx("strong", { children: active?.topic.title ?? '新的学习讨论' }), _jsx("span", { children: PHASE_LABEL[snapshot.phase] })] }), _jsxs("select", { className: css.compactTopicSelect, "aria-label": "\u9009\u62E9 Topic", value: active?.topic.sessionId ?? '', disabled: snapshot.topics.length === 0, onChange: (event) => {
+                                                            : active.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer' }), _jsx("strong", { children: active?.topic.title ?? '新的学习讨论' }), _jsx("span", { children: dock?.mode === 'rows' ? '窗口较窄，学习栏已移至下方' : PHASE_LABEL[snapshot.phase] })] }), _jsxs("select", { className: css.compactTopicSelect, "aria-label": "\u9009\u62E9 Topic", value: active?.topic.sessionId ?? '', disabled: snapshot.topics.length === 0, onChange: (event) => {
                                                     if (event.currentTarget.value !== '')
                                                         void companion.openTopic(event.currentTarget.value);
                                                 }, children: [_jsx("option", { value: "", children: "\u9009\u62E9 Topic" }), snapshot.topics.map((topic) => (_jsx("option", { value: topic.sessionId, children: topic.title }, topic.sessionId)))] }), _jsxs("div", { className: css.compactHeaderActions, children: [_jsx("button", { className: css.compactNewTopic, type: "button", onClick: openNewTopic, children: "+ \u65B0 Topic" }), _jsx("button", { type: "button", onClick: () => companion.setIncludeArchived(!snapshot.includeArchived), children: snapshot.includeArchived ? '返回活动' : '查看归档' })] })] }), snapshot.notice !== null && _jsx("div", { className: css.panelNotice, role: "status", children: snapshot.notice }), active === null && snapshot.draftQuote === null ? (_jsxs("div", { className: css.emptyState, children: [_jsx("div", { className: css.emptyWhale, "aria-hidden": "true", children: _jsx("img", { src: mascotUrl, alt: "" }) }), _jsx("h2", { children: "\u7F16\u7A0B\u522B\u505C\uFF0C\u95EE\u9898\u653E\u5230\u65C1\u8FB9\u95EE" }), _jsx("p", { children: "\u76F4\u63A5\u65B0\u5EFA\u81EA\u7531 Topic\uFF0C\u6216\u9009\u4E2D\u4E3B\u5BF9\u8BDD\u91CC\u4E00\u6B21\u5DF2\u5B8C\u6210\u6A21\u578B\u8C03\u7528\u7684\u6587\u5B57\u540E\u53F3\u952E\u63D0\u95EE\u3002" }), snapshot.phase === 'creating' && _jsx("div", { className: css.loadingCard, children: "\u6B63\u5728\u521B\u5EFA Topic\u2026" }), snapshot.error !== null && _jsx("p", { className: css.panelError, role: "alert", children: friendlyFailure(snapshot.error) })] })) : (_jsxs(_Fragment, { children: [_jsxs("div", { className: css.contextBar, children: [_jsx("blockquote", { children: active?.topic.citation === null
@@ -410,10 +350,10 @@ export function CitePanel({ bus, companion, closePanel, reportParseError }) {
                                     }, children: [_jsx("strong", { children: "\u8BB2\u89E3" }), _jsx("span", { children: "\u914D\u5408\u5C0F\u9ED1\u677F\u9010\u6B65\u8BF4\u660E" })] })] }), _jsx("textarea", { autoFocus: true, rows: 5, maxLength: 12_000, value: newTopicQuestion, disabled: newTopicSubmitting, "aria-label": "\u81EA\u7531 Topic \u7684\u9996\u4E2A\u95EE\u9898", placeholder: newTopicScenario === 'present' ? '想让 CiteCiter 讲解什么？' : '想和 CiteCiter 讨论什么？', onChange: (event) => {
                                 setNewTopicQuestion(event.currentTarget.value);
                                 setNewTopicError(null);
-                            } }), newTopicError !== null && (_jsx("div", { className: css.modalError, role: "alert", children: friendlyFailure(newTopicError) }))] }) }), _jsx(Modal, { open: deleteTarget !== null, onClose: () => {
+                            } }), newTopicError !== null && (_jsx("div", { className: css.modalError, role: "alert", children: friendlyFailure(snapshot.error ?? newTopicError) }))] }) }), _jsx(Modal, { open: deleteTarget !== null, onClose: () => {
                     if (!snapshot.deleting)
                         setDeleteTarget(null);
                 }, closeLabel: "\u5173\u95ED", title: "\u6C38\u4E45\u5220\u9664 Topic", ...deleteTarget === null ? {} : {
                     description: `这会永久删除“${deleteTarget.title}”。请输入完整 Topic Session ID 确认。`,
-                }, footer: (_jsxs(_Fragment, { children: [_jsx(Button, { variant: "outline", disabled: snapshot.deleting, onClick: () => setDeleteTarget(null), children: "\u53D6\u6D88" }), _jsx(Button, { variant: "outline", className: css.deleteAction, disabled: deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting, onClick: () => { void confirmDelete(); }, children: snapshot.deleting ? '删除中…' : '永久删除' })] })), children: deleteTarget !== null && (_jsxs("div", { className: css.deleteForm, children: [_jsx("code", { children: deleteTarget.sessionId }), _jsx("input", { autoFocus: true, value: deleteConfirmation, disabled: snapshot.deleting, "aria-label": "\u8F93\u5165 Topic Session ID \u4EE5\u786E\u8BA4\u6C38\u4E45\u5220\u9664", placeholder: "\u7C98\u8D34\u4E0A\u65B9 Session ID", onChange: (event) => setDeleteConfirmation(event.currentTarget.value) }), deleteError !== null && _jsx("div", { className: css.modalError, role: "alert", children: friendlyFailure(deleteError) })] })) })] }));
+                }, footer: (_jsxs(_Fragment, { children: [_jsx(Button, { variant: "outline", disabled: snapshot.deleting, onClick: () => setDeleteTarget(null), children: "\u53D6\u6D88" }), _jsx(Button, { variant: "outline", className: css.deleteAction, disabled: deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting, onClick: () => { void confirmDelete(); }, children: snapshot.deleting ? '删除中…' : '永久删除' })] })), children: deleteTarget !== null && (_jsxs("div", { className: css.deleteForm, children: [_jsx("code", { children: deleteTarget.sessionId }), _jsx("input", { autoFocus: true, value: deleteConfirmation, disabled: snapshot.deleting, "aria-label": "\u8F93\u5165 Topic Session ID \u4EE5\u786E\u8BA4\u6C38\u4E45\u5220\u9664", placeholder: "\u7C98\u8D34\u4E0A\u65B9 Session ID", onChange: (event) => setDeleteConfirmation(event.currentTarget.value) }), deleteError !== null && _jsx("div", { className: css.modalError, role: "alert", children: friendlyFailure(snapshot.error ?? deleteError) })] })) })] }));
 }

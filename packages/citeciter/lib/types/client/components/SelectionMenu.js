@@ -1,5 +1,5 @@
 import { jsxs as _jsxs, jsx as _jsx, Fragment as _Fragment } from "react/jsx-runtime";
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import mascotUrl from '../assets/citeciter-mascot.png';
 import css from './CiteCiter.module.css';
 const PREVIEW_LIMIT = 96;
@@ -8,9 +8,9 @@ const PREVIEW_LIMIT = 96;
  * @param props - shared selection state and Topic actions.
  * @returns the contextual creation popover and companion launcher.
  */
-export function SelectionMenu({ bus, companion, openPanel }) {
-    const overlay = useSyncExternalStore(bus.subscribe, bus.getSnapshot);
-    const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot);
+export function SelectionMenu({ useCompanion, useOverlay, bus, companion, openPanel }) {
+    const overlay = useOverlay(value => value);
+    const snapshot = useCompanion(value => value);
     const [question, setQuestion] = useState('');
     const [mode, setMode] = useState(snapshot.settings.defaultMode);
     const [scenario, setScenario] = useState('qa');

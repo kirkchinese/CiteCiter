@@ -1,10 +1,12 @@
-import { type SettingsScope, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store';
 import type { CiteCiterSettings } from '../topic.ts';
 type UpdateStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 /** One newer package version returned by the validated Host check. */
 export interface AvailableUpdate {
     readonly currentVersion: string;
     readonly latestVersion: string;
+    readonly profile?: string;
 }
 /** Observable state shared by the update card and settings page. */
 export interface UpdateNoticeSnapshot {
@@ -52,6 +54,6 @@ export declare function createUpdateBrowserEnvironment(): UpdateBrowserEnvironme
  * @returns the root-scoped update controller.
  */
 export declare function createUpdateController(settings: SettingsScope<CiteCiterSettings>, checkUpdate: CheckUpdate, store: SnapshotStore<UpdateNoticeSnapshot>, environment?: UpdateBrowserEnvironment, reportCheckError?: (error: unknown) => void): UpdateController;
-/** @param version - validated latest package version. @returns the command shown and copied by the Web notice. */
-export declare function citeCiterUpdateCommand(version: string): string;
+/** @param version - validated latest package version. @param profile - active Desktop profile, or Web default. @returns the command shown and copied by the notice. */
+export declare function citeCiterUpdateCommand(version: string, profile?: string): string;
 export {};

@@ -56,7 +56,7 @@ test('update checker reads the installed version from the package manifest', asy
   const checker = new UpdateChecker(async () => registryResponse('0.5.0'), () => 1_500)
   assert.deepEqual(await checker.check(new AbortController().signal), {
     kind: 'success',
-    installedVersion: '0.5.0',
+    installedVersion: '0.6.0',
     latestVersion: '0.5.0',
     updateAvailable: false,
     checkedAt: 1_500,

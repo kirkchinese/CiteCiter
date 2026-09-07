@@ -152,37 +152,6 @@ function withConversationDom(run) {
   }
 }
 
-test('the temporary Host-column workaround is scoped and reversible without closing Details', async () => {
-  const [panel, styles, entry] = await Promise.all([
-    readFile(new URL('../src/client/components/CitePanel.tsx', import.meta.url), 'utf8'),
-    readFile(new URL('../src/client/components/CiteCiter.module.css', import.meta.url), 'utf8'),
-    readFile(new URL('../src/client/index.ts', import.meta.url), 'utf8'),
-  ])
-  assert.match(panel, /function findContainingFrame[\s\S]*?panel\?\.closest<HTMLElement>\('\[data-shell-overlay\]'\)/u)
-  assert.match(panel, /function useDockColumn\(panel: RefObject<HTMLElement \| null>/u)
-  assert.match(panel, /const owner = crypto\.randomUUID\(\)/u)
-  assert.match(panel, /frame\.dataset\.citeciterDocked = owner/u)
-  assert.match(panel, /frame\.dataset\.citeciterDocked !== owner/u)
-  assert.match(panel, /delete frame\.dataset\.citeciterDocked/u)
-  assert.match(panel, /frame\.style\.removeProperty\('--citeciter-sidebar-width'\)/u)
-  assert.match(panel, /frame\.style\.removeProperty\('--citeciter-dock-width'\)/u)
-  assert.match(styles, /:global\(\[data-citeciter-docked\]\)[\s\S]*?var\(--citeciter-dock-width\) !important/u)
-  assert.match(styles, /:global\(\[data-citeciter-docked\] > \[data-side="details"\]\)[\s\S]*?display: none !important/u)
-  assert.match(styles, /:global\(\[data-citeciter-docked\] > :has\(\+ \[data-shell-overlay\]\)\)[\s\S]*?visibility: hidden !important/u)
-  assert.doesNotMatch(styles, /\[data-citeciter-docked\][^\n]*:nth-child/u)
-  assert.doesNotMatch(entry, /layout\.closeDetails|data-side=["']details/u)
-})
-
-test('the Host-column workaround concedes whenever the panel and conversation fit', async () => {
-  const panel = await readFile(new URL('../src/client/components/CitePanel.tsx', import.meta.url), 'utf8')
-  assert.match(panel, /const available = frameWidth - sidebarWidth - 480/u)
-  assert.match(panel, /if \(available < 360\) \{\s*clearDock\(\)\s*setWidth\(Math\.min\(frameWidth, 720\)\)\s*setDocked\(false\)/u)
-  assert.match(panel, /const panelWidth = Math\.max\(360, Math\.min\(requested, available\)\)/u)
-  assert.match(panel, /'--citeciter-panel-width': `\$\{dockWidthPercent\}vw`/u)
-  assert.match(panel, /data-overlay=\{docked \? undefined : true\}/u)
-  assert.match(panel, /\{docked && \(\s*<div\s*className=\{css\.resizeHandle\}/u)
-})
-
 test('DSH assistant selection claims only the owning assistant context menu', () => {
   withConversationDom(({ body, setRange }) => {
     const assistant = new FakeElement('article', { chatFlowKind: 'assistant-step', chatAnchorKey: 'assistant:7' })

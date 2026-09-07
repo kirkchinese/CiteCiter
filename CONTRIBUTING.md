@@ -2,52 +2,48 @@
 
 [简体中文](CONTRIBUTING.zh.md)
 
-Thank you for helping improve CiteCiter. Bug reports, focused fixes, tests, and user-facing improvements are welcome.
-
-## Before you start
-
-- Use Node.js `^22.19.0 || >=24.0.0` and the pnpm version declared in `package.json`.
-- Develop against DSH Web `>=0.1.1-rc.1 <0.1.1-rc.3`.
-- Keep CiteCiter external to DSH. Use supported plugin services and events; do not patch DSH core or replace its Agent Loop.
-- Open an issue before a large behavioral or architectural change so the scope can be agreed first.
-
-## Set up the repository
+Use Node.js `^22.19.0 || >=24.0.0`, pnpm `11.21.0` and DSH `0.1.2-rc.1`. Windows validation uses Node 24.19.0. Desktop 2.0.5 embeds this DSH release; Desktop master and DSH alpha are different targets.
 
 ```sh
-git clone https://github.com/kirkchinese/CiteCiter.git
-cd CiteCiter
-pnpm install
-```
-
-The publishable package lives in `packages/citeciter/`. Its generated `lib/` output is tracked and must be rebuilt after source or build-configuration changes.
-
-## Check your changes
-
-Run the smallest relevant checks. Before opening a pull request that changes package behavior, run:
-
-```sh
-pnpm run typecheck
-pnpm --dir packages/citeciter test
-pnpm run build
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:snapshot
 git diff --check
 ```
 
-Browser changes must also be exercised in a disposable `DSH_HOME` on a separate or dynamically assigned port. Never stop or reuse another person's running DSH process.
+The package is in `packages/citeciter/`. Host and Client compile separately. Generated `lib/` is tracked and must be rebuilt. `pnpm --dir packages/citeciter dev` watches both TypeScript programs and the client bundle through Node directly, including on Windows.
 
-## Documentation
+## Development profile
 
-- Keep `README.md` and `README.en.md` synchronized and focused on users.
-- Keep package READMEs synchronized with the root READMEs and the published version.
-- Public update history belongs in `docs/releases/`.
-- Do not commit product interviews, design drafts, internal decision records, test reports, local screenshots, or other development-process documents.
-- Do not link README files to internal files under `docs/`.
+Start an independent PowerShell shell:
 
-## Pull requests
+```powershell
+$env:DSH_HOME = Join-Path $PWD '.refs/manual-web'
+dsh plugin --profile web add "$PWD/packages/citeciter"
+dsh --profile web --host 127.0.0.1 --port 10519 --no-open
+```
 
-- Keep each pull request focused on one change.
-- Explain the user-visible problem and the resulting behavior.
-- Add the smallest test that would fail without the change.
-- Do not commit credentials, `.npmrc`, `.env`, temporary DSH homes, generated Sessions, screenshots, or package tarballs.
-- Confirm that source Sessions remain unchanged when the change affects CiteCiter Topics.
+Choose a free port and a home owned by no other process. For Desktop use another `DSH_HOME`, install into the profile selected in Desktop, and launch the installed executable from that environment. Updating the global CLI does not update Desktop's embedded runtime. Restart the host after Host changes and refresh the page after Client changes.
 
-By contributing, you agree that your contribution is licensed under the [MIT License](LICENSE).
+## Assembled snapshot and packaging
+
+`pnpm test:snapshot` needs the global DSH CLI. It creates a fresh temporary home, installs CiteCiter and mounts a deterministic model. Real source, Observer and Exact Fork loops exercise source reading and board tools; their transcript is compared with `tests/snapshots/assembled-topic.json`. It also asserts that the source log remains unchanged. No API key is needed. The printed artifact directory remains available for inspection.
+
+After reviewing an intentional output change, record with `CITECITER_RECORD_SNAPSHOT=1` in that command's environment, then remove the variable and replay. Never record just to make a failure pass.
+
+```powershell
+pnpm --dir packages/citeciter pack --pack-destination ../../.refs/artifacts
+node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.6.0.tgz
+```
+
+The old `dev/seed-smoke-session.mjs`, `smoke*.mjs` and `hmr-smoke.mjs` are historical 0.5 fixtures with handwritten old-host logs and Linux paths. They are not the 0.6 acceptance path. Use the assembled snapshot and an isolated real UI session; do not run the old seeder against user data.
+
+## Review
+
+Preserve source Sessions and read-only Topic tools. Keep public UI registration separate from the version-specific layout adapter. Exercise maximum width, narrow windows, native details, close/reopen and Desktop modes.
+
+Update root/package READMEs, releases and JSDoc together. Nontrivial decisions belong in `.agents/notes/`, an explicit exception to excluding transient design drafts and local QA artifacts. Do not commit credentials, temporary homes, screenshots or tarballs. Report only checks actually run and distinguish Windows evidence from untested platforms.
+
+Contributions use the [MIT License](LICENSE).

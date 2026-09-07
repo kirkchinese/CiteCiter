@@ -527,6 +527,7 @@ export declare const updateCheckDescriptor: {
             latestVersion: import("zod").ZodString;
             updateAvailable: import("zod").ZodBoolean;
             checkedAt: import("zod").ZodNumber;
+            profile: import("zod").ZodOptional<import("zod").ZodString>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             kind: import("zod").ZodLiteral<"error">;
             code: import("zod").ZodEnum<{

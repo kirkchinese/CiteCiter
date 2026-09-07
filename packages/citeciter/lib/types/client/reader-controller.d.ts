@@ -29,5 +29,5 @@ type RemoteRequest = (request: CiteCiterRequest, signal: AbortSignal) => Promise
 /** Initial Reader snapshot. */
 export declare function createInitialReaderSnapshot(): ReaderSnapshot;
 /** Bind the Reader store to the CiteCiter Remote and the companion Topic creator. */
-export declare function createReaderController(request: RemoteRequest, companion: CompanionFace, store?: import("@deepseek-ai/dsh-client-runtime/client").SnapshotStore<ReaderSnapshot>): ReaderFace;
+export declare function createReaderController(request: RemoteRequest, companion: CompanionFace, store?: import("@deepseek-ai/dsh-client-store").SnapshotStore<ReaderSnapshot>): ReaderFace;
 export {};

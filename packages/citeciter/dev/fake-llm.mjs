@@ -1,5 +1,5 @@
 /** Deterministic keyless LLM route for the assembled CiteCiter Web smoke. */
-import { CallId, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 
 export const name = 'citeciter-fixture-llm'
 export const inject = ['llm']
@@ -75,7 +75,7 @@ function reasoningTextChunks(reasoning, text) {
 }
 
 function toolChunks(name, arguments_, prefix, text = undefined) {
-  const id = CallId(`${prefix}-${++callNumber}`)
+  const id = ToolCallId(`${prefix}-${++callNumber}`)
   const block = {
     type: 'tool-call',
     id,
@@ -111,11 +111,11 @@ function hasToolResult(messages, prefix) {
 }
 
 function hasTool(options, name) {
-  return options.tools.some((tool) => tool.name === name)
+  return options.tools?.some((tool) => tool.name === name) ?? false
 }
 
 function hasBoardV4Schema(options) {
-  const tool = options.tools.find((candidate) => candidate.name === 'blackboard_apply')
+  const tool = options.tools?.find((candidate) => candidate.name === 'blackboard_apply')
   const branches = tool?.parameters?.properties?.ops?.items?.oneOf
   return Array.isArray(branches)
     && branches.length === 7
@@ -213,7 +213,7 @@ class FixtureAdapter extends LlmAdapter {
         : question.includes('向我提问')
           ? '已收到你的学习偏好，并据此继续解释。'
           : question.includes('工具能力')
-            ? `当前工具：${options.tools.map((tool) => tool.name).sort().join('、')}`
+            ? `当前工具：${(options.tools ?? []).map((tool) => tool.name).sort().join('、')}`
             : alreadyAnswered(options.messages) ? FOLLOW_UP_ANSWER_WITH_CONTROL
               : question.includes('错误快捷问题') ? MALFORMED_FOLLOWUPS
                 : question.includes('黑板') ? FIRST_ANSWER_WITH_BOARD : FIRST_ANSWER_WITH_FOLLOWUPS

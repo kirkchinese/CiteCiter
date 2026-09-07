@@ -81,7 +81,7 @@ function writeCitationAnchor(sourceSessionId, anchorSeq, anchorKey) {
     }
 }
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
-export function createCompanionController(sessions, settingsScope, request, onAutoOpen, store) {
+export function createCompanionController(readChat, settingsScope, request, onAutoOpen, store) {
     let disposed = false;
     const lifecycle = new AbortController();
     const operations = new Set();
@@ -456,8 +456,7 @@ export function createCompanionController(sessions, settingsScope, request, onAu
         try {
             let response;
             if (selection.kind === 'assistant-step') {
-                const binding = sessions.binding(selection.sourceSessionId);
-                const node = binding?.session.getSnapshot().chat.nodes.get(selection.anchorKey);
+                const node = readChat(selection.sourceSessionId)?.nodes.get(selection.anchorKey);
                 if (node === undefined || node.kind !== 'assistant-step')
                     throw new Error('选中的模型回答已不在当前会话快照中');
                 const answer = readAssistantAnswer(node.data);

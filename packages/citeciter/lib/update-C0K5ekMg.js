@@ -866,7 +866,8 @@ const updateCheckResponseSchema = z.discriminatedUnion("kind", [z.object({
 	installedVersion: stableVersionSchema,
 	latestVersion: stableVersionSchema,
 	updateAvailable: z.boolean(),
-	checkedAt: z.number().int().nonnegative()
+	checkedAt: z.number().int().nonnegative(),
+	profile: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/u).optional()
 }).strict(), z.object({
 	kind: z.literal("error"),
 	code: updateCheckErrorCodeSchema,

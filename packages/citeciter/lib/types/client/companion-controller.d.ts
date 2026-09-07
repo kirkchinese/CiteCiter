@@ -1,4 +1,7 @@
-import { type ISessions, type SessionId, type SettingsScope, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SessionId } from '@deepseek-ai/dsh-session/types';
+import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store';
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
 import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type QuestionAnswer, type TopicScenario, type TopicSnapshot, type TopicSummary } from '../topic.ts';
 import { type CreateMode, type DocumentClaimIntent } from './request-guard.ts';
@@ -56,4 +59,4 @@ export interface CompanionFace {
 /** Initial browser snapshot for the root-scoped CiteCiter controller. */
 export declare const INITIAL_COMPANION_SNAPSHOT: CompanionSnapshot;
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
-export declare function createCompanionController(sessions: ISessions, settingsScope: SettingsScope<CiteCiterSettings>, request: RemoteRequest, onAutoOpen: () => void, store: SnapshotStore<CompanionSnapshot>): CompanionFace;
+export declare function createCompanionController(readChat: (sessionId: SessionId) => ChatSnapshot | undefined, settingsScope: SettingsScope<CiteCiterSettings>, request: RemoteRequest, onAutoOpen: () => void, store: SnapshotStore<CompanionSnapshot>): CompanionFace;

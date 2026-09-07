@@ -1,5 +1,5 @@
 /** Reader panel controller: document library browsing, import, selection, and Topic creation. */
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type {
   CiteCiterRequest,

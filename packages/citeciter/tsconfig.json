@@ -25,5 +25,5 @@
     "outDir": "lib/types",
     "rootDir": "src"
   },
-  "include": ["src"]
+  "include": []
 }

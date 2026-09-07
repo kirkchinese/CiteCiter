@@ -4,7 +4,8 @@
  * Entries run in registration order; the first claim wins and is allowed to
  * prevent the native context menu.
  */
-import type { ISessions, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import { dshAssistantAnchorForTarget } from './conversation-dom.ts'
 import { ASSISTANT_ENTRY_ID, TOOL_ENTRY_ID } from './entry-ids.ts'
 import { projectToolEvidence, type ToolEvidenceProjection } from '../evidence-text.ts'
@@ -14,7 +15,7 @@ import type { CiteSelection, ToolCiteSelection } from './types.ts'
 
 /** Live browser facts an entry needs to resolve one selection. */
 export interface CiteCiterEntryContext {
-  readonly sessions: ISessions
+  readonly readChat: (sessionId: SessionId) => ChatSnapshot | undefined
   readonly sourceSessionId: SessionId
 }
 
@@ -78,10 +79,10 @@ export function createCiteCiterEntryRegistry(): CiteCiterEntryRegistry {
 export function createAssistantEntry(): CiteCiterEntry {
   return {
     id: ASSISTANT_ENTRY_ID,
-    claim(event, { sessions, sourceSessionId }) {
+    claim(event, { readChat, sourceSessionId }) {
       const anchor = dshAssistantAnchorForTarget(event.target)
       if (anchor === null) return null
-      const node = sessions.binding(sourceSessionId)?.session.getSnapshot().chat.nodes.get(anchor.anchorKey)
+      const node = readChat(sourceSessionId)?.nodes.get(anchor.anchorKey)
       const answer = node?.kind === 'assistant-step' ? readAssistantAnswer(node.data) : null
       return claimSelectionContextMenu(event, sourceSessionId, answer?.text)
     },
@@ -113,7 +114,7 @@ function toolProjectionForTarget(target: { closest(selector: string): HTMLElemen
 export function createToolEvidenceEntry(): CiteCiterEntry {
   return {
     id: TOOL_ENTRY_ID,
-    claim(event, { sessions, sourceSessionId }) {
+    claim(event, { readChat, sourceSessionId }) {
       const target = event.target as unknown
       if (target === null || typeof target !== 'object' || typeof (target as { closest?: unknown }).closest !== 'function') {
         return null
@@ -125,7 +126,7 @@ export function createToolEvidenceEntry(): CiteCiterEntry {
       if (flowElement === null || flowElement.dataset.chatFlowKind !== 'tool-call') return null
       const anchorKey = flowElement.dataset.chatAnchorKey
       if (anchorKey === undefined || anchorKey === '') return null
-      const node = sessions.binding(sourceSessionId)?.session.getSnapshot().chat.nodes.get(anchorKey)
+      const node = readChat(sourceSessionId)?.nodes.get(anchorKey)
       if (node === undefined || node.kind !== 'tool-call') return null
       const root = (node.data as { readonly root?: unknown }).root
       if (root === null || typeof root !== 'object') return null

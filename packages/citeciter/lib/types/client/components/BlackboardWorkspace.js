@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect } from 'react';
 import { BoardView } from "./BoardView.js";
 import css from './BoardView.module.css';
 function citationPrompt(element) {
@@ -14,8 +14,8 @@ function citationPrompt(element) {
  * @param props - active DSH conversation identity and CiteCiter browser faces.
  * @returns the matching Topic board or a source-specific empty state.
  */
-export function BlackboardWorkspace({ sessionId, companion, bus, openPanel }) {
-    const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot);
+export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, openPanel }) {
+    const snapshot = useCompanion(value => value);
     useEffect(() => companion.retainVisible(), [companion]);
     const active = snapshot.sourceSessionId === sessionId
         && snapshot.active?.topic.sourceSessionId === sessionId

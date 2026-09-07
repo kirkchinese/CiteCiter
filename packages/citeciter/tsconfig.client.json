@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/client", "src/typert.remote-client.ts", "src/css-modules.d.ts"]
+}

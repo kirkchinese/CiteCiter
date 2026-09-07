@@ -1,13 +1,13 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives';
 import mascotUrl from '../assets/citeciter-mascot.png';
 import css from './CiteCiter.module.css';
 /** Native DSH settings page for CiteCiter-owned preferences. */
-export function CiteCiterSettings({ companion, settingsDocument, updateController }) {
-    const snapshot = useSyncExternalStore(companion.subscribe, companion.getSnapshot);
-    const documentSnapshot = useSyncExternalStore(settingsDocument.subscribe, settingsDocument.getSnapshot);
-    const updateSnapshot = useSyncExternalStore(updateController.subscribe, updateController.getSnapshot);
+export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }) {
+    const snapshot = useCompanion(value => value);
+    const documentSnapshot = useDocument(value => value);
+    const updateSnapshot = useUpdate(value => value);
     const settings = snapshot.settings;
     const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent);
     const committedWidth = useRef(settings.panelWidthPercent);

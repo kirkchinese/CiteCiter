@@ -34,11 +34,11 @@ export function createCiteCiterEntryRegistry() {
 export function createAssistantEntry() {
     return {
         id: ASSISTANT_ENTRY_ID,
-        claim(event, { sessions, sourceSessionId }) {
+        claim(event, { readChat, sourceSessionId }) {
             const anchor = dshAssistantAnchorForTarget(event.target);
             if (anchor === null)
                 return null;
-            const node = sessions.binding(sourceSessionId)?.session.getSnapshot().chat.nodes.get(anchor.anchorKey);
+            const node = readChat(sourceSessionId)?.nodes.get(anchor.anchorKey);
             const answer = node?.kind === 'assistant-step' ? readAssistantAnswer(node.data) : null;
             return claimSelectionContextMenu(event, sourceSessionId, answer?.text);
         },
@@ -62,7 +62,7 @@ function toolProjectionForTarget(target) {
 export function createToolEvidenceEntry() {
     return {
         id: TOOL_ENTRY_ID,
-        claim(event, { sessions, sourceSessionId }) {
+        claim(event, { readChat, sourceSessionId }) {
             const target = event.target;
             if (target === null || typeof target !== 'object' || typeof target.closest !== 'function') {
                 return null;
@@ -77,7 +77,7 @@ export function createToolEvidenceEntry() {
             const anchorKey = flowElement.dataset.chatAnchorKey;
             if (anchorKey === undefined || anchorKey === '')
                 return null;
-            const node = sessions.binding(sourceSessionId)?.session.getSnapshot().chat.nodes.get(anchorKey);
+            const node = readChat(sourceSessionId)?.nodes.get(anchorKey);
             if (node === undefined || node.kind !== 'tool-call')
                 return null;
             const root = node.data.root;

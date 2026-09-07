@@ -3,7 +3,6 @@ import { Service, type Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-session-query'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-subprocess'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -28,7 +27,7 @@ export const name = '@kirkchinese/dsh-citeciter'
 export const inject = ['llm', 'sessionQuery', 'subprocess'] as const
 
 /** Host settings identity shared with the browser settings scope. */
-export const CITECITER_SETTINGS_NS = settingsNamespace(CITECITER_SETTINGS_NAMESPACE)
+export const CITECITER_SETTINGS_NS = CITECITER_SETTINGS_NAMESPACE
 
 /** Native settings schema for new Topics and the companion panel. */
 export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
@@ -132,7 +131,12 @@ export class CiteCiterHost extends TypertRemoteService {
   /** Check npm for an installable stable version without changing this installation. */
   @Remote('checkUpdate')
   async checkUpdate(signal: AbortSignal): Promise<UpdateCheckResponse> {
-    return this.updates.check(signal)
+    const result = await this.updates.check(signal)
+    // Desktop 2.0.5 exports this immutable Host service; it never crosses into browser props.
+    const desktop = this.ctx.get('desktopProfiles') as { readonly current: { readonly name: string } } | undefined
+    return result.kind === 'success' && desktop !== undefined
+      ? { ...result, profile: desktop.current.name }
+      : result
   }
 }
 
