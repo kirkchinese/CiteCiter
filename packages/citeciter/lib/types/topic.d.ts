@@ -687,6 +687,8 @@ export declare const documentContentSchema: z.ZodObject<{
     }>;
     content: z.ZodString;
     truncated: z.ZodBoolean;
+    page: z.ZodDefault<z.ZodNumber>;
+    pageCount: z.ZodDefault<z.ZodNumber>;
 }, z.core.$strict>;
 export type DocumentContent = z.infer<typeof documentContentSchema>;
 /** One strict direct-RPC command for the private CiteCiter runtime. */
@@ -869,6 +871,7 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"document-get">;
     documentId: z.ZodString;
+    page: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strict>], "action">]>;
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>;
 /** Strict response union returned by the single Remote command endpoint. */
@@ -1166,6 +1169,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }>;
         content: z.ZodString;
         truncated: z.ZodBoolean;
+        page: z.ZodDefault<z.ZodNumber>;
+        pageCount: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strict>;
 }, z.core.$strict>], "kind">;
 export type CiteCiterResponse = z.infer<typeof citeCiterResponseSchema>;

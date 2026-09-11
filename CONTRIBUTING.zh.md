@@ -2,7 +2,7 @@
 
 [English](CONTRIBUTING.md)
 
-开发基线为 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0` 和 DSH `0.1.2-rc.1`。Windows 实测为 Node 24.19.0。Desktop 2.0.5 内置同一 DSH；Desktop master 与 DSH alpha 需要另行适配。
+开发基线为 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0` 和 DSH `0.1.5-rc.1`。Windows 实测为 Node 24.19.0。Desktop 2.0.9 内置同一 DSH；Desktop master 与 DSH alpha 需要另行适配。
 
 ```sh
 pnpm install --frozen-lockfile
@@ -25,17 +25,19 @@ dsh plugin --profile web add "$PWD/packages/citeciter"
 dsh --profile web --host 127.0.0.1 --port 10519 --no-open
 ```
 
-选择空闲端口，一个活动进程独占一个 home。Desktop 使用另一个 `DSH_HOME`，插件装入 Desktop 当前选中的 profile，再从该环境启动已安装的 Desktop。全局 CLI 升级不会同步升级 Desktop 内置运行时。
+选择空闲端口，一个活动进程独占一个 home。Desktop 使用另一个 `DSH_HOME`，从该环境启动已安装的 Desktop，再在其自带终端运行 `dsh plugin add <源码目录或 tarball 的绝对路径>`。该终端选择 Desktop 内置 CLI、当前 profile 和 home；全局 CLI 不能管理保留的 `desktop` profile。全局 CLI 升级不会同步升级 Desktop 内置运行时。
 
 ## 实际应用快照与安装包
 
-`pnpm test:snapshot` 依赖已安装的 DSH CLI，自动创建临时 home、安装插件并挂载无密钥模型。它运行真实来源会话、Observer、Exact Fork、来源读取和板书工具，对照 `tests/snapshots/assembled-topic.json`，并断言来源日志未改变。输出目录保留用于诊断，不使用真实 API Key。
+`pnpm test:snapshot` 依赖已安装的 DSH CLI，自动创建临时 home、安装插件并挂载无密钥模型。它运行真实来源会话、Observer、Exact Fork、五阶段、板书和卡片，对照 `tests/snapshots/assembled-topic.json`；额外通过公开命令边界验证 Topic 管理、停止与失败恢复、模型提问、重复卡片生成和长文档末页引用，并断言来源日志未改变。第二次启动校验持久恢复。输出目录保留用于诊断，不使用真实 API Key。
+
+脚本在创建 profile 前检查 DSH 包版本。全局 CLI 版本不同时，将 `CITECITER_DSH_BIN` 设置为独立安装的 0.1.5-rc.1 的 `@deepseek-ai/dsh/lib/bin.js` 绝对路径。打包验收也使用该运行时，不修改全局安装。
 
 有意改变输出并审阅差异后，可在该命令环境中设置 `CITECITER_RECORD_SNAPSHOT=1` 更新期望文件，随后移除变量重新回放。不能为了通过失败测试直接重录。
 
 ```powershell
-pnpm --dir packages/citeciter pack --pack-destination ../../.refs/artifacts
-node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.1.tgz
+pnpm --dir packages/citeciter pack --pack-destination "$PWD/.refs/artifacts"
+node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.2.tgz
 ```
 
 旧 `dev/seed-smoke-session.mjs`、`smoke*.mjs` 和 `hmr-smoke.mjs` 是 0.5 历史夹具，含旧宿主手写会话和 Linux 路径，不作为 0.6 验收入口。使用真实应用快照与隔离 UI 会话，不要对真实数据运行旧 seeder。

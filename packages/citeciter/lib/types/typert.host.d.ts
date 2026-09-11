@@ -470,6 +470,7 @@ export declare const TYPERT: {
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"document-get">;
             documentId: import("zod").ZodString;
+            page: import("zod").ZodOptional<import("zod").ZodNumber>;
         }, import("zod/v4/core").$strict>], "action">]>;
     }, {
         readonly name: "CiteCiterResponse";
@@ -767,6 +768,8 @@ export declare const TYPERT: {
                 }>;
                 content: import("zod").ZodString;
                 truncated: import("zod").ZodBoolean;
+                page: import("zod").ZodDefault<import("zod").ZodNumber>;
+                pageCount: import("zod").ZodDefault<import("zod").ZodNumber>;
             }, import("zod/v4/core").$strict>;
         }, import("zod/v4/core").$strict>], "kind">;
     }, {
@@ -991,6 +994,7 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"document-get">;
                     documentId: import("zod").ZodString;
+                    page: import("zod").ZodOptional<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>], "action">]>;
             };
         }];
@@ -1294,6 +1298,8 @@ export declare const TYPERT: {
                     }>;
                     content: import("zod").ZodString;
                     truncated: import("zod").ZodBoolean;
+                    page: import("zod").ZodDefault<import("zod").ZodNumber>;
+                    pageCount: import("zod").ZodDefault<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>;
             }, import("zod/v4/core").$strict>], "kind">;
         };

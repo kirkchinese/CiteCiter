@@ -247,6 +247,7 @@ export interface RuntimeTopicLog {
     readonly header: SessionHeader;
     readonly events: readonly SessionEvent[];
     readonly inheritedEventCount: SessionLogOffset;
+    readonly liveMessage?: TopicMessage | undefined;
 }
 /**
  * Remove one artifact from a caller-owned JSONL root without following links.
@@ -258,6 +259,15 @@ export declare function removeOwnedJsonlArtifact(root: string, artifact: {
     readonly kind: string;
     readonly path: string;
 } | undefined): Promise<void>;
+/**
+ * Delete all JSONL generations of an already retired private Topic.
+ * DSH 0.1.5 has no public delete/location API. This bounded disk adapter follows
+ * its project/Session directory layout and canonical generation filenames.
+ * @param root - exclusively owned CiteCiter Session root, never a host Session root.
+ * @param sessionId - generated CiteCiter identity; arbitrary path segments are refused.
+ * @returns after every canonical generation and the retired lock file are absent.
+ */
+export declare function removeOwnedTopicGenerations(root: string, sessionId: string): Promise<void>;
 declare const topicDeletionMarkerSchema: z.ZodObject<{
     schemaVersion: z.ZodLiteral<1>;
     sessionId: z.ZodString;
@@ -325,8 +335,12 @@ export declare function firstPostSeedUserQuestion(log: RuntimeTopicLog): string 
  * @returns the matching question, or `null` when the request is not committed.
  */
 export declare function postSeedUserQuestionById(log: RuntimeTopicLog, messageId: string): string | null;
-/** Fold only titles created inside the private Topic, excluding inherited fork titles. */
-export declare function foldTopicTitle(metadata: TopicMetadata, events: readonly SessionEvent[]): import("@deepseek-ai/dsh-session-title").SessionTitleSnapshot | undefined;
+/**
+ * Fold child-owned titles using the restored logical prefix, including after migration.
+ * @param log - restored Topic events and the host-owned inherited event count.
+ * @returns the latest Topic title projection, or undefined before any title is recorded.
+ */
+export declare function foldTopicTitle(log: RuntimeTopicLog): import("@deepseek-ai/dsh-session-title").SessionTitleSnapshot | undefined;
 /** Resolve the actual Topic mode without forking through an open DSH turn. */
 export declare function resolveTopicModeAndSeed(requested: CreateRequest, source: ObserverSourceSnapshot, anchorSeq: number): {
     mode: TopicMode;
@@ -359,6 +373,7 @@ export declare class TopicRuntime {
     private readonly sourceAvailabilityChecks;
     private readonly ready;
     private readonly topicListeners;
+    private readonly streams;
     private disposal;
     private releasing;
     private releaseLlm;
@@ -417,9 +432,9 @@ export declare class TopicRuntime {
     private archive;
     private delete;
     private deleteAdmitted;
-    /** Await JSONL retirement without populating its prepared-session cache. */
+    /** Observe the retired Session after its Agent has released write ownership. */
     private readRetiredSessionHeader;
-    /** Remove one artifact only from CiteCiter's fixed private JSONL backend. */
+    /** Remove every retired generation only from CiteCiter's fixed private JSONL backend. */
     private removeSessionArtifact;
     private finishDeletion;
     private recoverDeletions;

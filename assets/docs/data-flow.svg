@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+<title id="title">CiteCiter data ownership</title><desc id="desc">The source log and document library are read-only evidence. Learning runs in a separate Topic log. Its successful tool records restore the board and latest learning cards; Markdown export is a manual action.</desc>
+<defs><style>text{font-family:"Segoe UI","Microsoft YaHei",sans-serif;fill:#243b3a;font-size:16px}.small{font-size:13px;fill:#617875}</style><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8" fill="#367a6c"/></marker></defs>
+<rect width="1200" height="300" rx="18" fill="#f0f5f3"/>
+<g fill="#fff" stroke="#ceded8"><rect x="24" y="54" width="294" height="78" rx="12"/><rect x="24" y="155" width="294" height="78" rx="12"/><rect x="430" y="90" width="310" height="112" rx="12"/><rect x="874" y="36" width="302" height="88" rx="12"/><rect x="874" y="157" width="302" height="88" rx="12"/></g>
+<text x="44" y="86">来源 Session · Source log</text><text x="44" y="111" class="small">只读引用 · Read-only evidence</text>
+<text x="44" y="187">文档库 · Document library</text><text x="44" y="212" class="small">全文保存、分页阅读 · Full text, paged view</text>
+<path d="M318 94 H369 V136 H427 M318 194 H369 V157 H427" fill="none" stroke="#367a6c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="453" y="126">独立 Topic 日志 · Private Topic</text><text x="453" y="155" class="small">问题、回复和完整工具记录</text><text x="453" y="177" class="small">Questions, answers, committed tool records</text>
+<path d="M740 146 H810 V80 H871 M810 146 V201 H871" fill="none" stroke="#367a6c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="895" y="72">板书 · Board</text><text x="895" y="101" class="small">从日志重放 · Restore from the log</text>
+<text x="895" y="191">最新完整卡片组 · Latest card set</text><text x="895" y="221" class="small">手动导出 Markdown · Manual export</text>
+<text x="24" y="277" class="small">Topic 不追加来源日志；未发送草稿只在当前页面保留。 Topics do not append to the source; unsent drafts live in the current page.</text>
+</svg>

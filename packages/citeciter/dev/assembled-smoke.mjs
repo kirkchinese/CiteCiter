@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { MessageId } from '@deepseek-ai/dsh-llm'
 import { LEARNING_STAGES, learningQuestion, projectLearningCards, latestLearningStage } from '../lib/types/learning.js'
+import { acceptanceSmoke } from './acceptance-smoke.mjs'
 
 export const name = 'citeciter-assembled-smoke'
-export const inject = ['agents', 'sessions', 'citeciterRuntime', 'llm']
+export const inject = ['agents', 'sessions', 'citeciterRuntime', 'citeciter', 'llm']
 
 async function settled(service, id) {
   const deadline = Date.now() + 45_000
@@ -32,7 +33,7 @@ export function apply(ctx) {
 
 async function run(ctx) {
   const dshHome = process.env.DSH_HOME
-  if (!dshHome || !/^(?:dsh-rc1|desktop-rc1|citeciter-dsh-rc1-[\w-]+)$/u.test(basename(resolve(dshHome)))) {
+  if (!dshHome || !/^(?:dsh-rc1|desktop-rc1|desktop-latest|citeciter-dsh-rc1-[\w-]+)$/u.test(basename(resolve(dshHome)))) {
     ctx.logger.error('Smoke requires an explicitly isolated CiteCiter test home')
     return
   }
@@ -48,8 +49,16 @@ async function run(ctx) {
           assert.deepEqual(projectLearningCards(restored.messages), projectLearningCards(saved.messages))
           assert.equal(latestLearningStage(restored.messages), 'summary')
           assert.deepEqual(restored.board, saved.board)
+          if (process.env.CITECITER_VERIFY_RESUME === '1') {
+            await ctx.citeciterRuntime.ask({ action: 'ask', topicSessionId: saved.topic.sessionId, requestId: randomUUID(), question: '恢复后核对来源' })
+            const resumed = await settled(ctx.citeciterRuntime, saved.topic.sessionId)
+            assert.equal(resumed.error, null)
+            const evidence = resumed.messages.findLast(message => message.role === 'tool' && message.name === 'read_source_session')
+            assert.ok(evidence && !evidence.isError, 'Resumed Topic must read its bound source')
+            assert.deepEqual(projectLearningCards(resumed.messages), projectLearningCards(saved.messages))
+          }
         }
-        await writeFile(join(dshHome, 'restored-smoke.json'), JSON.stringify({ ok: true }) + '\n')
+        await writeFile(join(dshHome, 'restored-smoke.json'), JSON.stringify({ ok: true, resumed: process.env.CITECITER_VERIFY_RESUME === '1' }) + '\n')
         return
       }
       source = await ctx.agents.create({
@@ -108,6 +117,8 @@ async function run(ctx) {
         assert.deepEqual(transcript, JSON.parse(await readFile(expectedPath, 'utf8')))
       }
       await mkdir(dshHome, { recursive: true })
+      const acceptance = await acceptanceSmoke(ctx, source)
+      await writeFile(join(dshHome, 'acceptance-smoke.json'), JSON.stringify(acceptance, null, 2) + '\n')
       await writeFile(out + '.tmp', JSON.stringify({ ok: true, sourceSessionId: source.agent.session.id, snapshots }, null, 2) + '\n')
       await rename(out + '.tmp', out)
       ctx.logger.info('CiteCiter assembled smoke passed: %s', out)

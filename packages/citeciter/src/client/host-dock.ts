@@ -1,4 +1,4 @@
-/** Isolated, disposable layout adapter for DSH rc.1 and Desktop 2.0.5 frames. */
+/** Isolated, disposable layout adapter for DSH 0.1.5-rc.1 and Desktop 2.0.9 frames. */
 import { useEffect, useState, type RefObject } from 'react'
 import { resolveDockGeometry, type DockGeometry } from './dock-geometry.ts'
 
@@ -47,7 +47,7 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
       if (frame.dataset.citeciterDockOwner !== undefined && frame.dataset.citeciterDockOwner !== owner) return
       const columns = frame.style.gridTemplateColumns
       const tracks = /^(\d+(?:\.\d+)?)px\s+minmax\(0(?:px)?,\s*1fr\)\s+(\d+(?:\.\d+)?)px$/u.exec(columns)
-      if (tracks === null || getComputedStyle(frame).display !== 'grid') {
+      if (tracks === null || frame.hasAttribute('data-rightbar-fullscreen') || getComputedStyle(frame).display !== 'grid') {
         clear()
         setGeometry(null)
         return
@@ -72,7 +72,7 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
     const resize = new ResizeObserver(apply)
     const mutations = new MutationObserver(apply)
     resize.observe(frame)
-    mutations.observe(frame, { attributes: true, attributeFilter: ['style', 'class'], childList: true })
+    mutations.observe(frame, { attributes: true, attributeFilter: ['style', 'class', 'data-rightbar-fullscreen'], childList: true })
     return () => {
       resize.disconnect()
       mutations.disconnect()

@@ -461,6 +461,8 @@ export const documentContentSchema = z.object({
   format: documentFormatSchema,
   content: z.string(),
   truncated: z.boolean(),
+  page: z.number().int().nonnegative().default(0),
+  pageCount: z.number().int().positive().default(1),
 }).strict()
 
 export type DocumentContent = z.infer<typeof documentContentSchema>
@@ -576,7 +578,7 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
     content: z.string().min(1).max(2_000_000),
   }).strict(),
   z.object({ action: z.literal('documents') }).strict(),
-  z.object({ action: z.literal('document-get'), documentId: z.string().min(1) }).strict(),
+  z.object({ action: z.literal('document-get'), documentId: z.string().min(1), page: z.number().int().nonnegative().optional() }).strict(),
 ])])
 
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>

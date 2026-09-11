@@ -31,11 +31,13 @@ function decodedUnits(markdown, value, startOffset, endOffset) {
     let cursor = 0;
     for (const match of source.matchAll(MARKDOWN_DECODE_TOKEN)) {
         const index = match.index;
-        units.push(...directUnits(source.slice(cursor, index), startOffset + cursor));
+        for (const unit of directUnits(source.slice(cursor, index), startOffset + cursor))
+            units.push(unit);
         const raw = match[0];
         const decoded = decodeString(raw);
         if (decoded === raw) {
-            units.push(...directUnits(raw, startOffset + index));
+            for (const unit of directUnits(raw, startOffset + index))
+                units.push(unit);
         }
         else {
             for (const text of decoded) {
@@ -48,7 +50,8 @@ function decodedUnits(markdown, value, startOffset, endOffset) {
         }
         cursor = index + raw.length;
     }
-    units.push(...directUnits(source.slice(cursor), startOffset + cursor));
+    for (const unit of directUnits(source.slice(cursor), startOffset + cursor))
+        units.push(unit);
     return visibleText(units) === value ? units : [];
 }
 function literalUnits(source, startOffset, newline) {
@@ -135,7 +138,8 @@ function codeUnits(node, markdown) {
         const at = line.text.length - value.length;
         if (at < 0 || line.text.slice(at) !== value || !/^[ \t]*$/u.test(line.text.slice(0, at)))
             return [];
-        units.push(...directUnits(value, line.startOffset + at));
+        for (const unit of directUnits(value, line.startOffset + at))
+            units.push(unit);
         if (index < valueLines.length - 1) {
             if (line.newlineEnd === line.newlineStart)
                 return [];
@@ -245,7 +249,8 @@ function joinMapped(parts, separator) {
             for (const text of separator)
                 joined.push({ text, startOffset: before, endOffset: after, synthetic: true });
         }
-        joined.push(...part);
+        for (const unit of part)
+            joined.push(unit);
     }
     return joined;
 }

@@ -38,8 +38,9 @@ export declare class DocumentStore {
     /**
      * Return one bounded Reader page.
      * @param documentId - private document identity.
-     * @returns the first content window, truncated when the text exceeds the page budget.
+     * @param pageIndex - zero-based page; omitted requests the first page. Out-of-range pages are rejected.
+     * @returns a UTF-8-budgeted page and the total page count; Unicode code points are never split.
      */
-    get(documentId: string): Promise<DocumentContent>;
+    get(documentId: string, pageIndex?: number): Promise<DocumentContent>;
 }
 export {};

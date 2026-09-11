@@ -104,6 +104,9 @@ function toolChunks(name, arguments_, prefix, text = undefined) {
 }
 
 function hasToolResult(messages, prefix) {
+  // Repeated user requests must produce a new board/card/question tool call.
+  const latest = messages.findLastIndex(message => message.role === 'user' && message.source?.kind === 'user')
+  if (/-(?:cards|quantitative|question)-$/u.test(prefix)) messages = messages.slice(latest + 1)
   return messages.some((message) => message.content.some((block) => (
     block.type === 'tool-result'
     && String(block.toolCallId).startsWith(prefix)
@@ -174,6 +177,12 @@ class FixtureAdapter extends LlmAdapter {
   async *stream(options) {
     options.signal?.throwIfAborted()
     const question = latestHumanQuestion(options.messages)
+    if (options.purpose !== 'session-title' && question.includes('[fixture:error]')) throw new Error('Fixture provider failure')
+    if (options.purpose !== 'session-title' && question.includes('[fixture:partial-error]')) {
+      yield { type: 'block-start', index: 0, blockType: 'text' }
+      yield { type: 'text-delta', index: 0, text: '保留失败前的输出' }
+      throw new Error('Fixture partial failure')
+    }
     let chunks
     if (options.purpose === 'session-title') chunks = textChunks('曲率与平行移动')
     else if (question.includes('运行中引用测试') && !hasToolResult(options.messages, 'citeciter-fixture-live-')) {

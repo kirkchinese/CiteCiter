@@ -40,6 +40,17 @@ function documentDirectory(root, documentId) {
     assertContained(root, directory);
     return directory;
 }
+/** Validate persisted metadata before it supplies a document identity or format. */
+function parseRecord(value, documentId) {
+    if (typeof value !== 'object' || value === null || !('schemaVersion' in value) || value.schemaVersion !== 1) {
+        throw new Error('不支持的文档元数据版本');
+    }
+    const { schemaVersion: _version, ...fields } = value;
+    const summary = documentSummarySchema.parse(fields);
+    if (summary.documentId !== documentId)
+        throw new Error('文档元数据标识与目录不一致');
+    return { schemaVersion: 1, ...summary };
+}
 /** Validate and persist one imported text document under the private library. */
 export class DocumentStore {
     root;
@@ -86,8 +97,10 @@ export class DocumentStore {
      */
     async read(documentId) {
         const directory = documentDirectory(this.root, documentId);
-        const record = JSON.parse(await readFile(resolve(directory, 'document.json'), 'utf8'));
+        const record = parseRecord(JSON.parse(await readFile(resolve(directory, 'document.json'), 'utf8')), documentId);
         const content = await readFile(resolve(directory, 'content.txt'), 'utf8');
+        if (record.size !== Buffer.byteLength(content, 'utf8'))
+            throw new Error('文档内容与保存的长度不一致');
         return { record, content };
     }
     /** @returns all documents sorted by import time descending. */
@@ -104,7 +117,7 @@ export class DocumentStore {
         const summaries = [];
         for (const name of names.sort()) {
             try {
-                const record = JSON.parse(await readFile(resolve(documentDirectory(this.root, name), 'document.json'), 'utf8'));
+                const record = parseRecord(JSON.parse(await readFile(resolve(documentDirectory(this.root, name), 'document.json'), 'utf8')), name);
                 const { schemaVersion: _schemaVersion, ...summary } = record;
                 summaries.push(documentSummarySchema.parse(summary));
             }
@@ -119,25 +132,36 @@ export class DocumentStore {
     /**
      * Return one bounded Reader page.
      * @param documentId - private document identity.
-     * @returns the first content window, truncated when the text exceeds the page budget.
+     * @param pageIndex - zero-based page; omitted requests the first page. Out-of-range pages are rejected.
+     * @returns a UTF-8-budgeted page and the total page count; Unicode code points are never split.
      */
-    async get(documentId) {
+    async get(documentId, pageIndex = 0) {
         const { record, content } = await this.read(documentId);
+        const pages = [];
         let page = '';
         let bytes = 0;
         for (const character of content) {
             const characterBytes = Buffer.byteLength(character, 'utf8');
-            if (bytes + characterBytes > DOCUMENT_CONTENT_MAX_BYTES)
-                break;
+            if (bytes + characterBytes > DOCUMENT_CONTENT_MAX_BYTES) {
+                pages.push(page);
+                page = '';
+                bytes = 0;
+            }
             page += character;
             bytes += characterBytes;
         }
+        pages.push(page);
+        const selected = pages[pageIndex];
+        if (selected === undefined)
+            throw new Error('文档页码超出范围');
         return documentContentSchema.parse({
             documentId: record.documentId,
             title: record.title,
             format: record.format,
-            content: page,
-            truncated: page.length < content.length,
+            content: selected,
+            truncated: pageIndex < pages.length - 1,
+            page: pageIndex,
+            pageCount: pages.length,
         });
     }
 }

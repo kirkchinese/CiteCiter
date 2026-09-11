@@ -40,6 +40,7 @@ export interface CompanionFace {
     retainVisible(): () => void;
     create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario): Promise<void>;
     createFree(question: string, scenario: Extract<TopicScenario, 'qa' | 'present'>): Promise<boolean>;
+    /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
     createFromDocument(claim: DocumentClaimIntent, question: string): Promise<void>;
     openTopic(sessionId: string): Promise<void>;
     ask(question: string): Promise<boolean>;

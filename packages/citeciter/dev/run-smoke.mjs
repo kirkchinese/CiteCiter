@@ -7,13 +7,17 @@ import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url))
-const dshHome = await mkdtemp(join(tmpdir(), 'citeciter-dsh-rc1-'))
 const shimName = process.platform === 'win32' ? 'dsh.cmd' : 'dsh'
 const shim = (process.env.PATH ?? '').split(delimiter).map(dir => join(dir, shimName)).find(existsSync)
-if (!shim) throw new Error('Install @deepseek-ai/dsh@0.1.2-rc.1 before running this smoke')
-const bin = process.platform === 'win32'
+if (!process.env.CITECITER_DSH_BIN && !shim) throw new Error('Install @deepseek-ai/dsh@0.1.5-rc.1 or set CITECITER_DSH_BIN to its lib/bin.js')
+const bin = process.env.CITECITER_DSH_BIN ? resolve(process.env.CITECITER_DSH_BIN) : process.platform === 'win32'
   ? join(dirname(shim), 'node_modules/@deepseek-ai/dsh/lib/bin.js')
   : await realpath(shim)
+const hostPackage = JSON.parse(await readFile(resolve(dirname(bin), '../package.json'), 'utf8'))
+if (hostPackage.name !== '@deepseek-ai/dsh' || hostPackage.version !== '0.1.5-rc.1') {
+  throw new Error(`Snapshot requires @deepseek-ai/dsh@0.1.5-rc.1; found ${hostPackage.name}@${hostPackage.version}. Set CITECITER_DSH_BIN to the baseline lib/bin.js.`)
+}
+const dshHome = await mkdtemp(join(tmpdir(), 'citeciter-dsh-rc1-'))
 const environment = { ...process.env, DSH_HOME: dshHome }
 
 async function command(args) {
@@ -58,5 +62,5 @@ try {
 }
 }
 await bootAndVerify('assembled-smoke.json')
-await bootAndVerify('restored-smoke.json', { CITECITER_VERIFY_RESTORE: '1' })
+await bootAndVerify('restored-smoke.json', { CITECITER_VERIFY_RESTORE: '1', CITECITER_VERIFY_RESUME: '1' })
 console.log(`Keyless Observer / Exact Fork / five-stage learning / board / cards / restart snapshot passed. Artifacts: ${dshHome}`)

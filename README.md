@@ -1,123 +1,106 @@
 # CiteCiter
 
-**为 DeepSeek Harness Web 与 Desktop 打造的 AI 输出学习、检查与纠偏插件。**
-
-选中一段已提交的回答，在旁边创建独立 Topic，反复追问、切换模型，或让 AI 用公式、图形、表格和动画逐步讲解。主任务继续运行，学习记录保存在独立日志中。
-
 [English](README.en.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
-<p align="center"><img src="assets/hero/citeciter-hero.png" width="100%" alt="CiteCiter 将选中的 AI 回答展开为独立 Topic"></p>
+CiteCiter 是 DeepSeek Harness 的学习插件。它从主对话、工具结果或导入文档建立独立 Topic，提供讲解、板书和学习卡片。Topic 的问答与工具记录保存在独立日志中，来源会话继续工作。
 
-## 0.7 学习工作台（本分支开发预览）
+![0.7 学习工作区结构示意](assets/docs/learning-workspace.svg)
 
-稳定发布为 [0.6.0](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.6.0)，npm `latest` 已指向该版本。本分支为 **0.7.0-beta.1** 开发预览，尚未发布到 npm；下方安装命令仍安装稳定版。
+上图是功能布局示意图。宽窗口并排显示来源和学习栏；空间不足时学习栏移到下方。
 
-新版学习路线为 **底层逻辑 → 定性分析 → 定量分析（板书）→ 概念关联 → 总结学习卡片**。阶段可以自由选择或跳过，选择后点击发送才开始，也可随时切回自由追问。新建“学习讲解”默认从底层逻辑开始。定量阶段要求注明变量、单位、假设和算例；不适合定量时说明原因。
+## 版本与宿主
 
-- 学习栏内有“讲解 / 板书 / 学习卡”三个视图，Topic 改为顶部切换，模型、标题与管理动作按需展开。窄窗口默认收起阶段导航，把空间留给正文。
-- 各类 Topic 均可使用板书和学习卡。侧栏板书默认条目阅读，需要看位置关系时切换画布；原生“小黑板”入口保留。
-- 总结通过 `learning_cards` 工具保存完整卡片组。重开 Topic 或重启宿主可恢复；再次总结展示最新完整一组，旧组保留在 Topic 记录中。支持 Markdown 导出和通过追问修订。
-- **主动回忆可选、默认关闭**。关闭时直接阅读结论和例子，开启后先看问题再展开参考内容。没有间隔复习、到期提醒或打卡。
-- 追问建议和板书引用追加到草稿，随后由用户发送。切换 Topic、收起再打开面板保留本页草稿；刷新页面或重启后未发送草稿不恢复。`Ctrl/⌘ + Enter` 发送，Enter 换行。
-
-在独立测试 home 中体验源码：
-
-```powershell
-$env:DSH_HOME = "$PWD/.refs/learning-preview"
-pnpm install --frozen-lockfile
-pnpm build
-dsh plugin --profile web add "$PWD/packages/citeciter"
-dsh --profile web --host 127.0.0.1 --port 10529 --no-open
-```
-
-Desktop 预览需要另一个独立 home，并在实际选择的 profile 中安装本地包。验证与限制见 [0.7.0-beta.1 开发说明](docs/releases/v0.7.0-beta.1.md)。卡片质量取决于模型；当前没有跨 Topic 搜索、独立手工卡片编辑器、知识图谱数据库或跨端同步。
-
-## 0.6.0 安装与兼容
-
-CiteCiter **0.6.0** 的安装基线是 DSH `0.1.2-rc.1`，Desktop 对应 [DSH Desktop 2.0.5](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.5)。Node.js 要求 `^22.19.0 || >=24.0.0`；Windows 实测使用 Node 24.19.0。DSH alpha 与 Desktop master 不在此兼容承诺中。
-
-| 环境 | 安装目标 | 状态 |
+| 插件 | 状态 | 宿主基线 |
 | --- | --- | --- |
-| DSH Web 0.1.2-rc.1 | `web` profile | Windows 实际运行与 UI 验证 |
-| DSH Desktop 2.0.5 | Desktop 当前 profile，默认 `desktop` | 适配目标，分模式验证见 release 文档 |
-| DSH 0.1.1-rc.1 / rc.2 | 旧环境 | 保留 CiteCiter 0.5.0 |
-| DSH alpha、TUI | — | 未支持 |
-| Linux / macOS | 相同包 | 0.6.0 Linux CI 通过；Linux/macOS UI 未验证 |
+| 0.6.0 | 已发布的稳定版 | DSH 0.1.2-rc.1 / Desktop 2.0.5 |
+| 0.7.0-beta.2 | 本分支开发版，未发布 npm | DSH 0.1.5-rc.1 / Desktop 2.0.9，五阶段路线与学习卡 |
+| 0.5.0 | 旧宿主适配版 | DSH 0.1.1-rc.1 / rc.2 |
 
-安装或升级 Web 插件：
+本页功能说明对应 0.7 开发版；安装 0.6.0 不会获得五阶段路线和学习卡。Desktop 指 [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop)。Node.js 要求 `^22.19.0 || >=24.0.0`，本机验收使用 Windows 和 Node 24.19.0。当前开发目标为 DSH 0.1.5-rc.1 / Desktop 2.0.9；alpha、next 与 TUI 不在本轮范围内。
+
+## 学习流程
+
+1. 在主对话中选中已提交的回答或思考文字，右键输入问题。也可以使用工具结果引用入口，或点击学习栏的 `+ 新 Topic` 创建自由问答、学习讲解。
+2. 在 Topic 中选择一个阶段，补充问题后发送。阶段可以跳过、重复或切回“自由追问”；点击阶段按钮本身不调用模型。
+3. 在“讲解 / 板书 / 学习卡”间切换。板书默认按条目阅读，也可以切换画布查看位置关系。
+4. 选择“总结学习卡片”并发送。模型通过 `learning_cards` 提交完整卡片组后，在“学习卡”中阅读、导出，或通过追问修订。
+
+| 阶段 | 请求内容 |
+| --- | --- |
+| 底层逻辑 | 定义、机制、成立条件 |
+| 定性分析 | 趋势、边界、反例与直觉 |
+| 定量分析（板书） | 变量、单位、假设、推导与算例；不适合量化时说明原因 |
+| 概念关联 | 前提、相近概念、区别与应用 |
+| 总结学习卡片 | 结论、例子、自测问题与参考答案 |
+
+**主动回忆默认关闭。** 关闭时直接显示结论和例子；开启后先显示问题，再手动展开参考内容。该设置不安排复习任务，没有间隔复习、提醒、打卡或掌握分数。
+
+追问建议和板书引用只追加到草稿，由用户发送。板书引用保留当前学习阶段；需要直接解释时，先切换“自由追问”。`Ctrl / ⌘ + Enter` 发送，Enter 换行。阶段指令会作为普通用户消息写入 Topic；选中某阶段不代表已经掌握。
+
+## 文档阅读
+
+点击底部 📖，导入 `.txt`、`.md` 或 `.markdown` 文件。阅读器保存全文，每页最多显示 500 KiB 的 UTF-8 文本；单次导入最多 2,000,000 个字符。使用“上一页 / 下一页”翻页，选中文字、输入问题，再点击 `Citer!`。
+
+创建成功后，阅读器自动收起并打开学习栏。失败时保留选区和问题供重试。翻页清除旧选区、保留未发送问题。Markdown 以源文本显示；不直接解析 PDF、Word、网页或 OCR。
+
+文档 Topic 可以读取和搜索导入文档；启用“允许读取来源项目文件”时，也可以使用项目文件的只读搜索与读取工具。它不能修改项目文件或运行命令。
+
+## Topic 管理与布局
+
+| 操作 | 行为 |
+| --- | --- |
+| 顶部 Topic 选择器 | 切换当前来源会话下的 Topic |
+| Topic 设置 | 重命名、选择模型和推理强度、归档或删除 |
+| 停止 | 停止当前生成，之后可以继续追问 |
+| 查看归档 | 切换到归档列表；恢复后回到活动列表 |
+| 永久删除 | 需要输入完整 Topic Session ID；不删除来源会话 |
+| 关闭学习栏 | 恢复宿主布局；再次打开保留当前页面的 Topic 草稿 |
+
+面板偏好比例为 28%–55%。宽窗口为学习栏单独分配空间，并保留主对话至少 480 CSS 像素；原生详情打开后空间不足时改用上下布局。窄布局默认收起阶段导航和阅读视图的输入框，可手动展开。宿主模态窗口打开时，CiteCiter 浮层暂时隐藏，关闭后恢复。原生侧栏全屏时让出空间，退出全屏后恢复学习栏。
+
+内容通过公开 slots 接入；尺寸分配由 `host-dock.ts` 中的版本适配器维护。无法识别的宿主布局显示兼容提示。宿主升级后需要重新验收。
+
+## 数据与边界
+
+![来源、Topic 日志与学习输出的数据流](assets/docs/data-flow.svg)
+
+| 数据 | 保存与恢复 |
+| --- | --- |
+| Topic 问答、阶段请求、板书 | 写入私有 Topic 日志，重启后恢复 |
+| 学习卡 | 显示最新成功提交的完整一组，旧组留在日志；无效或未完成记录不覆盖上一组 |
+| 卡片导出 | 手动下载 Markdown，包含卡片、Topic 标识和来源引文 |
+| 未发送草稿、临时视图选择 | 当前页面内保留；刷新或重启不恢复 |
+| 导入文档 | 保存在 `$DSH_HOME/citeciter/documents/` |
+
+Observer 按需读取来源的已提交事件；Exact Fork 继承已结束来源轮次的上下文。Topic 不向来源 Session 追加事件。板书支持公式、Markdown、表格、安全 SVG、隔离 HTML 和内嵌图片；内容渲染受限制。
+
+Topic 索引位于 `$DSH_HOME/citeciter/workspaces/`，私有日志位于 `$DSH_HOME/citeciter/sessions/`。未指定 `DSH_HOME` 时通常使用用户目录下的 `.dsh`。DSH 负责旧日志的格式迁移；只读打开不改写原文件，继续写入时由宿主创建当前格式文件。Exact Fork 使用恢复后的继承边界。历史引文保留原文，原事件序号可能随宿主迁移变化。升级前备份整个 home。Web 与 Desktop 同时运行时使用不同 home，避免并发写入同一存储。
+
+模型决定讲解内容与工具调用，阶段按钮不保证模型一定生成板书或卡片。当前没有独立卡片编辑器、跨 Topic 搜索、知识图谱数据库或跨设备同步。
+
+## 本地安装 0.7 开发版
+
+最新版宿主使用本分支的 `0.7.0-beta.2`。稳定 `0.6.0` 对应旧宿主，安装说明保留在 [0.6.0 Release](docs/releases/v0.6.0.md)。在本分支仓库根目录执行：
 
 ```powershell
-npm install -g @deepseek-ai/dsh@0.1.2-rc.1
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.6.0
-dsh plugin --profile web list --depth 0
-dsh web
-```
-
-确认版本为 0.6.0 后重启相应宿主并刷新页面。也可从 [GitHub Release](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.6.0) 下载 `.tgz`，将安装命令中的包名替换为 tarball 的绝对路径。源码开发使用贡献指南中的本地工作区安装流程。
-
-Desktop 中先确认当前 profile 名称和数据目录，使用**相同的 DSH_HOME**安装：
-
-```powershell
-dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.6.0
-dsh plugin --profile desktop list --depth 0
-```
-
-若 Desktop 选择了自定义 profile，把 `desktop` 换成该名称；若使用自定义 home，先在当前 PowerShell 中设置 `$env:DSH_HOME`。重启 Desktop。全局 npm 更新只影响 CLI，Desktop 内置的 DSH 随桌面应用更新。
-
-npm 12 若提示安装脚本被拦截，按此次依赖列表一次性放行并重装；不必改变全局永久策略：
-
-```powershell
-npm install -g @deepseek-ai/dsh@0.1.2-rc.1 --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs
-```
-
-这解决原生依赖安装问题；旧插件引用已移除的 `effectiveSandboxMode` 则需要升级插件，单独重装宿主不会修复。
-
-## 稳定版 0.6.0 使用流程
-
-1. 选中已提交的助手回答或思考内容，右键输入问题，选择“开始提问”或“开始讲解”。
-2. 在右侧学习栏继续追问、切换模型和思考强度，或管理 Topic 标题、归档和删除。
-3. 使用 `+ 新 Topic` 创建自由问答或讲解。新的主会话需先发送消息，让 Topic 取得当前模型配置。
-4. 讲解内容位于主工作区“小黑板”标签；“引用到提问”会追加到现有草稿。
-5. 也可从工具结果、终端结果、差异片段及文本/Markdown Reader 创建 Topic。
-
-<p align="center"><img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="选中 AI 回答并在 CiteCiter 中继续追问"></p>
-
-上图演示引用流程，录制于旧版；0.6 的宿主布局和控件可能不同。
-
-## 并排学习，不遮挡主对话
-
-- 宽屏为学习栏分配独立列，保留主对话和原生详情栏。
-- 保存的面板比例为 28%–55%。空间不足时限制实际宽度，为主对话保留至少 480 CSS 像素；扩大窗口后恢复偏好比例。
-- 窄窗口或缩放后无法容纳两列时，学习栏移至下方，主对话仍在上方可见。
-- 关闭学习栏后恢复宿主布局。无法识别的宿主仅显示兼容提示。
-
-内容通过 DSH 公开 slots、会话投影和快照 hooks 接入。当前宿主没有公开的右侧 dock 尺寸接口，因此尺寸分配使用集中维护的宿主布局适配器，升级宿主后需重新验收。
-
-## Topic 与数据
-
-Observer 在私有日志中讨论，按需读取来源事件和项目文件；Exact Fork 继承已结束来源轮次的上下文。文件工具保持只读，Topic 不向主 Session 追加事件。未提交的流式文字没有稳定引用坐标；Exact Fork 需等待来源轮次结束。
-
-Presenter 的 `blackboard_apply` 原子提交支持公式、Markdown、表格、安全 SVG、隔离 HTML 动画和内嵌图片。Topic 可继续追问、切换模型、归档、恢复及带 Session ID 确认的永久删除。
-
-Topic 索引在 `$DSH_HOME/citeciter/workspaces/`，日志在 `$DSH_HOME/citeciter/sessions/`；未设置变量时通常为用户目录下的 `.dsh`。升级前备份整个 home。0.6 使用新版会话 API；没有批量重写旧日志。DSH 版本 0 JSONL 的物理 `seedLength` 仍由宿主读取，遇到未知事件应保留原件并诊断，不能删字段绕过。
-
-一个 home 只能由一个活动 CiteCiter 宿主使用。Web 与 Desktop 同时运行时使用不同 home；不要让两者并发写入同一私有存储。更新提醒只复制命令，不自动安装；Desktop 命令使用当前 profile。
-
-## 开发
-
-```sh
+npm install -g @deepseek-ai/dsh@0.1.5-rc.1
+pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm test
 pnpm build
 pnpm test:snapshot
+pnpm --dir packages/citeciter pack --pack-destination "$PWD/.refs/artifacts"
+$env:DSH_HOME = Join-Path $env:USERPROFILE '.dsh-citeciter-preview'
+dsh plugin --profile web add "$PWD/.refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.2.tgz"
+dsh --profile web --host 127.0.0.1 --port 10537 --no-open
 ```
 
-实际应用快照使用临时 profile 与无密钥模型，覆盖 Observer、Exact Fork、来源读取、板书和来源日志不变性。Host API `ctx.citeciterRuntime` 提供 `create`、`ask`、`get`、`list`、`delete` 及 Topic 变化事件。前端入口注册 API 和 preset 扩展仍未稳定。开发流程见 [贡献指南](CONTRIBUTING.zh.md)，公开变更见 [0.6.0 发布说明](docs/releases/v0.6.0.md)。
+如 npm 拦截依赖安装脚本，按 npm 输出的包名单一次性允许后重装。安装 Desktop [2.0.9](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.9)，它内置同版 DSH；更新全局 CLI 不会更新桌面运行时。选择未占用的端口。Desktop 使用另一个 home，从设置了该 `DSH_HOME` 的终端启动桌面程序，再在 Desktop 自带终端执行 `dsh plugin add <tarball 的绝对路径>`。全局 CLI 不能管理保留的 `desktop` profile。一个 home 同时只运行一个宿主。
+
+`test:snapshot` 使用无密钥模型和一次性真实 DSH profile，校验五阶段、板书、卡片、重启恢复和管理操作。确定性测试验证程序行为，不评定模型的教学质量。详细结果和未覆盖项目见 [验收记录](docs/validation/2026-09-11-latest.md)。
+
+开发命令与打包流程见 [贡献指南](CONTRIBUTING.zh.md)，本分支变更见 [0.7 开发说明](docs/releases/v0.7.0-beta.2.md)。构建和打包不会发布 npm。
 
 ## 社区与许可证
 
-DSH-Citeciter QQ 群：`1108040435`。
-
-<p align="center"><img src="assets/community/qq-group.jpg" width="280" alt="DSH-Citeciter QQ 群二维码"></p>
-
-[MIT License](LICENSE)
+DSH-Citeciter QQ 群：`1108040435`。许可证：[MIT](LICENSE)。

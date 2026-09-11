@@ -7,12 +7,12 @@ import plugin, { CITECITER_SETTINGS_NS, CiteCiterHost } from '../lib/types/index
 
 const packageRoot = new URL('../', import.meta.url)
 
-test('v0.7.0-beta.1 candidate declares an installable Host+Client DSH bundle', async () => {
+test('v0.7.0-beta.2 candidate declares an installable Host+Client DSH bundle', async () => {
   const manifest = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'))
   const patch = await readFile(new URL('cordis.patch.yml', packageRoot), 'utf8')
 
   assert.equal(manifest.name, '@kirkchinese/dsh-citeciter')
-  assert.equal(manifest.version, '0.7.0-beta.1')
+  assert.equal(manifest.version, '0.7.0-beta.2')
   assert.equal(manifest.private, undefined)
   assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.equal(manifest.exports?.['./typert']?.default, './lib/typert.host.js')
@@ -62,7 +62,7 @@ test('v0.7.0-beta.1 candidate declares an installable Host+Client DSH bundle', a
     'react',
   ]) assert.ok(manifest.devDependencies[developmentOnly], `missing development-only dependency ${developmentOnly}`)
   for (const [name, range] of Object.entries(manifest.peerDependencies)) {
-    if (name.startsWith('@deepseek-ai/dsh-')) assert.equal(range, '0.1.2-rc.1')
+    if (name.startsWith('@deepseek-ai/dsh-')) assert.equal(range, '0.1.5-rc.1')
   }
   assert.equal(patch, "- insert:\n    - id: citeciter\n      name: '@kirkchinese/dsh-citeciter'\n")
 })

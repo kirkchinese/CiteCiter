@@ -21,6 +21,7 @@
 }
 
 .panel {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -63,7 +64,18 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
+  flex-wrap: wrap;
 }
+
+:global(body:has([role="dialog"][aria-modal="true"])) .root {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.import input { min-width: 0; max-width: 100%; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.pagination button { padding: 4px 8px; cursor: pointer; }
+.pagination button:disabled { cursor: default; opacity: 0.5; }
 
 .documents {
   display: flex;
@@ -108,6 +120,7 @@
 
 .content {
   flex: 1;
+  min-height: 60px;
   width: 100%;
   box-sizing: border-box;
   padding: 8px;
@@ -129,6 +142,7 @@
 
 .ask input {
   flex: 1;
+  min-width: 0;
   padding: 8px;
   border: 1px solid var(--dsw-alias-border, #d8dbe2);
   border-radius: 8px;

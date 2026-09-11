@@ -3,6 +3,41 @@ import test from 'node:test'
 
 import { createCompanionController } from '../lib/types/client/companion-controller.js'
 import { DEFAULT_CITECITER_SETTINGS } from '../lib/types/topic.js'
+import { createReaderController, createInitialReaderSnapshot } from '../lib/types/client/reader-controller.js'
+
+test('a document Remote failure retains the Reader draft and a retry opens the learning panel', async () => {
+  let unavailable = true, opened = 0
+  const controller = createCompanionController(() => undefined, {
+    getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+    subscribe: () => () => {}, set: async () => {},
+  }, async command => {
+    if (command.action === 'create') return unavailable
+      ? { ok: false, error: { message: 'document route unavailable' } }
+      : { ok: true, value: { kind: 'topic', topic: topic('reading-topic') } }
+    return { ok: true, value: { kind: 'topics', topics: [] } }
+  }, () => { opened++ }, memoryStore(snapshot(null)))
+  const state = createInitialReaderSnapshot()
+  state.open = true
+  state.active = { documentId: 'doc', title: 'doc', format: 'text', content: 'quote', truncated: false, page: 0, pageCount: 1 }
+  state.selection = { displayText: 'quote', prefixText: '', suffixText: '' }
+  state.question = 'explain'
+  const reader = createReaderController(async () => { throw new Error('unexpected Reader remote') }, controller, memoryStore(state))
+  try {
+    await reader.createTopic()
+    assert.equal(reader.getSnapshot().open, true)
+    assert.equal(reader.getSnapshot().question, 'explain')
+    assert.equal(reader.getSnapshot().error, 'document route unavailable')
+    assert.equal(opened, 0)
+    unavailable = false
+    await reader.createTopic()
+    assert.equal(reader.getSnapshot().open, false)
+    assert.equal(reader.getSnapshot().question, '')
+    assert.equal(opened, 1)
+  } finally {
+    await reader.dispose()
+    await controller.dispose()
+  }
+})
 
 function memoryStore(initial) {
   let state = initial

@@ -133,7 +133,7 @@ export class CiteCiterHost extends TypertRemoteService {
   @Remote('checkUpdate')
   async checkUpdate(signal: AbortSignal): Promise<UpdateCheckResponse> {
     const result = await this.updates.check(signal)
-    // Desktop 2.0.5 exports this immutable Host service; it never crosses into browser props.
+    // Desktop 2.x exports this immutable Host service; it never crosses into browser props.
     const desktop = this.ctx.get('desktopProfiles') as { readonly current: { readonly name: string } } | undefined
     return result.kind === 'success' && desktop !== undefined
       ? { ...result, profile: desktop.current.name }

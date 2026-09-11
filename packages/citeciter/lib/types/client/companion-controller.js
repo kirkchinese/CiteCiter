@@ -614,10 +614,13 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 throw new Error('CiteCiter 返回了错误的文档 Topic 响应');
             completeRequestIntent(intent);
             acceptTopic(response.topic, operationGeneration);
+            if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId)
+                onAutoOpen();
             await refreshTopics();
         }
         catch (error) {
             fail(error, operationGeneration);
+            throw error;
         }
     };
     async function runAsk(active, question, intent) {

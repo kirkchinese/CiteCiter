@@ -1,10 +1,27 @@
 /* The layout adapter owns only these attributes and variables. Native inline widths remain intact. */
+/* Desktop's shell overlay is above the sidebar-owned settings modal. Hide only
+   our surfaces while a modal is open; keep the reserved geometry and Topic state. */
+:global(body:has([role="dialog"][aria-modal="true"])) .dock,
+:global(body:has([role="dialog"][aria-modal="true"])) .topicLauncher,
+:global(body:has([role="dialog"][aria-modal="true"])) .selectionPopover {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Native fullscreen is an explicit host view; restore our reservation when it exits. */
+:global([data-rightbar-fullscreen]) .dock,
+:global([data-rightbar-fullscreen]) .topicLauncher,
+:global([data-rightbar-fullscreen]) .selectionPopover {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 :global([data-citeciter-layout="columns"]) {
   grid-template-columns: var(--citeciter-host-columns) var(--citeciter-dock-width) !important;
   transition: none !important;
 }
 
-:global([data-citeciter-layout="columns"] > [data-side="details"]) {
+:global([data-citeciter-layout="columns"] > [data-side="rightbar"]) {
   translate: calc(-1 * var(--citeciter-dock-width)) 0;
 }
 

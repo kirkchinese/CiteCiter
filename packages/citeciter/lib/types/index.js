@@ -151,7 +151,7 @@ let CiteCiterHost = (() => {
         /** Check npm for an installable stable version without changing this installation. */
         async checkUpdate(signal) {
             const result = await this.updates.check(signal);
-            // Desktop 2.0.5 exports this immutable Host service; it never crosses into browser props.
+            // Desktop 2.x exports this immutable Host service; it never crosses into browser props.
             const desktop = this.ctx.get('desktopProfiles');
             return result.kind === 'success' && desktop !== undefined
                 ? { ...result, profile: desktop.current.name }

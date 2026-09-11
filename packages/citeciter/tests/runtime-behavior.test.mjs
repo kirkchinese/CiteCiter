@@ -15,11 +15,44 @@ import {
   postSeedUserQuestionById,
   projectBoardFromLog,
   removeOwnedJsonlArtifact,
+  removeOwnedTopicGenerations,
   resolveTopicModeAndSeed,
   selectTopicTitleMessage,
   topicCitationContext,
   topicMessages,
 } from '../lib/types/topic-runtime.js'
+
+test('permanent Topic deletion removes every generation and preserves other Topics', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'citeciter-generations-'))
+  context.after(() => rm(root, { recursive: true, force: true }))
+  const target = join(root, 'project', 'citeciter-target')
+  const other = join(root, 'project', 'citeciter-other')
+  await mkdir(target, { recursive: true })
+  await mkdir(other, { recursive: true })
+  for (const name of ['session.jsonl', 'session.v1.jsonl', 'session.v3.jsonl', 'session.lock']) await writeFile(join(target, name), 'owned')
+  await writeFile(join(other, 'session.v3.jsonl'), 'keep')
+  await assert.rejects(removeOwnedTopicGenerations(root, '../citeciter-other'), /Invalid private Topic/)
+  await removeOwnedTopicGenerations(root, 'citeciter-target')
+  await assert.rejects(readFile(join(target, 'session.jsonl')), { code: 'ENOENT' })
+  await assert.rejects(readFile(join(target, 'session.v3.jsonl')), { code: 'ENOENT' })
+  assert.equal(await readFile(join(other, 'session.v3.jsonl'), 'utf8'), 'keep')
+  await removeOwnedTopicGenerations(root, 'citeciter-target')
+})
+
+test('Exact Fork reads only the restored inherited prefix after source sequence renumbering', async () => {
+  const runtime = lifecycleRuntime()
+  const inherited = { seq: 0, type: 'user/message', data: { id: 'original', role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: 'frozen source' }] } }
+  const later = { ...inherited, seq: 1, data: { ...inherited.data, id: 'later', content: [{ type: 'text', text: 'later source must remain invisible' }] } }
+  runtime.host = { sessionQuery: { readSession: async () => ({ session: { id: 'source' }, events: [inherited, later] }) } }
+  runtime.settings = () => ({ includeSourceReasoning: false })
+  runtime.rememberSourceAvailability = async () => {}
+  const tool = runtime.sourceTool({ mode: 'exact-fork', sourceSessionId: 'source', forkThroughSeq: 99 }, {
+    session: { header: { isSeeded: true }, inheritedEventCount: 1, snapshotEvents: (from, to) => [inherited].slice(from, to) },
+  })
+  const result = await tool.execute({}, { signal: new AbortController().signal })
+  assert.match(JSON.stringify(result), /frozen source/)
+  assert.doesNotMatch(JSON.stringify(result), /later source must remain invisible/)
+})
 
 test('private JSONL deletion refuses ancestor escapes and unlinks only a final link', async (context) => {
   const root = await mkdtemp(join(tmpdir(), 'citeciter-delete-root-'))
@@ -71,7 +104,7 @@ test('private JSONL deletion refuses ancestor escapes and unlinks only a final l
   assert.equal(await readFile(sourceArtifact, 'utf8'), 'source history')
 })
 
-test('Topic deletion waits for rc.2 retirement before its logical commit and blocks later writes', async () => {
+test('Topic deletion waits for retirement before its logical commit and blocks later writes', async () => {
   const runtime = lifecycleRuntime()
   const retirement = deferred()
   const askStarted = deferred()
@@ -99,11 +132,11 @@ test('Topic deletion waits for rc.2 retirement before its logical commit and blo
   }
   runtime.runtime = {
     sessionPersistence: {
-      readFrom: async () => {
+      stat: async () => {
         order.push('retirement')
         await retirement.promise
         return {
-          meta: { version: 0, id: metadata.sessionId, createdAt: 1, cwd: metadata.sourceCwd },
+          header: { version: 3, id: metadata.sessionId, createdAt: 1, cwd: metadata.sourceCwd },
           events: [],
         }
       },
@@ -182,7 +215,7 @@ test('a post-commit cleanup failure reports pending while a mismatched confirmat
   }
   runtime.runtime = {
     sessionPersistence: {
-      readFrom: async () => ({ meta: { version: 0, id: metadata.sessionId, createdAt: 2 }, events: [] }),
+      stat: async () => ({ header: { version: 3, id: metadata.sessionId, createdAt: 2 }, events: [] }),
     },
   }
   let warnings = 0
@@ -210,7 +243,7 @@ test('a pre-commit deletion failure restores Topic admission', async () => {
   runtime.index = { loadBySessionId: async () => metadata }
   runtime.runtime = {
     sessionPersistence: {
-      readFrom: async () => { throw new Error('retirement failed') },
+      stat: async () => { throw new Error('retirement failed') },
     },
   }
 
@@ -352,6 +385,7 @@ function lifecycleRuntime() {
     opening: new Map(),
     pendingQuestions: new Map(),
     topicListeners: new Set(),
+    streams: new Map(),
     handles: new Map(),
     selections: new Map(),
     fibers: [],
@@ -578,9 +612,8 @@ test('Exact Topics ignore inherited titles and title the first post-seed questio
     data: { title: '签署位为何为假', messageSeqs: [4], source: { kind: 'provider', provider: 'citeciter' } },
     surfaceOp: 'append',
   }
-  const metadata = { mode: 'exact-fork', forkThroughSeq: 3 }
-  assert.equal(foldTopicTitle(metadata, [inheritedTitle]), undefined)
-  assert.equal(foldTopicTitle(metadata, [inheritedTitle, topicTitle])?.title, '签署位为何为假')
+  assert.equal(foldTopicTitle({ inheritedEventCount: 1, events: [inheritedTitle] }), undefined)
+  assert.equal(foldTopicTitle({ inheritedEventCount: 1, events: [inheritedTitle, topicTitle] })?.title, '签署位为何为假')
 
   const selected = selectTopicTitleMessage({
     session: {

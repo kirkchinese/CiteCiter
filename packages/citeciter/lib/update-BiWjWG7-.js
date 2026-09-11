@@ -655,7 +655,9 @@ const documentContentSchema = z.object({
 	title: z.string().trim().min(1).max(200),
 	format: documentFormatSchema,
 	content: z.string(),
-	truncated: z.boolean()
+	truncated: z.boolean(),
+	page: z.number().int().nonnegative().default(0),
+	pageCount: z.number().int().positive().default(1)
 }).strict();
 const createRequestSchema = z.union([
 	z.object({
@@ -775,7 +777,8 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 	z.object({ action: z.literal("documents") }).strict(),
 	z.object({
 		action: z.literal("document-get"),
-		documentId: z.string().min(1)
+		documentId: z.string().min(1),
+		page: z.number().int().nonnegative().optional()
 	}).strict()
 ])]);
 /** Strict response union returned by the single Remote command endpoint. */

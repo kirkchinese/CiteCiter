@@ -168,6 +168,7 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
         if (citation === null || active?.topic.sessionId !== citation.topicSessionId)
             return;
         setQuestion((current) => appendBoardCitation(current, citation.prompt));
+        setViews(current => ({ ...current, [citation.topicSessionId]: 'explain' }));
         bus.clearBoardCitation(citation.id);
         requestAnimationFrame(() => composerRef.current?.focus());
     }, [active?.topic.sessionId, bus, overlay.boardCitation, setQuestion]);

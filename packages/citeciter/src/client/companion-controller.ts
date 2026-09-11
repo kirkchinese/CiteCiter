@@ -69,6 +69,7 @@ export interface CompanionFace {
   retainVisible(): () => void
   create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario): Promise<void>
   createFree(question: string, scenario: Extract<TopicScenario, 'qa' | 'present'>): Promise<boolean>
+  /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
   createFromDocument(claim: DocumentClaimIntent, question: string): Promise<void>
   openTopic(sessionId: string): Promise<void>
   ask(question: string): Promise<boolean>
@@ -685,9 +686,11 @@ export function createCompanionController(
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的文档 Topic 响应')
       completeRequestIntent(intent)
       acceptTopic(response.topic, operationGeneration)
+      if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId) onAutoOpen()
       await refreshTopics()
     } catch (error) {
       fail(error, operationGeneration)
+      throw error
     }
   }
 

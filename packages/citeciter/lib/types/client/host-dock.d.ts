@@ -1,4 +1,4 @@
-/** Isolated, disposable layout adapter for DSH rc.1 and Desktop 2.0.5 frames. */
+/** Isolated, disposable layout adapter for DSH 0.1.5-rc.1 and Desktop 2.0.9 frames. */
 import { type RefObject } from 'react';
 import { type DockGeometry } from './dock-geometry.ts';
 /**

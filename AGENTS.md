@@ -4,7 +4,7 @@ CiteCiter is an external DSH plugin, not the DeepSeek Harness monorepo. Its pack
 
 ## Baseline and ownership
 
-- CiteCiter 0.6 targets DSH `0.1.2-rc.1` and Desktop `2.0.5`. Alpha is a separate migration target.
+- CiteCiter 0.7 beta.2 targets DSH `0.1.5-rc.1` and Desktop `2.0.9`, as requested during the September 10 acceptance. The released 0.6 and earlier 0.7 preview targeted DSH `0.1.2-rc.1` and Desktop `2.0.5`. Alpha is a separate migration target.
 - Keep behavior in plugins and documented services/events; do not patch the host Agent Loop.
 - Host and Client compile separately with `tsconfig.host.json` and `tsconfig.client.json`. Their identically named services can have different types.
 - Use ESM, strict TypeScript, `.ts` local imports and package names across packages. Use branded DSH identifiers from their owning packages.
@@ -15,6 +15,7 @@ CiteCiter is an external DSH plugin, not the DeepSeek Harness monorepo. Its pack
 - Registrations are effects. Use scoped injection, `ctx.effect()` and `ctx.on()`; release listeners, observers, controllers and private runtimes with their owner.
 - Model-visible input must be reconstructable from the Topic log. Never append Topic work to source Sessions or expose workspace write tools to learning Topics.
 - Runtime APIs use `isSeeded` and `inheritedEventCount`. Physical JSONL `seedLength` remains owned by DSH persistence; do not guess a data migration.
+- Agent setup receives `(agentCtx, agent)`. Use the explicit Agent or event payload; do not discover it through `ctx.agent`.
 - Client services assemble controllers. React receives snapshot selector hooks and business callbacks, without discovering Cordis services.
 - UI contributions use public slots. The intentional host-layout exception is isolated in `src/client/host-dock.ts` and its CSS. Preserve the source conversation, native details and Desktop caption. Restore owned styles on close/dispose; unknown layouts must not get a full-screen fallback.
 - Validate external JSON, configuration and persisted data at their readers; trust typed same-process calls. Waterfall handlers call `next()` unless intentionally claiming the request.
