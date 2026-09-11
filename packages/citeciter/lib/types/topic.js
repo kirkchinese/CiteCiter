@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { boardSnapshotSchema } from "./board.js";
+import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from "./actions.js";
 /** Durable Citation version used by Observer Topics. v4 adds the EvidenceRef entry discriminator. */
 export const CITATION_SCHEMA_VERSION = 4;
 /** Navigation metadata version. v2 permits source-bound Topics without a selected Citation. */
@@ -39,6 +40,9 @@ export const citeCiterSettingsSchema = z.object({
     boardAnimations: z.boolean().optional(),
     activeRecall: z.boolean().optional(),
     updateNotifications: z.boolean().optional(),
+    wheelSlots: wheelSlotsSchema.optional(),
+    wheelTrigger: wheelTriggerSchema.optional(),
+    defaultCiterModel: actionModelSchema.nullable().optional(),
 }).strict();
 /** Settings used before an optional DSH settings provider becomes available. */
 export const DEFAULT_CITECITER_SETTINGS = Object.freeze({
@@ -384,6 +388,7 @@ export const documentContentSchema = z.object({
 const createRequestSchema = z.union([
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         sourceSessionId: z.string().min(1),
         question: questionSchema,
@@ -392,6 +397,7 @@ const createRequestSchema = z.union([
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         citation: citationDraftSchema,
         question: questionSchema,
@@ -400,6 +406,7 @@ const createRequestSchema = z.union([
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         selectionClaim: citationSelectionClaimSchema,
         question: questionSchema,
@@ -408,6 +415,7 @@ const createRequestSchema = z.union([
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         toolClaim: toolEvidenceClaimSchema,
         question: questionSchema,
@@ -416,6 +424,7 @@ const createRequestSchema = z.union([
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         documentClaim: documentEvidenceClaimSchema,
         question: questionSchema,

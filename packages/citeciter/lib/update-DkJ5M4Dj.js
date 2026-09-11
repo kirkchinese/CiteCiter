@@ -1,4 +1,60 @@
 import { z } from "zod";
+//#region lib/types/learning.js
+/** User-selected teaching stages; these indicate intent, never measured mastery. */
+const LEARNING_STAGES = [
+	{
+		id: "logic",
+		label: "底层逻辑",
+		shortLabel: "逻辑",
+		hint: "从定义、成立条件和因果机制讲起。",
+		instruction: "请讲清当前主题的底层逻辑：先给出定义和成立条件，再解释因果机制与为什么成立。区分来源证据、一般知识和假设。只讲这一阶段，不自动推进。"
+	},
+	{
+		id: "qualitative",
+		label: "定性分析",
+		shortLabel: "定性",
+		hint: "看方向、边界，以及改变条件会发生什么。",
+		instruction: "请对当前主题做定性分析：解释变量或因素之间的关系、变化方向、边界与反例，用一个具体情境说明。只讲这一阶段，不自动推进。"
+	},
+	{
+		id: "quantitative",
+		label: "定量分析（板书）",
+		shortLabel: "定量",
+		hint: "把变量、推导和算例写到板书上。",
+		instruction: "请对当前主题做定量分析，并调用 blackboard_apply 整理板书：注明变量、单位、假设、推导步骤与一个可核查算例。示例数值必须标明是假设，不得伪造来源数据。如果此主题不适合定量或信息不足，请明确说明原因。只讲这一阶段，不自动推进。"
+	},
+	{
+		id: "connections",
+		label: "概念关联",
+		shortLabel: "关联",
+		hint: "说明它与哪些概念相连，以及为什么。",
+		instruction: "请围绕当前主题给出 2–4 个最有帮助的概念关联，逐一解释是前提、推论、类比还是对比，说明关联理由与类比的边界。需要时用板书画关系。只讲这一阶段，不自动推进。"
+	},
+	{
+		id: "summary",
+		label: "总结学习卡片",
+		shortLabel: "总结",
+		hint: "把本次讨论整理成能再次读懂的学习卡片。",
+		instruction: "请总结本 Topic 已讨论的内容，调用 learning_cards 生成 1–6 张学习卡片。每张包含核心结论、一个具体例子、可选自测问题和参考答案；不要补造未证实结论，涉及来源事实时在结论中保留来源定位。完成后简短说明，不安排复习计划。"
+	}
+];
+/** Make the entire stage instruction visible and durable as an ordinary Topic user message. */
+function learningQuestion(stageId, question = "") {
+	const stage = LEARNING_STAGES.find((candidate) => candidate.id === stageId);
+	return `【学习阶段：${stage.label}】\n${stage.instruction}${question.trim() === "" ? "" : `\n\n我的问题：${question.trim()}`}`;
+}
+const learningCardSchema = z.object({
+	title: z.string().trim().min(1).max(100),
+	summary: z.string().trim().min(1).max(2e3),
+	example: z.string().trim().min(1).max(1500),
+	question: z.string().trim().min(1).max(500),
+	answer: z.string().trim().min(1).max(2e3)
+}).strict();
+const learningCardsInputSchema = z.object({ cards: z.array(learningCardSchema).min(1).max(8) }).strict();
+/** Shared teaching contract appended to every scenario's logged tutor section. */
+const LEARNING_PROMPT = `The optional learning route is 底层逻辑 → 定性分析 → 定量分析（板书） → 概念关联 → 总结学习卡片. A user may select or skip any stage. Respond to the current request only; never advance automatically or claim that a stage proves mastery. Never schedule spaced repetition or reminders. Do not require quizzes before continuing.
+
+Use learning_cards only when the user asks to summarize or revise learning cards. Each successful call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Preserve available source locators inside summaries. Do not invent sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`;
 /** Maximum combined UTF-8 element-content bytes retained on one board. */
 const BOARD_MAX_CONTENT_BYTES = 5e5;
 /** Element kinds the blackboard renders safely on the chalk canvas. */
@@ -253,6 +309,75 @@ Object.freeze({
 	elements: [],
 	invalid: 0
 });
+//#endregion
+//#region lib/types/actions.js
+/** One persisted wheel slot; its prompt is sent as a durable user message. */
+const citeActionSchema = z.object({
+	label: z.string().trim().min(1).max(20),
+	prompt: z.string().max(4e3),
+	ask: z.boolean(),
+	scenario: z.enum(["qa", "present"]),
+	presentation: z.enum(["side", "floating"])
+}).strict().refine((action) => action.ask || action.prompt.trim() !== "", "直接执行的模式需要提示词");
+const wheelSlotsSchema = z.array(citeActionSchema.nullable()).length(8);
+const wheelTriggerSchema = z.enum([
+	"right-button",
+	"Alt",
+	"Control",
+	"Shift",
+	"Meta"
+]);
+const actionModelSchema = z.object({
+	provider: z.string().min(1).max(200),
+	model: z.string().min(1).max(200)
+}).strict();
+/** Clockwise from twelve o'clock. Empty slots retain their positions. */
+const DEFAULT_WHEEL_SLOTS = [
+	{
+		label: "自由提问",
+		prompt: "",
+		ask: true,
+		scenario: "qa",
+		presentation: "side"
+	},
+	{
+		label: "解释这段",
+		prompt: learningQuestion("logic"),
+		ask: false,
+		scenario: "present",
+		presentation: "side"
+	},
+	{
+		label: "找错误",
+		prompt: "请审查引用内容的错误、遗漏和成立条件。区分可确认的错误与需要补充的信息。",
+		ask: false,
+		scenario: "qa",
+		presentation: "floating"
+	},
+	{
+		label: "翻译",
+		prompt: "请将引用内容翻译为中文，保留重要术语的原文。",
+		ask: false,
+		scenario: "qa",
+		presentation: "floating"
+	},
+	{
+		label: "定量板书",
+		prompt: learningQuestion("quantitative"),
+		ask: false,
+		scenario: "present",
+		presentation: "side"
+	},
+	{
+		label: "总结卡片",
+		prompt: learningQuestion("summary", "围绕本次引用的内容整理。"),
+		ask: false,
+		scenario: "present",
+		presentation: "side"
+	},
+	null,
+	null
+];
 /** Host settings namespace mirrored by the browser settings scope. */
 const CITECITER_SETTINGS_NAMESPACE = "citeciter";
 /** Topic-scoped system prompt section. */
@@ -290,7 +415,10 @@ const citeCiterSettingsSchema = z.object({
 	shortcutOpenPanel: z.string().max(40).optional(),
 	boardAnimations: z.boolean().optional(),
 	activeRecall: z.boolean().optional(),
-	updateNotifications: z.boolean().optional()
+	updateNotifications: z.boolean().optional(),
+	wheelSlots: wheelSlotsSchema.optional(),
+	wheelTrigger: wheelTriggerSchema.optional(),
+	defaultCiterModel: actionModelSchema.nullable().optional()
 }).strict();
 /** Settings used before an optional DSH settings provider becomes available. */
 const DEFAULT_CITECITER_SETTINGS = Object.freeze({
@@ -662,6 +790,7 @@ const documentContentSchema = z.object({
 const createRequestSchema = z.union([
 	z.object({
 		action: z.literal("create"),
+		modelRoute: actionModelSchema.optional(),
 		requestId: z.string().min(1),
 		sourceSessionId: z.string().min(1),
 		question: questionSchema,
@@ -670,6 +799,7 @@ const createRequestSchema = z.union([
 	}).strict(),
 	z.object({
 		action: z.literal("create"),
+		modelRoute: actionModelSchema.optional(),
 		requestId: z.string().min(1),
 		citation: citationDraftSchema,
 		question: questionSchema,
@@ -678,6 +808,7 @@ const createRequestSchema = z.union([
 	}).strict(),
 	z.object({
 		action: z.literal("create"),
+		modelRoute: actionModelSchema.optional(),
 		requestId: z.string().min(1),
 		selectionClaim: citationSelectionClaimSchema,
 		question: questionSchema,
@@ -686,6 +817,7 @@ const createRequestSchema = z.union([
 	}).strict(),
 	z.object({
 		action: z.literal("create"),
+		modelRoute: actionModelSchema.optional(),
 		requestId: z.string().min(1),
 		toolClaim: toolEvidenceClaimSchema,
 		question: questionSchema,
@@ -694,6 +826,7 @@ const createRequestSchema = z.union([
 	}).strict(),
 	z.object({
 		action: z.literal("create"),
+		modelRoute: actionModelSchema.optional(),
 		requestId: z.string().min(1),
 		documentClaim: documentEvidenceClaimSchema,
 		question: questionSchema,
@@ -1082,4 +1215,4 @@ function waitForCaller(operation, signal) {
 	});
 }
 //#endregion
-export { topicSummarySchema as C, boardBatchSchema as E, topicSnapshotSchema as S, applyBoardOps as T, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, EMPTY_BOARD_STATE as w, topicMetadataSchema as x, renderCitationContext as y };
+export { topicSummarySchema as C, boardBatchSchema as D, applyBoardOps as E, LEARNING_PROMPT as O, topicSnapshotSchema as S, EMPTY_BOARD_STATE as T, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, learningCardsInputSchema as k, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, DEFAULT_WHEEL_SLOTS as w, topicMetadataSchema as x, renderCitationContext as y };

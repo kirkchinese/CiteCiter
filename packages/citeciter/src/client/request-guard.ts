@@ -1,3 +1,4 @@
+import type { ActionModel } from '../actions.ts'
 import type { TopicScenario } from '../topic.ts'
 import type { CiteSelection } from './types.ts'
 
@@ -72,6 +73,7 @@ export function claimCreateTopicIntent(
   question: string,
   mode: CreateMode,
   scenario: TopicScenario = 'qa',
+  modelRoute?: ActionModel,
 ): Promise<RequestIntent> {
   const identity = selection.kind === 'assistant-step'
     ? [
@@ -95,6 +97,7 @@ export function claimCreateTopicIntent(
     question,
     mode,
     scenario,
+    modelRoute ?? null,
   ]))
 }
 
@@ -130,8 +133,12 @@ export interface DocumentClaimIntent {
 export function claimCreateDocumentIntent(
   claim: DocumentClaimIntent,
   question: string,
+  sourceSessionId?: string,
+  modelRoute?: ActionModel,
 ): Promise<RequestIntent> {
   return claimRequestIntent('create', JSON.stringify([
+    sourceSessionId ?? null,
+    modelRoute ?? null,
     claim.documentId,
     claim.displayText,
     claim.prefixText,

@@ -1,4 +1,4 @@
-import { f as citeCiterRequestSchema, p as citeCiterResponseSchema, r as updateCheckResponseSchema } from "./update-BiWjWG7-.js";
+import { f as citeCiterRequestSchema, p as citeCiterResponseSchema, r as updateCheckResponseSchema } from "./update-DkJ5M4Dj.js";
 //#region lib/types/typert-common.js
 /** Strict root-scoped Topic command shared by Host and browser manifests. */
 const citeCiterRequestDescriptor = {

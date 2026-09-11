@@ -4,7 +4,8 @@ CiteCiter is an external DSH plugin, not the DeepSeek Harness monorepo. Its pack
 
 ## Baseline and ownership
 
-- CiteCiter 0.7 beta.2 targets DSH `0.1.5-rc.1` and Desktop `2.0.9`, as requested during the September 10 acceptance. The released 0.6 and earlier 0.7 preview targeted DSH `0.1.2-rc.1` and Desktop `2.0.5`. Alpha is a separate migration target.
+- CiteCiter 0.7 beta.3 targets DSH `0.1.5-rc.1` and Desktop `2.0.9`, as requested during the September 10 acceptance. The released 0.6 and earlier 0.7 preview targeted DSH `0.1.2-rc.1` and Desktop `2.0.5`. Alpha is a separate migration target.
+- Native learning preview is optional. Its public types and pure address utility target resolved subpackages `0.1.5-rc.2`; the top-level DSH version alone does not guarantee this service.
 - Keep behavior in plugins and documented services/events; do not patch the host Agent Loop.
 - Host and Client compile separately with `tsconfig.host.json` and `tsconfig.client.json`. Their identically named services can have different types.
 - Use ESM, strict TypeScript, `.ts` local imports and package names across packages. Use branded DSH identifiers from their owning packages.

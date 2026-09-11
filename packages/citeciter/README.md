@@ -13,14 +13,46 @@ This is a layout diagram. Wide windows show the source and learning panel side b
 | Plugin | Status | Host baseline |
 | --- | --- | --- |
 | 0.6.0 | Published stable release | DSH 0.1.2-rc.1 / Desktop 2.0.5 |
-| 0.7.0-beta.2 | Development branch; not published to npm | DSH 0.1.5-rc.1 / Desktop 2.0.9; five learning stages and cards |
+| 0.7.0-beta.3 | Development branch; not published to npm | DSH 0.1.5-rc.1 / Desktop 2.0.9; five learning stages, wheel and cards |
 | 0.5.0 | Earlier host support | DSH 0.1.1-rc.1 / rc.2 |
 
 The features below describe the 0.7 development build. Installing 0.6.0 does not provide the five-stage route or learning cards. Desktop means [anywhere-labs/dsh-desktop](https://github.com/anywhere-labs/dsh-desktop). Node.js requires `^22.19.0 || >=24.0.0`; local acceptance uses Windows and Node 24.19.0. The development target is DSH 0.1.5-rc.1 / Desktop 2.0.9; alpha, next and TUI are outside this scope.
 
+## Selection wheel
+
+![Eight-slot wheel, question and model selection, side and floating presentations](https://raw.githubusercontent.com/kirkchinese/CiteCiter/codex/learning-workspace-0.7/assets/docs/selection-wheel.svg)
+
+This is an interaction diagram, not a runtime screenshot. The wheel, question form and floating panel use translucent glass, background blur and short animations, with reduced-motion and increased-contrast styles.
+
+Select text, hold the right mouse button, move toward an action, check its highlight, then release. Direct actions use the default model in settings, or follow the source when none is configured. Actions marked as requiring input open a question form and model selector before submission.
+
+| Slot, clockwise from the top | Default action | Input | Default location |
+| --- | --- | --- | --- |
+| 1 | Free question | Required | Side |
+| 2 | Explain passage | None | Side |
+| 3 | Find errors | None | Floating |
+| 4 | Translate | None | Floating |
+| 5 | Quantitative board | None | Side |
+| 6 | Summary cards | None | Side |
+| 7, 8 | Empty | — | — |
+
+The centre, empty slots, outside of the wheel, Escape, blur and source changes cancel the action. A short right-click leaves a clickable wheel; arrow keys move, Enter confirms, and digits 1–8 choose directly. Shift + right-click preserves the native menu. Tool entries cite the whole tool card; readers cite selected text.
+
+In Settings → CiteCiter → Selection wheel, choose the trigger and default model. Triggers include right mouse, Alt/Option, Control, Shift and Meta/Command. Each slot has a name, prompt, input requirement, Q&A/learning scenario and side/floating presentation. Move, clear or restore slots, then save all eight together. Custom modes retain the Topic's read-only tool boundary.
+
+Submission blocks duplicate execution. Failures retain the question, model and source for retry; switching source Sessions cancels unsent actions. A Topic creation already accepted by the host is not rolled back. Mode prompts are ordinary user messages in the Topic log.
+
+## Native file preview
+
+Choose “CiteCiter 学习” in DSH's native preview renderer selector. The host owns opening, reading and refreshing files; CiteCiter displays selectable UTF-8 source text. Use the wheel or selection-actions button. Text, Markdown and common source-code files are supported. Starting learning saves a complete snapshot; later file edits do not rewrite it. Native learning uses the same 500 KiB pagination.
+
+This entry registers through the optional documentPreviews service. The local top-level DSH package is 0.1.5-rc.1, while its resolved document preview package is 0.1.5-rc.2; the relevant development dependencies are pinned to rc.2. Without this service, the conversation wheel, standalone reader and Topics remain available. The top-level version alone does not establish native preview capability.
+
+Files need a source Session address; absolute file addresses cannot directly create a learning Topic. A snapshot is limited to 8 MiB and 2,000,000 characters. This entry does not intercept selections in built-in Markdown, code, PDF or HTML renderers, and does not provide PDF text layers, Word parsing or OCR.
+
 ## Learning workflow
 
-1. Select committed assistant answer or reasoning text in the source conversation, then right-click to ask. Tool results also provide citation entries. Use `+ New Topic` for a free discussion or learning explanation.
+1. Select committed assistant answer or reasoning text in the source conversation, then start an action through the wheel. Tool results also provide citation entries. Use `+ New Topic` for a free discussion or learning explanation.
 2. Choose a stage, add a question if needed, and send. Stages can be skipped, repeated or replaced with a free follow-up. Selecting a stage does not call the model.
 3. Switch between Explain, Board and Learning Cards. The board defaults to readable entries; its canvas preserves spatial relationships.
 4. Choose Summary Cards and send. Once the model submits a complete set through `learning_cards`, read, export or revise it through a follow-up.
@@ -54,11 +86,12 @@ Reading Topics can read and search imported documents. When “Allow source proj
 | Stop | Stop the current generation, then continue with a follow-up |
 | View archived | Show archived Topics; restoring returns them to the active list |
 | Permanent deletion | Requires the complete Topic Session ID; does not delete the source |
+| Side / Floating | Retain the Topic and drafts; drag the floating panel by its header |
 | Close panel | Restore the host layout; reopening preserves drafts within this page |
 
-The preferred panel proportion is 28%–55%. Wide layouts reserve a separate column and at least 480 CSS pixels for the source conversation. If native details leave insufficient room, the panel moves below the source. Narrow layouts fold stage navigation and the reading-view composer, which can be expanded. CiteCiter overlays hide while a host modal is open and return when it closes. Native sidebar fullscreen also releases the learning panel space until fullscreen exits.
+The preferred panel proportion is 28%–55%. Wide layouts reserve a separate column and at least 480 CSS pixels for the source conversation. If native details leave insufficient room, the panel moves below the source. Narrow layouts fold stage navigation and the reading-view composer, which can be expanded. CiteCiter overlays hide while a host modal is open and return when it closes. Native sidebar fullscreen hides the side panel and offers an explicit floating-view action; leaving fullscreen restores the side panel. Moving learning below the source is a space fallback, not another learning workflow. Switch to floating for continued comparison.
 
-Content uses public slots. A version-specific adapter in `host-dock.ts` reserves layout space. Unknown layouts show a compatibility message. Host upgrades require another acceptance pass.
+Content uses public slots. A version-specific adapter in `host-dock.ts` reserves layout space. Unknown layouts show a compatibility message. Gesture handling, action state, execution, document sources and React views are separate modules. Host upgrades require another acceptance pass.
 
 ## Data and limits
 
@@ -69,8 +102,9 @@ Content uses public slots. A version-specific adapter in `host-dock.ts` reserves
 | Questions, answers, stage requests and board | Stored in the private Topic log and restored after restart |
 | Learning cards | Latest successfully committed complete set; older sets remain in the log; invalid or incomplete records preserve the previous set |
 | Card export | Manual Markdown download containing cards, Topic identity and the source quote |
-| Unsent drafts and temporary view selections | Kept within the page; not restored after reload or restart |
-| Imported documents | Stored in `$DSH_HOME/citeciter/documents/` |
+| Wheel configuration and default model | Host CiteCiter settings |
+| Unsent drafts, temporary view selections and floating position | Kept within the page; not restored after reload or restart |
+| Imports and native file snapshots | Stored in `$DSH_HOME/citeciter/documents/` |
 
 Observer reads committed source events as needed. Exact Fork inherits context from a completed source turn. Topics never append events to the source Session. Boards support formulas, Markdown, tables, safe SVG, isolated HTML and embedded images with rendering restrictions.
 
@@ -80,7 +114,7 @@ Models control their explanation and tool calls; selecting a stage does not guar
 
 ## Install the local 0.7 development build
 
-Use `0.7.0-beta.2` with the current host. Stable `0.6.0` targets the older host; see its [release notes](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.6.0.md). Run these commands from this branch's repository root:
+Use `0.7.0-beta.3` with the current host. Stable `0.6.0` targets the older host; see its [release notes](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.6.0.md). Run these commands from this branch's repository root:
 
 ```powershell
 npm install -g @deepseek-ai/dsh@0.1.5-rc.1
@@ -91,15 +125,15 @@ pnpm build
 pnpm test:snapshot
 pnpm --dir packages/citeciter pack --pack-destination "$PWD/.refs/artifacts"
 $env:DSH_HOME = Join-Path $env:USERPROFILE '.dsh-citeciter-preview'
-dsh plugin --profile web add "$PWD/.refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.2.tgz"
+dsh plugin --profile web add "$PWD/.refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.3.tgz"
 dsh --profile web --host 127.0.0.1 --port 10537 --no-open
 ```
 
-Install Desktop [2.0.9](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.9) separately; updating the global CLI does not update its bundled runtime. If npm blocks dependency scripts, allow the specific packages listed by npm for that installation. Choose an unused port. For Desktop, launch the application with a separate `DSH_HOME`, then run `dsh plugin add <absolute tarball path>` in its managed terminal. The global CLI cannot manage the reserved `desktop` profile. Run only one host per home.
+Install Desktop [2.0.9](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.9) separately; updating the global CLI does not update its bundled runtime. If npm blocks dependency scripts, allow the specific packages listed by npm for that installation. Choose an unused port. For Desktop, launch the application with a separate `DSH_HOME`, then run `dsh plugin add <absolute tarball path>` in its managed terminal. The global CLI cannot manage the reserved `desktop` profile. Run only one host per home. Restart the host and refresh the client after installation.
 
-`test:snapshot` uses a keyless model in a disposable real DSH profile to verify stages, boards, cards, restart recovery and management operations. Deterministic tests verify software behavior, not teaching quality. See the [acceptance record](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/validation/2026-09-11-latest.md) for results and coverage limits.
+`test:snapshot` uses a keyless model in a disposable real DSH profile to verify stages, boards, cards, restart recovery and management operations. Deterministic tests verify software behavior, not teaching quality. See the [acceptance record](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/validation/2026-09-11-wheel.md) for results and coverage limits.
 
-See [Contributing](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/CONTRIBUTING.md) for development and packaging, and the [0.7 development notes](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.7.0-beta.2.md) for changes. Building or packing does not publish to npm.
+See [Contributing](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/CONTRIBUTING.md) for development and packaging, and the [0.7 development notes](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.7.0-beta.3.md) for changes. Building or packing does not publish to npm.
 
 ## Community and license
 

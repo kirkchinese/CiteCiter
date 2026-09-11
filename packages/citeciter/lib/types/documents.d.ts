@@ -1,6 +1,5 @@
 import { type DocumentContent, type DocumentFormat, type DocumentSummary } from './topic.ts';
-/** Reader page budget keeps one document-get response comfortably bounded. */
-export declare const DOCUMENT_CONTENT_MAX_BYTES: number;
+export { DOCUMENT_CONTENT_MAX_BYTES } from './document-pages.ts';
 interface DocumentRecordFile {
     readonly schemaVersion: 1;
     readonly documentId: string;
@@ -43,4 +42,3 @@ export declare class DocumentStore {
      */
     get(documentId: string, pageIndex?: number): Promise<DocumentContent>;
 }
-export {};

@@ -1,3 +1,4 @@
+import type { ActionModel } from '../actions.ts';
 import type { TopicScenario } from '../topic.ts';
 import type { CiteSelection } from './types.ts';
 export type CreateMode = 'observer' | 'exact-fork' | 'exact-when-available';
@@ -12,7 +13,7 @@ export interface RequestIntent {
  * @param mode - resolved Topic creation mode.
  * @returns the pending intent key and request ID.
  */
-export declare function claimCreateTopicIntent(selection: CiteSelection, question: string, mode: CreateMode, scenario?: TopicScenario): Promise<RequestIntent>;
+export declare function claimCreateTopicIntent(selection: CiteSelection, question: string, mode: CreateMode, scenario?: TopicScenario, modelRoute?: ActionModel): Promise<RequestIntent>;
 /**
  * Claim the retry-stable request ID for one uncited Topic creation.
  * @param sourceSessionId - owning DSH Session.
@@ -34,7 +35,7 @@ export interface DocumentClaimIntent {
  * @param question - normalized first question.
  * @returns the pending intent key and request ID.
  */
-export declare function claimCreateDocumentIntent(claim: DocumentClaimIntent, question: string): Promise<RequestIntent>;
+export declare function claimCreateDocumentIntent(claim: DocumentClaimIntent, question: string, sourceSessionId?: string, modelRoute?: ActionModel): Promise<RequestIntent>;
 /**
  * Claim the retry-stable request ID for one pending Topic follow-up.
  * @param topicSessionId - target private Topic Session.

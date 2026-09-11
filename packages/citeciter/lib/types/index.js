@@ -38,6 +38,7 @@ import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import z from '@deepseek-ai/schemastery';
 import { TopicRuntime } from "./topic-runtime.js";
 import { UpdateChecker } from "./update.js";
+import { DEFAULT_WHEEL_SLOTS } from "./actions.js";
 import { CITECITER_SETTINGS_NAMESPACE, DEFAULT_CITECITER_SETTINGS, citeCiterRequestSchema, citeCiterSettingsSchema, } from "./topic.js";
 /** Cordis/Typert package identity. */
 export const name = '@kirkchinese/dsh-citeciter';
@@ -63,6 +64,15 @@ export const CITECITER_SETTINGS_SCHEMA = z.object({
     boardAnimations: z.boolean().default(DEFAULT_CITECITER_SETTINGS.boardAnimations ?? true),
     activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
     updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
+    wheelTrigger: z.union(['right-button', 'Alt', 'Control', 'Shift', 'Meta']).default('right-button'),
+    defaultCiterModel: z.union([z.const(null), z.object({ provider: z.string().min(1).max(200), model: z.string().min(1).max(200) })]).default(null),
+    wheelSlots: z.array(z.union([z.const(null), z.object({
+            label: z.string().min(1).max(20),
+            prompt: z.string().max(4000),
+            ask: z.boolean(),
+            scenario: z.union(['qa', 'present']),
+            presentation: z.union(['side', 'floating']),
+        })])).min(8).max(8).default([...DEFAULT_WHEEL_SLOTS]),
 });
 function currentSettings(ctx) {
     const raw = ctx.get('settings')?.get(CITECITER_SETTINGS_NS);

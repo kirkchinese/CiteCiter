@@ -37,7 +37,7 @@ dsh --profile web --host 127.0.0.1 --port 10519 --no-open
 
 ```powershell
 pnpm --dir packages/citeciter pack --pack-destination "$PWD/.refs/artifacts"
-node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.2.tgz
+node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.3.tgz
 ```
 
 旧 `dev/seed-smoke-session.mjs`、`smoke*.mjs` 和 `hmr-smoke.mjs` 是 0.5 历史夹具，含旧宿主手写会话和 Linux 路径，不作为 0.6 验收入口。使用真实应用快照与隔离 UI 会话，不要对真实数据运行旧 seeder。

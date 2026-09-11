@@ -11,9 +11,10 @@ import {
   type DocumentSummary,
 } from './topic.ts'
 
+import { documentPages } from './document-pages.ts'
+export { DOCUMENT_CONTENT_MAX_BYTES } from './document-pages.ts'
+
 const DOCUMENT_ROOT = dshHomePath('citeciter', 'documents')
-/** Reader page budget keeps one document-get response comfortably bounded. */
-export const DOCUMENT_CONTENT_MAX_BYTES = 500 * 1024
 
 function errorCode(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error
@@ -148,20 +149,7 @@ export class DocumentStore {
    */
   async get(documentId: string, pageIndex = 0): Promise<DocumentContent> {
     const { record, content } = await this.read(documentId)
-    const pages: string[] = []
-    let page = ''
-    let bytes = 0
-    for (const character of content) {
-      const characterBytes = Buffer.byteLength(character, 'utf8')
-      if (bytes + characterBytes > DOCUMENT_CONTENT_MAX_BYTES) {
-        pages.push(page)
-        page = ''
-        bytes = 0
-      }
-      page += character
-      bytes += characterBytes
-    }
-    pages.push(page)
+    const pages = documentPages(content)
     const selected = pages[pageIndex]
     if (selected === undefined) throw new Error('文档页码超出范围')
     return documentContentSchema.parse({

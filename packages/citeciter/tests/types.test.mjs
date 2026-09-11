@@ -9,18 +9,7 @@ test('a failed CiteBus subscriber does not starve later subscribers', () => {
   bus.subscribe(() => { throw new Error('listener failed') })
   bus.subscribe(() => calls.push('later listener'))
 
-  bus.setMenuSelection({
-    sourceSessionId: 'source-session',
-    displayText: 'term',
-    kind: 'assistant-step',
-    anchorKey: '1:assistant-step1',
-    startOffset: 4,
-    endOffset: 8,
-    prefixText: 'the ',
-    suffixText: ' here',
-    x: 1,
-    y: 2,
-  })
+  bus.setPresentation('floating')
 
   assert.deepEqual(calls, ['later listener'])
   assert.equal(errors.length, 1)

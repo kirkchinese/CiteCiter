@@ -293,6 +293,10 @@ export declare const TYPERT: {
         readonly name: "CiteCiterRequest";
         readonly schema: import("zod").ZodUnion<readonly [import("zod").ZodUnion<readonly [import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             sourceSessionId: import("zod").ZodString;
             question: import("zod").ZodString;
@@ -303,6 +307,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             citation: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -329,6 +337,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             selectionClaim: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -352,6 +364,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             toolClaim: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -377,6 +393,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             documentClaim: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -817,6 +837,10 @@ export declare const TYPERT: {
                 readonly typeSymbol: "@kirkchinese/dsh-citeciter#CiteCiterRequest";
                 readonly schema: import("zod").ZodUnion<readonly [import("zod").ZodUnion<readonly [import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     sourceSessionId: import("zod").ZodString;
                     question: import("zod").ZodString;
@@ -827,6 +851,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     citation: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;
@@ -853,6 +881,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     selectionClaim: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;
@@ -876,6 +908,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     toolClaim: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;
@@ -901,6 +937,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     documentClaim: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;

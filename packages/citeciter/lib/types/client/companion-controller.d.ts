@@ -5,6 +5,7 @@ import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
 import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type QuestionAnswer, type TopicScenario, type TopicSnapshot, type TopicSummary } from '../topic.ts';
 import { type CreateMode, type DocumentClaimIntent } from './request-guard.ts';
+import type { ActionModel } from '../actions.ts';
 import type { CiteSelection } from './types.ts';
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error';
 export type { CreateMode } from './request-guard.ts';
@@ -38,10 +39,10 @@ export interface CompanionFace {
     subscribe(listener: () => void): () => void;
     setSource(sessionId: SessionId | null): void;
     retainVisible(): () => void;
-    create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario): Promise<void>;
+    create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario, modelRoute?: ActionModel): Promise<void>;
     createFree(question: string, scenario: Extract<TopicScenario, 'qa' | 'present'>): Promise<boolean>;
     /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
-    createFromDocument(claim: DocumentClaimIntent, question: string): Promise<void>;
+    createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>;
     openTopic(sessionId: string): Promise<void>;
     ask(question: string): Promise<boolean>;
     answerQuestion(key: string, answer: QuestionAnswer): Promise<void>;

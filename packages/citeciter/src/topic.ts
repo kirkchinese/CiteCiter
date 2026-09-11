@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { boardSnapshotSchema } from './board.ts'
+import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from './actions.ts'
 
 /** Durable Citation version used by Observer Topics. v4 adds the EvidenceRef entry discriminator. */
 export const CITATION_SCHEMA_VERSION = 4 as const
@@ -48,6 +49,9 @@ export const citeCiterSettingsSchema = z.object({
   boardAnimations: z.boolean().optional(),
   activeRecall: z.boolean().optional(),
   updateNotifications: z.boolean().optional(),
+  wheelSlots: wheelSlotsSchema.optional(),
+  wheelTrigger: wheelTriggerSchema.optional(),
+  defaultCiterModel: actionModelSchema.nullable().optional(),
 }).strict()
 
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>
@@ -470,6 +474,7 @@ export type DocumentContent = z.infer<typeof documentContentSchema>
 const createRequestSchema = z.union([
   z.object({
     action: z.literal('create'),
+    modelRoute: actionModelSchema.optional(),
     requestId: z.string().min(1),
     sourceSessionId: z.string().min(1),
     question: questionSchema,
@@ -478,6 +483,7 @@ const createRequestSchema = z.union([
   }).strict(),
   z.object({
     action: z.literal('create'),
+    modelRoute: actionModelSchema.optional(),
     requestId: z.string().min(1),
     citation: citationDraftSchema,
     question: questionSchema,
@@ -486,6 +492,7 @@ const createRequestSchema = z.union([
   }).strict(),
   z.object({
     action: z.literal('create'),
+    modelRoute: actionModelSchema.optional(),
     requestId: z.string().min(1),
     selectionClaim: citationSelectionClaimSchema,
     question: questionSchema,
@@ -494,6 +501,7 @@ const createRequestSchema = z.union([
   }).strict(),
   z.object({
     action: z.literal('create'),
+    modelRoute: actionModelSchema.optional(),
     requestId: z.string().min(1),
     toolClaim: toolEvidenceClaimSchema,
     question: questionSchema,
@@ -502,6 +510,7 @@ const createRequestSchema = z.union([
   }).strict(),
   z.object({
     action: z.literal('create'),
+    modelRoute: actionModelSchema.optional(),
     requestId: z.string().min(1),
     documentClaim: documentEvidenceClaimSchema,
     question: questionSchema,

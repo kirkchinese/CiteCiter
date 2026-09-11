@@ -20,16 +20,23 @@ export async function acceptanceSmoke(ctx, source) {
     }
     throw new Error('Acceptance Topic timed out')
   }
-  const initial = await command({ action: 'create', requestId: randomUUID(), sourceSessionId,
-    mode: 'observer', scenario: 'qa', question: '工具能力' })
+  const initialRequestId = randomUUID()
+  const initial = await command({ action: 'create', requestId: initialRequestId, sourceSessionId,
+    mode: 'observer', scenario: 'qa', question: '工具能力', modelRoute: { provider: 'fixture', model: 'fixture-alt' } })
   const id = initial.topic.topic.sessionId
   let snapshot = await waitFor(id)
   assert.equal(snapshot.error, null)
   assert.equal(snapshot.topic.citation, null)
+  assert.equal(snapshot.topic.modelConfig.model, 'fixture-alt')
+  const replay = await command({ action: 'create', requestId: initialRequestId, sourceSessionId,
+    mode: 'observer', scenario: 'qa', question: '工具能力', modelRoute: { provider: 'fixture', model: 'fixture-alt' } })
+  assert.equal(replay.topic.topic.sessionId, id)
+  await assert.rejects(command({ action: 'create', requestId: randomUUID(), sourceSessionId,
+    mode: 'observer', scenario: 'qa', question: '工具能力', modelRoute: { provider: 'fixture', model: 'missing' } }))
   const tools = snapshot.messages.filter(message => message.role === 'assistant').map(message => message.text).join('\n')
   assert.match(tools, /learning_cards/)
   assert.doesNotMatch(tools, /shell|write|edit/)
-  checks.push('free Topic creation and read-only tools')
+  checks.push('first-request model selection, invalid-route rejection and read-only tools')
 
   const renamed = await command({ action: 'rename', topicSessionId: id, title: 'Acceptance Topic' })
   assert.equal(renamed.topic.topic.title, 'Acceptance Topic')

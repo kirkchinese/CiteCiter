@@ -440,7 +440,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 setVisible(false);
         };
     };
-    async function runCreate(selection, question, mode, scenario, intent) {
+    async function runCreate(selection, question, mode, scenario, intent, modelRoute) {
         if (disposed)
             return;
         const operationGeneration = ++activeGeneration;
@@ -477,6 +477,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                     question,
                     mode,
                     scenario,
+                    modelRoute,
                 });
             }
             else {
@@ -492,6 +493,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                     question,
                     mode,
                     scenario: 'investigate',
+                    modelRoute,
                 });
             }
             if (response.kind !== 'topic')
@@ -507,18 +509,20 @@ export function createCompanionController(readChat, settingsScope, request, onAu
             fail(error, operationGeneration);
         }
     }
-    const create = async (selection, rawQuestion, mode, scenario = 'qa') => {
+    const create = async (selection, rawQuestion, mode, scenario = 'qa', modelRoute) => {
         if (disposed)
             return;
         const question = normalizeQuestion(rawQuestion);
         const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode;
-        const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario);
+        const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario, modelRoute);
         if (disposed)
             return;
+        if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId)
+            throw new Error('来源会话已切换，请重新选文');
         const pending = pendingCreates.get(intent.requestId);
         if (pending !== undefined)
             return pending;
-        const operation = runCreate(selection, question, resolvedMode, scenario, intent).finally(() => {
+        const operation = runCreate(selection, question, resolvedMode, scenario, intent, modelRoute).finally(() => {
             if (pendingCreates.get(intent.requestId) === operation)
                 pendingCreates.delete(intent.requestId);
         });
@@ -575,16 +579,20 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 pendingFreeCreates.delete(intent.requestId);
         }
     };
-    const createFromDocument = async (claim, rawQuestion) => {
+    const createFromDocument = async (claim, rawQuestion, capturedSource, modelRoute) => {
         if (disposed)
             return;
-        const sourceSessionId = store.getSnapshot().sourceSessionId;
+        const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId;
+        if (sourceSessionId !== store.getSnapshot().sourceSessionId)
+            throw new Error('来源会话已切换，请重新选文');
         if (sourceSessionId === null)
             throw new Error('打开 CiteCiter 面板后即可创建文档 Topic');
         const question = normalizeQuestion(rawQuestion);
-        const intent = await claimCreateDocumentIntent(claim, question);
+        const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute);
         if (disposed)
             return;
+        if (sourceSessionId !== store.getSnapshot().sourceSessionId)
+            throw new Error('来源会话已切换，请重新选文');
         const operationGeneration = ++activeGeneration;
         update((draft) => {
             draft.sourceSessionId = sourceSessionId;
@@ -609,6 +617,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 question,
                 mode: 'observer',
                 scenario: 'read',
+                modelRoute,
             });
             if (response.kind !== 'topic')
                 throw new Error('CiteCiter 返回了错误的文档 Topic 响应');

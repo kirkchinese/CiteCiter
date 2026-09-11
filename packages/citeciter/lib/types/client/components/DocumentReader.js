@@ -1,11 +1,22 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { readTextareaSelection } from "../reader-selection.js";
 import css from './DocumentReader.module.css';
 /** Reader shell-overlay entry: compact trigger plus the document library panel. */
-export function DocumentReader({ reader, useReader }) {
+export function DocumentReader({ reader, useReader, registerSurface, sourceSessionId }) {
     const snapshot = useReader(value => value);
     const textareaRef = useRef(null);
+    useEffect(() => {
+        const element = textareaRef.current;
+        const active = snapshot.active;
+        if (element === null || active === null || snapshot.loading)
+            return;
+        return registerSurface(element, () => {
+            const selected = readTextareaSelection(element);
+            const source = sourceSessionId();
+            return selected === null || source === null ? null : { kind: 'document', sourceSessionId: source, title: active.title, documentId: active.documentId, ...selected };
+        });
+    }, [registerSurface, sourceSessionId, snapshot.active, snapshot.open, snapshot.loading]);
     const syncSelection = () => {
         const textarea = textareaRef.current;
         reader.setSelection(textarea === null ? null : readTextareaSelection(textarea));

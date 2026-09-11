@@ -1,16 +1,30 @@
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { ReaderSnapshot } from '../reader-controller.ts'
 import type { ReaderActions } from '../view-actions.ts'
-import { type ChangeEvent, type FormEvent, useRef } from 'react'
+import { type ChangeEvent, type FormEvent, useRef, useEffect } from 'react'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SelectionSurfaces } from '../wheel-gesture.ts'
 import { readTextareaSelection } from '../reader-selection.ts'
 import css from './DocumentReader.module.css'
 
 /** Reader shell-overlay entry: compact trigger plus the document library panel. */
-export function DocumentReader({ reader, useReader }: { readonly reader: ReaderActions
+export function DocumentReader({ reader, useReader, registerSurface, sourceSessionId }: { readonly reader: ReaderActions
   readonly useReader: SnapshotSelectorHook<ReaderSnapshot>
+  readonly registerSurface: SelectionSurfaces['register']
+  readonly sourceSessionId: () => SessionId | null
 }) {
   const snapshot = useReader(value => value)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => {
+    const element = textareaRef.current
+    const active = snapshot.active
+    if (element === null || active === null || snapshot.loading) return
+    return registerSurface(element, () => {
+      const selected = readTextareaSelection(element)
+      const source = sourceSessionId()
+      return selected === null || source === null ? null : { kind: 'document', sourceSessionId: source, title: active.title, documentId: active.documentId, ...selected }
+    })
+  }, [registerSurface, sourceSessionId, snapshot.active, snapshot.open, snapshot.loading])
 
   const syncSelection = () => {
     const textarea = textareaRef.current

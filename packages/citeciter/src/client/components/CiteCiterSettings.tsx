@@ -8,6 +8,7 @@ import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
+import { WheelSettings } from './WheelSettings.tsx'
 
 export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
   readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
@@ -24,6 +25,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
   const documentSnapshot = useDocument(value => value)
   const updateSnapshot = useUpdate(value => value)
   const settings = snapshot.settings
+  useEffect(() => companion.retainVisible(), [companion])
   const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent)
   const committedWidth = useRef(settings.panelWidthPercent)
   useEffect(() => {
@@ -55,6 +57,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
         >{snapshot.settingsSaveMessage}</p>
       )}
 
+      <WheelSettings snapshot={snapshot} companion={companion} />
       <section className={css.settingsGroup}>
         <h3>新 Topic 的来源方式</h3>
         <label className={css.settingChoice} data-selected={settings.defaultMode === 'observer' || undefined}>

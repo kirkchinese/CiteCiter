@@ -59,7 +59,7 @@ async function claimRequestIntent(namespace, identity) {
  * @param mode - resolved Topic creation mode.
  * @returns the pending intent key and request ID.
  */
-export function claimCreateTopicIntent(selection, question, mode, scenario = 'qa') {
+export function claimCreateTopicIntent(selection, question, mode, scenario = 'qa', modelRoute) {
     const identity = selection.kind === 'assistant-step'
         ? [
             selection.sourceSessionId,
@@ -82,6 +82,7 @@ export function claimCreateTopicIntent(selection, question, mode, scenario = 'qa
         question,
         mode,
         scenario,
+        modelRoute ?? null,
     ]));
 }
 /**
@@ -100,8 +101,10 @@ export function claimCreateFreeTopicIntent(sourceSessionId, question, scenario) 
  * @param question - normalized first question.
  * @returns the pending intent key and request ID.
  */
-export function claimCreateDocumentIntent(claim, question) {
+export function claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute) {
     return claimRequestIntent('create', JSON.stringify([
+        sourceSessionId ?? null,
+        modelRoute ?? null,
         claim.documentId,
         claim.displayText,
         claim.prefixText,

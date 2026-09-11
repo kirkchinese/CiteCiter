@@ -238,7 +238,7 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
   const selectStage = (next: LearningStageId | null) => {
     setStages(current => ({ ...current, [draftKey]: next }))
     setView(next === 'quantitative' ? 'board' : next === 'summary' ? 'cards' : 'explain')
-    if (dock?.mode === 'rows') setRouteExpanded(current => ({ ...current, [draftKey]: false }))
+    if (!floating && dock?.mode === 'rows') setRouteExpanded(current => ({ ...current, [draftKey]: false }))
     requestAnimationFrame(() => composerRef.current?.focus())
   }
   const cards = useMemo(() => projectLearningCards(snapshot.active?.messages ?? []), [snapshot.active?.messages])
@@ -256,6 +256,8 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
   const dockWidthPercent = widthPercent
   const resizeOrigin = useRef<{ x: number, width: number, frameWidth: number } | null>(null)
   const panelRef = useRef<HTMLElement>(null)
+  const [floatPosition, setFloatPosition] = useState<{ left: number, top: number } | null>(null)
+  const floatDrag = useRef<{ x: number, y: number, left: number, top: number } | null>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const followTail = useRef(true)
@@ -263,12 +265,25 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
   const open = overlay.panelOpen
   const active = snapshot.active
   const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error'
-  const dock = useHostDock(panelRef, open, widthPercent)
-  const docked = dock?.mode === 'columns'
+  const floating = overlay.presentation === 'floating'
+  const dock = useHostDock(panelRef, open && !floating, widthPercent)
+  const docked = !floating && dock?.mode === 'columns'
   const showRoute = routeExpanded[draftKey] ?? docked
-  const composerFolded = dock?.mode === 'rows' && view !== 'explain' && !composerExpanded[draftKey]
+  const composerFolded = !floating && dock?.mode === 'rows' && view !== 'explain' && !composerExpanded[draftKey]
 
   useEffect(() => open ? companion.retainVisible() : undefined, [companion, open])
+  useEffect(() => {
+    if (!open || !floating) return
+    const contain = () => {
+      floatDrag.current = null
+      const rect = panelRef.current?.getBoundingClientRect()
+      if (rect === undefined) return
+      setFloatPosition(current => current === null ? null : { left: Math.max(8, Math.min(current.left, window.innerWidth - rect.width - 8)), top: Math.max(48, Math.min(current.top, window.innerHeight - rect.height - 8)) })
+    }
+    contain()
+    window.addEventListener('resize', contain)
+    return () => window.removeEventListener('resize', contain)
+  }, [open, floating])
   useEffect(() => { followTail.current = true }, [active?.topic.sessionId, view, open])
   useEffect(() => {
     if (followTail.current && transcriptRef.current !== null) {
@@ -442,18 +457,19 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
     <>
       <aside
       ref={panelRef}
-      className={css.dock}
+      className={`${css.dock} ${floating ? css.floating : ''}`}
       style={{
-        width: dock?.width,
-        height: dock?.height,
-        top: dock?.top,
+        width: floating ? undefined : dock?.width,
+        height: floating ? undefined : dock?.height,
+        top: floating ? undefined : dock?.top,
+        ...(floating && floatPosition !== null ? { left: floatPosition.left, top: floatPosition.top, right: 'auto' } : {}),
         '--citeciter-panel-width': `${dockWidthPercent}vw`,
       } as CSSProperties}
       data-citeciter-panel
-      data-arrangement={dock?.mode ?? 'unsupported'}
+      data-arrangement={floating ? 'floating' : dock?.mode ?? 'unsupported'}
       aria-label="CiteCiter 学习伴侣"
     >
-      {docked && (
+      {docked && !floating && (
         <div
           className={css.resizeHandle}
           role="separator"
@@ -474,17 +490,28 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
         <img src={collapseArrowUrl} alt="" />
       </button>
 
-      {dock === null && <p className={css.layoutNotice} role="status">当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。</p>}
+      {!floating && dock === null && <p className={css.layoutNotice} role="status">当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。</p>}
 
       <div className={css.dockBody}>
         <section className={css.learningWorkspace}>
-          <header className={css.dockHeader}>
+          <header className={css.dockHeader} data-floating={floating || undefined} onPointerDown={event => {
+            if (!floating || event.button !== 0 || (event.target as Element).closest('button, input, select, textarea') !== null) return
+            const rect = panelRef.current?.getBoundingClientRect()
+            if (rect === undefined) return
+            floatDrag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }
+            event.currentTarget.setPointerCapture(event.pointerId)
+            event.preventDefault()
+          }} onPointerMove={event => {
+            const origin = floatDrag.current, rect = panelRef.current?.getBoundingClientRect()
+            if (origin === null || rect === undefined) return
+            setFloatPosition({ left: Math.max(8, Math.min(origin.left + event.clientX - origin.x, window.innerWidth - rect.width - 8)), top: Math.max(48, Math.min(origin.top + event.clientY - origin.y, window.innerHeight - rect.height - 8)) })
+          }} onPointerUp={() => { floatDrag.current = null }} onPointerCancel={() => { floatDrag.current = null }}>
             <div className={css.dockHeading}>
               <span className={css.modeBadge}>{active === null
                 ? snapshot.phase === 'creating' ? '待确认' : '学习栏'
                 : active.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer'}</span>
               <strong>{active?.topic.title ?? '新的学习讨论'}</strong>
-              <span>{dock?.mode === 'rows' ? '窗口较窄，学习栏已移至下方' : PHASE_LABEL[snapshot.phase]}</span>
+              <span>{!floating && dock?.mode === 'rows' ? '窗口较窄，学习栏已移至下方' : PHASE_LABEL[snapshot.phase]}</span>
             </div>
             <select
               className={css.compactTopicSelect}
@@ -501,6 +528,7 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
               ))}
             </select>
             <div className={css.compactHeaderActions}>
+              <button type="button" onClick={() => bus.setPresentation(floating ? 'side' : 'floating')}>{floating ? '切为侧边' : '切为悬浮'}</button>
               <button className={css.compactNewTopic} type="button" onClick={openNewTopic}>+ 新 Topic</button>
               <button type="button" onClick={() => companion.setIncludeArchived(!snapshot.includeArchived)}>
                 {snapshot.includeArchived ? '返回活动' : '查看归档'}
@@ -746,6 +774,8 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
 
       </div>
       </aside>
+
+      {!floating && <div className={css.fullscreenNotice} role="status">学习栏已打开。退出文件全屏查看，或 <button type="button" onClick={() => bus.setPresentation('floating')}>悬浮查看</button></div>}
 
       <Modal
         open={newTopicOpen}

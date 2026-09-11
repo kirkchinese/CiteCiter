@@ -6,7 +6,13 @@ import { BlackboardWorkspace } from "./components/BlackboardWorkspace.js";
 import { CitePanel } from "./components/CitePanel.js";
 import { CiteCiterSettings as CiteCiterSettingsView } from "./components/CiteCiterSettings.js";
 import { DocumentReader } from "./components/DocumentReader.js";
-import { SelectionMenu } from "./components/SelectionMenu.js";
+import { DEFAULT_WHEEL_SLOTS } from "../actions.js";
+import { createActionExecutor } from "./action-executor.js";
+import { createActionController } from "./action-controller.js";
+import { createSelectionSurfaces, installWheelGesture } from "./wheel-gesture.js";
+import { ActionWheel } from "./components/ActionWheel.js";
+import { NativeLearningDocument } from "./components/NativeLearningDocument.js";
+import { CiteLauncher } from "./components/CiteLauncher.js";
 import { UpdateNotice } from "./components/UpdateNotice.js";
 import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry } from "./entries.js";
 import { installDynamicAccelerator } from "./hotkeys.js";
@@ -66,6 +72,12 @@ export async function apply(ctx) {
         const disposeHotkey = installDynamicAccelerator(() => settings.getSnapshot().value?.shortcutOpenPanel, openPanel);
         const companion = createCompanionController(readChat, settings, (request, signal) => remoteCtx.remote.citeciter.request(request, signal), openPanel, createSnapshotStore(INITIAL_COMPANION_SNAPSHOT));
         const reader = createReaderController((request, signal) => remoteCtx.remote.citeciter.request(request, signal), companion);
+        const surfaces = createSelectionSurfaces();
+        const actions = createActionController(createActionExecutor(companion, reader, presentation => {
+            bus.setPresentation(presentation);
+            openPanel();
+        }), () => companion.getSnapshot().settings.defaultCiterModel ?? undefined);
+        const openActions = (source, x, y) => actions.open(source, x, y, companion.getSnapshot().settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS, false);
         const reportedParseErrors = new Set();
         const reportParseError = (messageId) => {
             const storageKey = `citeciter:malformed-followups:${messageId}`;
@@ -83,7 +95,10 @@ export async function apply(ctx) {
             remoteCtx.logger.warn(`CiteCiter ignored malformed first-answer follow-up questions in ${messageId}`);
         };
         const syncSource = () => {
-            companion.setSource(sessions.list.getSnapshot().current ?? null);
+            const source = sessions.list.getSnapshot().current ?? null;
+            if (companion.getSnapshot().sourceSessionId !== source)
+                actions.cancel();
+            companion.setSource(source);
         };
         syncSource();
         const unsubscribeSessions = sessions.list.subscribe(syncSource);
@@ -91,51 +106,48 @@ export async function apply(ctx) {
             const entries = createCiteCiterEntryRegistry();
             const disposeAssistantEntry = remoteCtx.effect(() => entries.register(createAssistantEntry()), 'citeciter: assistant selection entry');
             const disposeToolEntry = remoteCtx.effect(() => entries.register(createToolEvidenceEntry()), 'citeciter: tool evidence entry');
-            const onContextMenu = (event) => {
+            const disposeGesture = installWheelGesture(actions, event => {
+                const owned = surfaces.read(event.target);
+                if (owned !== null)
+                    return owned;
                 const sourceSessionId = sessions.list.getSnapshot().current;
                 if (sourceSessionId === undefined)
-                    return;
+                    return null;
                 const claim = entries.claim(event, { readChat, sourceSessionId });
-                if (claim === null)
-                    return;
-                bus.setMenuSelection(claim.selection);
-            };
-            const onPointerDown = (event) => {
-                const target = event.target;
-                if (!(target instanceof Element) || target.closest('[data-citeciter-menu]') === null) {
-                    bus.setMenuSelection(null);
-                }
-            };
-            const onKeyDown = (event) => {
-                if (event.key === 'Escape')
-                    bus.setMenuSelection(null);
-            };
-            document.addEventListener('contextmenu', onContextMenu);
-            document.addEventListener('pointerdown', onPointerDown);
-            document.addEventListener('keydown', onKeyDown);
-            return () => {
-                disposeAssistantEntry();
-                disposeToolEntry();
-                document.removeEventListener('contextmenu', onContextMenu);
-                document.removeEventListener('pointerdown', onPointerDown);
-                document.removeEventListener('keydown', onKeyDown);
-            };
+                return claim === null ? null : { kind: 'conversation', selection: claim.selection };
+            }, () => companion.getSnapshot().settings);
+            return () => { disposeGesture(); disposeAssistantEntry(); disposeToolEntry(); };
         }, 'citeciter: selection capture');
         const companionActions = viewActions(companion);
         const readerActions = viewActions(reader);
         const updateActions = viewActions(updateController);
         const documentActions = viewActions(settingsDocument);
         const busActions = {
-            setMenuSelection: bus.setMenuSelection.bind(bus),
             setPanelOpen: bus.setPanelOpen.bind(bus),
+            setPresentation: bus.setPresentation.bind(bus),
             requestBoardCitation: bus.requestBoardCitation.bind(bus),
             clearBoardCitation: bus.clearBoardCitation.bind(bus),
         };
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
+            name: 'shell.overlay', id: 'citeciter.wheel',
+            inject: () => ({ actions: viewActions(actions), companion: companionActions, hooks: { actions, companion } }),
+        }, ActionWheel));
+        remoteCtx.inject(['documentPreviews'], previewCtx => {
+            const id = '@kirkchinese/dsh-citeciter/learning-document';
+            previewCtx.effect(() => previewCtx.documentPreviews.register({
+                id, extensions: ['txt', 'md', 'markdown', 'ts', 'tsx', 'js', 'jsx', 'json', 'py', 'rs', 'go', 'c', 'cpp', 'h', 'css', 'yaml', 'yml', 'toml', 'sh', 'ps1'],
+                priority: 'builtin', title: () => 'CiteCiter 学习', loading: 'bytes-complete', wrap: true,
+            }), 'citeciter: native learning metadata');
+            previewCtx.slots.inject('sidebar.right.tab.document', () => previewCtx.slots.register({
+                name: 'sidebar.right.tab.document', key: id,
+                inject: () => ({ registerSurface: surfaces.register, openActions }),
+            }, NativeLearningDocument));
+        });
+        remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
-            id: 'citeciter.selection',
-            inject: () => ({ bus: busActions, companion: companionActions, openPanel, hooks: { companion, overlay: bus } }),
-        }, SelectionMenu));
+            id: 'citeciter.launcher',
+            inject: () => ({ openPanel, hooks: { companion, overlay: bus } }),
+        }, CiteLauncher));
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
             id: 'citeciter.panel',
@@ -144,7 +156,7 @@ export async function apply(ctx) {
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
             id: 'citeciter.reader',
-            inject: () => ({ reader: readerActions, hooks: { reader } }),
+            inject: () => ({ reader: readerActions, registerSurface: surfaces.register, sourceSessionId: () => companion.getSnapshot().sourceSessionId, hooks: { reader } }),
         }, DocumentReader));
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
@@ -169,7 +181,7 @@ export async function apply(ctx) {
             unsubscribeSessions();
             disposeHotkey();
             closePanel();
-            await Promise.all([companion.dispose(), reader.dispose(), settingsDocument.dispose(), updateController.dispose()]);
+            await Promise.all([actions.dispose(), companion.dispose(), reader.dispose(), settingsDocument.dispose(), updateController.dispose()]);
         }, 'citeciter: browser controller');
         void updateController.start();
     });

@@ -1278,12 +1278,14 @@ export class TopicRuntime {
         else if (!freeTopic) {
             throw new Error('CiteCiter create request carries no citation');
         }
+        if (request.modelRoute !== undefined)
+            await this.host.llm.resolveModelInfo(request.modelRoute.provider, request.modelRoute.model, signal);
         const { topicId, directory } = await this.index.reserve(sourceSessionId);
         const createdAt = Date.now();
         const sessionId = SessionId(`citeciter-${randomUUID()}`);
-        const route = evidence === undefined || documentClaim !== undefined
+        const route = request.modelRoute ?? (evidence === undefined || documentClaim !== undefined
             ? modelConfigFromLatest(source)
-            : modelConfigFromSource(source, evidence.anchorSeq);
+            : modelConfigFromSource(source, evidence.anchorSeq));
         const mode = evidence === undefined || documentClaim !== undefined
             ? { mode: 'observer', forkThroughSeq: null, seed: [] }
             : resolveTopicModeAndSeed(request, source, evidence.anchorSeq);

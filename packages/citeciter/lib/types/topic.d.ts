@@ -56,6 +56,30 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
     boardAnimations: z.ZodOptional<z.ZodBoolean>;
     activeRecall: z.ZodOptional<z.ZodBoolean>;
     updateNotifications: z.ZodOptional<z.ZodBoolean>;
+    wheelSlots: z.ZodOptional<z.ZodArray<z.ZodNullable<z.ZodObject<{
+        label: z.ZodString;
+        prompt: z.ZodString;
+        ask: z.ZodBoolean;
+        scenario: z.ZodEnum<{
+            qa: "qa";
+            present: "present";
+        }>;
+        presentation: z.ZodEnum<{
+            side: "side";
+            floating: "floating";
+        }>;
+    }, z.core.$strict>>>>;
+    wheelTrigger: z.ZodOptional<z.ZodEnum<{
+        "right-button": "right-button";
+        Alt: "Alt";
+        Control: "Control";
+        Shift: "Shift";
+        Meta: "Meta";
+    }>>;
+    defaultCiterModel: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>>;
 }, z.core.$strict>;
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>;
 /** Settings used before an optional DSH settings provider becomes available. */
@@ -694,6 +718,10 @@ export type DocumentContent = z.infer<typeof documentContentSchema>;
 /** One strict direct-RPC command for the private CiteCiter runtime. */
 export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<readonly [z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     sourceSessionId: z.ZodString;
     question: z.ZodString;
@@ -704,6 +732,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     citation: z.ZodObject<{
         sourceSessionId: z.ZodString;
@@ -730,6 +762,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     selectionClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
@@ -753,6 +789,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     toolClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
@@ -778,6 +818,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     documentClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;

@@ -27,6 +27,7 @@ import {
   type RequestIntent,
 } from './request-guard.ts'
 import { isCurrentTopicResponse, shouldReopenLastTopic } from './response-guard.ts'
+import type { ActionModel } from '../actions.ts'
 import type { CiteSelection } from './types.ts'
 
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error'
@@ -67,10 +68,10 @@ export interface CompanionFace {
   subscribe(listener: () => void): () => void
   setSource(sessionId: SessionId | null): void
   retainVisible(): () => void
-  create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario): Promise<void>
+  create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario, modelRoute?: ActionModel): Promise<void>
   createFree(question: string, scenario: Extract<TopicScenario, 'qa' | 'present'>): Promise<boolean>
   /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
-  createFromDocument(claim: DocumentClaimIntent, question: string): Promise<void>
+  createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>
   openTopic(sessionId: string): Promise<void>
   ask(question: string): Promise<boolean>
   answerQuestion(key: string, answer: QuestionAnswer): Promise<void>
@@ -527,6 +528,7 @@ export function createCompanionController(
     mode: CreateMode,
     scenario: TopicScenario,
     intent: RequestIntent,
+    modelRoute?: ActionModel,
   ): Promise<void> {
     if (disposed) return
     const operationGeneration = ++activeGeneration
@@ -562,6 +564,7 @@ export function createCompanionController(
           question,
           mode,
           scenario,
+          modelRoute,
         })
       } else {
         response = await call({
@@ -576,6 +579,7 @@ export function createCompanionController(
           question,
           mode,
           scenario: 'investigate',
+          modelRoute,
         })
       }
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
@@ -590,15 +594,16 @@ export function createCompanionController(
     }
   }
 
-  const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode, scenario: TopicScenario = 'qa'): Promise<void> => {
+  const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode, scenario: TopicScenario = 'qa', modelRoute?: ActionModel): Promise<void> => {
     if (disposed) return
     const question = normalizeQuestion(rawQuestion)
     const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode
-    const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario)
+    const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario, modelRoute)
     if (disposed) return
+    if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
     const pending = pendingCreates.get(intent.requestId)
     if (pending !== undefined) return pending
-    const operation = runCreate(selection, question, resolvedMode, scenario, intent).finally(() => {
+    const operation = runCreate(selection, question, resolvedMode, scenario, intent, modelRoute).finally(() => {
       if (pendingCreates.get(intent.requestId) === operation) pendingCreates.delete(intent.requestId)
     })
     pendingCreates.set(intent.requestId, operation)
@@ -651,13 +656,15 @@ export function createCompanionController(
     }
   }
 
-  const createFromDocument = async (claim: DocumentClaimIntent, rawQuestion: string): Promise<void> => {
+  const createFromDocument = async (claim: DocumentClaimIntent, rawQuestion: string, capturedSource?: SessionId, modelRoute?: ActionModel): Promise<void> => {
     if (disposed) return
-    const sourceSessionId = store.getSnapshot().sourceSessionId
+    const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId
+    if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
     if (sourceSessionId === null) throw new Error('打开 CiteCiter 面板后即可创建文档 Topic')
     const question = normalizeQuestion(rawQuestion)
-    const intent = await claimCreateDocumentIntent(claim, question)
+    const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute)
     if (disposed) return
+    if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
     const operationGeneration = ++activeGeneration
     update((draft) => {
       draft.sourceSessionId = sourceSessionId
@@ -682,6 +689,7 @@ export function createCompanionController(
         question,
         mode: 'observer',
         scenario: 'read',
+        modelRoute,
       })
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的文档 Topic 响应')
       completeRequestIntent(intent)

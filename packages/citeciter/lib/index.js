@@ -1,4 +1,4 @@
-import { E as boardBatchSchema, T as applyBoardOps, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as EMPTY_BOARD_STATE, x as topicMetadataSchema, y as renderCitationContext } from "./update-BiWjWG7-.js";
+import { D as boardBatchSchema, E as applyBoardOps, O as LEARNING_PROMPT, T as EMPTY_BOARD_STATE, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, k as learningCardsInputSchema, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-DkJ5M4Dj.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import z from "@deepseek-ai/schemastery";
@@ -34,20 +34,6 @@ var __exportAll = (all, no_symbols) => {
 	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
 	return target;
 };
-//#endregion
-//#region lib/types/learning.js
-const learningCardSchema = z$1.object({
-	title: z$1.string().trim().min(1).max(100),
-	summary: z$1.string().trim().min(1).max(2e3),
-	example: z$1.string().trim().min(1).max(1500),
-	question: z$1.string().trim().min(1).max(500),
-	answer: z$1.string().trim().min(1).max(2e3)
-}).strict();
-const learningCardsInputSchema = z$1.object({ cards: z$1.array(learningCardSchema).min(1).max(8) }).strict();
-/** Shared teaching contract appended to every scenario's logged tutor section. */
-const LEARNING_PROMPT = `The optional learning route is 底层逻辑 → 定性分析 → 定量分析（板书） → 概念关联 → 总结学习卡片. A user may select or skip any stage. Respond to the current request only; never advance automatically or claim that a stage proves mastery. Never schedule spaced repetition or reminders. Do not require quizzes before continuing.
-
-Use learning_cards only when the user asks to summarize or revise learning cards. Each successful call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Preserve available source locators inside summaries. Do not invent sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`;
 //#endregion
 //#region lib/types/evidence-text.js
 /** Shared tool-evidence text projections used by Host validation and Client claims. */
@@ -14916,6 +14902,24 @@ function formatSourceSessionRead(source, options) {
 		events
 	};
 }
+/** Split UTF-8 text without breaking code points; concatenation exactly reproduces the input. */
+function documentPages(content) {
+	const pages = [];
+	let start = 0, offset = 0, bytes = 0;
+	for (const character of content) {
+		const code = character.codePointAt(0);
+		const size = code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
+		if (bytes + size > 512e3) {
+			pages.push(content.slice(start, offset));
+			start = offset;
+			bytes = 0;
+		}
+		offset += character.length;
+		bytes += size;
+	}
+	pages.push(content.slice(start));
+	return pages;
+}
 //#endregion
 //#region lib/types/documents.js
 /** Private CiteCiter document library: durable text/Markdown sources for Reading Topics. */
@@ -15049,20 +15053,7 @@ var DocumentStore = class {
 	*/
 	async get(documentId, pageIndex = 0) {
 		const { record, content } = await this.read(documentId);
-		const pages = [];
-		let page = "";
-		let bytes = 0;
-		for (const character of content) {
-			const characterBytes = Buffer.byteLength(character, "utf8");
-			if (bytes + characterBytes > 512e3) {
-				pages.push(page);
-				page = "";
-				bytes = 0;
-			}
-			page += character;
-			bytes += characterBytes;
-		}
-		pages.push(page);
+		const pages = documentPages(content);
 		const selected = pages[pageIndex];
 		if (selected === void 0) throw new Error("文档页码超出范围");
 		return documentContentSchema.parse({
@@ -16380,10 +16371,11 @@ var TopicRuntime = class {
 				}
 			};
 		} else if (!freeTopic) throw new Error("CiteCiter create request carries no citation");
+		if (request.modelRoute !== void 0) await this.host.llm.resolveModelInfo(request.modelRoute.provider, request.modelRoute.model, signal);
 		const { topicId, directory } = await this.index.reserve(sourceSessionId);
 		const createdAt = Date.now();
 		const sessionId = SessionId(`citeciter-${randomUUID()}`);
-		const route = evidence === void 0 || documentClaim !== void 0 ? modelConfigFromLatest(source) : modelConfigFromSource(source, evidence.anchorSeq);
+		const route = request.modelRoute ?? (evidence === void 0 || documentClaim !== void 0 ? modelConfigFromLatest(source) : modelConfigFromSource(source, evidence.anchorSeq));
 		const mode = evidence === void 0 || documentClaim !== void 0 ? {
 			mode: "observer",
 			forkThroughSeq: null,
@@ -17801,7 +17793,25 @@ const CITECITER_SETTINGS_SCHEMA = z.object({
 	shortcutOpenPanel: z.string().max(40).default(""),
 	boardAnimations: z.boolean().default(DEFAULT_CITECITER_SETTINGS.boardAnimations ?? true),
 	activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
-	updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true)
+	updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
+	wheelTrigger: z.union([
+		"right-button",
+		"Alt",
+		"Control",
+		"Shift",
+		"Meta"
+	]).default("right-button"),
+	defaultCiterModel: z.union([z.const(null), z.object({
+		provider: z.string().min(1).max(200),
+		model: z.string().min(1).max(200)
+	})]).default(null),
+	wheelSlots: z.array(z.union([z.const(null), z.object({
+		label: z.string().min(1).max(20),
+		prompt: z.string().max(4e3),
+		ask: z.boolean(),
+		scenario: z.union(["qa", "present"]),
+		presentation: z.union(["side", "floating"])
+	})])).min(8).max(8).default([...DEFAULT_WHEEL_SLOTS])
 });
 function currentSettings(ctx) {
 	const raw = ctx.get("settings")?.get(CITECITER_SETTINGS_NS);

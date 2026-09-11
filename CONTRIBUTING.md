@@ -37,7 +37,7 @@ After reviewing an intentional output change, record with `CITECITER_RECORD_SNAP
 
 ```powershell
 pnpm --dir packages/citeciter pack --pack-destination "$PWD/.refs/artifacts"
-node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.2.tgz
+node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.3.tgz
 ```
 
 The old `dev/seed-smoke-session.mjs`, `smoke*.mjs` and `hmr-smoke.mjs` are historical 0.5 fixtures with handwritten old-host logs and Linux paths. They are not the 0.6 acceptance path. Use the assembled snapshot and an isolated real UI session; do not run the old seeder against user data.
