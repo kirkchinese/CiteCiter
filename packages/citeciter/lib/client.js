@@ -35588,7 +35588,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		function WheelSettings({ snapshot, companion }) {
 			const [slots, setSlots] = (0, react.useState)(() => [...snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS]);
 			const [error, setError] = (0, react.useState)(null);
-			(0, react.useEffect)(() => setSlots([...snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS]), [snapshot.settings.wheelSlots]);
+			const savedSlots = snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS;
+			const savedRevision = JSON.stringify(savedSlots);
+			const previousRevision = (0, react.useRef)(savedRevision);
+			(0, react.useEffect)(() => {
+				if (previousRevision.current === savedRevision) return;
+				previousRevision.current = savedRevision;
+				setSlots([...savedSlots]);
+			}, [savedSlots, savedRevision]);
 			const change = (index, patch) => setSlots((current) => current.map((slot, i) => i === index ? {
 				...slot ?? {
 					label: "自定义",

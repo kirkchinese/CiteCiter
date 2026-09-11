@@ -21,3 +21,5 @@ Side mode retains existing columns/rows space allocation. Floating is explicit, 
 The in-app browser returned ERR_BLOCKED_BY_CLIENT for the local QA address; native app control is unavailable under the current tool contract. Real new UI gestures, visual scaling and Desktop/native-preview integration remain unverified. Historical beta.2 UI checks do not establish beta.3 acceptance. Keep the PR draft and the candidate unpublished; do not claim zero bugs.
 
 Desktop's embedded native-preview and workspace-path packages are rc.1. Its shipped bundle contains the same registry, keyed slot, bytes-complete and resource props used here. This establishes inspected contract compatibility, not interactive rendering acceptance.
+
+Wheel settings synchronize drafts only when saved slot values change. Saving a trigger or default model can decode a fresh array with unchanged values; that refresh must not overwrite an unsaved slot draft.
