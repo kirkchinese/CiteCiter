@@ -91,10 +91,7 @@
   margin-top: 8px;
 }
 
-.popoverComposer input,
-.topicToolbar input,
-.topicToolbar select,
-.composer textarea {
+.popoverComposer input {
   box-sizing: border-box;
   min-width: 0;
   color: var(--dsw-alias-label-primary, #20232a);
@@ -111,8 +108,7 @@
   font-size: 13px;
 }
 
-.popoverComposer button,
-.sendButton {
+.popoverComposer button {
   padding: 0 14px;
   color: #fff;
   cursor: pointer;
@@ -123,26 +119,17 @@
   box-shadow: 0 4px 12px rgba(52, 120, 246, 0.22);
 }
 
-.popoverComposer button:disabled,
-.sendButton:disabled {
+.popoverComposer button:disabled {
   cursor: default;
   filter: grayscale(0.45);
   opacity: 0.52;
   box-shadow: none;
 }
 
-.popoverComposer input:focus,
-.topicToolbar input:focus,
-.topicToolbar select:focus,
-.composer textarea:focus {
+.popoverComposer input:focus {
   border-color: #3478f6;
   box-shadow: 0 0 0 3px rgba(52, 120, 246, 0.13);
 }
-
-.composer[data-folded] { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 12px; }
-.composer[data-folded] textarea { display: none; }
-.composer[data-folded] .composerActions { flex: 1; min-width: 0; }
-.composer[data-folded] .composerActions span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 .popoverMode {
   margin-top: 8px;
@@ -548,9 +535,7 @@
   gap: 5px;
 }
 
-.railCaption button,
-.topicToolbar button,
-.composerActions button:not(.sendButton) {
+.railCaption button {
   color: var(--dsw-alias-label-secondary, #58606d);
   cursor: pointer;
   background: transparent;
@@ -559,8 +544,6 @@
 }
 
 .railCaption button:hover,
-.topicToolbar button:hover,
-.composerActions button:not(.sendButton):hover,
 .closeButton:hover {
   background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, 0.06));
 }
@@ -876,59 +859,6 @@
   background: #27a96b;
 }
 
-.topicToolbar {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  margin: 0 12px;
-  padding: 7px 4px 6px;
-  overflow-x: auto;
-  border-top: 1px solid var(--dsw-alias-border-l1, #e4e7ec);
-}
-
-.topicToolbar form {
-  display: flex;
-  flex: 1 1 130px;
-  min-width: 130px;
-}
-
-.topicToolbar input,
-.topicToolbar select {
-  height: 30px;
-  padding: 0 7px;
-  border-radius: 7px;
-  font-size: 10px;
-}
-
-.topicToolbar input {
-  flex: 1;
-}
-
-.topicToolbar select {
-  flex: none;
-  width: 112px;
-}
-
-.topicToolbar form button,
-.topicToolbar > button {
-  flex: none;
-  padding: 5px 7px;
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-.archiveButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.topicToolbar .deleteButton {
-  color: var(--dsw-alias-state-error-primary, #c93f3f);
-}
-
 .newTopicForm,
 .deleteForm {
   display: flex;
@@ -981,7 +911,6 @@
   border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #c93f3f) 50%, transparent) !important;
 }
 
-.topicToolbar button:disabled,
 .nextQuestions button:disabled {
   cursor: default;
   opacity: 0.42;
@@ -1166,63 +1095,6 @@
   overflow-wrap: anywhere;
   font-size: 11px;
   line-height: 17px;
-}
-
-.composer {
-  flex: none;
-  margin: 0 12px 12px;
-  padding: 10px 8px 6px;
-  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1, #fff));
-  border: 1px solid var(--dsw-alias-border-l2-darkmode-thin, var(--dsw-alias-border-l2, #d9dde5));
-  border-radius: 22px;
-  box-shadow: var(--dsw-shadow-lv2, 0 5px 18px rgba(29, 34, 47, 0.08));
-}
-
-.composer textarea {
-  display: block;
-  width: 100%;
-  min-height: 50px;
-  max-height: 150px;
-  padding: 4px 12px 0 16px;
-  resize: none;
-  border: 0;
-  font: inherit;
-  font-size: 14px;
-  line-height: 22px;
-}
-
-.composer textarea:focus {
-  box-shadow: none;
-}
-
-.composer:focus-within {
-  border-color: #3478f6;
-  box-shadow: 0 0 0 3px rgba(52, 120, 246, 0.13), var(--dsw-shadow-lv2, 0 5px 18px rgba(29, 34, 47, 0.08));
-}
-
-.composerActions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 2px 0 0 8px;
-}
-
-.composerActions span {
-  margin-right: auto;
-  color: var(--dsw-alias-label-tertiary, #858c98);
-  font-size: 9px;
-}
-
-.composerActions .sendButton {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  min-height: 34px;
-  padding: 0;
-  place-items: center;
-  border-radius: 999px;
-  transform: translateY(-2px);
 }
 
 .nextQuestions {

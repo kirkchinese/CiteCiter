@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
 <title id="title">CiteCiter 0.7 learning workspace</title>
-<desc id="desc">Layout diagram: a read-only source conversation beside an independent learning Topic, with five optional stages, Explain, Board and Cards views, and explicit submission.</desc>
+<desc id="desc">Layout diagram: a read-only source conversation beside an independent learning Topic, with five optional stages, Explain and Cards in the learning panel, a single main-area Blackboard tab, and model selection beside explicit submission.</desc>
 <defs><style>text{font-family:"Segoe UI","Microsoft YaHei",sans-serif;fill:#243b3a}.label{font-size:13px;fill:#697d7b}.body{font-size:16px}.heading{font-size:22px;font-weight:600}.small{font-size:12px}</style></defs>
 <rect width="1200" height="640" rx="24" fill="#eef3f2"/>
 <text x="34" y="44" class="heading">CiteCiter 0.7</text><text x="228" y="43" class="label">界面结构示意 · Workspace diagram</text>
 <rect x="24" y="66" width="430" height="480" rx="16" fill="#fff"/>
-<text x="48" y="107" class="heading">来源对话 · Source</text><text x="48" y="136" class="label">保留主任务与原生详情 · Original conversation stays visible</text>
+<text x="48" y="107" class="heading">来源对话 · Source</text><text x="48" y="136" class="label">对话 / Conversation　　小黑板 / Blackboard</text>
 <rect x="48" y="167" width="382" height="54" rx="12" fill="#edf0ff"/><text x="66" y="200" class="body">为什么曲率会影响平行移动？</text>
 <text x="48" y="261" class="label">ASSISTANT</text>
 <text x="48" y="294" class="body">沿小闭合回路平行移动向量，</text><text x="48" y="323" class="body">返回后的方向偏差由局部曲率刻画。</text>
@@ -24,14 +24,14 @@
 <rect x="898" y="182" width="119" height="57" rx="8" fill="#f1f5f4"/><text x="957" y="205">04 概念关联</text><text x="957" y="226" class="label">Connections</text>
 <rect x="1026" y="182" width="126" height="57" rx="8" fill="#f1f5f4"/><text x="1089" y="205">05 总结卡片</text><text x="1089" y="226" class="label">Summary cards</text>
 </g>
-<text x="502" y="275" class="body">讲解 / Explain</text><text x="681" y="275" class="body">板书 / Board</text><text x="844" y="275" class="body">学习卡 / Cards</text><path d="M679 285 H804" stroke="#367a6c" stroke-width="3"/>
+<text x="502" y="275" class="body">讲解 / Explain</text><text x="681" y="275" class="body">学习卡 / Cards</text><path d="M501 285 H626" stroke="#367a6c" stroke-width="3"/>
 <rect x="502" y="301" width="650" height="130" rx="12" fill="#f8faf9"/>
-<text x="524" y="332" class="label">假设与算例 · Assumptions and example</text>
+<text x="524" y="332" class="label">讲解回复 · Explanation</text>
 <text x="524" y="374" style="font-size:28px">Δθ ≈ K A = 2 × 0.01 = 0.02 rad</text>
 <text x="524" y="408" class="label">小回路，局部曲率近似不变 · A small loop with approximately constant K</text>
 <rect x="502" y="451" width="650" height="68" rx="12" fill="#fff" stroke="#c9dcd4"/>
 <text x="518" y="479" class="label">补充问题，或直接发送当前阶段 · Add a question or send this stage</text>
-<text x="518" y="502" class="small">Ctrl / ⌘ + Enter</text><rect x="1064" y="465" width="72" height="39" rx="10" fill="#367a6c"/><text x="1100" y="490" text-anchor="middle" style="fill:white;font-size:14px">发送</text>
+<text x="518" y="502" class="small">默认思考 ⌄</text><text x="1008" y="502" class="label" text-anchor="end">模型 / Model ⌄</text><circle cx="1124" cy="490" r="18" fill="#3478f6"/><path d="M1124 499v-17m-6 6 6-6 6 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 <text x="34" y="582" class="body">每个阶段由用户发送；可以跳过或自由追问。主动回忆默认关闭。</text>
 <text x="34" y="608" class="label">Stages run only when submitted. Skip or ask freely. Active recall is off by default. This image is a diagram, not a screenshot.</text>
 </svg>

@@ -17,11 +17,8 @@ import {
 import {
   Button,
   DisclosureRow,
-  IconArchiveOutline20,
   IconQuestionOutline14,
-  IconSendOutline16,
   IconSparkle16,
-  IconStopFill16,
   JsonTree,
   Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -39,7 +36,8 @@ import { jsonTreeLabels } from '../copy.ts'
 import { findContainingFrame, useHostDock } from '../host-dock.ts'
 import { LEARNING_STAGES, latestLearningStage, learningQuestion, projectLearningCards, type LearningStageId } from '../../learning.ts'
 import { LearningCards } from './LearningCards.tsx'
-import { BoardView } from './BoardView.tsx'
+import { TopicComposer } from './TopicComposer.tsx'
+import { TopicSettingsDialog } from './TopicSettingsDialog.tsx'
 import learningCss from './LearningWorkspace.module.css'
 
 const PHASE_LABEL: Record<CompanionPhase, string> = {
@@ -50,15 +48,6 @@ const PHASE_LABEL: Record<CompanionPhase, string> = {
   stopping: '正在停止…',
   stopped: '已停止，可继续',
   error: '需要处理',
-}
-
-function modelValue(provider: string, model: string): string {
-  return encodeURIComponent(provider) + '|' + encodeURIComponent(model)
-}
-
-function parseModelValue(value: string): [string, string] {
-  const divider = value.indexOf('|')
-  return [decodeURIComponent(value.slice(0, divider)), decodeURIComponent(value.slice(divider + 1))]
 }
 
 function compactPreview(text: string, limit = 120): string {
@@ -231,20 +220,19 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
   const [stages, setStages] = useState<Record<string, LearningStageId | null>>({})
   const stageId = Object.hasOwn(stages, draftKey) ? stages[draftKey] ?? null : latestLearningStage(snapshot.active?.messages ?? [])
   const stage = LEARNING_STAGES.find(candidate => candidate.id === stageId)
-  const [views, setViews] = useState<Record<string, 'explain' | 'board' | 'cards'>>({})
+  const [views, setViews] = useState<Record<string, 'explain' | 'cards'>>({})
   const [routeExpanded, setRouteExpanded] = useState<Record<string, boolean>>({})
   const [composerExpanded, setComposerExpanded] = useState<Record<string, boolean>>({})
   const view = views[draftKey] ?? 'explain'
-  const setView = (next: 'explain' | 'board' | 'cards') => setViews(current => ({ ...current, [draftKey]: next }))
+  const setView = (next: 'explain' | 'cards') => setViews(current => ({ ...current, [draftKey]: next }))
   const selectStage = (next: LearningStageId | null) => {
     setStages(current => ({ ...current, [draftKey]: next }))
-    setView(next === 'quantitative' ? 'board' : next === 'summary' ? 'cards' : 'explain')
+    setView(next === 'summary' ? 'cards' : 'explain')
     if (!floating && dock?.mode === 'rows') setRouteExpanded(current => ({ ...current, [draftKey]: false }))
     requestAnimationFrame(() => composerRef.current?.focus())
   }
   const cards = useMemo(() => projectLearningCards(snapshot.active?.messages ?? []), [snapshot.active?.messages])
-  const [title, setTitle] = useState('')
-  const [titleDirty, setTitleDirty] = useState(false)
+  const [topicSettingsOpen, setTopicSettingsOpen] = useState(false)
   const [newTopicOpen, setNewTopicOpen] = useState(false)
   const [newTopicQuestion, setNewTopicQuestion] = useState('')
   const [newTopicScenario, setNewTopicScenario] = useState<'qa' | 'present'>('present')
@@ -293,8 +281,7 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
   }, [active?.messages, view, open])
   useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent])
   useEffect(() => {
-    setTitle(active?.topic.title ?? '')
-    setTitleDirty(false)
+    setTopicSettingsOpen(false)
   }, [active?.topic.sessionId])
   useEffect(() => {
     setNewTopicOpen(false)
@@ -312,9 +299,6 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
     }
   }, [active?.topic.sessionId, deleteTarget])
   useEffect(() => {
-    if (!titleDirty) setTitle(active?.topic.title ?? '')
-  }, [active?.topic.title, titleDirty])
-  useEffect(() => {
     const citation = overlay.boardCitation
     if (citation === null || active?.topic.sessionId !== citation.topicSessionId) return
     setQuestion((current) => appendBoardCitation(current, citation.prompt))
@@ -322,7 +306,7 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
     bus.clearBoardCitation(citation.id)
     requestAnimationFrame(() => composerRef.current?.focus())
   }, [active?.topic.sessionId, bus, overlay.boardCitation, setQuestion])
-  const modalTitle = newTopicOpen ? '新建自由 Topic' : deleteTarget === null ? null : '永久删除 Topic'
+  const modalTitle = newTopicOpen ? '新建自由 Topic' : deleteTarget !== null ? '永久删除 Topic' : topicSettingsOpen ? 'Topic 设置' : null
   useEffect(() => {
     if (modalTitle === null) return
     const dialog = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]
@@ -370,15 +354,13 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
     }
   }, [modalTitle])
 
-  const selectedProvider = snapshot.providers.find((provider) => provider.id === active?.topic.modelConfig.provider)
-  const selectedModel = selectedProvider?.models.find((model) => model.id === active?.topic.modelConfig.model)
   const visibleMessages = active?.messages.filter((message) => isTopicMessageVisible(message, active.messages)) ?? []
 
   if (!open) return null
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!canAsk) return
+    if (!canAsk || snapshot.modelRouteSaving || snapshot.reasoningEffortSaving) return
     const value = question.trim()
     if (value === '' && stageId === null) return
     const submitted = question
@@ -535,6 +517,10 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
               <button type="button" onClick={() => companion.setIncludeArchived(!snapshot.includeArchived)}>
                 {snapshot.includeArchived ? '返回活动' : '查看归档'}
               </button>
+              {active !== null && <button type="button" aria-label="Topic 设置" title="Topic 设置" onClick={() => {
+                modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+                setTopicSettingsOpen(true)
+              }}>···</button>}
             </div>
           </header>
 
@@ -586,7 +572,6 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
 
               <div className={learningCss.views} aria-label="学习内容视图">
                 <button type="button" aria-pressed={view === 'explain'} onClick={() => setView('explain')}>讲解</button>
-                <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>板书<span className={learningCss.count}>{active?.board?.elements.length ?? 0}</span></button>
                 <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>学习卡<span className={learningCss.count}>{cards.cards.length}</span></button>
               </div>
 
@@ -624,11 +609,6 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
                   <p className={css.panelError} data-citeciter-error role="alert">{friendlyFailure(snapshot.error)}</p>
                 )}
               </div>}
-              {view === 'board' && <div className={learningCss.content}><BoardView snapshot={active?.board} animations={snapshot.settings.boardAnimations ?? true} compact onQuoteElement={element => {
-                setQuestion(current => appendBoardCitation(current, `请解释板书“${element.id}”：\n${element.content.slice(0, 2000)}`))
-                setView('explain')
-                requestAnimationFrame(() => composerRef.current?.focus())
-              }} /></div>}
               {view === 'cards' && active !== null && <div className={learningCss.content}><LearningCards key={active.topic.sessionId}
                 projection={cards} recall={snapshot.settings.activeRecall ?? false}
                 setRecall={value => { void companion.setSetting('activeRecall', value) }} disabled={snapshot.settingsSaveStatus === 'saving'}
@@ -640,135 +620,23 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
               /></div>}
               {view !== 'explain' && snapshot.error !== null && <p className={css.panelError} role="alert">{friendlyFailure(snapshot.error)}</p>}
 
-              {active !== null && (
-                <details className={learningCss.settings}>
-                  <summary>Topic 设置 · {selectedModel?.name ?? active.topic.modelConfig.model}</summary>
-                <div className={css.topicToolbar} aria-label="Topic 设置">
-                  <form onSubmit={(event) => {
-                    event.preventDefault()
-                    void companion.rename(title).then((saved) => {
-                      if (saved) setTitleDirty(false)
-                    })
-                  }}>
-                    <input
-                      value={title}
-                      aria-label="Topic 标题"
-                      onChange={(event) => {
-                        setTitle(event.currentTarget.value)
-                        setTitleDirty(true)
-                      }}
-                    />
-                    <button type="submit" disabled={title.trim() === '' || !titleDirty || snapshot.renaming}>
-                      {snapshot.renaming ? '保存中…' : titleDirty ? '保存' : '已保存'}
-                    </button>
-                  </form>
-                  <select
-                    aria-label="CiteCiter 模型"
-                    value={modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model)}
-                    disabled={snapshot.modelRouteSaving}
-                    onChange={(event) => {
-                      const [provider, model] = parseModelValue(event.currentTarget.value)
-                      void companion.setModelRoute(provider, model)
-                    }}
-                  >
-                    {!snapshot.providers.some((provider) =>
-                      provider.id === active.topic.modelConfig.provider
-                      && provider.models.some((model) => model.id === active.topic.modelConfig.model)) && (
-                      <option value={modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model)}>
-                        {active.topic.modelConfig.provider} / {active.topic.modelConfig.model}
-                      </option>
-                    )}
-                    {snapshot.providers.map((provider) => (
-                      <optgroup label={provider.name} key={provider.id}>
-                        {provider.models.map((model) => (
-                          <option value={modelValue(provider.id, model.id)} key={model.id}>{model.name}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  {selectedModel !== undefined && selectedModel.reasoningEfforts.length > 0 && (
-                    <select
-                      aria-label="思考强度"
-                      value={active.topic.modelConfig.reasoningEffort ?? ''}
-                      disabled={snapshot.reasoningEffortSaving || snapshot.modelRouteSaving}
-                      onChange={(event) => {
-                        void companion.setReasoningEffort(event.currentTarget.value === '' ? null : event.currentTarget.value)
-                      }}
-                    >
-                      <option value="">模型默认思考</option>
-                      {selectedModel.reasoningEfforts.map((effort) => (
-                        <option value={effort.id} key={effort.id}>{effort.name}</option>
-                      ))}
-                    </select>
-                  )}
-                  <button
-                    type="button"
-                    className={css.archiveButton}
-                    aria-label={active.topic.archived ? '恢复当前 Topic' : '归档当前 Topic'}
-                    disabled={snapshot.archiving}
-                    onClick={() => { void companion.archive(!active.topic.archived) }}
-                  >
-                    <IconArchiveOutline20 size={14} />
-                    {snapshot.archiving ? '处理中…' : active.topic.archived ? '恢复' : '归档'}
-                  </button>
-                  <button
-                    type="button"
-                    className={css.deleteButton}
-                    disabled={snapshot.deleting}
-                    onClick={() => {
-                      modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-                      setDeleteTarget({ sessionId: active.topic.sessionId, title: active.topic.title })
-                      setDeleteConfirmation('')
-                      setDeleteError(null)
-                    }}
-                  >
-                    永久删除
-                  </button>
-                </div>
-                </details>
-              )}
 
               {active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
                 ? <QuestionCard key={active.pendingQuestion.key} pending={active.pendingQuestion} companion={companion} />
                 : (
-                  <form className={css.composer} data-folded={composerFolded || undefined} onSubmit={submit}>
-                    {composerFolded && <button type="button" className={learningCss.action} onClick={() => {
+                  <TopicComposer question={question} route={active?.topic.modelConfig} providers={snapshot.providers}
+                    phase={snapshot.phase} canSend={canAsk && active !== null && (question.trim() !== '' || stageId !== null)}
+                    routeSaving={snapshot.modelRouteSaving || snapshot.reasoningEffortSaving}
+                    folded={composerFolded} inputRef={composerRef} onQuestion={setQuestion} onSubmit={submit}
+                    placeholder={active === null ? 'Topic 创建后可继续追问' : stage === undefined ? '继续问，或写下你卡住的地方…' : `补充你的问题，或直接发送“${stage.label}”`}
+                    onExpand={() => {
                       setComposerExpanded(current => ({ ...current, [draftKey]: true }))
                       requestAnimationFrame(() => composerRef.current?.focus())
-                    }}>{question.trim() === '' ? '补充问题' : '编辑草稿'}</button>}
-                    <textarea
-                      hidden={composerFolded}
-                      ref={composerRef}
-                      rows={2}
-                      maxLength={11_000}
-                      aria-label="继续向 CiteCiter 提问"
-                      value={question}
-                      disabled={active === null}
-                      onChange={(event) => setQuestion(event.currentTarget.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.nativeEvent.isComposing) {
-                          event.preventDefault()
-                          event.currentTarget.form?.requestSubmit()
-                        }
-                      }}
-                      placeholder={active === null ? 'Topic 创建后可继续追问' : stage === undefined ? '继续问，或写下你卡住的地方…' : `补充你的问题，或直接发送“${stage.label}”`}
-                    />
-                    <div className={css.composerActions}>
-                      <span>{stage === undefined ? '自由追问' : stage.label} · Ctrl/⌘ + Enter 发送</span>
-                      <button
-                        className={css.sendButton}
-                        type={snapshot.phase === 'running' ? 'button' : 'submit'}
-                        disabled={snapshot.phase === 'stopping'
-                          || snapshot.phase !== 'running' && (!canAsk || active === null || question.trim() === '' && stageId === null)}
-                        aria-label={snapshot.phase === 'running' ? '停止回答' : snapshot.phase === 'stopping' ? '正在停止' : '发送'}
-                        onClick={snapshot.phase === 'running' ? () => { void companion.stop() } : undefined}
-                      >
-                        {snapshot.phase === 'running' || snapshot.phase === 'stopping'
-                          ? <IconStopFill16 size={16} />
-                          : <IconSendOutline16 size={16} />}
-                      </button>
-                    </div>
-                  </form>
+                    }}
+                    onStop={() => { void companion.stop() }}
+                    onModel={(provider, model) => { void companion.setModelRoute(provider, model) }}
+                    onReasoning={effort => { void companion.setReasoningEffort(effort) }}
+                  />
                 )}
             </>
           )}
@@ -779,6 +647,19 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
       </OverlayPortal>
 
       {!floating && <OverlayPortal><div className={css.fullscreenNotice} role="status">学习栏已打开。退出文件全屏查看，或 <button type="button" onClick={() => bus.setPresentation('floating')}>悬浮查看</button></div></OverlayPortal>}
+
+      <TopicSettingsDialog open={topicSettingsOpen} topic={active?.topic}
+        renaming={snapshot.renaming} archiving={snapshot.archiving} deleting={snapshot.deleting}
+        error={snapshot.error === null ? null : friendlyFailure(snapshot.error)}
+        onClose={() => setTopicSettingsOpen(false)} onRename={companion.rename} onArchive={companion.archive}
+        onDelete={() => {
+          if (active === null) return
+          setTopicSettingsOpen(false)
+          setDeleteTarget({ sessionId: active.topic.sessionId, title: active.topic.title })
+          setDeleteConfirmation('')
+          setDeleteError(null)
+        }}
+      />
 
       <Modal
         open={newTopicOpen}

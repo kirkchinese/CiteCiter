@@ -54,7 +54,7 @@ Files need a source Session address; absolute file addresses cannot directly cre
 
 1. Select committed assistant answer or reasoning text in the source conversation, then start an action through the wheel. Tool results also provide citation entries. Use `+ New Topic` for a free discussion or learning explanation.
 2. Choose a stage, add a question if needed, and send. Stages can be skipped, repeated or replaced with a free follow-up. Selecting a stage does not call the model.
-3. Switch between Explain, Board and Learning Cards. The board defaults to readable entries; its canvas preserves spatial relationships.
+3. Switch between Explain and Learning Cards in the learning panel. The board has one location: the main area’s Blackboard tab. Its canvas preserves the spatial relationships between formulas, derivations and diagrams. Send quantitative-stage requests from the learning panel.
 4. Choose Summary Cards and send. In the same request, the model first checks Topic conclusions, board content, conditions and calculations, corrects errors and marks unresolved claims. It then submits a complete set through `learning_cards`, with consistent examples and reference answers. Read, export or revise the set through a follow-up.
 
 | Stage | Requested output |
@@ -82,7 +82,8 @@ Reading Topics can read and search imported documents. When “Allow source proj
 | Control | Behavior |
 | --- | --- |
 | Top Topic selector | Switch Topics belonging to the current source conversation |
-| Topic settings | Rename, select model and reasoning effort, archive or delete |
+| Composer footer | Reasoning on the left; model and send on the right. Sending waits while model settings save |
+| Header ··· (Topic settings) | Rename, archive or delete |
 | Stop | Stop the current generation, then continue with a follow-up |
 | View archived | Show archived Topics; restoring returns them to the active list |
 | Permanent deletion | Requires the complete Topic Session ID; does not delete the source |

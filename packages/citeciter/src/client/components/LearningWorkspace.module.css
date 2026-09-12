@@ -32,7 +32,5 @@
 .provenance summary { cursor: pointer; }
 .source summary { cursor: pointer; color: var(--dsw-alias-label-secondary, #69776e); font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .source blockquote { margin-top: 8px; }
-.settings { flex: none; border-top: 1px solid var(--dsw-alias-border-l1, #e4e7ec); max-height: 34%; overflow: auto; }
-.settings > summary { padding: 9px 16px; font-size: 12px; color: var(--dsw-alias-label-tertiary, #7c827f); cursor: pointer; }
 .questionDetails > summary { cursor: pointer; font-size: 12px; opacity: .65; }
 .questionDetails p { white-space: pre-wrap; font-size: 12px; }
