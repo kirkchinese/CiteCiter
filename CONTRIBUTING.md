@@ -25,6 +25,8 @@ dsh plugin --profile web add "$PWD/packages/citeciter"
 dsh --profile web --host 127.0.0.1 --port 10519 --no-open
 ```
 
+For the first Web visit, open the complete login URL printed by the host, including `?token=…`. DSH sets a session cookie and redirects to the URL without the token; subsequent reloads can use that address. Omitting the initial login parameter returns HTTP 401, which some browser automation tools report as `ERR_BLOCKED_BY_CLIENT` for this text response. Treat the login URL as a host credential; do not copy it into documentation or Git.
+
 Choose a free port and a home owned by no other process. Launch Desktop with a separate `DSH_HOME`, then run `dsh plugin add <absolute source directory or tarball path>` in its managed terminal. That terminal selects the bundled CLI, current profile and home; the global CLI cannot manage the reserved `desktop` profile. Updating the global CLI does not update Desktop's embedded runtime. Restart the host after Host changes and refresh the page after Client changes.
 
 ## Assembled snapshot and packaging

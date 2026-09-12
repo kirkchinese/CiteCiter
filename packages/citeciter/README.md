@@ -129,6 +129,8 @@ dsh plugin --profile web add "$PWD/.refs/artifacts/kirkchinese-dsh-citeciter-0.7
 dsh --profile web --host 127.0.0.1 --port 10537 --no-open
 ```
 
+For the first Web visit, open the complete login URL printed by the host, including `?token=…`. DSH sets a session cookie and redirects to the URL without the token; subsequent reloads can use that address. Omitting the initial login parameter returns HTTP 401, which some browser automation tools report as `ERR_BLOCKED_BY_CLIENT` for this text response. Treat the login URL as a host credential; do not copy it into documentation or Git.
+
 Install Desktop [2.0.9](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.9) separately; updating the global CLI does not update its bundled runtime. If npm blocks dependency scripts, allow the specific packages listed by npm for that installation. Choose an unused port. For Desktop, launch the application with a separate `DSH_HOME`, then run `dsh plugin add <absolute tarball path>` in its managed terminal. The global CLI cannot manage the reserved `desktop` profile. Run only one host per home. Restart the host and refresh the client after installation.
 
 `test:snapshot` uses a keyless model in a disposable real DSH profile to verify stages, boards, cards, restart recovery and management operations. Deterministic tests verify software behavior, not teaching quality. See the [acceptance record](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/validation/2026-09-11-wheel.md) for results and coverage limits.

@@ -25,6 +25,8 @@ dsh plugin --profile web add "$PWD/packages/citeciter"
 dsh --profile web --host 127.0.0.1 --port 10519 --no-open
 ```
 
+首次打开 Web 时，使用启动终端输出的完整登录链接（包含 `?token=…`）。登录成功后，DSH 会设置会话 Cookie 并跳转到不含 token 的地址；随后可直接刷新。省略首次登录参数会返回 HTTP 401，部分自动化浏览器会将该文本响应显示为 `ERR_BLOCKED_BY_CLIENT`。登录链接属于该宿主的访问凭据，不要写入文档或提交到 Git。
+
 选择空闲端口，一个活动进程独占一个 home。Desktop 使用另一个 `DSH_HOME`，从该环境启动已安装的 Desktop，再在其自带终端运行 `dsh plugin add <源码目录或 tarball 的绝对路径>`。该终端选择 Desktop 内置 CLI、当前 profile 和 home；全局 CLI 不能管理保留的 `desktop` profile。全局 CLI 升级不会同步升级 Desktop 内置运行时。
 
 ## 实际应用快照与安装包

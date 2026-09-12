@@ -129,6 +129,8 @@ dsh plugin --profile web add "$PWD/.refs/artifacts/kirkchinese-dsh-citeciter-0.7
 dsh --profile web --host 127.0.0.1 --port 10537 --no-open
 ```
 
+首次打开 Web 时，使用启动终端输出的完整登录链接（包含 `?token=…`）。登录成功后，DSH 会设置会话 Cookie 并跳转到不含 token 的地址；随后可直接刷新。省略首次登录参数会返回 HTTP 401，部分自动化浏览器会将该文本响应显示为 `ERR_BLOCKED_BY_CLIENT`。登录链接属于该宿主的访问凭据，不要写入文档或提交到 Git。
+
 如 npm 拦截依赖安装脚本，按 npm 输出的包名单一次性允许后重装。安装 Desktop [2.0.9](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.9)，它内置同版 DSH；更新全局 CLI 不会更新桌面运行时。选择未占用的端口。Desktop 使用另一个 home，从设置了该 `DSH_HOME` 的终端启动桌面程序，再在 Desktop 自带终端执行 `dsh plugin add <tarball 的绝对路径>`。全局 CLI 不能管理保留的 `desktop` profile。一个 home 同时只运行一个宿主。安装后重启宿主并刷新客户端。
 
 `test:snapshot` 使用无密钥模型和一次性真实 DSH profile，校验五阶段、板书、卡片、重启恢复和管理操作。确定性测试验证程序行为，不评定模型的教学质量。详细结果和未覆盖项目见 [验收记录](docs/validation/2026-09-11-wheel.md)。
