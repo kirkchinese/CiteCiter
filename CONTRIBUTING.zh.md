@@ -48,6 +48,8 @@ node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeci
 
 Topic 使用私有日志和只读工具，不修改来源 Session。公开 UI 注册与版本相关布局适配分开维护；验收最大比例、窄窗口、原生详情栏、关闭恢复和 Desktop 各模式。
 
+在 Windows Codex 中进行原生 Desktop 检查时，先阅读已安装的 Computer Use 技能，使用其指定的 node_repl / @oai/sky 接口。统一 CUA 只有浏览器能力不代表原生控制不可用。选择接口返回的应用与窗口对象，界面变化后重新读取状态，确认渲染结果再重试输入；不修改生成的插件清单或调用私有辅助协议。见[原生控制验证](.agents/notes/2026-09-12-native-control-recovery.md)。
+
 同步根目录与包内中英文 README、公开 release 文档和 JSDoc；非简单变更在 `.agents/notes/` 写 Agent Note，这是排除临时设计草稿和本机验收产物规则的明确例外。不提交密钥、临时 home、截图或 tarball。只报告实际运行的检查，区分 Windows 实测与尚未验证的平台。
 
 贡献代码按 [MIT License](LICENSE) 授权。

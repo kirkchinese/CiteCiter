@@ -48,6 +48,8 @@ The old `dev/seed-smoke-session.mjs`, `smoke*.mjs` and `hmr-smoke.mjs` are histo
 
 Preserve source Sessions and read-only Topic tools. Keep public UI registration separate from the version-specific layout adapter. Exercise maximum width, narrow windows, native details, close/reopen and Desktop modes.
 
+For Codex on Windows, read the installed Computer Use skill and use its dedicated node_repl / @oai/sky API for native Desktop checks. A browser-only unified CUA configuration does not establish that native control is unavailable. Select returned app/window objects, refresh state after UI changes and verify the rendered result before retrying input. Do not edit generated plugin manifests or invoke private helper protocols. See the [native control validation](.agents/notes/2026-09-12-native-control-recovery.md).
+
 Update root/package READMEs, releases and JSDoc together. Nontrivial decisions belong in `.agents/notes/`, an explicit exception to excluding transient design drafts and local QA artifacts. Do not commit credentials, temporary homes, screenshots or tarballs. Report only checks actually run and distinguish Windows evidence from untested platforms.
 
 Contributions use the [MIT License](LICENSE).

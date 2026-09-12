@@ -4,7 +4,7 @@
 
 ## 决策
 
-首次打开临时 DSH Web 服务时必须使用该进程打印的完整登录链接；认证后再使用不含 token 的地址。不能依据浏览器的 ERR_BLOCKED_BY_CLIENT 或同时出现的会话路由警告直接断言 localhost 被策略禁止或 Codex 连接损坏。原生控制未开放是独立限制。
+首次打开临时 DSH Web 服务时必须使用该进程打印的完整登录链接；认证后再使用不含 token 的地址。不能依据浏览器的 ERR_BLOCKED_BY_CLIENT 或同时出现的会话路由警告直接断言 localhost 被策略禁止或 Codex 连接损坏。当时未使用 Windows 专用原生接口；后续排查与验证见[原生控制入口修正](2026-09-12-native-control-recovery.md)。
 
 ## 证据
 
