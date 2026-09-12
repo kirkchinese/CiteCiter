@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import { ModelChoice } from './ModelChoice.tsx'
+import { OverlayPortal } from './OverlayPortal.tsx'
 import { actionSourceQuote, type ActionController, type ActionSnapshot } from '../action-controller.ts'
 import type { CompanionActions } from '../view-actions.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
@@ -21,7 +22,7 @@ export function ActionWheel({ useActions, useCompanion, actions, companion }: {
   const visible = wheel !== null || pending !== null
   useEffect(() => visible ? companion.retainVisible() : undefined, [companion, visible])
   useEffect(() => { if (wheel !== null && !wheel.held) menu.current?.focus() }, [wheel?.held])
-  return <>
+  return <OverlayPortal>
     {wheel !== null && <div className={css.wheel} style={{ left: wheel.x, top: wheel.y, '--wheel-scale': wheel.scale } as CSSProperties} data-citeciter-menu data-citeciter-wheel ref={menu} tabIndex={-1} role="menu" aria-label="CiteCiter 选文动作" onKeyDown={event => {
       if (event.key === 'Escape') actions.cancel()
       else if (/^[1-8]$/u.test(event.key)) { event.preventDefault(); actions.choose(Number(event.key) - 1) }
@@ -42,7 +43,7 @@ export function ActionWheel({ useActions, useCompanion, actions, companion }: {
       <button type="button" className={css.center} onClick={actions.cancel} aria-label="取消轮盘">取消<small>Esc</small></button>
       <div className={css.caption} role="status">{active == null ? '移向动作 · 回到中心取消' : `${active.label} · ${active.ask ? '松开后输入问题并选择模型' : '松开即执行'}`}</div>
     </div>}
-    {pending !== null && <form className={css.prompt} data-citeciter-menu role="dialog" aria-label={`${pending.action.label}：输入问题`} style={{ left: Math.max(12, Math.min(pending.x - 210, window.innerWidth - 432)), top: Math.max(48, Math.min(pending.y - 100, window.innerHeight - 370)) }} onSubmit={event => { event.preventDefault(); void actions.submit() }}>
+    {pending !== null && <form className={css.prompt} data-citeciter-menu role="dialog" aria-label={`${pending.action.label}：输入问题`} style={{ '--prompt-x': `${pending.x - 210}px`, '--prompt-y': `${pending.y - 100}px` } as CSSProperties} onSubmit={event => { event.preventDefault(); void actions.submit() }}>
       <header><strong>{pending.action.label}</strong><button type="button" onClick={actions.cancel} aria-label="关闭提问">×</button></header>
       <blockquote>{actionSourceQuote(pending.source).slice(0, 180)}</blockquote>
       {pending.action.ask && <textarea autoFocus aria-label="补充问题" placeholder="输入你的问题…" maxLength={7500} rows={3} value={state.question} disabled={state.submitting} onChange={event => actions.setQuestion(event.currentTarget.value)} onKeyDown={event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.nativeEvent.isComposing) { event.preventDefault(); void actions.submit() } }} />}
@@ -51,5 +52,5 @@ export function ActionWheel({ useActions, useCompanion, actions, companion }: {
       {state.error !== null && <p role="alert" className={css.error}>{state.error}</p>}
       <footer><span>{pending.action.presentation === 'side' ? '在学习栏中打开' : '在悬浮窗中打开'}</span><button type="submit" disabled={state.submitting || pending.action.ask && state.question.trim() === ''}>{state.submitting ? '正在创建…' : state.error === null ? '开始 Citer' : '重试'}</button></footer>
     </form>}
-  </>
+  </OverlayPortal>
 }

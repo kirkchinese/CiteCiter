@@ -59,7 +59,7 @@ export function createActionController(execute, defaultModel = () => undefined) 
         getSnapshot: store.getSnapshot,
         subscribe: store.subscribe,
         open(source, x, y, slots, held) {
-            if (disposed || store.getSnapshot().submitting)
+            if (disposed || store.getSnapshot().submitting || store.getSnapshot().pending !== null)
                 return;
             generation++;
             const scale = Math.min(1, (window.innerWidth - 16) / 360, (window.innerHeight - 16) / 400);
@@ -85,6 +85,8 @@ export function createActionController(execute, defaultModel = () => undefined) 
             else
                 choose(wheel.active);
         },
+        /** Cancel only the transient gesture; a question draft belongs to its explicit close/source lifecycle. */
+        dismissWheel() { update(d => { d.wheel = null; }); },
         choose, cancel, submit,
         setModel(model) { if (!store.getSnapshot().submitting)
             update(d => { d.model = model; }); },

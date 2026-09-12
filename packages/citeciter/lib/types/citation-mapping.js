@@ -21,6 +21,37 @@ function commonEdge(left, right, fromEnd) {
     }
     return matched;
 }
+/**
+ * Locate a literal textarea selection in authoritative document source text.
+ * @param selection - raw selected text and page-local surrounding context.
+ * @param content - complete normalized document; offsets use UTF-16 code units.
+ * @returns the unique best exact match, retaining Markdown and code punctuation.
+ * @throws when the quote is absent or repeated context cannot disambiguate it.
+ */
+export function resolveDocumentRange(selection, content) {
+    const needle = selection.displayText.trim();
+    let best = null;
+    let ambiguous = false;
+    if (needle !== '')
+        for (let at = content.indexOf(needle); at >= 0; at = content.indexOf(needle, at + 1)) {
+            const score = commonEdge(selection.prefixText, content.slice(Math.max(0, at - selection.prefixText.length), at), true)
+                + commonEdge(selection.suffixText, content.slice(at + needle.length, at + needle.length + selection.suffixText.length), false);
+            if (best === null || score > best.score) {
+                best = { startOffset: at, score };
+                ambiguous = false;
+            }
+            else if (score === best.score)
+                ambiguous = true;
+        }
+    if (best === null)
+        throw new Error('选区无法映射到文档原文，请重新选择正文后重试');
+    if (ambiguous)
+        throw new Error('选区无法唯一映射到文档原文，请缩小或扩大选区后重试');
+    const startOffset = best.startOffset;
+    const endOffset = startOffset + needle.length;
+    return { startOffset, endOffset, sourceText: content.slice(startOffset, endOffset),
+        prefixText: content.slice(Math.max(0, startOffset - 240), startOffset), suffixText: content.slice(endOffset, endOffset + 240) };
+}
 /** Resolve rendered selection context against authoritative Markdown source. */
 export function resolveCitationRange(selection, answer) {
     const candidates = [

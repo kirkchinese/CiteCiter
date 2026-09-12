@@ -272,6 +272,25 @@ test('document-range evidence re-resolves the Reader quote against the stored te
   )
 })
 
+test('document selections preserve literal Markdown, code and full-text boundaries', () => {
+  const content = '# Heading\n\n**bold** [link](https://example.com)\n\n```js\nconst x = "<tag>";\n```\n'
+  for (const quote of [content.trim(), '# Heading', '**bold**', '[link](https://example.com)', 'const x = "<tag>";', '```js']) {
+    const start = content.indexOf(quote)
+    const resolved = resolveDocumentEvidence(content, { sourceSessionId: sourceId, documentId: 'document-1', displayText: quote, prefixText: content.slice(0, start), suffixText: content.slice(start + quote.length) })
+    assert.equal(resolved.evidence.sourceText, quote)
+    assert.equal(resolved.evidence.entry.startOffset, start)
+    assert.equal(resolved.evidence.entry.endOffset, start + quote.length)
+  }
+})
+
+test('literal document context distinguishes Markdown punctuation and rejects ambiguous quotes', () => {
+  const content = '**same**\n__same__'
+  const claim = { sourceSessionId: sourceId, documentId: 'document-1', displayText: 'same', prefixText: '__', suffixText: '__' }
+  assert.equal(resolveDocumentEvidence(content, claim).evidence.entry.startOffset, content.lastIndexOf('same'))
+  assert.throws(() => resolveDocumentEvidence(content, { ...claim, prefixText: '', suffixText: '' }), /无法唯一映射/u)
+  assert.throws(() => resolveDocumentEvidence('[label](target)', { ...claim, displayText: 'labeltarget' }), /无法映射/u)
+})
+
 test('terminal and diff projections resolve their dedicated whole-card text', () => {  const terminal = resolveToolEvidence({
     session: { id: sourceId },
     events: [

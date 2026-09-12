@@ -32,6 +32,7 @@ import { appendBoardCitation, isTopicMessageVisible } from '../topic-presentatio
 import collapseArrowUrl from '../assets/collapse-arrow.svg'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import { QuestionCard } from './QuestionCard.tsx'
+import { OverlayPortal } from './OverlayPortal.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
 import css from './CiteCiter.module.css'
 import { jsonTreeLabels } from '../copy.ts'
@@ -455,6 +456,7 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
 
   return (
     <>
+      <OverlayPortal inline={!floating}>
       <aside
       ref={panelRef}
       className={`${css.dock} ${floating ? css.floating : ''}`}
@@ -774,8 +776,9 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
 
       </div>
       </aside>
+      </OverlayPortal>
 
-      {!floating && <div className={css.fullscreenNotice} role="status">学习栏已打开。退出文件全屏查看，或 <button type="button" onClick={() => bus.setPresentation('floating')}>悬浮查看</button></div>}
+      {!floating && <OverlayPortal><div className={css.fullscreenNotice} role="status">学习栏已打开。退出文件全屏查看，或 <button type="button" onClick={() => bus.setPresentation('floating')}>悬浮查看</button></div></OverlayPortal>}
 
       <Modal
         open={newTopicOpen}

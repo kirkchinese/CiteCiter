@@ -104,6 +104,51 @@ function snapshot(active) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+for (const source of ['conversation', 'document']) {
+  test(`the public ${source} creation face preserves the first-request model`, async () => {
+    const commands = []
+    const route = { provider: 'fixture', model: 'fixture-alt' }
+    const controller = createCompanionController(() => ({ nodes: new Map([['assistant:1', {
+      kind: 'assistant-step', anchorSeq: 1,
+      data: { status: 'settled', blocks: [{ type: 'text', text: 'source quote' }] },
+    }]]) }), {
+      getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+      subscribe: () => () => {}, set: async () => {},
+    }, async command => {
+      commands.push(command)
+      if (command.action === 'create') return { ok: true, value: { kind: 'topic', topic: topic('created-route') } }
+      return { ok: true, value: { kind: 'topics', topics: [] } }
+    }, () => {}, memoryStore(snapshot(null)))
+    try {
+      if (source === 'conversation') await controller.create({
+        entryId: 'citeciter.entry.assistant', kind: 'assistant-step', sourceSessionId: 'source',
+        anchorKey: 'assistant:1', displayText: 'source quote', prefixText: '', suffixText: '',
+        startOffset: 0, endOffset: 12, x: 0, y: 0,
+      }, 'explain using my selected model', 'observer', 'present', route)
+      else await controller.createFromDocument({ documentId: 'doc', displayText: 'source quote', prefixText: '', suffixText: '' }, 'explain using my selected model', 'source', route)
+      const command = commands.find(command => command.action === 'create')
+      assert.ok(command, 'creation must reach the Remote boundary')
+      assert.deepEqual(command.modelRoute, route)
+      assert.equal(command.scenario, source === 'conversation' ? 'present' : 'read')
+    } finally { await controller.dispose() }
+  })
+}
+
+test('the public document face rejects a captured source that is no longer current', async () => {
+  const commands = []
+  const controller = createCompanionController(() => undefined, {
+    getSnapshot: () => ({ status: 'ready', value: DEFAULT_CITECITER_SETTINGS, error: null }),
+    subscribe: () => () => {}, set: async () => {},
+  }, async command => {
+    commands.push(command)
+    return { ok: true, value: { kind: 'topic', topic: topic('wrong-source') } }
+  }, () => {}, memoryStore(snapshot(null)))
+  try {
+    await assert.rejects(controller.createFromDocument({ documentId: 'doc', displayText: 'quote', prefixText: '', suffixText: '' }, 'explain', 'previous-source'), /来源会话已切换/u)
+    assert.equal(commands.length, 0, 'stale document claims must not reach the Host')
+  } finally { await controller.dispose() }
+})
+
 test('uncited Topic is created only on first submission with the selected scenario', async () => {
   const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage')
   const values = new Map()

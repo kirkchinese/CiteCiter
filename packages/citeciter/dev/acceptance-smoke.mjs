@@ -117,6 +117,15 @@ export async function acceptanceSmoke(ctx, source) {
   assert.doesNotMatch(readingTools, /shell|write|edit/)
   checks.push('long document import, last-page citation and optional read-only project tools')
 
+  const literalText = '# 原文标题\n\n**曲率**与[平行移动](#定义)\n\n```ts\nconst area = 0.01\n```'
+  const literalDocument = (await command({ action: 'document-import', title: 'Literal Markdown.md', format: 'markdown', content: literalText })).document
+  const literalTopic = await command({ action: 'create', requestId: randomUUID(), mode: 'observer', scenario: 'read', question: '解释这篇文档',
+    documentClaim: { sourceSessionId, documentId: literalDocument.documentId, displayText: literalText, prefixText: '', suffixText: '' } })
+  const literalSnapshot = await waitFor(literalTopic.topic.topic.sessionId)
+  assert.equal(literalSnapshot.error, null)
+  assert.equal(literalSnapshot.topic.citation.sourceText, literalText)
+  checks.push('full-document source selection preserves Markdown syntax')
+
   assert.deepEqual(source.agent.session.snapshotEvents(), baseline)
   checks.push('source log unchanged after all operations')
   return { ok: true, checks, readingTopicSessionId: readingId, documentId }

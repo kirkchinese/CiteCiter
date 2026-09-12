@@ -1,4 +1,4 @@
-import { D as boardBatchSchema, E as applyBoardOps, O as LEARNING_PROMPT, T as EMPTY_BOARD_STATE, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, k as learningCardsInputSchema, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-DkJ5M4Dj.js";
+import { D as boardBatchSchema, E as applyBoardOps, O as LEARNING_PROMPT, T as EMPTY_BOARD_STATE, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, k as learningCardsInputSchema, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-DotuIk8L.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import z from "@deepseek-ai/schemastery";
@@ -14592,6 +14592,39 @@ function commonEdge(left, right, fromEnd) {
 	}
 	return matched;
 }
+/**
+* Locate a literal textarea selection in authoritative document source text.
+* @param selection - raw selected text and page-local surrounding context.
+* @param content - complete normalized document; offsets use UTF-16 code units.
+* @returns the unique best exact match, retaining Markdown and code punctuation.
+* @throws when the quote is absent or repeated context cannot disambiguate it.
+*/
+function resolveDocumentRange(selection, content) {
+	const needle = selection.displayText.trim();
+	let best = null;
+	let ambiguous = false;
+	if (needle !== "") for (let at = content.indexOf(needle); at >= 0; at = content.indexOf(needle, at + 1)) {
+		const score = commonEdge(selection.prefixText, content.slice(Math.max(0, at - selection.prefixText.length), at), true) + commonEdge(selection.suffixText, content.slice(at + needle.length, at + needle.length + selection.suffixText.length), false);
+		if (best === null || score > best.score) {
+			best = {
+				startOffset: at,
+				score
+			};
+			ambiguous = false;
+		} else if (score === best.score) ambiguous = true;
+	}
+	if (best === null) throw new Error("选区无法映射到文档原文，请重新选择正文后重试");
+	if (ambiguous) throw new Error("选区无法唯一映射到文档原文，请缩小或扩大选区后重试");
+	const startOffset = best.startOffset;
+	const endOffset = startOffset + needle.length;
+	return {
+		startOffset,
+		endOffset,
+		sourceText: content.slice(startOffset, endOffset),
+		prefixText: content.slice(Math.max(0, startOffset - 240), startOffset),
+		suffixText: content.slice(endOffset, endOffset + 240)
+	};
+}
 /** Resolve rendered selection context against authoritative Markdown source. */
 function resolveCitationRange(selection, answer) {
 	const candidates = [...markdownSourceCandidates(answer, selection.sourceHintText ?? selection.displayText)];
@@ -14753,7 +14786,7 @@ function resolveToolEvidence(source, rawClaim) {
 */
 function resolveDocumentEvidence(content, rawClaim) {
 	const claim = documentEvidenceClaimSchema.parse(rawClaim);
-	const range = resolveCitationRange(claim, content);
+	const range = resolveDocumentRange(claim, content);
 	return { evidence: {
 		sourceSessionId: claim.sourceSessionId,
 		anchorSeq: 0,
@@ -16705,7 +16738,7 @@ var TopicRuntime = class {
 	learningCardsTool() {
 		return defineTool({
 			name: "learning_cards",
-			description: "Save a complete set of 1–8 summary learning cards inside this Topic only. Use only when asked to summarize or revise cards. Replaces the displayed set; older sets remain in the Topic log.",
+			description: "Save a complete set of 1–8 summary learning cards inside this Topic only. Use only when asked to summarize or revise cards. First check conclusions against available evidence, correct errors in every field including examples and answers, and label unresolved claims as unverified or omit them. Replaces the displayed set; older sets remain in the Topic log. This tool validates structure, not factual accuracy.",
 			parameters: { cards: {
 				type: "array",
 				required: true,

@@ -49,6 +49,8 @@ export declare function createActionController(execute: (source: ActionSource, a
     move(x: number, y: number): void;
     focus(index: number): void;
     release(quick: boolean): void;
+    /** Cancel only the transient gesture; a question draft belongs to its explicit close/source lifecycle. */
+    dismissWheel(): void;
     choose: (index: number | null) => void;
     cancel: () => void;
     submit: () => Promise<void>;

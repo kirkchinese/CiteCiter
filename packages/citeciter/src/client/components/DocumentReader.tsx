@@ -5,6 +5,7 @@ import { type ChangeEvent, type FormEvent, useRef, useEffect } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SelectionSurfaces } from '../wheel-gesture.ts'
 import { readTextareaSelection } from '../reader-selection.ts'
+import { OverlayPortal } from './OverlayPortal.tsx'
 import css from './DocumentReader.module.css'
 
 /** Reader shell-overlay entry: compact trigger plus the document library panel. */
@@ -43,6 +44,7 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
   }
 
   return (
+    <OverlayPortal>
     <div className={css.root}>
       {!snapshot.open ? (
         <button
@@ -113,5 +115,6 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
         </section>
       )}
     </div>
+    </OverlayPortal>
   )
 }

@@ -1745,7 +1745,7 @@ export class TopicRuntime {
   private learningCardsTool() {
     return defineTool({
       name: 'learning_cards',
-      description: 'Save a complete set of 1–8 summary learning cards inside this Topic only. Use only when asked to summarize or revise cards. Replaces the displayed set; older sets remain in the Topic log.',
+      description: 'Save a complete set of 1–8 summary learning cards inside this Topic only. Use only when asked to summarize or revise cards. First check conclusions against available evidence, correct errors in every field including examples and answers, and label unresolved claims as unverified or omit them. Replaces the displayed set; older sets remain in the Topic log. This tool validates structure, not factual accuracy.',
       parameters: {
         cards: {
           type: 'array', required: true, description: 'Complete set of 1–8 cards.',

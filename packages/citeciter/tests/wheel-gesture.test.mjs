@@ -16,6 +16,30 @@ function setup(t) {
 }
 const source={kind:'document',sourceSessionId:'a',documentId:'doc',title:'x',displayText:'quote',prefixText:'',suffixText:''}
 
+test('question drafts survive blur, resize, pointer cancellation and outside clicks until explicit cancellation',async t=>{
+  const h=setup(t), calls=[]
+  const controller=createActionController(async(...args)=>{calls.push(args)})
+  const dispose=installWheelGesture(controller,()=>source,()=>({}))
+  h.emit(h.document,'contextmenu');controller.choose(0)
+  controller.setQuestion('为什么？');controller.setModel({provider:'fixture',model:'fixture-alt'})
+  const pending=controller.getSnapshot().pending
+  for(const [where,type,fields] of [[h.window,'blur'],[h.window,'resize'],[h.document,'pointercancel'],[h.document,'pointerdown',{button:0}]]){
+    h.emit(where,type,fields)
+    assert.deepEqual(controller.getSnapshot().pending,pending,type)
+    assert.equal(controller.getSnapshot().question,'为什么？',type)
+    assert.deepEqual(controller.getSnapshot().model,{provider:'fixture',model:'fixture-alt'},type)
+  }
+  h.emit(h.document,'pointerdown');h.emit(h.document,'pointerup')
+  assert.deepEqual(controller.getSnapshot().pending,pending,'another gesture does not discard the draft')
+  await controller.submit()
+  assert.equal(calls.length,1);assert.equal(calls[0][2],'我的问题：为什么？')
+  assert.deepEqual(calls[0][3],{provider:'fixture',model:'fixture-alt'})
+  controller.open(source,500,350,[pending.action],false);controller.choose(0);controller.setQuestion('取消')
+  h.emit(h.document,'keydown',{key:'Escape'})
+  assert.equal(controller.getSnapshot().pending,null);assert.equal(controller.getSnapshot().question,'')
+  dispose();await controller.dispose()
+})
+
 test('right-button down/move/up executes once; following native contextmenu is suppressed',async t=>{
   const h=setup(t), calls=[]
   const controller=createActionController(async(...args)=>{calls.push(args)})

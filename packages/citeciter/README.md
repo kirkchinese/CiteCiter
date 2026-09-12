@@ -36,15 +36,15 @@ Select text, hold the right mouse button, move toward an action, check its highl
 | 6 | Summary cards | None | Side |
 | 7, 8 | Empty | — | — |
 
-The centre, empty slots, outside of the wheel, Escape, blur and source changes cancel the action. A short right-click leaves a clickable wheel; arrow keys move, Enter confirms, and digits 1–8 choose directly. Shift + right-click preserves the native menu. Tool entries cite the whole tool card; readers cite selected text.
+The centre, empty slots, outside of the wheel, Escape, blur and source changes cancel the wheel. A short right-click leaves a clickable wheel; arrow keys move, Enter confirms, and digits 1–8 choose directly. Shift + right-click preserves the native menu. Tool entries cite the whole tool card; readers cite selected text.
 
 In Settings → CiteCiter → Selection wheel, choose the trigger and default model. Triggers include right mouse, Alt/Option, Control, Shift and Meta/Command. Each slot has a name, prompt, input requirement, Q&A/learning scenario and side/floating presentation. Move, clear or restore slots, then save all eight together. Custom modes retain the Topic's read-only tool boundary.
 
-Submission blocks duplicate execution. Failures retain the question, model and source for retry; switching source Sessions cancels unsent actions. A Topic creation already accepted by the host is not rolled back. Mode prompts are ordinary user messages in the Topic log.
+Once the question form opens, switching apps, resizing or clicking outside retains its question and model. Close, Escape or switching source Sessions cancels the draft; reloads and restarts do not retain it. Submission blocks duplicate execution. Failures retain the question, model and source for retry. A Topic creation already accepted by the host is not rolled back. Mode prompts are ordinary user messages in the Topic log.
 
 ## Native file preview
 
-Choose “CiteCiter 学习” in DSH's native preview renderer selector. The host owns opening, reading and refreshing files; CiteCiter displays selectable UTF-8 source text. Use the wheel or selection-actions button. Text, Markdown and common source-code files are supported. Starting learning saves a complete snapshot; later file edits do not rewrite it. Native learning uses the same 500 KiB pagination.
+Choose “CiteCiter 学习” in DSH's native preview renderer selector. The host owns opening, reading and refreshing files; CiteCiter displays selectable UTF-8 source text. Use the wheel or selection-actions button. Text, Markdown and common source-code files are supported. Starting learning saves a complete snapshot; later file edits do not rewrite it. Native learning uses the same 500 KiB pagination. Headings, link syntax and code match literal source text. The wheel and question form remain usable during native file fullscreen.
 
 This entry registers through the optional documentPreviews service. The local top-level DSH package is 0.1.5-rc.1, while its resolved document preview package is 0.1.5-rc.2; the relevant development dependencies are pinned to rc.2. Without this service, the conversation wheel, standalone reader and Topics remain available. The top-level version alone does not establish native preview capability.
 
@@ -55,7 +55,7 @@ Files need a source Session address; absolute file addresses cannot directly cre
 1. Select committed assistant answer or reasoning text in the source conversation, then start an action through the wheel. Tool results also provide citation entries. Use `+ New Topic` for a free discussion or learning explanation.
 2. Choose a stage, add a question if needed, and send. Stages can be skipped, repeated or replaced with a free follow-up. Selecting a stage does not call the model.
 3. Switch between Explain, Board and Learning Cards. The board defaults to readable entries; its canvas preserves spatial relationships.
-4. Choose Summary Cards and send. Once the model submits a complete set through `learning_cards`, read, export or revise it through a follow-up.
+4. Choose Summary Cards and send. In the same request, the model first checks Topic conclusions, board content, conditions and calculations, corrects errors and marks unresolved claims. It then submits a complete set through `learning_cards`, with consistent examples and reference answers. Read, export or revise the set through a follow-up.
 
 | Stage | Requested output |
 | --- | --- |
@@ -63,7 +63,7 @@ Files need a source Session address; absolute file addresses cannot directly cre
 | Qualitative analysis | Trends, boundaries, counterexamples and intuition |
 | Quantitative analysis with a board | Variables, units, assumptions, derivations and examples; explain when quantification does not apply |
 | Concept connections | Prerequisites, related concepts, distinctions and applications |
-| Summary learning cards | Conclusions, examples, self-test questions and reference answers |
+| Summary learning cards | Check and correct first, then write conclusions, examples, self-test questions and reference answers |
 
 **Active recall is off by default.** Cards normally show conclusions and examples. When enabled, they show a question first and reveal reference content on demand. There are no scheduled reviews, reminders, streaks or mastery scores.
 
@@ -110,7 +110,7 @@ Observer reads committed source events as needed. Exact Fork inherits context fr
 
 Topic indexes live in `$DSH_HOME/citeciter/workspaces/`; private logs live in `$DSH_HOME/citeciter/sessions/`. Without an explicit `DSH_HOME`, the usual location is `.dsh` under the user directory. DSH owns old-log format migration. Read-only opens preserve original files; resumed writes publish the current format through the host. Exact Fork uses the restored inherited boundary. Historical quotations retain their text; captured event numbers can change after host migration. Back up the entire home before upgrading. Concurrent Web and Desktop instances must use separate homes.
 
-Models control their explanation and tool calls; selecting a stage does not guarantee that a model produces a board or card set. There is no independent card editor, cross-Topic search, knowledge-graph database or cross-device synchronization.
+Models control their explanation and tool calls; selecting a stage does not guarantee that a model produces a board or card set. The summary self-check is a model instruction, not independent factual verification. Models can still miss errors or generate inaccurate source locators. There is no independent card editor, cross-Topic search, knowledge-graph database or cross-device synchronization.
 
 ## Install the local 0.7 development build
 
@@ -133,7 +133,7 @@ For the first Web visit, open the complete login URL printed by the host, includ
 
 Install Desktop [2.0.9](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.9) separately; updating the global CLI does not update its bundled runtime. If npm blocks dependency scripts, allow the specific packages listed by npm for that installation. Choose an unused port. For Desktop, launch the application with a separate `DSH_HOME`, then run `dsh plugin add <absolute tarball path>` in its managed terminal. The global CLI cannot manage the reserved `desktop` profile. Run only one host per home. Restart the host and refresh the client after installation.
 
-`test:snapshot` uses a keyless model in a disposable real DSH profile to verify stages, boards, cards, restart recovery and management operations. Deterministic tests verify software behavior, not teaching quality. See the [acceptance record](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/validation/2026-09-11-wheel.md) for results and coverage limits.
+`test:snapshot` uses a keyless model in a disposable real DSH profile to verify stages, boards, cards, restart recovery and management operations. Deterministic tests verify software behavior, not teaching quality. See the [acceptance record](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/validation/2026-09-12-acceptance.md) for results and coverage limits.
 
 See [Contributing](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/CONTRIBUTING.md) for development and packaging, and the [0.7 development notes](https://github.com/kirkchinese/CiteCiter/blob/codex/learning-workspace-0.7/docs/releases/v0.7.0-beta.3.md) for changes. Building or packing does not publish to npm.
 

@@ -76,7 +76,7 @@ export function createActionController(execute: (source: ActionSource, action: C
     getSnapshot: store.getSnapshot,
     subscribe: store.subscribe,
     open(source: ActionSource, x: number, y: number, slots: readonly (CiteAction | null)[], held: boolean) {
-      if (disposed || store.getSnapshot().submitting) return
+      if (disposed || store.getSnapshot().submitting || store.getSnapshot().pending !== null) return
       generation++
       const scale = Math.min(1, (window.innerWidth - 16) / 360, (window.innerHeight - 16) / 400)
       const horizontal = 180 * scale + 8, above = 180 * scale + 8, below = 220 * scale + 8
@@ -95,6 +95,8 @@ export function createActionController(execute: (source: ActionSource, action: C
       if (quick && wheel.active === null) update(d => { d.wheel = { ...wheel, held: false } })
       else choose(wheel.active)
     },
+    /** Cancel only the transient gesture; a question draft belongs to its explicit close/source lifecycle. */
+    dismissWheel() { update(d => { d.wheel = null }) },
     choose, cancel, submit,
     setModel(model: ActionModel | undefined) { if (!store.getSnapshot().submitting) update(d => { d.model = model }) },
     setQuestion(question: string) { if (!store.getSnapshot().submitting) update(d => { d.question = question }) },

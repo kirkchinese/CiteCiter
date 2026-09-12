@@ -22,7 +22,7 @@ export function installWheelGesture(
   let pointer = { x: 0, y: 0, target: null as EventTarget | null }
   const blocked = (target: EventTarget | null) => target instanceof Element && target.closest('[data-citeciter-menu], [role="dialog"][aria-modal="true"]') !== null
   const capture = (event: MouseEvent, key: string) => {
-    if (blocked(event.target)) return
+    if (blocked(event.target) || controller.getSnapshot().pending !== null) return
     const source = read(event)
     if (source === null) return
     event.preventDefault()
@@ -31,7 +31,7 @@ export function installWheelGesture(
   }
   const down = (event: PointerEvent) => {
     if (event.button === 2 && (preferences().wheelTrigger ?? 'right-button') === 'right-button' && !event.shiftKey) capture(event, 'right-button')
-    else if (!blocked(event.target) && event.button === 0) controller.cancel()
+    else if (!blocked(event.target) && event.button === 0) controller.dismissWheel()
   }
   const move = (event: PointerEvent) => {
     pointer = { x: event.clientX, y: event.clientY, target: event.target }
@@ -65,26 +65,27 @@ export function installWheelGesture(
     capture(synthetic, event.key)
   }
   const keyup = (event: KeyboardEvent) => release(event.key)
-  const cancel = () => { held = null; controller.cancel() }
+  const cancelGesture = () => { held = null; controller.dismissWheel() }
   document.addEventListener('pointerdown', down)
   document.addEventListener('pointermove', move)
   document.addEventListener('pointerup', up)
   document.addEventListener('contextmenu', menu)
   document.addEventListener('keydown', keydown)
   document.addEventListener('keyup', keyup)
-  document.addEventListener('pointercancel', cancel)
-  window.addEventListener('blur', cancel)
-  window.addEventListener('resize', cancel)
+  document.addEventListener('pointercancel', cancelGesture)
+  window.addEventListener('blur', cancelGesture)
+  window.addEventListener('resize', cancelGesture)
   return () => {
-    cancel()
+    held = null
+    controller.cancel()
     document.removeEventListener('pointerdown', down)
     document.removeEventListener('pointermove', move)
     document.removeEventListener('pointerup', up)
     document.removeEventListener('contextmenu', menu)
     document.removeEventListener('keydown', keydown)
     document.removeEventListener('keyup', keyup)
-    document.removeEventListener('pointercancel', cancel)
-    window.removeEventListener('blur', cancel)
-    window.removeEventListener('resize', cancel)
+    document.removeEventListener('pointercancel', cancelGesture)
+    window.removeEventListener('blur', cancelGesture)
+    window.removeEventListener('resize', cancelGesture)
   }
 }

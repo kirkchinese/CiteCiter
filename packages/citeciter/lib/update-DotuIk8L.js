@@ -34,8 +34,8 @@ const LEARNING_STAGES = [
 		id: "summary",
 		label: "总结学习卡片",
 		shortLabel: "总结",
-		hint: "把本次讨论整理成能再次读懂的学习卡片。",
-		instruction: "请总结本 Topic 已讨论的内容，调用 learning_cards 生成 1–6 张学习卡片。每张包含核心结论、一个具体例子、可选自测问题和参考答案；不要补造未证实结论，涉及来源事实时在结论中保留来源定位。完成后简短说明，不安排复习计划。"
+		hint: "先核对与纠错，再整理成学习卡片。",
+		instruction: "请先核对本 Topic 的结论与已有板书：检查定义、成立条件、推导、数值和前后矛盾，不要把此前的模型回答当作证据；必要时读取可用来源。纠正发现的错误，将无法核实的内容明确标为“未核实”或省略，不要补造来源与定位。然后调用 learning_cards 生成 1–6 张学习卡片，每张包含核心结论、一个具体例子、可选自测问题和参考答案；逐项检查这些字段的一致性，纠错必须同步到例子和参考答案。涉及来源事实时保留真实可用的定位，区分来源证据与一般知识。完成后简短说明纠正了什么、还有哪些内容未核实；不安排复习计划。"
 	}
 ];
 /** Make the entire stage instruction visible and durable as an ordinary Topic user message. */
@@ -54,7 +54,9 @@ const learningCardsInputSchema = z.object({ cards: z.array(learningCardSchema).m
 /** Shared teaching contract appended to every scenario's logged tutor section. */
 const LEARNING_PROMPT = `The optional learning route is 底层逻辑 → 定性分析 → 定量分析（板书） → 概念关联 → 总结学习卡片. A user may select or skip any stage. Respond to the current request only; never advance automatically or claim that a stage proves mastery. Never schedule spaced repetition or reminders. Do not require quizzes before continuing.
 
-Use learning_cards only when the user asks to summarize or revise learning cards. Each successful call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Preserve available source locators inside summaries. Do not invent sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`;
+Use learning_cards only when the user asks to summarize or revise learning cards. Before composing cards in this same turn, check the Topic's conclusions and existing board for incorrect definitions, missing conditions, faulty derivations or arithmetic, and contradictions. Earlier assistant output is not evidence. Read available sources when needed; distinguish source evidence from general knowledge. Correct errors before saving, and explicitly label unresolved claims as 未核实 (unverified) or omit them. Check every card's summary, example, question and reference answer for consistency: a correction in the summary must also reach its example and answer. Briefly report corrections and unresolved points; do not present this self-check as independent verification.
+
+Each successful learning_cards call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Preserve real available source locators inside summaries; do not invent offsets, sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`;
 /** Maximum combined UTF-8 element-content bytes retained on one board. */
 const BOARD_MAX_CONTENT_BYTES = 5e5;
 /** Element kinds the blackboard renders safely on the chalk canvas. */
