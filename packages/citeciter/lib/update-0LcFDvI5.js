@@ -27,6 +27,8 @@ const file = z.object({
 	name: z.string(),
 	bytes: z.number().int().nonnegative()
 }).strict();
+/** Wire reference for an authorized attachment; generic files have no image metadata. */
+const nativeAttachmentRefSchema = z.union([nativeImageSchema, file]);
 const nativeAttachmentSchema = z.discriminatedUnion("type", [z.object({
 	type: z.literal("image"),
 	attachment: nativeImageSchema
@@ -946,7 +948,7 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 		requestIds: z.array(z.string().min(1).max(100)).max(32)
 	}).strict(),
 	z.object({
-		action: z.literal("native-image"),
+		action: z.literal("native-attachment"),
 		topicSessionId: topicSessionIdSchema,
 		attachmentId: z.string().min(1).max(200)
 	}).strict(),
@@ -1031,8 +1033,8 @@ const citeCiterResponseSchema = z.discriminatedUnion("kind", [
 		state: nativeStateSchema
 	}).strict(),
 	z.object({
-		kind: z.literal("native-image"),
-		attachment: nativeImageSchema,
+		kind: z.literal("native-attachment"),
+		attachment: nativeAttachmentRefSchema,
 		data: z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/)
 	}).strict(),
 	z.object({

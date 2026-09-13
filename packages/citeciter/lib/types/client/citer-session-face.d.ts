@@ -29,6 +29,21 @@ export declare class CiterSessionFace implements SessionFace {
         abandon: () => void;
     };
     prompt: SessionFace['prompt'];
+    /** Generic Citer attachment read; the installed SessionFace verb only supports images. */
+    readCiterAttachment: (attachmentId: string) => Promise<{
+        readonly ok: false;
+        readonly error: import("@deepseek-ai/dsh-typert-protocol").RemoteFailure;
+    } | {
+        ok: true;
+        value: {
+            attachment: import("@deepseek-ai/dsh-attachment").ImageAttachmentRef | {
+                attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                name: string;
+                bytes: number;
+            };
+            data: Uint8Array<ArrayBuffer>;
+        };
+    }>;
     readAttachment: SessionFace['readAttachment'];
     updateQueue: SessionFace['updateQueue'];
     cancel: SessionFace['cancel'];

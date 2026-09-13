@@ -1,4 +1,4 @@
-import { D as EMPTY_BOARD_STATE, E as learningCardsInputSchema, O as applyBoardOps, T as LEARNING_PROMPT, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, k as boardBatchSchema, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-DGg6_bxM.js";
+import { D as EMPTY_BOARD_STATE, E as learningCardsInputSchema, O as applyBoardOps, T as LEARNING_PROMPT, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, k as boardBatchSchema, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-0LcFDvI5.js";
 import { createRequire } from "node:module";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -122,7 +122,7 @@ var SourceStorage = class {
 };
 //#endregion
 //#region lib/types/native-session-read.js
-function attachments(content) {
+function attachments$1(content) {
 	return content.flatMap((block) => block.type === "image" || block.type === "file" ? [block] : []);
 }
 /** Read native inbox occurrences and requested admission receipts without registering a Host list row. */
@@ -138,7 +138,7 @@ function readNativeState(agent, requestIds) {
 		placement,
 		...message.source.kind === "user" && "rpcId" in message.source ? { rpcId: String(message.source.rpcId) } : {},
 		text: message.content.filter((block) => block.type === "text").map((block) => block.text).join("\n"),
-		attachments: attachments(message.content)
+		attachments: attachments$1(message.content)
 	}));
 	const wanted = new Set(requestIds);
 	const receipts = /* @__PURE__ */ new Map();
@@ -149,7 +149,7 @@ function readNativeState(agent, requestIds) {
 		if (event.type === "agent/inbox/spliced") for (const message of event.data.inserted) {
 			if (message.source.kind !== "user" || !("rpcId" in message.source)) continue;
 			const id = String(message.source.rpcId);
-			if (wanted.has(id)) receipts.set(id, attachments(message.content));
+			if (wanted.has(id)) receipts.set(id, attachments$1(message.content));
 		}
 		if (event.type === "turn/start") {
 			blank = false;
@@ -158,7 +158,7 @@ function readNativeState(agent, requestIds) {
 		if (event.type === "turn/end") error = event.data.reason.kind === "error" ? event.data.reason.error.message : null;
 		if (event.type !== "user/message" || event.data.source.kind !== "user" || !("rpcId" in event.data.source)) continue;
 		const id = String(event.data.source.rpcId);
-		if (wanted.has(id)) receipts.set(id, attachments(event.data.content));
+		if (wanted.has(id)) receipts.set(id, attachments$1(event.data.content));
 	}
 	return {
 		running: agent.status === "running",
@@ -171,23 +171,46 @@ function readNativeState(agent, requestIds) {
 		}))
 	};
 }
-function* images(content) {
-	for (const block of content) if (block.type === "image") yield block;
-	else if (block.type === "tool-result") yield* images(block.content);
+//#endregion
+//#region lib/types/native-attachment-read.js
+function* attachments(content) {
+	for (const block of content) if (block.type === "image" || block.type === "file") yield block;
+	else if (block.type === "tool-result") yield* attachments(block.content);
 }
-/** Authorize an image against this exact owned log before reading DSH's immutable attachment store. */
-async function readNativeImage(ctx, session, id, signal) {
+/**
+* Read an image or verbatim file only after finding its reference in this Topic.
+* @param ctx - the owned Agent context supplying the native attachment store.
+* @param session - the exact Citer log authorizing the requested identity.
+* @param id - opaque attachment identity; never interpreted as a filesystem path.
+* @param signal - cancellation propagated to the host reader.
+* @returns the durable image/file reference and base64 bytes for the remote client.
+* Native readers retain byte-integrity checks. The browser materializes the complete
+* attachment for preview/download; this operation never reads the source Session.
+*/
+async function readNativeAttachment(ctx, session, id, signal) {
 	for (const event of session.snapshotEvents()) {
+		signal.throwIfAborted();
 		const content = event.type === "user/message" ? event.data.content : event.type === "assistant/message" ? event.data.message.content : event.type === "assistant/attempt" ? assembleAssistantStream(event.data.stream).blocks() : event.type === "tool/result" ? event.data.message.content : [];
-		for (const block of images(content)) if (String(block.attachment.attachmentId) === id) {
-			const stored = await ctx.attachments.readImage(block.attachment, signal);
+		for (const block of attachments(content)) if (String(block.attachment.attachmentId) === id) {
+			if (block.type === "image") {
+				const stored = await ctx.attachments.readImage(block.attachment, signal);
+				return {
+					attachment: stored.ref,
+					data: Buffer.from(stored.data).toString("base64")
+				};
+			}
+			const chunks = [];
+			for await (const chunk of ctx.attachments.readFileStream(block.attachment, signal)) {
+				signal.throwIfAborted();
+				chunks.push(chunk);
+			}
 			return {
-				attachment: stored.ref,
-				data: Buffer.from(stored.data).toString("base64")
+				attachment: block.attachment,
+				data: Buffer.concat(chunks).toString("base64")
 			};
 		}
 	}
-	throw new Error("此图片未被当前 Citer 会话引用");
+	throw new Error("此附件未被当前 Citer 会话引用");
 }
 //#endregion
 //#region lib/types/owned-session-cleanup.js
@@ -16946,15 +16969,15 @@ var TopicRuntime = class {
 				topic: await this.get(request.topicSessionId, signal)
 			};
 			case "native-state":
-			case "native-image": {
+			case "native-attachment": {
 				const metadata = await this.index.loadBySessionId(request.topicSessionId);
 				const handle = await this.ensureHandle(metadata, signal);
 				return request.action === "native-state" ? {
 					kind: "native-state",
 					state: readNativeState(handle.agent, request.requestIds)
 				} : {
-					kind: "native-image",
-					...await readNativeImage(handle.agent.ctx, handle.agent.session, request.attachmentId, signal)
+					kind: "native-attachment",
+					...await readNativeAttachment(handle.agent.ctx, handle.agent.session, request.attachmentId, signal)
 				};
 			}
 			case "ask": return {

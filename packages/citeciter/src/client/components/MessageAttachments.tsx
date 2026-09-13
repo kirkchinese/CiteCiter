@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { NativeComposer } from '../native-composer.ts'
+import { MessageFile } from './MessageFile.tsx'
+import css from './MessageAttachments.module.css'
 
 export interface MessageAttachment { readonly kind: 'image' | 'file', readonly id: string, readonly name: string }
 
-function MessageImage({ sessionId, attachment, load }: { readonly sessionId: string, readonly attachment: MessageAttachment, readonly load: NativeComposer['image'] }) {
+function MessageImage({ sessionId, attachment, load }: { readonly sessionId: string, readonly attachment: MessageAttachment, readonly load: NativeComposer['attachment'] }) {
   const [url, setUrl] = useState<string>()
   const [error, setError] = useState(false)
   useEffect(() => {
@@ -20,6 +22,6 @@ function MessageImage({ sessionId, attachment, load }: { readonly sessionId: str
 }
 
 /** Render durable native attachments with a session-authorized loader and owned object URLs. */
-export function MessageAttachments({ sessionId, attachments, load }: { readonly sessionId: string, readonly attachments: readonly MessageAttachment[], readonly load: NativeComposer['image'] }) {
-  return <div>{attachments.map(item => item.kind === 'image' ? <MessageImage key={item.id} sessionId={sessionId} attachment={item} load={load} /> : <span key={item.id} title={item.id}>📎 {item.name}</span>)}</div>
+export function MessageAttachments({ sessionId, attachments, load }: { readonly sessionId: string, readonly attachments: readonly MessageAttachment[], readonly load: NativeComposer['attachment'] }) {
+  return <div className={css.attachments}>{attachments.map(item => item.kind === 'image' ? <MessageImage key={item.id} sessionId={sessionId} attachment={item} load={load} /> : <MessageFile key={item.id} sessionId={sessionId} attachment={item} load={load} />)}</div>
 }

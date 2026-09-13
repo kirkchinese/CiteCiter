@@ -85,11 +85,19 @@ export class CiterSessionFace implements SessionFace {
     } catch (error) { this.retire(id, { reason: 'failed' }); throw error }
   }
 
-  readAttachment: SessionFace['readAttachment'] = async attachmentId => {
-    const result = await this.ctx.remote.citeciter.request({ action: 'native-image', topicSessionId: this.sessionId, attachmentId }, this.lifetime.signal)
+  /** Generic Citer attachment read; the installed SessionFace verb only supports images. */
+  readCiterAttachment = async (attachmentId: string) => {
+    const result = await this.ctx.remote.citeciter.request({ action: 'native-attachment', topicSessionId: this.sessionId, attachmentId }, this.lifetime.signal)
     if (!result.ok) return result
-    if (result.value.kind !== 'native-image') throw new Error('Citer 图片响应类型不匹配')
-    return { ok: true, value: { attachment: result.value.attachment, data: Uint8Array.from(atob(result.value.data), char => char.charCodeAt(0)) } }
+    if (result.value.kind !== 'native-attachment') throw new Error('Citer 附件响应类型不匹配')
+    return { ok: true as const, value: { attachment: result.value.attachment, data: Uint8Array.from(atob(result.value.data), char => char.charCodeAt(0)) } }
+  }
+
+  readAttachment: SessionFace['readAttachment'] = async attachmentId => {
+    const result = await this.readCiterAttachment(attachmentId)
+    if (!result.ok) return result
+    if (!('mediaType' in result.value.attachment)) throw new Error('此附件是普通文件，请使用文件下载入口')
+    return { ok: true, value: { attachment: result.value.attachment, data: result.value.data } }
   }
 
   updateQueue: SessionFace['updateQueue'] = async (itemId, action) => {

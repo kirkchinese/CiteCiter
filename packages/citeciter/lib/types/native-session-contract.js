@@ -6,6 +6,8 @@ export const nativeImageSchema = z.object({
     name: z.string().optional(), originalDimensions: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }).strict().optional(),
 }).strict().transform(({ name, originalDimensions, ...image }) => ({ ...image, ...(name === undefined ? {} : { name }), ...(originalDimensions === undefined ? {} : { originalDimensions }) }));
 const file = z.object({ attachmentId, name: z.string(), bytes: z.number().int().nonnegative() }).strict();
+/** Wire reference for an authorized attachment; generic files have no image metadata. */
+export const nativeAttachmentRefSchema = z.union([nativeImageSchema, file]);
 export const nativeAttachmentSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('image'), attachment: nativeImageSchema }).strict(),
     z.object({ type: z.literal('file'), attachment: file }).strict(),

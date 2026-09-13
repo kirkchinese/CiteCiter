@@ -1,4 +1,3 @@
-import type { AttachmentIdType } from '@deepseek-ai/dsh-attachment'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ComposerAttachment, ConversationController, DraftAttachmentId, DraftFileUploads } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -13,7 +12,8 @@ export interface NativeComposer {
   retry(sessionId: string, id: DraftAttachmentId): void
   watch(sessionId: string, listener: (snapshot: SessionSnapshot) => void): () => void
   queue(sessionId: string, id: Parameters<SessionFace['updateQueue']>[0], action: Parameters<SessionFace['updateQueue']>[1]): Promise<void>
-  image(sessionId: string, id: string): Promise<Blob>
+  /** Read an image or file through its owning Session's attachment authorization. */
+  attachment(sessionId: string, id: string): Promise<Blob>
   add(sessionId: string, files: readonly File[]): Promise<readonly ComposerAttachment[]>
   remove(id: DraftAttachmentId): void
   send(sessionId: string, text: string, attachments: readonly DraftAttachmentId[], mode: DeliveryMode): Promise<void>
@@ -54,11 +54,11 @@ export function createNativeComposer(ctx: Context): NativeComposer {
       const result = await (await binding(id)).session.updateQueue(item, action)
       if (!result.ok && result.error.code !== 'session/queue-item-not-found') throw new Error(result.error.message)
     },
-    image: async (sessionId, id) => {
+    attachment: async (sessionId, id) => {
       const target = await binding(sessionId)
-      const result = await target.session.readAttachment(id as AttachmentIdType)
+      const result = await target.session.readCiterAttachment(id)
       if (!result.ok) throw new Error(result.error.message)
-      return new Blob([new Uint8Array(result.value.data)], { type: result.value.attachment.mediaType })
+      return new Blob([new Uint8Array(result.value.data)], { type: 'mediaType' in result.value.attachment ? result.value.attachment.mediaType : 'application/octet-stream' })
     },
     add: async (id, files) => {
       await binding(id)

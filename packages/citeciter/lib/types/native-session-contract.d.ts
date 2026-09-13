@@ -28,6 +28,39 @@ export declare const nativeImageSchema: z.ZodPipe<z.ZodObject<{
         height: number;
     } | undefined;
 }>>;
+/** Wire reference for an authorized attachment; generic files have no image metadata. */
+export declare const nativeAttachmentRefSchema: z.ZodUnion<readonly [z.ZodPipe<z.ZodObject<{
+    attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<AttachmentIdType, string>>;
+    mediaType: z.ZodEnum<{
+        "image/png": "image/png";
+        "image/jpeg": "image/jpeg";
+        "image/webp": "image/webp";
+        "image/gif": "image/gif";
+    }>;
+    bytes: z.ZodNumber;
+    width: z.ZodNumber;
+    height: z.ZodNumber;
+    name: z.ZodOptional<z.ZodString>;
+    originalDimensions: z.ZodOptional<z.ZodObject<{
+        width: z.ZodNumber;
+        height: z.ZodNumber;
+    }, z.core.$strict>>;
+}, z.core.$strict>, z.ZodTransform<ImageAttachmentRef, {
+    attachmentId: AttachmentIdType;
+    mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+    bytes: number;
+    width: number;
+    height: number;
+    name?: string | undefined;
+    originalDimensions?: {
+        width: number;
+        height: number;
+    } | undefined;
+}>>, z.ZodObject<{
+    attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<AttachmentIdType, string>>;
+    name: z.ZodString;
+    bytes: z.ZodNumber;
+}, z.core.$strict>]>;
 export declare const nativeAttachmentSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     type: z.ZodLiteral<"image">;
     attachment: z.ZodPipe<z.ZodObject<{

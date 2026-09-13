@@ -41,12 +41,12 @@ export function createNativeComposer(ctx) {
             if (!result.ok && result.error.code !== 'session/queue-item-not-found')
                 throw new Error(result.error.message);
         },
-        image: async (sessionId, id) => {
+        attachment: async (sessionId, id) => {
             const target = await binding(sessionId);
-            const result = await target.session.readAttachment(id);
+            const result = await target.session.readCiterAttachment(id);
             if (!result.ok)
                 throw new Error(result.error.message);
-            return new Blob([new Uint8Array(result.value.data)], { type: result.value.attachment.mediaType });
+            return new Blob([new Uint8Array(result.value.data)], { type: 'mediaType' in result.value.attachment ? result.value.attachment.mediaType : 'application/octet-stream' });
         },
         add: async (id, files) => {
             await binding(id);

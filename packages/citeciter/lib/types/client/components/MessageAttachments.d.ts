@@ -8,5 +8,5 @@ export interface MessageAttachment {
 export declare function MessageAttachments({ sessionId, attachments, load }: {
     readonly sessionId: string;
     readonly attachments: readonly MessageAttachment[];
-    readonly load: NativeComposer['image'];
+    readonly load: NativeComposer['attachment'];
 }): import("react").JSX.Element;

@@ -923,7 +923,7 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     topicSessionId: z.ZodString;
     requestIds: z.ZodArray<z.ZodString>;
 }, z.core.$strict>, z.ZodObject<{
-    action: z.ZodLiteral<"native-image">;
+    action: z.ZodLiteral<"native-attachment">;
     topicSessionId: z.ZodString;
     attachmentId: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{
@@ -1101,8 +1101,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }, z.core.$strict>>;
     }, z.core.$strict>;
 }, z.core.$strict>, z.ZodObject<{
-    kind: z.ZodLiteral<"native-image">;
-    attachment: z.ZodPipe<z.ZodObject<{
+    kind: z.ZodLiteral<"native-attachment">;
+    attachment: z.ZodUnion<readonly [z.ZodPipe<z.ZodObject<{
         attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
         mediaType: z.ZodEnum<{
             "image/png": "image/png";
@@ -1129,7 +1129,11 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             width: number;
             height: number;
         } | undefined;
-    }>>;
+    }>>, z.ZodObject<{
+        attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+        name: z.ZodString;
+        bytes: z.ZodNumber;
+    }, z.core.$strict>]>;
     data: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"topic">;

@@ -4,7 +4,7 @@ CiteCiter is an external DSH plugin, not the DeepSeek Harness monorepo. Its pack
 
 ## Baseline and ownership
 
-- CiteCiter 0.8 alpha.1 targets DSH `0.1.5-rc.1` and Desktop `2.0.9`, as requested during the September 10 acceptance. The released 0.6 and earlier 0.7 preview targeted DSH `0.1.2-rc.1` and Desktop `2.0.5`. Alpha is a separate migration target.
+- CiteCiter 0.8 targets DSH `0.1.5-rc.1` and Desktop `2.0.9`. The released 0.6 and earlier 0.7 preview targeted DSH `0.1.2-rc.1` and Desktop `2.0.5`. DSH alpha is a separate migration target.
 - Native learning preview is optional. Its public types and pure address utility target resolved subpackages `0.1.5-rc.2`; the top-level DSH version alone does not guarantee this service.
 - Keep behavior in plugins and documented services/events; do not patch the host Agent Loop.
 - Citer owns `.dsh/sessions/<workspace>/<sourceSession>/citeciter/`, including Topic logs, archive state and deletion. Preserve source logs and migration backups. Citer members must not appear in the Host list.

@@ -1,4 +1,3 @@
-import { assembleAssistantStream } from '@deepseek-ai/dsh-llm';
 function attachments(content) {
     return content.flatMap(block => block.type === 'image' || block.type === 'file' ? [block] : []);
 }
@@ -44,27 +43,4 @@ export function readNativeState(agent, requestIds) {
             receipts.set(id, attachments(event.data.content));
     }
     return { running: agent.status === 'running', blank, error, queue, receipts: [...receipts].map(([requestId, attachments]) => ({ requestId, attachments })) };
-}
-function* images(content) {
-    for (const block of content) {
-        if (block.type === 'image')
-            yield block;
-        else if (block.type === 'tool-result')
-            yield* images(block.content);
-    }
-}
-/** Authorize an image against this exact owned log before reading DSH's immutable attachment store. */
-export async function readNativeImage(ctx, session, id, signal) {
-    for (const event of session.snapshotEvents()) {
-        const content = event.type === 'user/message' ? event.data.content
-            : event.type === 'assistant/message' ? event.data.message.content
-                : event.type === 'assistant/attempt' ? assembleAssistantStream(event.data.stream).blocks()
-                    : event.type === 'tool/result' ? event.data.message.content : [];
-        for (const block of images(content))
-            if (String(block.attachment.attachmentId) === id) {
-                const stored = await ctx.attachments.readImage(block.attachment, signal);
-                return { attachment: stored.ref, data: Buffer.from(stored.data).toString('base64') };
-            }
-    }
-    throw new Error('此图片未被当前 Citer 会话引用');
 }

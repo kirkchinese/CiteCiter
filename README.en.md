@@ -10,11 +10,11 @@ This is an interaction diagram, not a screenshot. Selection actions prepare draf
 
 ## Version and installation
 
-This branch is **0.8.0-alpha.1, an unpublished development candidate**. Baseline: DSH `0.1.5-rc.1`, [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`, Node.js `^22.19.0 || >=24.0.0`. Windows acceptance uses Node 24.19.0. DSH next, alpha and TUI are separate targets.
+Current version: **0.8.0**. Baseline: DSH `0.1.5-rc.1`, [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`, Node.js `^22.19.0 || >=24.0.0`. Windows acceptance uses Node 24.19.0. DSH next, alpha and TUI are separate targets.
 
 | Version | Status | Main differences |
 | --- | --- | --- |
-| 0.8.0-alpha.1 | This branch; unpublished | Native Sessions, manual drafts, DSH permissions, attachments, queue and AI learning plans |
+| 0.8.0 | Current version | Native Sessions, manual drafts, DSH permissions, attachments, queue and AI learning plans |
 | 0.7.0-beta.3 | Previous development candidate | Private read-only Topics, selection wheel, manual five-stage learning |
 | 0.6.0 | Published | DSH 0.1.2-rc.1 / Desktop 2.0.5 baseline |
 
@@ -22,11 +22,11 @@ Update the host CLI and install the published package:
 
 ```powershell
 npm install -g @deepseek-ai/dsh@latest
-dsh plugin --profile web add @kirkchinese/dsh-citeciter
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.0
 dsh web
 ```
 
-This installs the version currently published on npm, not the unpublished 0.8 features. If npm blocks native dependency installation scripts, follow its output to allow the named dependencies and reinstall. Do not disable script restrictions globally.
+This installs 0.8.0. For DSH 0.1.2-rc.1 / Desktop 2.0.5, keep using @kirkchinese/dsh-citeciter@0.6.0. If npm blocks native dependency installation scripts, follow its output to allow the named dependencies and reinstall. Do not disable script restrictions globally.
 
 Build and install this branch locally:
 
@@ -35,7 +35,7 @@ pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
-dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.0-alpha.1.tgz
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.0.tgz
 ```
 
 Desktop bundles its own DSH. Update the Desktop application, then run `dsh plugin add <absolute package path>` in its managed terminal. Updating the global CLI does not update Desktop's embedded runtime. Restart the relevant host after installation. Do not run Web and Desktop writers against the same DSH home simultaneously.
@@ -54,7 +54,7 @@ Removing an unsent source attachment makes its reading tool reject access; new T
 
 New Topics start **read-only**, even when their source has full access. The input's permission menu selects native DSH read-only, workspace-write or full-access mode. Modification requires an explicit user mode choice or changed new-Topic default. DSH approval, sandbox and tool policies remain active.
 
-Input controls are attachments, permission mode, model/reasoning and Send. Choose the model first, then one of its supported reasoning levels. Images and generic files use native DSH attachment services, with upload state and retry. Select files from the attachment menu, paste images into the input, or drop files onto the Citer panel. The drop invitation names the receiving Topic; release adds attachments only to that Topic. Drops are unavailable without a current Topic, and files dropped into Citer are not copied into the source draft. Mixed image and text paste retains both. Host rejection shows its cause and retains the draft; an accepted message is cleared even if the subsequent status read fails.
+Input controls are attachments, permission mode, model/reasoning and Send. Choose the model first, then one of its supported reasoning levels. Images and generic files use native DSH attachment services, with upload state and retry. Select files from the attachment menu, paste images into the input, or drop files onto the Citer panel. The drop invitation names the receiving Topic; release adds attachments only to that Topic. Drops are unavailable without a current Topic, and files dropped into Citer are not copied into the source draft. Mixed image and text paste retains both. Sent files show a download icon and filename; click to save the original attachment. User messages omit the role label. Host rejection shows its cause and retains the draft; an accepted message is cleared even if the subsequent status read fails.
 
 While a reply runs, Enter and Send follow DSH's busy-send preference; Ctrl + Enter temporarily uses the other delivery mode. Queued messages run after the current turn; steering is admitted at its next step. The composer toggle overrides the current Topic without changing the host default. Pending rows can be removed or changed to steering. Stop ends the response and preserves existing output; pending work follows DSH's queue rules.
 
@@ -117,7 +117,7 @@ A short right-click leaves a clickable wheel; Shift + right-click preserves the 
 
 ## Development and acceptance
 
-[Contributing](CONTRIBUTING.md) · [0.8 release notes](docs/releases/v0.8.0-alpha.1.md) · [Real-model acceptance](docs/validation/2026-09-12-native-real-model.md)
+[Contributing](CONTRIBUTING.md) · [0.8 release notes](docs/releases/v0.8.0.md) · [Real-model acceptance](docs/validation/2026-09-12-native-real-model.md)
 
 Host and Client compile separately. Native session adaptation, source reading, index storage, attachments, queue, board capture, learning plans and UI controls are separate modules. The DSH Agent Loop is unchanged. The full host input component has no supported cross-session embedding interface; Citer reuses public ConversationController / SessionFace behavior and does not automatically inherit every third-party composer extension.
 

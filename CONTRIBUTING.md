@@ -29,6 +29,7 @@ Follow the [DSH architecture](https://github.com/deepseek-ai/deepseek-harness/bl
 | topic-runtime.ts | Topic use cases, tool contributions and legacy compatibility |
 | board-capture.ts | Capture correlation, cancellation, timeout and native attachment storage |
 | client/native-composer.ts | Published DSH attachment, send and queue services |
+| native-attachment-read.ts / client/file-download.ts | Exact Topic authorization, native file/image reads and download lifetime |
 | client/draft-references.ts | Draft references and exact submission serialization |
 | client/learning-route.ts | Learning request constraints and native todo result reading |
 | client/panel-drag.ts, host-dock.ts | Pointer and host layout lifecycles |
@@ -54,6 +55,6 @@ Do not retain artificial providers, fixtures or temporary test scripts. Remove t
 
 Keep root/package Chinese and English READMEs aligned. Public behavior changes update release notes, JSDoc, `.agents/notes/` and `docs/validation/`. Identify diagrams and actual results accurately. Use one physical line per paragraph and one final newline.
 
-Current authorization permits committing and pushing the development branch, not npm publication, tags, merging or a formal Release. Building a package is not publishing it.
+Publish only when explicitly requested, using the inspected package from the tested commit. Verify npm version, dist-tag and integrity after publishing; attach the same package to the matching GitHub Release. Building a package does not publish it or authorize merging a branch.
 
 MIT License.

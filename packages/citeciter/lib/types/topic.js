@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { nativeStateSchema, nativeImageSchema } from "./native-session-contract.js";
+import { nativeStateSchema, nativeAttachmentRefSchema } from "./native-session-contract.js";
 import { boardSnapshotSchema } from "./board.js";
 import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from "./actions.js";
 /** Durable Citation version used by Observer Topics. v4 adds the EvidenceRef entry discriminator. */
@@ -461,7 +461,7 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
         z.object({ action: z.literal('board-capture'), topicSessionId: topicSessionIdSchema, id: z.string().min(1), png: z.string().max(8_000_000).regex(/^[A-Za-z0-9+/]+={0,2}$/).optional(), error: z.string().max(500).optional() }).strict(),
         z.object({ action: z.literal('get'), topicSessionId: topicSessionIdSchema }).strict(),
         z.object({ action: z.literal('native-state'), topicSessionId: topicSessionIdSchema, requestIds: z.array(z.string().min(1).max(100)).max(32) }).strict(),
-        z.object({ action: z.literal('native-image'), topicSessionId: topicSessionIdSchema, attachmentId: z.string().min(1).max(200) }).strict(),
+        z.object({ action: z.literal('native-attachment'), topicSessionId: topicSessionIdSchema, attachmentId: z.string().min(1).max(200) }).strict(),
         z.object({
             action: z.literal('ask'),
             requestId: z.string().min(1).optional(),
@@ -532,7 +532,7 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
 /** Strict response union returned by the single Remote command endpoint. */
 export const citeCiterResponseSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('native-state'), state: nativeStateSchema }).strict(),
-    z.object({ kind: z.literal('native-image'), attachment: nativeImageSchema, data: z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),
+    z.object({ kind: z.literal('native-attachment'), attachment: nativeAttachmentRefSchema, data: z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),
     z.object({ kind: z.literal('topic'), topic: topicSnapshotSchema }).strict(),
     z.object({ kind: z.literal('topics'), topics: z.array(topicSummarySchema) }).strict(),
     z.object({ kind: z.literal('models'), providers: z.array(providerOptionSchema) }).strict(),

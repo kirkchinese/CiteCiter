@@ -1,5 +1,6 @@
 import { SourceStorage } from './source-storage.ts'
-import { readNativeState, readNativeImage } from './native-session-read.ts'
+import { readNativeState } from './native-session-read.ts'
+import { readNativeAttachment } from './native-attachment-read.ts'
 import { removeOwnedSessionTree } from './owned-session-cleanup.ts'
 import { copySessionHistory } from './session-migration.ts'
 import { TopicIndex, type TopicDeletionMarker, unlinkIfPresent, rmdirIfEmpty, removeOwnedTopicGenerations } from './topic-index.ts'
@@ -869,12 +870,12 @@ export class TopicRuntime {
       case 'get':
         return { kind: 'topic', topic: await this.get(request.topicSessionId, signal) }
       case 'native-state':
-      case 'native-image': {
+      case 'native-attachment': {
         const metadata = await this.index.loadBySessionId(request.topicSessionId)
         const handle = await this.ensureHandle(metadata, signal)
         return request.action === 'native-state'
           ? { kind: 'native-state', state: readNativeState(handle.agent, request.requestIds) }
-          : { kind: 'native-image', ...await readNativeImage(handle.agent.ctx, handle.agent.session, request.attachmentId, signal) }
+          : { kind: 'native-attachment', ...await readNativeAttachment(handle.agent.ctx, handle.agent.session, request.attachmentId, signal) }
       }
       case 'ask':
         return { kind: 'topic', topic: await this.askIdempotent(request, signal) }

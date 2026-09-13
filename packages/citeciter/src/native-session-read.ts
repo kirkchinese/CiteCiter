@@ -1,7 +1,5 @@
-import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { assembleAssistantStream, type ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { Session } from '@deepseek-ai/dsh-session'
+import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { NativeAttachment, NativeState } from './native-session-contract.ts'
 
 function attachments(content: readonly ContentBlock[]): NativeAttachment[] {
@@ -39,26 +37,4 @@ export function readNativeState(agent: Agent, requestIds: readonly string[]): Na
     if (wanted.has(id)) receipts.set(id, attachments(event.data.content))
   }
   return { running: agent.status === 'running', blank, error, queue, receipts: [...receipts].map(([requestId, attachments]) => ({ requestId, attachments })) }
-}
-
-function* images(content: readonly ContentBlock[]): Generator<Extract<ContentBlock, { type: 'image' }>> {
-  for (const block of content) {
-    if (block.type === 'image') yield block
-    else if (block.type === 'tool-result') yield* images(block.content)
-  }
-}
-
-/** Authorize an image against this exact owned log before reading DSH's immutable attachment store. */
-export async function readNativeImage(ctx: Context, session: Session, id: string, signal: AbortSignal) {
-  for (const event of session.snapshotEvents()) {
-    const content = event.type === 'user/message' ? event.data.content
-      : event.type === 'assistant/message' ? event.data.message.content
-      : event.type === 'assistant/attempt' ? assembleAssistantStream(event.data.stream).blocks()
-      : event.type === 'tool/result' ? event.data.message.content : []
-    for (const block of images(content)) if (String(block.attachment.attachmentId) === id) {
-      const stored = await ctx.attachments.readImage(block.attachment, signal)
-      return { attachment: stored.ref, data: Buffer.from(stored.data).toString('base64') }
-    }
-  }
-  throw new Error('此图片未被当前 Citer 会话引用')
 }

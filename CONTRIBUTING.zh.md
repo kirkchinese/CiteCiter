@@ -54,6 +54,6 @@ Web 使用全局 CLI：`dsh plugin --profile web add <安装包绝对路径>`。
 
 根目录与包目录的中英文 README 保持一致。修改公开行为时同步 Release 说明、JSDoc、`.agents/notes/` 和 `docs/validation/`。图片应标明示意图或真实结果；每段一个物理行，文件末尾一个换行。
 
-当前授权仅包括提交与推送开发分支，不包含发布 npm、打标签、合并或创建正式 Release。构建安装包不等于发布。
+仅在明确要求发布时，发布已验收提交对应的检查后安装包。发布后核对 npm 版本、dist-tag 和完整性，并将同一安装包附在对应 GitHub Release。构建安装包不等于发布，也不授权合并分支。
 
 MIT License.

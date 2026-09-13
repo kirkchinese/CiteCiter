@@ -125,7 +125,7 @@ function FlowDisclosure({
   )
 }
 
-function ToolRow({ message, sessionId, load }: { readonly message: Extract<TopicMessage, { role: 'tool' }>, readonly sessionId: string, readonly load: NativeComposer['image'] }) {
+function ToolRow({ message, sessionId, load }: { readonly message: Extract<TopicMessage, { role: 'tool' }>, readonly sessionId: string, readonly load: NativeComposer['attachment'] }) {
   const args = jsonObject(message.arguments)
   const result = message.result === null ? null : jsonObject(message.result)
   const summary = message.running
@@ -539,11 +539,11 @@ export function CitePanel({ nativeComposer, useCompanion, useOverlay, useInterac
 
               {view === 'explain' && <div ref={transcript.ref} className={css.transcript} aria-live="polite" onScroll={transcript.onScroll}>
                 {visibleMessages.map((message) => {
-                  if (message.role === 'tool') return <ToolRow key={message.id} message={message} sessionId={active!.topic.sessionId} load={nativeComposer.image} />
+                  if (message.role === 'tool') return <ToolRow key={message.id} message={message} sessionId={active!.topic.sessionId} load={nativeComposer.attachment} />
                   if (message.role === 'user') return (
-                    <article key={message.id} className={css.userTurn} data-citeciter-message={message.id}>
-                        <MessageAttachments sessionId={active!.topic.sessionId} attachments={message.attachments ?? []} load={nativeComposer.image} />
-                      <div className={css.turnRole}>你</div>{message.text.startsWith('【学习阶段：') ? <details className={learningCss.questionDetails}>
+                    <article key={message.id} className={css.userTurn} data-citeciter-message={message.id} aria-label="用户消息">
+                      <MessageAttachments sessionId={active!.topic.sessionId} attachments={message.attachments ?? []} load={nativeComposer.attachment} />
+                      {message.text.startsWith('【学习阶段：') ? <details className={learningCss.questionDetails}>
                         <summary>{message.text.split('\n')[0]}{message.text.includes('\n\n我的问题：') ? ` · ${message.text.split('\n\n我的问题：').slice(1).join('\n\n我的问题：')}` : ''}</summary><p>{message.text}</p>
                       </details> : <UserMessageBody text={message.text} />}
                     </article>

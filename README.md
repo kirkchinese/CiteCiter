@@ -10,11 +10,11 @@ CiteCiter 为 DeepSeek Harness 提供带来源引用的独立工作区。可从�
 
 ## 版本与安装
 
-本分支为 **0.8.0-alpha.1 开发候选版，未发布**。兼容基线为 DSH `0.1.5-rc.1`、[DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`；Node.js `^22.19.0 || >=24.0.0`。本轮 Windows 验收使用 Node 24.19.0。DSH 的 next、alpha 和 TUI 属于其他目标。
+当前版本为 **0.8.0**。兼容基线为 DSH `0.1.5-rc.1`、[DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`；Node.js `^22.19.0 || >=24.0.0`。本轮 Windows 验收使用 Node 24.19.0。DSH 的 next、alpha 和 TUI 属于其他目标。
 
 | 版本 | 状态 | 主要差异 |
 | --- | --- | --- |
-| 0.8.0-alpha.1 | 本分支，未发布 | 原生会话、手动草稿、DSH 权限、原生附件与队列、AI 学习计划 |
+| 0.8.0 | 当前版本 | 原生会话、手动草稿、DSH 权限、原生附件与队列、AI 学习计划 |
 | 0.7.0-beta.3 | 前一开发候选版 | 私有只读 Topic、选文轮盘、手动五阶段学习 |
 | 0.6.0 | 已发布 | DSH 0.1.2-rc.1 / Desktop 2.0.5 基线 |
 
@@ -22,11 +22,11 @@ CiteCiter 为 DeepSeek Harness 提供带来源引用的独立工作区。可从�
 
 ```powershell
 npm install -g @deepseek-ai/dsh@latest
-dsh plugin --profile web add @kirkchinese/dsh-citeciter
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.0
 dsh web
 ```
 
-此命令安装 npm 当前已发布版本，不会获得未发布的 0.8 功能。如 npm 提示本地原生依赖的安装脚本被阻止，按 npm 输出对明确列出的依赖放行后重装。不要通过全局关闭脚本限制解决。
+此命令安装 0.8.0。旧宿主 DSH 0.1.2-rc.1 / Desktop 2.0.5 应继续使用 @kirkchinese/dsh-citeciter@0.6.0。如 npm 提示本地原生依赖的安装脚本被阻止，按 npm 输出对明确列出的依赖放行后重装。不要通过全局关闭脚本限制解决。
 
 本地构建并安装此分支：
 
@@ -35,7 +35,7 @@ pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
-dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.0-alpha.1.tgz
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.0.tgz
 ```
 
 Desktop 使用自己的内置 DSH。更新 Desktop 应用后，在其管理终端执行 `dsh plugin add <安装包绝对路径>`；全局 CLI 更新不会更新 Desktop 内置运行时。安装后重启相应宿主。同一 DSH home 不要同时运行 Web 和 Desktop 写入进程。
@@ -54,7 +54,7 @@ Desktop 使用自己的内置 DSH。更新 Desktop 应用后，在其管理终�
 
 新 Topic 默认 **只读**，即使来源会话具有完全权限。输入框的权限菜单使用 DSH 的只读、工作区内修改、完全权限模式。只有用户主动选择模式或更改新 Topic 默认值后，才允许相应修改。DSH 审批、沙箱和工具限制继续生效；插件不绕过权限服务。
 
-输入框从左到右为附件、权限模式、模型与思考强度、发送。模型菜单先选模型，再选该模型支持的思考强度。图片和普通文件通过 DSH 原生附件服务发送，文件显示上传状态，失败可重试。可从附件菜单选择文件，在输入框粘贴图片，或拖入 Citer 面板。拖放提示显示接收的 Topic，松开只向该 Topic 添加附件；没有可用 Topic 时不接收。主对话不会收到拖入 Citer 的副本。混合粘贴时同时保留图片与文字。宿主拒收时显示原因并保留草稿；宿主已接收的消息不会因后续状态读取失败而重新留在输入框。
+输入框从左到右为附件、权限模式、模型与思考强度、发送。模型菜单先选模型，再选该模型支持的思考强度。图片和普通文件通过 DSH 原生附件服务发送，文件显示上传状态，失败可重试。可从附件菜单选择文件，在输入框粘贴图片，或拖入 Citer 面板。拖放提示显示接收的 Topic，松开只向该 Topic 添加附件；没有可用 Topic 时不接收。主对话不会收到拖入 Citer 的副本。混合粘贴时同时保留图片与文字。已发送文件显示下载图标与文件名，点击保存原附件；用户消息不显示角色标签。宿主拒收时显示原因并保留草稿；宿主已接收的消息不会因后续状态读取失败而重新留在输入框。
 
 回答运行时，Enter 和发送按钮跟随 DSH 设置中的“繁忙时的发送行为”；Ctrl + Enter 临时使用另一种方式。排队在当前轮结束后处理，插话由 DSH 在当前轮的下一步接收。输入区的切换按钮只覆盖当前 Topic，不改写宿主默认值。队列显示待处理内容，可移除或转为插话。停止结束当前回答并保留已生成内容；待处理队列继续遵循 DSH 规则。
 
@@ -119,7 +119,7 @@ Citer 打开时，从右上角“…” → “文档阅读”进入阅读器；
 
 ## 开发与验收
 
-[开发规范](CONTRIBUTING.zh.md) · [0.8 版本说明](docs/releases/v0.8.0-alpha.1.md) · [真实模型验收](docs/validation/2026-09-12-native-real-model.md)
+[开发规范](CONTRIBUTING.zh.md) · [0.8 版本说明](docs/releases/v0.8.0.md) · [真实模型验收](docs/validation/2026-09-12-native-real-model.md)
 
 Host 和 Client 分别编译。原生会话适配、来源读取、索引存储、附件、发送队列、板书截图、学习计划和 UI 控件独立实现；不修改 DSH Agent Loop。完整宿主输入组件尚无跨会话嵌入接口，Citer 通过公开 ConversationController / SessionFace 复用行为，不能自动继承所有第三方输入区扩展。
 
