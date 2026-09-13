@@ -44,7 +44,7 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
   const [attachOpen, setAttachOpen] = useState(false)
   const running = phase === 'running'
   const stopping = phase === 'stopping'
-  return <form className={css.composer} data-folded={folded || undefined} onSubmit={onSubmit} onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault() }} onDrop={event => { if (event.dataTransfer.files.length > 0) { event.preventDefault(); onFiles([...event.dataTransfer.files]) } }}>
+  return <form className={css.composer} data-folded={folded || undefined} onSubmit={onSubmit}>
     <input hidden ref={fileInput} type="file" multiple onChange={event => { onFiles([...(event.currentTarget.files ?? [])]); event.currentTarget.value = '' }} />
     {attachments}
     {folded && <button type="button" className={css.expandButton} onClick={onExpand}>{question.trim() === '' ? '补充问题' : '编辑草稿'}</button>}

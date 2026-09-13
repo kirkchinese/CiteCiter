@@ -1,0 +1,28 @@
+.hint {
+  position: absolute;
+  inset: 8px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  pointer-events: none;
+  border: 2px solid var(--dsw-alias-link, #3478f6);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--dsw-alias-bg-base, #fff) 88%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--dsw-alias-label-primary, #20232a);
+}
+
+.hint span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary, #606875);
+  font-size: 13px;
+}
+
+.hint[data-disabled] { border-color: var(--dsw-alias-label-secondary, #606875); }

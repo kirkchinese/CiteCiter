@@ -7,6 +7,8 @@ import type { ComposerAttachment } from '@deepseek-ai/dsh-client-ui-conversation
 import { MessageAttachments } from './MessageAttachments.tsx'
 import { BoardCaptureSurface } from './BoardCaptureSurface.tsx'
 import { FileAttachments } from './FileAttachments.tsx'
+import { FileDropHint } from './FileDropHint.tsx'
+import { useFileDrop } from '../file-drop.ts'
 import { NativeQueue } from './NativeQueue.tsx'
 import { NativeInteraction } from './NativeInteraction.tsx'
 import type { UseSessionPendingInteraction } from '@deepseek-ai/dsh-client-ui-session/client'
@@ -273,6 +275,16 @@ export function CitePanel({ nativeComposer, useCompanion, useOverlay, useInterac
   const modalReturnFocusRef = useRef<HTMLElement | null>(null)
   const open = overlay.panelOpen
   const active = snapshot.active
+  const addFiles = (batch: readonly File[]) => {
+    if (active === null) return
+    const key = active.topic.sessionId
+    void nativeComposer.add(key, batch).then(added => {
+      setFiles(current => ({ ...current, [key]: [...(current[key] ?? []), ...added] }))
+      setAttachmentError(null)
+    }).catch(error => setAttachmentError(String(error)))
+  }
+  const canDropFiles = active !== null && active.topic.modelConfig !== undefined
+  const fileDrop = useFileDrop(open, canDropFiles, addFiles)
   const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error' || snapshot.phase === 'running'
   const dock = useHostDock(panelRef, open, widthPercent, overlay.presentation === 'floating')
   const compact = dock?.mode === 'page'
@@ -448,9 +460,11 @@ export function CitePanel({ nativeComposer, useCompanion, useOverlay, useInterac
         '--citeciter-panel-width': `${dockWidthPercent}vw`,
       } as CSSProperties}
       data-citeciter-panel
+      {...fileDrop.handlers}
       data-arrangement={floating ? 'floating' : dock?.mode ?? 'unsupported'}
       aria-label="CiteCiter 学习伴侣"
     >
+      {fileDrop.active && <FileDropHint enabled={canDropFiles} title={active?.topic.title} />}
       {docked && !floating && (
         <div
           className={css.resizeHandle}
@@ -574,7 +588,7 @@ export function CitePanel({ nativeComposer, useCompanion, useOverlay, useInterac
                 : (
                   <TopicComposer sources={active === null ? [] : topicDraftReferences(active.topic, active.documentTitle).filter(reference => !(references[draftKey] ?? []).some(current => current.label === reference.label))}
                     onReference={reference => setReferences(current => ({ ...current, [draftKey]: [...(current[draftKey] ?? []), reference] }))} permission={active?.topic.permission ?? 'read-only'} onPermission={mode => { void companion.setPermission(mode) }} delivery={delivery} onDelivery={setDelivery}
-                    onFiles={batch => { if (active !== null) { const key = active.topic.sessionId; void nativeComposer.add(key, batch).then(added => { setFiles(current => ({ ...current, [key]: [...(current[key] ?? []), ...added] })); setAttachmentError(null) }).catch(error => setAttachmentError(String(error))) } }} question={question} route={active?.topic.modelConfig} providers={snapshot.providers}
+                    onFiles={addFiles} question={question} route={active?.topic.modelConfig} providers={snapshot.providers}
                     phase={snapshot.phase} canSend={canAsk && active !== null && (question.trim() !== '' || (references[draftKey]?.length ?? 0) > 0 || (files[draftKey]?.length ?? 0) > 0)}
                     routeSaving={snapshot.modelRouteSaving || snapshot.reasoningEffortSaving}
                     folded={composerFolded} inputRef={composerRef} onQuestion={setQuestion} onSubmit={submit}

@@ -16,11 +16,7 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
     const [attachOpen, setAttachOpen] = useState(false);
     const running = phase === 'running';
     const stopping = phase === 'stopping';
-    return _jsxs("form", { className: css.composer, "data-folded": folded || undefined, onSubmit: onSubmit, onDragOver: event => { if (event.dataTransfer.types.includes('Files'))
-            event.preventDefault(); }, onDrop: event => { if (event.dataTransfer.files.length > 0) {
-            event.preventDefault();
-            onFiles([...event.dataTransfer.files]);
-        } }, children: [_jsx("input", { hidden: true, ref: fileInput, type: "file", multiple: true, onChange: event => { onFiles([...(event.currentTarget.files ?? [])]); event.currentTarget.value = ''; } }), attachments, folded && _jsx("button", { type: "button", className: css.expandButton, onClick: onExpand, children: question.trim() === '' ? '补充问题' : '编辑草稿' }), _jsx("textarea", { hidden: folded, ref: inputRef, rows: 2, maxLength: 11_000, "aria-label": "\u7EE7\u7EED\u5411 CiteCiter \u63D0\u95EE", value: question, disabled: route === undefined, onChange: event => onQuestion(event.currentTarget.value), placeholder: placeholder, onPaste: event => {
+    return _jsxs("form", { className: css.composer, "data-folded": folded || undefined, onSubmit: onSubmit, children: [_jsx("input", { hidden: true, ref: fileInput, type: "file", multiple: true, onChange: event => { onFiles([...(event.currentTarget.files ?? [])]); event.currentTarget.value = ''; } }), attachments, folded && _jsx("button", { type: "button", className: css.expandButton, onClick: onExpand, children: question.trim() === '' ? '补充问题' : '编辑草稿' }), _jsx("textarea", { hidden: folded, ref: inputRef, rows: 2, maxLength: 11_000, "aria-label": "\u7EE7\u7EED\u5411 CiteCiter \u63D0\u95EE", value: question, disabled: route === undefined, onChange: event => onQuestion(event.currentTarget.value), placeholder: placeholder, onPaste: event => {
                     if (event.clipboardData.files.length === 0)
                         return;
                     onFiles([...event.clipboardData.files]);
