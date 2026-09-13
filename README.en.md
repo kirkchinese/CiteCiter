@@ -54,7 +54,7 @@ Removing an unsent source attachment makes its reading tool reject access; new T
 
 New Topics start **read-only**, even when their source has full access. The input's permission menu selects native DSH read-only, workspace-write or full-access mode. Modification requires an explicit user mode choice or changed new-Topic default. DSH approval, sandbox and tool policies remain active.
 
-Input controls are attachments, permission mode, model/reasoning and Send. Choose the model first, then one of its supported reasoning levels. Images and generic files use native DSH attachment services, with upload state and retry. A failed submission retains the draft.
+Input controls are attachments, permission mode, model/reasoning and Send. Choose the model first, then one of its supported reasoning levels. Images and generic files use native DSH attachment services, with upload state and retry. Select files from the attachment menu or paste clipboard images into the input; mixed image and text paste retains both. Host rejection shows its cause and retains the draft; an accepted message is cleared even if the subsequent status read fails.
 
 While a reply runs, Enter and Send follow DSH's busy-send preference; Ctrl + Enter temporarily uses the other delivery mode. Queued messages run after the current turn; steering is admitted at its next step. The composer toggle overrides the current Topic without changing the host default. Pending rows can be removed or changed to steering. Stop ends the response and preserves existing output; pending work follows DSH's queue rules.
 
@@ -68,7 +68,7 @@ Learning route is off by default. When enabled, a submitted question asks the mo
 
 The board appears once, in the host conversation's blackboard tab. It supports text, Markdown, math, tables, SVG, images and isolated HTML. Quoting adds a draft attachment; math renders as math rather than raw object fields. Read, export and revise cards in Citer's Cards view.
 
-`blackboard_view` returns a browser-rendered PNG to an image-capable model, allowing it to inspect clipping, labels, arrows and layout before updating the board. When its tab is closed, the same component renders offscreen. Keep Citer open during capture. Sandboxed HTML iframes cannot be captured; use SVG for inspectable diagrams.
+`blackboard_view` returns a browser-rendered PNG to an image-capable model, allowing it to inspect clipping, labels, arrows and layout before updating the board. The image contains only the board, not the conversation or window layout. When the tab is closed or the narrow layout hides the board, the same component renders offscreen at 1000×680. Keep Citer open during capture. SVG colors are preserved; Markdown code uses backgrounds suited to the dark board. Sandboxed HTML iframes cannot be captured; use SVG for inspectable diagrams.
 
 When [dsh-codex-connect](https://github.com/franksong2702/dsh-codex-connect) and its image tools are enabled in the host, new Topics can use `codex_connect_image_generate` and `view_image`. Citer does not require the connector or manage its account setup. Real generation and viewing have been exercised with connector `0.1.0-alpha.4.34`.
 

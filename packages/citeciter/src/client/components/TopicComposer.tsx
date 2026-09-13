@@ -51,7 +51,12 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
     <textarea hidden={folded} ref={inputRef} rows={2} maxLength={11_000}
       aria-label="继续向 CiteCiter 提问" value={question} disabled={route === undefined}
       onChange={event => onQuestion(event.currentTarget.value)} placeholder={placeholder}
-      onPaste={event => { if (event.clipboardData.files.length > 0) { event.preventDefault(); onFiles([...event.clipboardData.files]) } }}
+      onPaste={event => {
+        if (event.clipboardData.files.length === 0) return
+        onFiles([...event.clipboardData.files])
+        // Keep native textarea insertion when the clipboard also carries text.
+        if (event.clipboardData.getData('text/plain') === '') event.preventDefault()
+      }}
       onKeyDown={event => {
         if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
           event.preventDefault()

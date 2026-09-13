@@ -40,7 +40,7 @@ export class BoardCaptureBroker {
     tool(ctx) {
         return defineTool({
             name: 'blackboard_view',
-            description: 'Inspect the actual rendered blackboard image before judging visual quality. Review labels, clipping, overlaps and geometry; use blackboard_apply to fix issues. Requires an open Citer client. Sandboxed HTML frames cannot be captured; use SVG for inspectable diagrams.',
+            description: 'Inspect the actual rendered blackboard image before judging visual quality. The image contains only the board, not the surrounding conversation or window layout. It captures the visible board when available, otherwise the same revision rendered offscreen at 1000 by 680 pixels. Review labels, clipping, overlaps and geometry; use blackboard_apply to fix issues. Requires an open Citer client. Sandboxed HTML frames cannot be captured; use SVG for inspectable diagrams.',
             parameters: {},
             output: {
                 schema: { type: 'object', additionalProperties: false, properties: { image: { type: 'json', required: true } } },

@@ -1560,7 +1560,7 @@ export class TopicRuntime {
   private blackboardApplyTool() {
     return defineTool({
       name: 'blackboard_apply',
-      description: 'Atomically apply one protocol-v4 blackboard batch for the current learning Topic. A failed batch leaves the board unchanged.',
+      description: 'Atomically apply one protocol-v4 blackboard batch for the current Topic. A failed batch leaves the board unchanged. The canvas is dark green: use light text or provide a contrasting background inside SVG. Coordinates and sizes are percentages, not pixels; leave margins and keep notes short enough to fit their envelopes. SVG colors are preserved. Keep labels inside the SVG viewBox and clear of lines. After drawing, use blackboard_view to inspect the rendered image and correct clipping, overlap and low contrast before claiming completion.',
       parameters: BLACKBOARD_APPLY_PARAMETERS,
       output: {
         schema: {

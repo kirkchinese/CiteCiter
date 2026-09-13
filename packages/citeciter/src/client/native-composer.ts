@@ -71,7 +71,15 @@ export function createNativeComposer(ctx: Context): NativeComposer {
     send: async (id, text, attachments, mode) => {
       const target = await binding(id)
       const outcome = await conversation.sendSession(target.session, text, attachments, mode)
-      if (outcome.kind === 'error') throw new Error(outcome.text ?? 'DSH 未接受此次发送，草稿已保留')
+      if (outcome.kind === 'error') {
+        const failure = target.session.getSnapshot().promptError?.error
+        const details = failure?.details
+        const attachmentReason = details !== null && typeof details === 'object' && 'reason' in details ? details.reason : undefined
+        const reason = failure?.code === 'session/attachment-invalid' && (attachmentReason === 'INVALID_IMAGE' || attachmentReason === 'IMAGE_TYPE_MISMATCH')
+          ? '附件格式无效或内容损坏，请移除或更换附件后重试'
+          : failure?.message ?? outcome.text ?? 'DSH 未接受此次发送'
+        throw new Error(`${reason}；草稿已保留`)
+      }
       for (const id of attachments) owned.delete(id)
     },
   }

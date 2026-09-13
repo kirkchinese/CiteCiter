@@ -15678,7 +15678,7 @@ var BoardCaptureBroker = class {
 	tool(ctx) {
 		return defineTool({
 			name: "blackboard_view",
-			description: "Inspect the actual rendered blackboard image before judging visual quality. Review labels, clipping, overlaps and geometry; use blackboard_apply to fix issues. Requires an open Citer client. Sandboxed HTML frames cannot be captured; use SVG for inspectable diagrams.",
+			description: "Inspect the actual rendered blackboard image before judging visual quality. The image contains only the board, not the surrounding conversation or window layout. It captures the visible board when available, otherwise the same revision rendered offscreen at 1000 by 680 pixels. Review labels, clipping, overlaps and geometry; use blackboard_apply to fix issues. Requires an open Citer client. Sandboxed HTML frames cannot be captured; use SVG for inspectable diagrams.",
 			parameters: {},
 			output: {
 				schema: {
@@ -17689,7 +17689,7 @@ var TopicRuntime = class {
 	blackboardApplyTool() {
 		return defineTool({
 			name: "blackboard_apply",
-			description: "Atomically apply one protocol-v4 blackboard batch for the current learning Topic. A failed batch leaves the board unchanged.",
+			description: "Atomically apply one protocol-v4 blackboard batch for the current Topic. A failed batch leaves the board unchanged. The canvas is dark green: use light text or provide a contrasting background inside SVG. Coordinates and sizes are percentages, not pixels; leave margins and keep notes short enough to fit their envelopes. SVG colors are preserved. Keep labels inside the SVG viewBox and clear of lines. After drawing, use blackboard_view to inspect the rendered image and correct clipping, overlap and low contrast before claiming completion.",
 			parameters: BLACKBOARD_APPLY_PARAMETERS,
 			output: {
 				schema: {

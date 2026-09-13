@@ -1,6 +1,7 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 import { useEffect, useRef } from 'react';
 import { toPng } from 'html-to-image';
+import { findVisibleCaptureBoard } from "../board-capture-target.js";
 import { BoardView } from "./BoardView.js";
 /** Reuses the exact board renderer when its visible tab is closed; no synthetic drawing or extra conversation is created. */
 export function BoardCaptureSurface({ id, sessionId, board, reply }) {
@@ -15,7 +16,7 @@ export function BoardCaptureSurface({ id, sessionId, board, reply }) {
                 return;
             sent.current = true;
             try {
-                const visible = [...document.querySelectorAll('[data-citeciter-board]')].find(node => !ref.current?.contains(node) && node.dataset.citeciterBoard === sessionId && node.dataset.boardRevision === String(board?.revision ?? 0) && node.getBoundingClientRect().width > 0);
+                const visible = findVisibleCaptureBoard(sessionId, board?.revision ?? 0, ref.current);
                 const target = visible ?? ref.current.firstElementChild;
                 if (target.querySelector('iframe'))
                     throw new Error('隔离 HTML 动画不能截取；请改用 SVG 板书');

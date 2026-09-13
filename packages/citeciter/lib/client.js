@@ -6998,16 +6998,21 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					const operation = (async () => {
 						try {
 							await nativeComposer.send(sessionId, rawQuestion, attachments, mode);
+						} catch (error) {
+							fail(error, generation);
+							return false;
+						}
+						if (generation === activeGeneration) actionFailure = null;
+						try {
 							const response = await call({
 								action: "get",
 								topicSessionId: sessionId
 							});
 							if (response.kind === "topic") acceptTopic(response.topic, generation, sessionId);
-							return true;
 						} catch (error) {
-							fail(error, generation);
-							return false;
+							fail(error, generation, false);
 						}
+						return true;
 					})().finally(() => pendingAsks.delete(sessionId));
 					pendingAsks.set(sessionId, operation);
 					return operation;
@@ -33827,7 +33832,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src\client\components\BoardView.module.css.mjs
-		const css$18 = "._1m2g_W_board{box-sizing:border-box;color:#f2ead8;background:radial-gradient(120% 160% at 12% 0,#ffffff14,#0000 46%),linear-gradient(160deg,#1e3a2f 0%,#16302a 55%,#12251f 100%);flex-direction:column;flex:1;gap:12px;min-width:0;min-height:0;padding:clamp(14px,2.4vw,28px);font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:flex;box-shadow:inset 0 0 0 1px #00000040}._1m2g_W_board[data-compact]{min-height:350px;padding:16px;overflow:auto}._1m2g_W_board[data-compact] ._1m2g_W_boardHeader{flex-wrap:wrap}._1m2g_W_board[data-compact]:not([data-notes]) ._1m2g_W_canvas{flex:none;min-width:640px;height:480px}._1m2g_W_board[data-notes] ._1m2g_W_canvas{box-sizing:border-box;flex-direction:column;gap:16px;padding:16px;display:flex;overflow:visible}._1m2g_W_board[data-notes] ._1m2g_W_elementWrap{border-bottom:1px solid #ffffff14;padding-bottom:22px;position:relative;width:100%!important;height:auto!important;top:auto!important;left:auto!important}._1m2g_W_board[data-notes] ._1m2g_W_elementInner{height:auto;min-height:24px}._1m2g_W_board[data-notes] [data-kind=svg] ._1m2g_W_elementInner,._1m2g_W_board[data-notes] [data-kind=html] ._1m2g_W_elementInner{min-height:180px}._1m2g_W_board[data-notes] ._1m2g_W_html{min-height:220px}._1m2g_W_board[data-notes] ._1m2g_W_svg{max-height:320px}._1m2g_W_board[data-notes] ._1m2g_W_quoteButton{opacity:.8;pointer-events:auto}._1m2g_W_viewToggle{cursor:pointer;font:inherit;color:#f2ead8;background:#ffffff0d;border:1px solid #fff3;border-radius:7px;padding:6px 8px;font-size:11px}._1m2g_W_boardHeader{justify-content:space-between;align-items:center;gap:8px;min-height:38px;font-size:12px;display:flex}._1m2g_W_boardHeader>div{flex-direction:column;gap:2px;display:flex}._1m2g_W_boardHeader strong{letter-spacing:.04em;font-size:18px}._1m2g_W_boardHeader span,._1m2g_W_boardHeader>div span{opacity:.72;font-size:11px}._1m2g_W_canvas{background:repeating-linear-gradient(0deg,#ffffff06 0 1px,#0000 1px 34px),linear-gradient(#0000002e,#0000000f);border:1px solid #ffffff1a;border-radius:14px;flex:1;width:100%;min-width:0;max-width:1280px;min-height:320px;margin:0 auto;position:relative;overflow:auto}._1m2g_W_canvas,._1m2g_W_elementInner{scrollbar-width:thin;scrollbar-color:transparent transparent}._1m2g_W_canvas:hover,._1m2g_W_canvas:focus-within,._1m2g_W_elementInner:hover,._1m2g_W_elementInner:focus-within{scrollbar-color:#f2ead847 transparent}._1m2g_W_canvas::-webkit-scrollbar,._1m2g_W_elementInner::-webkit-scrollbar{width:6px;height:6px}._1m2g_W_canvas::-webkit-scrollbar-thumb,._1m2g_W_elementInner::-webkit-scrollbar-thumb{background:0 0;border-radius:999px}._1m2g_W_canvas:hover::-webkit-scrollbar-thumb,._1m2g_W_canvas:focus-within::-webkit-scrollbar-thumb,._1m2g_W_elementInner:hover::-webkit-scrollbar-thumb,._1m2g_W_elementInner:focus-within::-webkit-scrollbar-thumb{background:#f2ead847}._1m2g_W_boardHint{opacity:.6;text-align:center;place-items:center;margin:0;padding:12px;font-size:12px;display:grid;position:absolute;inset:0}._1m2g_W_elementWrap{box-sizing:border-box;position:absolute;overflow:visible}._1m2g_W_elementInner{box-sizing:border-box;border-radius:4px;width:100%;height:100%;padding:2px 4px;font-size:14px;line-height:1.5;overflow:auto}._1m2g_W_elementInner *{color:inherit!important}._1m2g_W_text,._1m2g_W_math,._1m2g_W_fallback{white-space:pre-wrap;overflow-wrap:anywhere}._1m2g_W_math{font-size:inherit}._1m2g_W_svg{object-fit:contain;filter:brightness(1.55)saturate(.9);width:100%;height:100%;display:block}._1m2g_W_html{background:0 0;border:0;width:100%;height:100%}._1m2g_W_fallback{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}._1m2g_W_elementWrap[data-focused] ._1m2g_W_elementInner{outline-offset:2px;outline:2px solid #ffe082e6}._1m2g_W_quoteButton{z-index:2;color:#f8f0dc;cursor:pointer;opacity:0;background:#081814e0;border:1px solid #ffffff3d;border-radius:7px;padding:4px 8px;font-size:11px;transition:opacity .12s,transform .12s;position:absolute;bottom:4px;right:4px;transform:translateY(3px)}._1m2g_W_elementWrap:hover ._1m2g_W_quoteButton,._1m2g_W_quoteButton:focus-visible{opacity:1;transform:translateY(0)}._1m2g_W_boardWarning{color:#f3d58a;margin:-4px 0 0;font-size:11px}._1m2g_W_workspaceEmpty{text-align:center;min-height:0;color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-alias-bg-base,#fff);flex:1;place-content:center;padding:28px;display:grid}._1m2g_W_workspaceEmpty strong{color:var(--dsw-alias-label-primary,#20232a);font-size:20px}._1m2g_W_workspaceEmpty p{max-width:420px;line-height:1.7}._1m2g_W_image{object-fit:contain;width:100%;height:100%;display:block}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animFadeIn{animation-name:_1m2g_W_board-fade-in;animation-timing-function:ease}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animSlideIn{animation-name:_1m2g_W_board-slide-in;animation-timing-function:ease-out}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animPulse{animation-name:_1m2g_W_board-pulse;animation-timing-function:ease-in-out}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animHighlight{animation-name:_1m2g_W_board-highlight;animation-timing-function:ease}@keyframes _1m2g_W_board-fade-in{0%{opacity:0}to{opacity:1}}@keyframes _1m2g_W_board-slide-in{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes _1m2g_W_board-pulse{0%,to{transform:scale(1)}50%{transform:scale(1.03)}}@keyframes _1m2g_W_board-highlight{0%{box-shadow:0 0 0 3px #ffe082d9}to{box-shadow:0 0 #ffe08200}}@media (prefers-reduced-motion:reduce){._1m2g_W_elementInner,._1m2g_W_quoteButton{transition:none}._1m2g_W_board[data-animations] ._1m2g_W_elementInner{animation:none}}";
+		const css$18 = "._1m2g_W_board{--dsw-alias-markdown-inline-code:#0c211b;--dsw-alias-markdown-code-block:#0c211b;--dsw-alias-markdown-code-block-banner:#244438;--dsw-alias-bg-base:#16302a;--dsw-alias-border-l1:#f2ead83d;box-sizing:border-box;color:#f2ead8;background:radial-gradient(120% 160% at 12% 0,#ffffff14,#0000 46%),linear-gradient(160deg,#1e3a2f 0%,#16302a 55%,#12251f 100%);flex-direction:column;flex:1;gap:12px;min-width:0;min-height:0;padding:clamp(14px,2.4vw,28px);font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:flex;box-shadow:inset 0 0 0 1px #00000040}._1m2g_W_board[data-compact]{min-height:350px;padding:16px;overflow:auto}._1m2g_W_board[data-compact] ._1m2g_W_boardHeader{flex-wrap:wrap}._1m2g_W_board[data-compact]:not([data-notes]) ._1m2g_W_canvas{flex:none;min-width:640px;height:480px}._1m2g_W_board[data-notes] ._1m2g_W_canvas{box-sizing:border-box;flex-direction:column;gap:16px;padding:16px;display:flex;overflow:visible}._1m2g_W_board[data-notes] ._1m2g_W_elementWrap{border-bottom:1px solid #ffffff14;padding-bottom:22px;position:relative;width:100%!important;height:auto!important;top:auto!important;left:auto!important}._1m2g_W_board[data-notes] ._1m2g_W_elementInner{height:auto;min-height:24px}._1m2g_W_board[data-notes] [data-kind=svg] ._1m2g_W_elementInner,._1m2g_W_board[data-notes] [data-kind=html] ._1m2g_W_elementInner{min-height:180px}._1m2g_W_board[data-notes] ._1m2g_W_html{min-height:220px}._1m2g_W_board[data-notes] ._1m2g_W_svg{max-height:320px}._1m2g_W_board[data-notes] ._1m2g_W_quoteButton{opacity:.8;pointer-events:auto}._1m2g_W_viewToggle{cursor:pointer;font:inherit;color:#f2ead8;background:#ffffff0d;border:1px solid #fff3;border-radius:7px;padding:6px 8px;font-size:11px}._1m2g_W_boardHeader{justify-content:space-between;align-items:center;gap:8px;min-height:38px;font-size:12px;display:flex}._1m2g_W_boardHeader>div{flex-direction:column;gap:2px;display:flex}._1m2g_W_boardHeader strong{letter-spacing:.04em;font-size:18px}._1m2g_W_boardHeader span,._1m2g_W_boardHeader>div span{opacity:.72;font-size:11px}._1m2g_W_canvas{background:repeating-linear-gradient(0deg,#ffffff06 0 1px,#0000 1px 34px),linear-gradient(#0000002e,#0000000f);border:1px solid #ffffff1a;border-radius:14px;flex:1;width:100%;min-width:0;max-width:1280px;min-height:320px;margin:0 auto;position:relative;overflow:auto}._1m2g_W_canvas,._1m2g_W_elementInner{scrollbar-width:thin;scrollbar-color:transparent transparent}._1m2g_W_canvas:hover,._1m2g_W_canvas:focus-within,._1m2g_W_elementInner:hover,._1m2g_W_elementInner:focus-within{scrollbar-color:#f2ead847 transparent}._1m2g_W_canvas::-webkit-scrollbar,._1m2g_W_elementInner::-webkit-scrollbar{width:6px;height:6px}._1m2g_W_canvas::-webkit-scrollbar-thumb,._1m2g_W_elementInner::-webkit-scrollbar-thumb{background:0 0;border-radius:999px}._1m2g_W_canvas:hover::-webkit-scrollbar-thumb,._1m2g_W_canvas:focus-within::-webkit-scrollbar-thumb,._1m2g_W_elementInner:hover::-webkit-scrollbar-thumb,._1m2g_W_elementInner:focus-within::-webkit-scrollbar-thumb{background:#f2ead847}._1m2g_W_boardHint{opacity:.6;text-align:center;place-items:center;margin:0;padding:12px;font-size:12px;display:grid;position:absolute;inset:0}._1m2g_W_elementWrap{box-sizing:border-box;position:absolute;overflow:visible}._1m2g_W_elementInner{box-sizing:border-box;border-radius:4px;width:100%;height:100%;padding:2px 4px;font-size:14px;line-height:1.5;overflow:auto}._1m2g_W_elementInner *{color:inherit!important}._1m2g_W_text,._1m2g_W_math,._1m2g_W_fallback{white-space:pre-wrap;overflow-wrap:anywhere}._1m2g_W_math{font-size:inherit}._1m2g_W_svg{object-fit:contain;width:100%;height:100%;display:block}._1m2g_W_html{background:0 0;border:0;width:100%;height:100%}._1m2g_W_fallback{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}._1m2g_W_elementWrap[data-focused] ._1m2g_W_elementInner{outline-offset:2px;outline:2px solid #ffe082e6}._1m2g_W_quoteButton{z-index:2;color:#f8f0dc;cursor:pointer;opacity:0;background:#081814e0;border:1px solid #ffffff3d;border-radius:7px;padding:4px 8px;font-size:11px;transition:opacity .12s,transform .12s;position:absolute;bottom:4px;right:4px;transform:translateY(3px)}._1m2g_W_elementWrap:hover ._1m2g_W_quoteButton,._1m2g_W_quoteButton:focus-visible{opacity:1;transform:translateY(0)}._1m2g_W_boardWarning{color:#f3d58a;margin:-4px 0 0;font-size:11px}._1m2g_W_workspaceEmpty{text-align:center;min-height:0;color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-alias-bg-base,#fff);flex:1;place-content:center;padding:28px;display:grid}._1m2g_W_workspaceEmpty strong{color:var(--dsw-alias-label-primary,#20232a);font-size:20px}._1m2g_W_workspaceEmpty p{max-width:420px;line-height:1.7}._1m2g_W_image{object-fit:contain;width:100%;height:100%;display:block}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animFadeIn{animation-name:_1m2g_W_board-fade-in;animation-timing-function:ease}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animSlideIn{animation-name:_1m2g_W_board-slide-in;animation-timing-function:ease-out}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animPulse{animation-name:_1m2g_W_board-pulse;animation-timing-function:ease-in-out}._1m2g_W_board[data-animations] ._1m2g_W_elementInner._1m2g_W_animHighlight{animation-name:_1m2g_W_board-highlight;animation-timing-function:ease}@keyframes _1m2g_W_board-fade-in{0%{opacity:0}to{opacity:1}}@keyframes _1m2g_W_board-slide-in{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes _1m2g_W_board-pulse{0%,to{transform:scale(1)}50%{transform:scale(1.03)}}@keyframes _1m2g_W_board-highlight{0%{box-shadow:0 0 0 3px #ffe082d9}to{box-shadow:0 0 #ffe08200}}@media (prefers-reduced-motion:reduce){._1m2g_W_elementInner,._1m2g_W_quoteButton{transition:none}._1m2g_W_board[data-animations] ._1m2g_W_elementInner{animation:none}}";
 		const tagId$18 = "@kirkchinese/dsh-citeciter/BoardView.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$18) + "]") === null) {
 			const tag = document.createElement("style");
@@ -36450,7 +36455,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.embedWebFonts = embedWebFonts;
 		}));
 		//#endregion
-		//#region lib/types/client/components/BoardCaptureSurface.js
+		//#region lib/types/client/board-capture-target.js
 		var import_lib = (/* @__PURE__ */ __commonJSMin(((exports) => {
 			var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 				function adopt(value) {
@@ -36708,6 +36713,28 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}
 			exports.getFontEmbedCSS = getFontEmbedCSS;
 		})))();
+		/**
+		* Find the rendered board for one exact capture address.
+		* @param sessionId - owning Citer Session identity.
+		* @param revision - requested board revision.
+		* @param fallback - offscreen capture root, excluded from visible candidates.
+		* @returns a painted, viewport-intersecting board, or undefined to use the fallback renderer.
+		*/
+		function findVisibleCaptureBoard(sessionId, revision, fallback) {
+			return [...document.querySelectorAll("[data-citeciter-board]")].find((node) => {
+				if (fallback.contains(node) || node.dataset.citeciterBoard !== sessionId || node.dataset.boardRevision !== String(revision)) return false;
+				const rect = node.getBoundingClientRect();
+				if (rect.width <= 0 || rect.height <= 0 || rect.right <= 0 || rect.bottom <= 0 || rect.left >= window.innerWidth || rect.top >= window.innerHeight) return false;
+				if (getComputedStyle(node).visibility !== "visible") return false;
+				for (let parent = node; parent !== null; parent = parent.parentElement) {
+					const style = getComputedStyle(parent);
+					if (style.display === "none" || style.contentVisibility === "hidden" || Number(style.opacity) === 0) return false;
+				}
+				return true;
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/BoardCaptureSurface.js
 		/** Reuses the exact board renderer when its visible tab is closed; no synthetic drawing or extra conversation is created. */
 		function BoardCaptureSurface({ id, sessionId, board, reply }) {
 			const ref = (0, react.useRef)(null);
@@ -36720,7 +36747,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (disposed || sent.current || ref.current === null) return;
 					sent.current = true;
 					try {
-						const target = [...document.querySelectorAll("[data-citeciter-board]")].find((node) => !ref.current?.contains(node) && node.dataset.citeciterBoard === sessionId && node.dataset.boardRevision === String(board?.revision ?? 0) && node.getBoundingClientRect().width > 0) ?? ref.current.firstElementChild;
+						const target = findVisibleCaptureBoard(sessionId, board?.revision ?? 0, ref.current) ?? ref.current.firstElementChild;
 						if (target.querySelector("iframe")) throw new Error("隔离 HTML 动画不能截取；请改用 SVG 板书");
 						const data = await (0, import_lib.toPng)(target, {
 							pixelRatio: 1,
@@ -37817,10 +37844,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						onChange: (event) => onQuestion(event.currentTarget.value),
 						placeholder,
 						onPaste: (event) => {
-							if (event.clipboardData.files.length > 0) {
-								event.preventDefault();
-								onFiles([...event.clipboardData.files]);
-							}
+							if (event.clipboardData.files.length === 0) return;
+							onFiles([...event.clipboardData.files]);
+							if (event.clipboardData.getData("text/plain") === "") event.preventDefault();
 						},
 						onKeyDown: (event) => {
 							if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
@@ -42177,7 +42203,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				send: async (id, text, attachments, mode) => {
 					const target = await binding(id);
 					const outcome = await conversation.sendSession(target.session, text, attachments, mode);
-					if (outcome.kind === "error") throw new Error(outcome.text ?? "DSH 未接受此次发送，草稿已保留");
+					if (outcome.kind === "error") {
+						const failure = target.session.getSnapshot().promptError?.error;
+						const details = failure?.details;
+						const attachmentReason = details !== null && typeof details === "object" && "reason" in details ? details.reason : void 0;
+						const reason = failure?.code === "session/attachment-invalid" && (attachmentReason === "INVALID_IMAGE" || attachmentReason === "IMAGE_TYPE_MISMATCH") ? "附件格式无效或内容损坏，请移除或更换附件后重试" : failure?.message ?? outcome.text ?? "DSH 未接受此次发送";
+						throw new Error(`${reason}；草稿已保留`);
+					}
 					for (const id of attachments) owned.delete(id);
 				}
 			};

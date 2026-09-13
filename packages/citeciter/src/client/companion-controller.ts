@@ -752,10 +752,15 @@ export function createCompanionController(
       const operation = (async () => {
         try {
           await nativeComposer.send(sessionId, rawQuestion, attachments, mode)
+        } catch (error) { fail(error, generation); return false }
+        // Host admission is authoritative. A later read failure must not keep an
+        // already accepted draft available for accidental duplicate submission.
+        if (generation === activeGeneration) actionFailure = null
+        try {
           const response = await call({ action: 'get', topicSessionId: sessionId })
           if (response.kind === 'topic') acceptTopic(response.topic, generation, sessionId)
-          return true
-        } catch (error) { fail(error, generation); return false }
+        } catch (error) { fail(error, generation, false) }
+        return true
       })().finally(() => pendingAsks.delete(sessionId))
       pendingAsks.set(sessionId, operation)
       return operation
