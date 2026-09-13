@@ -2,54 +2,58 @@
 
 [English](CONTRIBUTING.md)
 
-开发基线为 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0` 和 DSH `0.1.5-rc.1`。Windows 实测为 Node 24.19.0。Desktop 2.0.9 内置同一 DSH；Desktop master 与 DSH alpha 需要另行适配。
+使用 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0`、DSH `0.1.5-rc.1`，Desktop 基线为 `2.0.9`。安装包位于 `packages/citeciter/`，Host / Client 分别通过严格 TypeScript 编译。
 
-```sh
+```powershell
 pnpm install --frozen-lockfile
 pnpm typecheck
-pnpm test
 pnpm build
-pnpm test:snapshot
+pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
 git diff --check
 ```
 
-发布包位于 `packages/citeciter/`，Host 与 Client 分别编译，生成的 `lib/` 纳入版本管理。`pnpm --dir packages/citeciter dev` 直接通过 Node 监视两套 TypeScript 配置和客户端打包，支持 Windows。Host 修改后重启宿主，Client 修改后刷新页面。
+`lib/` 是受版本控制的发布产物，源代码修改后必须重建。`pnpm --dir packages/citeciter dev` 仅监听构建，不启动模型或创建测试实例。CI 只检查依赖、类型、构建与打包；不要将静态成功称为功能验收通过。
 
-## 隔离开发环境
+## 架构边界
 
-在独立 PowerShell 中启动：
+遵循 [DSH 架构](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md) 和 [插件规范](https://github.com/deepseek-ai/deepseek-harness/blob/master/AGENTS.md)，同时核对实际安装子包的接口与版本。CiteCiter 是外部插件，不能声称运行了 DSH monorepo 专用门禁。
 
-```powershell
-$env:DSH_HOME = Join-Path $PWD '.refs/manual-web'
-dsh plugin --profile web add "$PWD/packages/citeciter"
-dsh --profile web --host 127.0.0.1 --port 10519 --no-open
-```
+| 模块 | 责任 |
+| --- | --- |
+| host-session-adapter.ts | 原生 Agent 创建、恢复、权限初始化和作用域贡献 |
+| citer-session-world.ts / citer-session-store.ts | 独立原生工厂与实时成员；不向主列表发布 Topic |
+| citer-session-access.ts | 可逆的原生 get / flush 适配；list 不变，按精确身份路由 |
+| source-storage.ts / session-migration.ts / owned-session-cleanup.ts | 来源路径、完整日志迁移与所有权受控清理 |
+| source-session.ts | 来源观察、释放与已发送附件检查 |
+| topic-index.ts | 元数据校验、索引与旧私有日志清理 |
+| topic-runtime.ts | Topic 用例编排、工具贡献及旧日志兼容 |
+| board-capture.ts | 截图请求关联、取消、超时和原生附件保存 |
+| client/native-composer.ts | 适配公开 DSH 附件、发送与队列服务 |
+| client/draft-references.ts | 待发送引用构造和精确序列化 |
+| client/learning-route.ts | 学习请求约束与原生 todo 结果读取 |
+| client/panel-drag.ts、host-dock.ts | 拖动及宿主布局生命周期 |
+| client/components/ | 受控 UI；接收快照与业务回调，不发现 Cordis 服务 |
 
-首次打开 Web 时，使用启动终端输出的完整登录链接（包含 `?token=…`）。登录成功后，DSH 会设置会话 Cookie 并跳转到不含 token 的地址；随后可直接刷新。省略首次登录参数会返回 HTTP 401，部分自动化浏览器会将该文本响应显示为 `ERR_BLOCKED_BY_CLIENT`。登录链接属于该宿主的访问凭据，不要写入文档或提交到 Git。
+不要补丁宿主 Agent Loop，不要将 Topic 工作追加到来源会话，不要通过隐式 seed 泄露已从草稿删除的引用。新 Topic 默认只读，显式更改后仍遵循 DSH 权限和审批。迁移旧日志必须逐条核验并保留原副本，不自动扩大权限。
 
-选择空闲端口，一个活动进程独占一个 home。Desktop 使用另一个 `DSH_HOME`，从该环境启动已安装的 Desktop，再在其自带终端运行 `dsh plugin add <源码目录或 tarball 的绝对路径>`。该终端选择 Desktop 内置 CLI、当前 profile 和 home；全局 CLI 不能管理保留的 `desktop` profile。全局 CLI 升级不会同步升级 Desktop 内置运行时。
+使用作用域 injection、ctx.effect 和 ctx.on；释放事件监听器、观察者、截图请求、对象 URL 和 Agent 工厂句柄。读取外部 JSON 时校验，typed 同进程调用无需重复解码。公开 API 注释说明输入、输出与生命周期。
 
-## 实际应用快照与安装包
+## 本机安装与真实验收
 
-`pnpm test:snapshot` 依赖已安装的 DSH CLI，自动创建临时 home、安装插件并挂载无密钥模型。它运行真实来源会话、Observer、Exact Fork、五阶段、板书和卡片，对照 `tests/snapshots/assembled-topic.json`；额外通过公开命令边界验证 Topic 管理、停止与失败恢复、模型提问、重复卡片生成和长文档末页引用，并断言来源日志未改变。第二次启动校验持久恢复。输出目录保留用于诊断，不使用真实 API Key。
+本轮按用户要求在主要 DSH home 验收。先确认没有另一个 Web / Desktop 进程使用同一 home，再启动或重启目标宿主。不要删除用户会话或通过批量清理扩大范围。开发实例的进程和目录必须逐项确认归属。
 
-脚本在创建 profile 前检查 DSH 包版本。全局 CLI 版本不同时，将 `CITECITER_DSH_BIN` 设置为独立安装的 0.1.5-rc.1 的 `@deepseek-ai/dsh/lib/bin.js` 绝对路径。打包验收也使用该运行时，不修改全局安装。
+Web 使用全局 CLI：`dsh plugin --profile web add <安装包绝对路径>`。Desktop 使用管理终端中的 `dsh plugin add <安装包绝对路径>`，它选择内置 CLI、desktop profile 和 home。全局 CLI 不能替代 Desktop 的保留 profile 管理。
 
-有意改变输出并审阅差异后，可在该命令环境中设置 `CITECITER_RECORD_SNAPSHOT=1` 更新期望文件，随后移除变量重新回放。不能为了通过失败测试直接重录。
+首次打开 Web 使用宿主输出的完整登录地址，成功后通过会话 cookie 访问。登录参数属于凭据，不放进文档或 Git。宿主代码更新后重启，客户端代码更新后刷新。
 
-```powershell
-pnpm --dir packages/citeciter pack --pack-destination "$PWD/.refs/artifacts"
-node packages/citeciter/dev/run-smoke.mjs .refs/artifacts/kirkchinese-dsh-citeciter-0.7.0-beta.3.tgz
-```
+功能验收必须使用真实模型和真实来源分支，并从实际 UI 操作。覆盖文本、编程、图像、问答、教学、附件组合、权限默认值与切换、模型/思考强度、排队/插话/停止、来源移除、文档分页、归档/恢复、窗口布局和重启恢复。观察实际输出、文件副作用、持久化日志及布局，不能仅依靠脚本判定。
 
-旧 `dev/seed-smoke-session.mjs`、`smoke*.mjs` 和 `hmr-smoke.mjs` 是 0.5 历史夹具，含旧宿主手写会话和 Linux 路径，不作为 0.6 验收入口。使用真实应用快照与隔离 UI 会话，不要对真实数据运行旧 seeder。
+不保留人工模型提供者、测试夹具或临时测试脚本。临时脚本运行完即删除；验收记录保留操作、结果与限制，不保留会话、凭据、截图或安装包。已提交过的脚本只从当前分支删除，不改写 Git 历史。真实模型回答也可能出错；将知识错误与工程错误分别记录，产品预期不明确时向用户确认。
 
-## 变更要求
+## 文档与交付
 
-Topic 使用私有日志和只读工具，不修改来源 Session。公开 UI 注册与版本相关布局适配分开维护；验收最大比例、窄窗口、原生详情栏、关闭恢复和 Desktop 各模式。
+根目录与包目录的中英文 README 保持一致。修改公开行为时同步 Release 说明、JSDoc、`.agents/notes/` 和 `docs/validation/`。图片应标明示意图或真实结果；每段一个物理行，文件末尾一个换行。
 
-在 Windows Codex 中进行原生 Desktop 检查时，先阅读已安装的 Computer Use 技能，使用其指定的 node_repl / @oai/sky 接口。统一 CUA 只有浏览器能力不代表原生控制不可用。选择接口返回的应用与窗口对象，界面变化后重新读取状态，确认渲染结果再重试输入；不修改生成的插件清单或调用私有辅助协议。见[原生控制验证](.agents/notes/2026-09-12-native-control-recovery.md)。
+当前授权仅包括提交与推送开发分支，不包含发布 npm、打标签、合并或创建正式 Release。构建安装包不等于发布。
 
-同步根目录与包内中英文 README、公开 release 文档和 JSDoc；非简单变更在 `.agents/notes/` 写 Agent Note，这是排除临时设计草稿和本机验收产物规则的明确例外。不提交密钥、临时 home、截图或 tarball。只报告实际运行的检查，区分 Windows 实测与尚未验证的平台。
-
-贡献代码按 [MIT License](LICENSE) 授权。
+MIT License.

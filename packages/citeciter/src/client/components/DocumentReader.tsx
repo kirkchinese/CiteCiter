@@ -1,5 +1,6 @@
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { ReaderSnapshot } from '../reader-controller.ts'
+import type { CiteOverlaySnapshot } from '../types.ts'
 import type { ReaderActions } from '../view-actions.ts'
 import { type ChangeEvent, type FormEvent, useRef, useEffect } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -9,13 +10,16 @@ import { OverlayPortal } from './OverlayPortal.tsx'
 import css from './DocumentReader.module.css'
 
 /** Reader shell-overlay entry: compact trigger plus the document library panel. */
-export function DocumentReader({ reader, useReader, registerSurface, sourceSessionId }: { readonly reader: ReaderActions
+export function DocumentReader({ reader, useReader, useOverlay, registerSurface, sourceSessionId }: { readonly reader: ReaderActions
   readonly useReader: SnapshotSelectorHook<ReaderSnapshot>
+  readonly useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>
   readonly registerSurface: SelectionSurfaces['register']
   readonly sourceSessionId: () => SessionId | null
 }) {
   const snapshot = useReader(value => value)
+  const panelOpen = useOverlay(value => value.panelOpen)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const importRef = useRef<HTMLInputElement | null>(null)
   useEffect(() => {
     const element = textareaRef.current
     const active = snapshot.active
@@ -46,7 +50,7 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
   return (
     <OverlayPortal>
     <div className={css.root}>
-      {!snapshot.open ? (
+      {!snapshot.open ? !panelOpen && (
         <button
           type="button"
           className={css.trigger}
@@ -62,10 +66,10 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
             <button type="button" onClick={() => reader.setOpen(false)} aria-label="关闭读书面板">×</button>
           </header>
           {snapshot.error !== null ? <p className={css.error}>{snapshot.error}</p> : null}
-          <label className={css.import}>
-            {snapshot.importing ? '正在导入…' : '导入文本 / Markdown'}
-            <input type="file" disabled={snapshot.importing} accept=".txt,.md,.markdown,text/plain,text/markdown" onChange={(event) => void onImport(event)} />
-          </label>
+          <div className={css.import}>
+            <button type="button" disabled={snapshot.importing} onClick={() => importRef.current?.click()} aria-label="导入文本 / Markdown">{snapshot.importing ? '导入中…' : '+ 导入文档'}</button>
+            <input ref={importRef} type="file" hidden disabled={snapshot.importing} accept=".txt,.md,.markdown,text/plain,text/markdown" onChange={(event) => void onImport(event)} />
+          </div>
           <ul className={css.documents}>
             {snapshot.documents.map((document) => (
               <li key={document.documentId}>
@@ -95,9 +99,9 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
           />
           {snapshot.active !== null ? (
             <nav className={css.pagination} aria-label="文档分页">
-              <button type="button" disabled={snapshot.loading || snapshot.active.page === 0} onClick={() => void reader.openPage(snapshot.active!.page - 1)}>上一页</button>
+              <button type="button" aria-label="上一页" disabled={snapshot.loading || snapshot.active.page === 0} onClick={() => void reader.openPage(snapshot.active!.page - 1)}>‹</button>
               <span role="status">{snapshot.loading ? '加载中…' : `第 ${snapshot.active.page + 1} / ${snapshot.active.pageCount} 页`}</span>
-              <button type="button" disabled={snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount} onClick={() => void reader.openPage(snapshot.active!.page + 1)}>下一页</button>
+              <button type="button" aria-label="下一页" disabled={snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount} onClick={() => void reader.openPage(snapshot.active!.page + 1)}>›</button>
             </nav>
           ) : null}
           <form className={css.ask} onSubmit={onCreate}>
@@ -109,7 +113,7 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
               aria-label="读书面板的问题"
             />
             <button type="submit" disabled={snapshot.creating || snapshot.loading || snapshot.selection === null || snapshot.question.trim() === ''}>
-              {snapshot.creating ? '创建中…' : 'Citer!'}
+              {snapshot.creating ? '创建中…' : '准备草稿'}
             </button>
           </form>
         </section>

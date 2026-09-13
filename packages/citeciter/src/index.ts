@@ -1,4 +1,4 @@
-/** Host entry for private Observer Topics and their browser Remote API. */
+/** Host entry for native Topics, legacy compatibility and the browser Remote API. */
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-llm'
@@ -24,8 +24,8 @@ import {
 
 /** Cordis/Typert package identity. */
 export const name = '@kirkchinese/dsh-citeciter'
-/** Services required by the private Topic runtime. */
-export const inject = ['llm', 'sessionQuery', 'subprocess'] as const
+/** Explicit dependencies for native session composition and legacy compatibility. */
+export const inject = ['llm', 'sessionQuery', 'subprocess', 'agents', 'agentPresets', 'sessionController', 'systemPrompt', 'tools', 'sandboxPolicy', 'sessions', 'sessionPersistence', 'sessionTitle', 'attachments'] as const
 
 /** Host settings identity shared with the browser settings scope. */
 export const CITECITER_SETTINGS_NS = CITECITER_SETTINGS_NAMESPACE
@@ -47,6 +47,8 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
   shortcutOpenPanel: z.string().max(40).default(''),
   boardAnimations: z.boolean().default(DEFAULT_CITECITER_SETTINGS.boardAnimations ?? true),
   activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
+  defaultPermission: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
+  learningRoute: z.boolean().default(false),
   updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
   wheelTrigger: z.union(['right-button', 'Alt', 'Control', 'Shift', 'Meta']).default('right-button'),
   defaultCiterModel: z.union([z.const(null), z.object({ provider: z.string().min(1).max(200), model: z.string().min(1).max(200) })]).default(null),
@@ -65,7 +67,7 @@ function currentSettings(ctx: Context): CiteCiterSettings {
   return parsed.success ? parsed.data : DEFAULT_CITECITER_SETTINGS
 }
 
-/** Root-scoped Remote service owning one isolated DSH runtime. */
+/** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
 export class CiteCiterHost extends TypertRemoteService {
   static inject = inject
 

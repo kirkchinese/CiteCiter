@@ -2,6 +2,9 @@ import { BlockAssembler } from '@deepseek-ai/dsh-llm';
 /** One Agent's ordered live stream. Dispose the instance with that Agent. */
 export class TopicStreamProjection {
     active;
+    settled = new Map();
+    /** Exact end-frame receipts keep an existing UI row mounted after durable settlement; aliases expire with this Agent. */
+    get renderKeys() { return this.settled; }
     /** @param frame - scoped Agent publication. @param nextSeq - current Session event count. */
     accept(frame, nextSeq) {
         if (frame.type === 'start') {
@@ -10,8 +13,11 @@ export class TopicStreamProjection {
         else if (this.active?.attemptId === frame.attemptId) {
             if (frame.type === 'chunk')
                 this.active.assembler.push(frame.chunk);
-            else
+            else {
+                if (frame.outcome.kind === 'committed')
+                    this.settled.set(frame.outcome.seq, `partial:${frame.attemptId}`);
                 this.active = undefined;
+            }
         }
     }
     /** @returns a detached display row, absent before visible output or after settlement. */

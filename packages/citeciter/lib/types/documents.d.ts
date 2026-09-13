@@ -11,8 +11,11 @@ interface DocumentRecordFile {
 /** Validate and persist one imported text document under the private library. */
 export declare class DocumentStore {
     private readonly root;
+    private readonly summaries;
     /** @param root - private document library root. */
     constructor(root?: string);
+    /** Read validated, immutable metadata without loading the document body. Missing documents return null; successful reads are cached for this store's lifetime. */
+    summary(documentId: string): Promise<DocumentSummary | null>;
     /**
      * Persist one imported document and its normalized UTF-8 text.
      * @param input - validated title, format, and content from the import boundary.

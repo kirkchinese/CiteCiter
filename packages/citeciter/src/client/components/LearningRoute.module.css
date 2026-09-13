@@ -1,0 +1,9 @@
+.route { flex: none; margin: 0 12px; font-size: 12px; }
+.route label { display: inline-flex; gap: 6px; align-items: center; opacity: .8; padding: 6px 0; cursor: pointer; }
+.route input { accent-color: #4e86ef; }
+.route details { padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, currentColor 4%, transparent); }
+.route summary { cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route ol { margin: 8px 0 0; padding: 0; list-style: none; }
+.route li { display: flex; gap: 8px; padding: 5px 0; }
+.route li[data-state="completed"] { opacity: .5; }
+.route li[data-state="in_progress"] { color: var(--dsw-alias-brand-primary, #3478f6); }

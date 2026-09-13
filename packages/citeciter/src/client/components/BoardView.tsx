@@ -85,17 +85,19 @@ export function BoardView({
   animations,
   onQuoteElement,
   compact = false,
+  sessionId,
 }: {
   readonly snapshot: BoardSnapshot | undefined
   readonly animations: boolean
   readonly onQuoteElement?: (element: BoardElementState) => void
   readonly compact?: boolean
+  readonly sessionId?: string
 }) {
   const board = snapshot ?? EMPTY_BOARD_SNAPSHOT
   const [notes, setNotes] = useState(compact)
   const elements = notes ? [...board.elements].sort((a, b) => a.y - b.y || a.x - b.x) : board.elements
   return (
-    <section className={css.board} data-citeciter-board data-compact={compact || undefined} data-notes={notes || undefined} data-animations={animations || undefined} aria-label="CiteCiter 黑板">
+    <section className={css.board} data-citeciter-board={sessionId ?? ''} data-board-revision={board.revision} data-compact={compact || undefined} data-notes={notes || undefined} data-animations={animations || undefined} aria-label="CiteCiter 黑板">
       <header className={css.boardHeader}>
         <div><strong>小黑板</strong><span>由 CiteCiter 随讲解实时整理</span></div>
         <span>{board.revision === 0 && board.elements.length === 0 ? '等待板书' : `第 ${board.revision} 次更新`}</span>
@@ -104,7 +106,7 @@ export function BoardView({
       {board.invalid > 0 && <p className={css.boardWarning} role="status">已忽略 {board.invalid} 批无效板书提交</p>}
       <div className={css.canvas}>
           {board.elements.length === 0 ? (
-            <p className={css.boardHint}>选择“定量”并发送，公式、推导和图示会整理到这里。你也可以直接要求画图。</p>
+            <p className={css.boardHint}>发送需要板书的问题，公式、推导和图示会整理到这里。</p>
           ) : elements.map((element) => (
             <div
               key={`${element.id}:${element.animation?.run ?? 0}`}

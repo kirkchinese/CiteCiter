@@ -1,5 +1,5 @@
 /**
- * Reserve a separate column, or a bottom row when two readable columns cannot fit.
+ * Reserve a separate column, or the content area when two readable columns cannot fit.
  * CSS pixels already account for browser zoom and Windows display scaling.
  * @param viewport - measured host dimensions and the saved width preference.
  * @returns panel dimensions within the host, excluding its native caption.
@@ -15,6 +15,5 @@ export function resolveDockGeometry(viewport) {
             top: viewport.caption,
         };
     }
-    const height = Math.min(contentHeight * 0.55, Math.max(240, contentHeight - 260));
-    return { mode: 'rows', width: viewport.width, height, top: viewport.height - height };
+    return { mode: 'page', width: Math.max(0, viewport.width - viewport.sidebar), height: contentHeight, top: viewport.caption };
 }

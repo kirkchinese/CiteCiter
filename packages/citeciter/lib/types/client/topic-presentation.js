@@ -19,7 +19,7 @@ export function appendBoardCitation(draft, prompt) {
 export function isTopicMessageVisible(message, messages) {
     if (message.role === 'context')
         return false;
-    if (message.role === 'assistant' && message.text.trim() === '')
+    if (message.role === 'assistant' && message.text.trim() === '' && (message.reasoning ?? '').trim() === '')
         return false;
     if (message.role === 'tool') {
         if (!message.isError && INTERNAL_TOOLS.has(message.name))

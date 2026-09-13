@@ -15,4 +15,4 @@ export declare function findContainingFrame(panel: HTMLElement | null): HTMLElem
  * @param percent - user's preferred fraction of the content viewport.
  * @returns measured panel placement; null when the host frame is unsupported.
  */
-export declare function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number): DockGeometry | null;
+export declare function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number, floating?: boolean): DockGeometry | null;

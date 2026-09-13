@@ -19,10 +19,12 @@ import { installDynamicAccelerator } from "./hotkeys.js";
 import { createReaderController } from "./reader-controller.js";
 import { createSettingsDocumentController } from "./settings-document.js";
 import { CiteBus } from "./types.js";
+import { createNativeComposer } from "./native-composer.js";
+import { bindSubmissionPreference } from "./submission-preference.js";
 import { viewActions } from "./view-actions.js";
 import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from "./update-controller.js";
 export const name = '@kirkchinese/dsh-citeciter';
-export const inject = ['slots', 'sessions', 'uiConversation', 'remote', 'remote.settings', 'settingsScope'];
+export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'settingsScope', 'conversation'];
 function decodeSettings(section) {
     const parsed = citeCiterSettingsSchema.safeParse(section);
     return parsed.success ? parsed.data : undefined;
@@ -62,6 +64,8 @@ export async function apply(ctx) {
                 ? { currentVersion: result.installedVersion, latestVersion: result.latestVersion, profile: result.profile ?? 'web' }
                 : null;
         }, createSnapshotStore(INITIAL_UPDATE_SNAPSHOT), undefined, (error) => remoteCtx.logger.warn('CiteCiter update check failed', error));
+        const nativeComposer = createNativeComposer(remoteCtx);
+        const submissionPreference = bindSubmissionPreference(remoteCtx);
         const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error));
         const openPanel = () => {
             bus.setPanelOpen(true);
@@ -70,7 +74,7 @@ export async function apply(ctx) {
             bus.setPanelOpen(false);
         };
         const disposeHotkey = installDynamicAccelerator(() => settings.getSnapshot().value?.shortcutOpenPanel, openPanel);
-        const companion = createCompanionController(readChat, settings, (request, signal) => remoteCtx.remote.citeciter.request(request, signal), openPanel, createSnapshotStore(INITIAL_COMPANION_SNAPSHOT));
+        const companion = createCompanionController(readChat, settings, (request, signal) => remoteCtx.remote.citeciter.request(request, signal), openPanel, createSnapshotStore(INITIAL_COMPANION_SNAPSHOT), nativeComposer);
         const reader = createReaderController((request, signal) => remoteCtx.remote.citeciter.request(request, signal), companion);
         const surfaces = createSelectionSurfaces();
         const actions = createActionController(createActionExecutor(companion, reader, presentation => {
@@ -135,7 +139,7 @@ export async function apply(ctx) {
         remoteCtx.inject(['documentPreviews'], previewCtx => {
             const id = '@kirkchinese/dsh-citeciter/learning-document';
             previewCtx.effect(() => previewCtx.documentPreviews.register({
-                id, extensions: ['txt', 'md', 'markdown', 'ts', 'tsx', 'js', 'jsx', 'json', 'py', 'rs', 'go', 'c', 'cpp', 'h', 'css', 'yaml', 'yml', 'toml', 'sh', 'ps1'],
+                id, extensions: ['txt', 'md', 'markdown', 'ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs', 'json', 'py', 'rs', 'go', 'c', 'cpp', 'h', 'css', 'yaml', 'yml', 'toml', 'sh', 'ps1'],
                 priority: 'builtin', title: () => 'CiteCiter 学习', loading: 'bytes-complete', wrap: true,
             }), 'citeciter: native learning metadata');
             previewCtx.slots.inject('sidebar.right.tab.document', () => previewCtx.slots.register({
@@ -151,12 +155,12 @@ export async function apply(ctx) {
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
             id: 'citeciter.panel',
-            inject: () => ({ bus: busActions, companion: companionActions, closePanel, reportParseError, hooks: { companion, overlay: bus } }),
+            inject: () => ({ nativeComposer, bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, hooks: { companion, overlay: bus, submission: submissionPreference, interactions: remoteCtx.uiSession.pendingInteractions } }),
         }, CitePanel));
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
             id: 'citeciter.reader',
-            inject: () => ({ reader: readerActions, registerSurface: surfaces.register, sourceSessionId: () => companion.getSnapshot().sourceSessionId, hooks: { reader } }),
+            inject: () => ({ reader: readerActions, registerSurface: surfaces.register, sourceSessionId: () => companion.getSnapshot().sourceSessionId, hooks: { reader, overlay: bus } }),
         }, DocumentReader));
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',

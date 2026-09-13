@@ -1,0 +1,23 @@
+.title { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; cursor: text; }
+.title:focus-visible { outline: 2px solid #6898f2; border-radius: 4px; }
+.rename { width: 100%; min-width: 60px; padding: 5px 7px; border: 1px solid #6898f2; border-radius: 7px; color: inherit; background: transparent; font: inherit; }
+.navigation { flex: none; }
+.actions { display: flex; gap: 3px; }
+.actions button, .search button { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 10px; color: inherit; background: transparent; cursor: pointer; transition: background 120ms ease; }
+.actions button:hover, .actions button[aria-expanded="true"], .search button:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.actions button:focus-visible, .search button:focus-visible { outline: 2px solid #6898f2; }
+.actions button:disabled { opacity: .35; cursor: default; }
+.actions svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.list { position: absolute; z-index: 50; inset: 60px 10px auto; padding: 10px; border: 1px solid color-mix(in srgb, currentColor 12%, transparent); border-radius: 16px; background: var(--dsw-alias-bg-layer-1, #fff); box-shadow: 0 12px 38px #0002; animation: show 140ms ease-out; }
+.search { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.search input { width: 100%; min-width: 0; padding: 9px; border: 0; border-radius: 9px; color: inherit; background: color-mix(in srgb, currentColor 5%, transparent); font: inherit; }
+.rows { max-height: min(55vh, 440px); overflow: auto; }
+.row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 0; border-radius: 10px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.row:hover, .row[aria-current] { background: color-mix(in srgb, #6898f2 13%, transparent); }
+.rowText { display: grid; min-width: 0; gap: 4px; }
+.rowText strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; }
+.rowText small { font-size: 11px; opacity: .55; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .25; }
+.dot[data-running] { background: #4e86ef; opacity: 1; }
+@keyframes show { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .list { animation: none; } .actions button { transition: none; } }

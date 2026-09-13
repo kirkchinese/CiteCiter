@@ -1,16 +1,15 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useCallback, useRef, useState } from 'react';
+import { ChoicePopover } from "./ChoicePopover.js";
 import css from './TopicModelControls.module.css';
-/**
- * Render compact, keyboard-accessible model controls inside the Topic composer.
- * @param props - current route, available models, save state and business callbacks.
- * @returns reasoning on the left and a provider-qualified model selector on the right.
- */
+/** Model and reasoning hierarchy. Route changes are committed by the injected controller. */
 export function TopicModelControls({ providers, route, saving, onModel, onReasoning }) {
+    const [page, setPage] = useState('closed');
+    const anchor = useRef(null);
+    const close = useCallback(() => setPage('closed'), []);
     const model = providers.find(provider => provider.id === route.provider)?.models.find(model => model.id === route.model);
-    const name = model?.name ?? `${route.provider} / ${route.model}`;
-    const effort = model?.reasoningEfforts.find(effort => effort.id === route.reasoningEffort)?.name ?? '默认思考';
-    return _jsxs("div", { className: css.controls, children: [model !== undefined && model.reasoningEfforts.length > 0 && _jsxs("label", { className: css.choice, title: `思考强度：${effort}`, children: [_jsx("span", { "aria-hidden": "true", children: effort }), _jsx("span", { className: css.chevron, "aria-hidden": "true" }), _jsxs("select", { "aria-label": "\u601D\u8003\u5F3A\u5EA6", value: route.reasoningEffort ?? '', disabled: saving, onChange: event => onReasoning(event.currentTarget.value || null), children: [_jsx("option", { value: "", children: "\u6A21\u578B\u9ED8\u8BA4\u601D\u8003" }), model.reasoningEfforts.map(effort => _jsx("option", { value: effort.id, children: effort.name }, effort.id))] })] }), _jsxs("label", { className: `${css.choice} ${css.model}`, title: saving ? '正在保存模型设置…' : name, children: [_jsx("span", { "aria-hidden": "true", children: name }), _jsx("span", { className: css.chevron, "aria-hidden": "true" }), _jsxs("select", { "aria-label": "CiteCiter \u6A21\u578B", value: JSON.stringify([route.provider, route.model]), disabled: saving, onChange: event => {
-                            const [provider, model] = JSON.parse(event.currentTarget.value);
-                            onModel(provider, model);
-                        }, children: [model === undefined && _jsxs("option", { value: JSON.stringify([route.provider, route.model]), children: [name, "\uFF08\u6682\u4E0D\u53EF\u7528\uFF09"] }), providers.map(provider => _jsx("optgroup", { label: provider.name, children: provider.models.map(model => _jsx("option", { value: JSON.stringify([provider.id, model.id]), children: model.name }, model.id)) }, provider.id))] })] })] });
+    const name = model?.name ?? route.model;
+    const effort = model?.reasoningEfforts.find(item => item.id === route.reasoningEffort)?.name ?? '默认';
+    const finish = (action) => { action(); close(); anchor.current?.focus(); };
+    return _jsxs("div", { className: css.controls, children: [_jsxs("button", { ref: anchor, type: "button", className: css.trigger, disabled: saving, "aria-label": `模型与思考强度：${name}，${effort}`, "aria-haspopup": "menu", "aria-expanded": page !== 'closed', onClick: () => setPage(page === 'closed' ? 'root' : 'closed'), children: [_jsx("span", { children: name }), _jsx("small", { children: effort }), _jsx("span", { "aria-hidden": "true", children: "\u2304" })] }), page !== 'closed' && _jsx(ChoicePopover, { anchor: anchor, label: "\u6A21\u578B\u4E0E\u601D\u8003\u5F3A\u5EA6", onClose: close, children: page === 'root' ? _jsxs(_Fragment, { children: [_jsxs("button", { type: "button", role: "menuitem", onClick: () => setPage('model'), children: [_jsx("span", { children: "\u6A21\u578B" }), _jsxs("span", { children: [name, " \u203A"] })] }), _jsxs("button", { type: "button", role: "menuitem", disabled: !model?.reasoningEfforts.length, onClick: () => setPage('effort'), children: [_jsx("span", { children: "\u601D\u8003\u5F3A\u5EA6" }), _jsxs("span", { children: [effort, " \u203A"] })] })] }) : _jsxs(_Fragment, { children: [_jsx("button", { type: "button", role: "menuitem", onClick: () => setPage('root'), children: _jsxs("span", { children: ["\u2039 ", page === 'model' ? '模型' : '思考强度'] }) }), page === 'model' ? providers.map(provider => _jsxs("div", { role: "group", "aria-label": provider.name, children: [_jsx("small", { children: provider.name }), provider.models.map(item => _jsxs("button", { type: "button", role: "menuitemradio", "aria-checked": provider.id === route.provider && item.id === route.model, onClick: () => finish(() => onModel(provider.id, item.id)), children: [_jsx("span", { children: item.name }), provider.id === route.provider && item.id === route.model && _jsx("span", { "aria-hidden": "true", children: "\u2713" })] }, item.id))] }, provider.id)) : _jsxs(_Fragment, { children: [_jsx("button", { type: "button", role: "menuitemradio", "aria-checked": route.reasoningEffort === undefined, onClick: () => finish(() => onReasoning(null)), children: "\u6A21\u578B\u9ED8\u8BA4" }), model?.reasoningEfforts.map(item => _jsx("button", { type: "button", role: "menuitemradio", "aria-checked": item.id === route.reasoningEffort, onClick: () => finish(() => onReasoning(item.id)), children: item.name }, item.id))] })] }) })] });
 }

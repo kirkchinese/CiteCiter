@@ -43,7 +43,7 @@ export function LearningCards({ projection, recall, setRecall, disabled, topicTi
       {projection.cards.length === 0 ? <div className={css.empty}>
         <span className={css.emptyGlyph} aria-hidden="true">▤</span>
         <h3>让理解留下来</h3>
-        <p>讨论到一个段落后，选择“总结”并发送，把核心结论、例子和概念整理到这里。</p>
+        <p>在输入框请求总结学习卡片并发送。模型会先核对结论，再整理卡片。</p>
         <button className={css.action} type="button" onClick={onRevise}>准备总结</button>
       </div> : <>
         {projection.cards.map((card, index) => <Card key={`${projection.messageId}:${index}:${recall}`} card={card} index={index} recall={recall} />)}

@@ -5,9 +5,10 @@ import { type BoardElementState, type BoardSnapshot } from '../../board.ts';
  * @param props - snapshot, motion preference, optional compact reading mode and citation action.
  * @returns the safe blackboard canvas.
  */
-export declare function BoardView({ snapshot, animations, onQuoteElement, compact, }: {
+export declare function BoardView({ snapshot, animations, onQuoteElement, compact, sessionId, }: {
     readonly snapshot: BoardSnapshot | undefined;
     readonly animations: boolean;
     readonly onQuoteElement?: (element: BoardElementState) => void;
     readonly compact?: boolean;
+    readonly sessionId?: string;
 }): import("react").JSX.Element;

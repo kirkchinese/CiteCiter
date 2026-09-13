@@ -1,3 +1,5 @@
+import type { NativeComposer, DeliveryMode } from './native-composer.ts'
+import type { DraftAttachmentId } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -36,6 +38,7 @@ export type TopicsStatus = 'idle' | 'loading' | 'ready' | 'error'
 export type SettingsSaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 export interface CompanionSnapshot {
+  composeSeed: { readonly sessionId: string, readonly question: string, readonly id: string } | null
   sourceSessionId: SessionId | null
   phase: CompanionPhase
   draftQuote: string | null
@@ -73,9 +76,11 @@ export interface CompanionFace {
   /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
   createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>
   openTopic(sessionId: string): Promise<void>
-  ask(question: string): Promise<boolean>
+  ask(question: string, attachments?: readonly DraftAttachmentId[], mode?: DeliveryMode): Promise<boolean>
+  setPermission(mode: NonNullable<CiteCiterSettings['defaultPermission']>): Promise<void>
   answerQuestion(key: string, answer: QuestionAnswer): Promise<void>
   cancelQuestion(key: string): Promise<void>
+  boardCaptureReply(sessionId: string, id: string, png?: string, error?: string): Promise<void>
   stop(): Promise<void>
   rename(title: string): Promise<boolean>
   archive(archived: boolean): Promise<boolean>
@@ -90,6 +95,7 @@ export interface CompanionFace {
 
 /** Initial browser snapshot for the root-scoped CiteCiter controller. */
 export const INITIAL_COMPANION_SNAPSHOT: CompanionSnapshot = {
+  composeSeed: null,
   sourceSessionId: null,
   phase: 'idle',
   draftQuote: null,
@@ -175,6 +181,7 @@ export function createCompanionController(
   request: RemoteRequest,
   onAutoOpen: () => void,
   store: SnapshotStore<CompanionSnapshot>,
+  nativeComposer: NativeComposer,
 ): CompanionFace {
   let disposed = false
   const lifecycle = new AbortController()
@@ -202,6 +209,7 @@ export function createCompanionController(
   const pendingCreates = new Map<string, Promise<void>>()
   const pendingFreeCreates = new Map<string, Promise<boolean>>()
   const pendingAsks = new Map<string, Promise<boolean>>()
+  let actionFailure: { generation: number, message: string } | null = null
 
   const track = <Value>(pending: Set<Promise<unknown>>, operation: Promise<Value>): Promise<Value> => {
     let tracked: Promise<Value>
@@ -217,11 +225,13 @@ export function createCompanionController(
   const update = (mutator: (draft: CompanionSnapshot) => void) => {
     if (!disposed) store.update(mutator)
   }
-  const fail = (error: unknown, operationGeneration = activeGeneration) => {
+  const fail = (error: unknown, operationGeneration = activeGeneration, sticky = true) => {
     if (disposed || operationGeneration !== activeGeneration) return
+    const message = error instanceof Error ? error.message : String(error)
+    if (sticky) actionFailure = { generation: operationGeneration, message }
     update((draft) => {
       draft.phase = 'error'
-      draft.error = error instanceof Error ? error.message : String(error)
+      draft.error = message
     })
   }
   const withPendingModelConfig = (topic: TopicSnapshot): TopicSnapshot => {
@@ -254,7 +264,7 @@ export function createCompanionController(
     const topics = draft.topics.filter((candidate) => candidate.sessionId !== topic.sessionId)
     draft.topics = belongs ? [...topics, topic].sort((left, right) => right.updatedAt - left.updatedAt) : topics
   }
-  const acceptTopic = (rawTopic: TopicSnapshot, operationGeneration: number, expectedSessionId?: string) => {
+  const acceptTopic = (rawTopic: TopicSnapshot, operationGeneration: number, expectedSessionId?: string, polling = false) => {
     const topic = clearRecoveredError(withPendingModelConfig(rawTopic))
     const current = store.getSnapshot()
     if (disposed || !isCurrentTopicResponse(
@@ -265,6 +275,8 @@ export function createCompanionController(
       topic.topic.sessionId,
       expectedSessionId,
     )) return
+    if (!polling) actionFailure = null
+    const failure = actionFailure?.generation === operationGeneration ? actionFailure.message : null
     update((draft) => {
       const lastMessage = topic.messages.at(-1)
       draft.active = topic
@@ -273,8 +285,8 @@ export function createCompanionController(
         ? null
         : readCitationAnchor(topic.topic.sourceSessionId, topic.topic.citation.anchorSeq)
       const stopped = lastMessage?.role === 'error' && lastMessage.status === 'stopped'
-      draft.phase = topic.topic.running ? 'running' : stopped ? 'stopped' : topic.error === null ? 'ready' : 'error'
-      draft.error = topic.error
+      draft.phase = failure !== null ? 'error' : topic.topic.running ? 'running' : stopped ? 'stopped' : topic.error === null ? 'ready' : 'error'
+      draft.error = failure ?? topic.error
       upsertTopic(draft, topic.topic)
     })
     writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId)
@@ -389,7 +401,7 @@ export function createCompanionController(
     const active = store.getSnapshot().active
     if (active === null) return
     const response = await call({ action: 'get', topicSessionId: active.topic.sessionId })
-    if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId)
+    if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId, true)
   }
 
   const poll = async () => {
@@ -403,7 +415,7 @@ export function createCompanionController(
       await refreshActive(operationGeneration)
       if (pollCount++ % 6 === 0) await refreshTopics()
     } catch (error) {
-      fail(error, operationGeneration)
+      fail(error, operationGeneration, false)
     } finally {
       polling = false
     }
@@ -588,6 +600,7 @@ export function createCompanionController(
         writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey)
       }
       acceptTopic(response.topic, operationGeneration)
+      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId } })
       await refreshTopics()
     } catch (error) {
       fail(error, operationGeneration)
@@ -617,7 +630,7 @@ export function createCompanionController(
     if (disposed) return false
     const sourceSessionId = store.getSnapshot().sourceSessionId
     if (sourceSessionId === null) return false
-    const question = normalizeQuestion(rawQuestion)
+    const question = rawQuestion.trim()
     const intent = await claimCreateFreeTopicIntent(sourceSessionId, question, scenario)
     if (disposed) return false
     const pending = pendingFreeCreates.get(intent.requestId)
@@ -641,6 +654,7 @@ export function createCompanionController(
         if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
         completeRequestIntent(intent)
         acceptTopic(response.topic, operationGeneration)
+        if (operationGeneration === activeGeneration) update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId } })
         await refreshTopics()
         return operationGeneration === activeGeneration
       } catch (error) {
@@ -694,6 +708,7 @@ export function createCompanionController(
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的文档 Topic 响应')
       completeRequestIntent(intent)
       acceptTopic(response.topic, operationGeneration)
+      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId } })
       if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId) onAutoOpen()
       await refreshTopics()
     } catch (error) {
@@ -725,12 +740,26 @@ export function createCompanionController(
     }
   }
 
-  const ask = async (rawQuestion: string): Promise<boolean> => {
+  const ask = async (rawQuestion: string, attachments: readonly DraftAttachmentId[] = [], mode: DeliveryMode = 'queue'): Promise<boolean> => {
     if (disposed) return false
     const snapshot = store.getSnapshot()
     const active = snapshot.active
-    if (active === null || !['ready', 'stopped', 'error'].includes(snapshot.phase)) return false
+    if (active === null || !['ready', 'stopped', 'error', 'running'].includes(snapshot.phase)) return false
     const sessionId = active.topic.sessionId
+    if (active.topic.hosted === true) {
+      if (pendingAsks.has(sessionId)) return false
+      const generation = activeGeneration
+      const operation = (async () => {
+        try {
+          await nativeComposer.send(sessionId, rawQuestion, attachments, mode)
+          const response = await call({ action: 'get', topicSessionId: sessionId })
+          if (response.kind === 'topic') acceptTopic(response.topic, generation, sessionId)
+          return true
+        } catch (error) { fail(error, generation); return false }
+      })().finally(() => pendingAsks.delete(sessionId))
+      pendingAsks.set(sessionId, operation)
+      return operation
+    }
     if (pendingAsks.has(sessionId)) return false
     const question = normalizeQuestion(rawQuestion)
     const intent = await claimAskIntent(sessionId, question)
@@ -754,6 +783,7 @@ export function createCompanionController(
     try {
       const response = await call({ action: 'stop', topicSessionId: active.topic.sessionId })
       if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId)
+      if (operationGeneration === activeGeneration) update(draft => { draft.notice = '已请求停止当前回答；待处理队列仍按 DSH 规则继续。' })
     } catch (error) {
       fail(error, operationGeneration)
     }
@@ -1052,9 +1082,19 @@ export function createCompanionController(
     createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
     createFromDocument: (...args) => admit(undefined, () => createFromDocument(...args)),
     openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
-    ask: (question) => admit(false, () => ask(question)),
+    ask: (...args) => admit(false, () => ask(...args)),
+    setPermission: mode => admit(undefined, async () => {
+      const active = store.getSnapshot().active
+      if (active === null) return
+      const generation = activeGeneration
+      try {
+        const response = await call({ action: 'set-permission', topicSessionId: active.topic.sessionId, mode })
+        if (response.kind === 'topic') acceptTopic(response.topic, generation, active.topic.sessionId)
+      } catch (error) { fail(error, generation) }
+    }),
     answerQuestion: (key, answer) => admit(undefined, () => answerQuestion(key, answer)),
     cancelQuestion: (key) => admit(undefined, () => cancelQuestion(key)),
+    boardCaptureReply: async (sessionId, id, png, error) => { await call({ action: 'board-capture', topicSessionId: sessionId, id, ...(png === undefined ? {} : { png }), ...(error === undefined ? {} : { error: error.slice(0, 500) }) }) },
     stop: () => admit(undefined, stop),
     rename: (title) => admit(false, () => rename(title)),
     archive: (archived) => admit(false, () => archive(archived)),

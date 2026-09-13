@@ -1,7 +1,7 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.7.0-beta.3",
-  "description": "Read-only learning Topics and presenter boards for DeepSeek Harness",
+  "version": "0.8.0-alpha.1",
+  "description": "Source-aware native DSH Topics with manual drafts, permissions, visual boards and learning cards",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -92,16 +92,14 @@
     "postbuild:bundle": "node scripts/normalize-bundle.mjs",
     "prepack": "npm run build",
     "dev": "npm run build && node dev/watch.mjs",
-    "smoke:seed": "node dev/seed-smoke-session.mjs",
-    "test:snapshot": "node dev/run-smoke.mjs",
-    "smoke:hmr": "node dev/hmr-smoke.mjs",
-    "typecheck": "tsc -p tsconfig.host.json --noEmit && tsc -p tsconfig.client.json --noEmit",
-    "test": "npm run build:lib && node --test tests/*.test.mjs"
+    "typecheck": "tsc -p tsconfig.host.json --noEmit && tsc -p tsconfig.client.json --noEmit"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
     "@deepseek-ai/dsh-agent": "0.1.5-rc.1",
     "@deepseek-ai/dsh-agent-loop": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-agent-presets": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-attachment": "0.1.5-rc.1",
     "@deepseek-ai/dsh-fs": "0.1.5-rc.1",
     "@deepseek-ai/dsh-home-paths": "0.1.5-rc.1",
     "@deepseek-ai/dsh-llm": "0.1.5-rc.1",
@@ -130,11 +128,14 @@
     "@deepseek-ai/cordis": "^4.0.2",
     "@deepseek-ai/dsh-agent": "0.1.5-rc.1",
     "@deepseek-ai/dsh-agent-loop": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-agent-presets": "0.1.5-rc.1",
     "@deepseek-ai/dsh-api-gateway": "0.1.5-rc.1",
     "@deepseek-ai/dsh-api-session-controller": "0.1.5-rc.1",
     "@deepseek-ai/dsh-api-settings-controller": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-attachment": "0.1.5-rc.1",
     "@deepseek-ai/dsh-client-connection": "0.1.5-rc.1",
     "@deepseek-ai/dsh-client-store": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-approval": "0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-chat": "0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-conversation": "0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-layout": "0.1.5-rc.1",
@@ -144,6 +145,8 @@
     "@deepseek-ai/dsh-client-ui-settings": "0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.1.5-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-user-questions": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-commands": "0.1.5-rc.1",
     "@deepseek-ai/dsh-fs": "0.1.5-rc.1",
     "@deepseek-ai/dsh-home-paths": "0.1.5-rc.1",
     "@deepseek-ai/dsh-llm": "0.1.5-rc.1",
@@ -176,7 +179,6 @@
     "mdast-util-gfm": "^3.1.0",
     "micromark-extension-gfm": "^3.0.0",
     "micromark-util-decode-string": "^2.0.1",
-    "playwright": "^1.58.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.2",
@@ -185,6 +187,7 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-util-values": "0.1.5-rc.1",
+    "html-to-image": "1.11.13",
     "katex": "^0.18.4"
   }
 }

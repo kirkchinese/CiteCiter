@@ -1,12 +1,10 @@
-.controls { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; }
-.choice { position: relative; display: flex; align-items: center; gap: 9px; min-width: 0; max-width: 50%; padding: 8px; border-radius: 10px; color: var(--dsw-alias-label-secondary, #626a76); font-size: 12px; transition: background 120ms ease; }
-.choice > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.choice:hover { background: color-mix(in srgb, var(--dsw-alias-label-primary, #20232a) 6%, transparent); }
-.choice:focus-within { outline: 2px solid #3478f6; outline-offset: -2px; }
-.choice:has(select:disabled) { opacity: .55; }
-.choice select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.choice select:disabled { cursor: wait; }
-.model { margin-left: auto; font-size: 14px; font-weight: 600; }
-.model:only-child { max-width: 100%; }
-.chevron { flex: none; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-2px) rotate(45deg); opacity: .65; }
-@media (prefers-reduced-motion: reduce) { .choice { transition: none; } }
+.controls { margin-left: auto; min-width: 0; flex: 1 1 0; }
+.controls > .trigger { width: 100%; min-width: 0; max-width: none; }
+.controls > .trigger > span:first-child { flex: 1; min-width: 0; text-align: right; }
+.trigger { display: flex; align-items: center; gap: 7px; max-width: 240px; padding: 7px 10px; border: 0; border-radius: 11px; background: transparent; color: inherit; cursor: pointer; font: inherit; transition: background 130ms; }
+.trigger > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.trigger small { opacity: .55; }
+.trigger:hover, .trigger[aria-expanded="true"] { background: color-mix(in srgb, currentColor 7%, transparent); }
+.trigger:focus-visible { outline: 2px solid #6898f2; outline-offset: 2px; }
+.trigger:disabled { opacity: .5; cursor: wait; }
+@media (prefers-reduced-motion: reduce) { .trigger { transition: none; } }

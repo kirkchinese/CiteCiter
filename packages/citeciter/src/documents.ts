@@ -72,8 +72,25 @@ function parseRecord(value: unknown, documentId: string): DocumentRecordFile {
 
 /** Validate and persist one imported text document under the private library. */
 export class DocumentStore {
+  private readonly summaries = new Map<string, DocumentSummary>()
   /** @param root - private document library root. */
   constructor(private readonly root: string = DOCUMENT_ROOT) {}
+
+  /** Read validated, immutable metadata without loading the document body. Missing documents return null; successful reads are cached for this store's lifetime. */
+  async summary(documentId: string): Promise<DocumentSummary | null> {
+    const cached = this.summaries.get(documentId)
+    if (cached !== undefined) return cached
+    try {
+      const record = parseRecord(JSON.parse(await readFile(resolve(documentDirectory(this.root, documentId), 'document.json'), 'utf8')), documentId)
+      const { schemaVersion: _version, ...summary } = record
+      this.summaries.set(documentId, summary)
+      return summary
+    } catch (error) {
+      // A removed document must not prevent opening the Topic's surviving conversation.
+      if (errorCode(error) === 'ENOENT') return null
+      throw error
+    }
+  }
 
   /**
    * Persist one imported document and its normalized UTF-8 text.

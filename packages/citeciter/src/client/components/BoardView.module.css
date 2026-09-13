@@ -1,4 +1,5 @@
 .board {
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -141,7 +142,7 @@
 }
 
 .math {
-  font-size: 15px;
+  font-size: inherit;
 }
 
 .svg {

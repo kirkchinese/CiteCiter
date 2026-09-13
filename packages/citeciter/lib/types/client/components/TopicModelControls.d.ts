@@ -1,9 +1,5 @@
 import type { ProviderOption, TopicModelConfig } from '../../topic.ts';
-/**
- * Render compact, keyboard-accessible model controls inside the Topic composer.
- * @param props - current route, available models, save state and business callbacks.
- * @returns reasoning on the left and a provider-qualified model selector on the right.
- */
+/** Model and reasoning hierarchy. Route changes are committed by the injected controller. */
 export declare function TopicModelControls({ providers, route, saving, onModel, onReasoning }: {
     readonly providers: readonly ProviderOption[];
     readonly route: TopicModelConfig;

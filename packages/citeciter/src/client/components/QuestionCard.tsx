@@ -1,7 +1,8 @@
-import type { CompanionActions } from '../view-actions.ts'
 import { type FormEvent, useMemo, useState } from 'react'
 import { IconQuestionOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PendingQuestion, QuestionAnswer } from '../../topic.ts'
+import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
+import type { PendingQuestion } from '../../topic.ts'
+import { RichAnswer } from './RichAnswer.tsx'
 import css from './CiteCiter.module.css'
 
 interface DraftAnswer {
@@ -10,13 +11,22 @@ interface DraftAnswer {
 }
 
 export interface QuestionCardProps {
-  readonly companion: CompanionActions
-  readonly pending: PendingQuestion
+  readonly pending: { readonly key: string, readonly questions: readonly (PendingQuestion['questions'][number] & { readonly detail?: string })[] }
+  readonly onAnswer: (answer: AskUserQuestionAnswer) => Promise<unknown>
+  readonly onCancel: () => Promise<unknown>
 }
 
 /** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
-export function QuestionCard({ companion, pending }: QuestionCardProps) {
+export function QuestionCard({ onAnswer, onCancel, pending }: QuestionCardProps) {
   const [page, setPage] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string>()
+  const run = (action: () => Promise<unknown>) => {
+    if (busy) return
+    setBusy(true)
+    setError(undefined)
+    void action().catch(error => { setError(String(error)); setBusy(false) })
+  }
   const [drafts, setDrafts] = useState<Record<string, DraftAnswer>>({})
   const question = pending.questions[page]
   const complete = useMemo(() => pending.questions.every((item) => {
@@ -40,8 +50,8 @@ export function QuestionCard({ companion, pending }: QuestionCardProps) {
   }
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!complete) return
-    const answer: QuestionAnswer = {
+    if (!complete || busy) return
+    const answer: AskUserQuestionAnswer = {
       answers: pending.questions.map((item) => {
         const value = drafts[item.id] ?? { selected: [], custom: '' }
         const custom = value.custom.trim()
@@ -52,7 +62,7 @@ export function QuestionCard({ companion, pending }: QuestionCardProps) {
         }
       }),
     }
-    void companion.answerQuestion(pending.key, answer)
+    run(() => onAnswer(answer))
   }
 
   return (
@@ -65,6 +75,8 @@ export function QuestionCard({ companion, pending }: QuestionCardProps) {
         </div>
         <span>{page + 1}/{pending.questions.length}</span>
       </div>
+      {question.detail !== undefined && <RichAnswer text={question.detail} streaming={false} />}
+      {error !== undefined && <p role="alert">{error}</p>}
       {(question.options ?? []).length > 0 && (
         <div className={css.questionOptions}>
           {question.options?.map((option, index) => {
@@ -73,6 +85,7 @@ export function QuestionCard({ companion, pending }: QuestionCardProps) {
               <button
                 type="button"
                 key={option.label}
+                disabled={busy}
                 data-selected={selected || undefined}
                 onClick={() => choose(option.label)}
               >
@@ -86,6 +99,7 @@ export function QuestionCard({ companion, pending }: QuestionCardProps) {
       <textarea
         className={css.questionCustom}
         rows={2}
+        disabled={busy}
         value={draft.custom}
         placeholder={(question.options ?? []).length === 0 ? '输入回答…' : '其他（可填写）'}
         aria-label="自定义回答"
@@ -95,12 +109,12 @@ export function QuestionCard({ companion, pending }: QuestionCardProps) {
         })}
       />
       <div className={css.questionFooter}>
-        <button type="button" onClick={() => { void companion.cancelQuestion(pending.key) }}>取消</button>
+        <button type="button" disabled={busy} onClick={() => run(onCancel)}>取消</button>
         <span />
         {page > 0 && <button type="button" onClick={() => setPage(page - 1)}>上一个</button>}
         {page + 1 < pending.questions.length
           ? <button type="button" disabled={draft.selected.length === 0 && draft.custom.trim() === ''} onClick={() => setPage(page + 1)}>下一个</button>
-          : <button type="submit" disabled={!complete}>提交回答</button>}
+          : <button type="submit" disabled={!complete || busy}>{busy ? '提交中…' : '提交回答'}</button>}
       </div>
     </form>
   )

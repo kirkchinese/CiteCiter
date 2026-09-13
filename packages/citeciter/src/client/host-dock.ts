@@ -19,7 +19,7 @@ export function findContainingFrame(panel: HTMLElement | null): HTMLElement | nu
  * @param percent - user's preferred fraction of the content viewport.
  * @returns measured panel placement; null when the host frame is unsupported.
  */
-export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number): DockGeometry | null {
+export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number, floating = false): DockGeometry | null {
   const [geometry, setGeometry] = useState<DockGeometry | null>(null)
   useEffect(() => {
     if (!open) return
@@ -58,6 +58,12 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
       const next = resolveDockGeometry({
         width: rect.width, height: rect.height, sidebar: Number(tracks[1]), details: Number(tracks[2]), caption, percent,
       })
+      if (floating && next.mode === 'columns') {
+        clear()
+        setGeometry(previous => previous?.mode === next.mode && previous.width === next.width
+          && previous.height === next.height && previous.top === next.top ? previous : next)
+        return
+      }
       setTrack('--citeciter-host-columns', columns)
       setTrack('--citeciter-dock-width', next.width + 'px')
       setTrack('--citeciter-dock-height', next.height + 'px')
@@ -78,6 +84,6 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
       mutations.disconnect()
       clear()
     }
-  }, [open, panel, percent])
+  }, [open, panel, percent, floating])
   return geometry
 }

@@ -1,3 +1,4 @@
+import { PermissionControl } from './PermissionControl.tsx'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { UpdateNoticeSnapshot } from '../update-controller.ts'
 import type { SettingsDocumentSnapshot } from '../settings-document.ts'
@@ -59,29 +60,8 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
 
       <WheelSettings snapshot={snapshot} companion={companion} />
       <section className={css.settingsGroup}>
-        <h3>新 Topic 的来源方式</h3>
-        <label className={css.settingChoice} data-selected={settings.defaultMode === 'observer' || undefined}>
-          <input
-            type="radio"
-            name="citeciter-default-mode"
-            checked={settings.defaultMode === 'observer'}
-            onChange={() => { void companion.setSetting('defaultMode', 'observer') }}
-          />
-          <span><strong>Observer（推荐）</strong><small>模型调用一完成即可提问；主 Agent 后续的新调用仍可被只读查看。</small></span>
-        </label>
-        <label className={css.settingChoice} data-selected={settings.defaultMode === 'exact-when-available' || undefined}>
-          <input
-            type="radio"
-            name="citeciter-default-mode"
-            checked={settings.defaultMode === 'exact-when-available'}
-            onChange={() => { void companion.setSetting('defaultMode', 'exact-when-available') }}
-          />
-          <span><strong>可用时精确分叉</strong><small>轮次已结束时冻结完整前缀；开放轮次自动回到 Observer。</small></span>
-        </label>
-      </section>
-
-      <section className={css.settingsGroup}>
-        <h3>来源读取</h3>
+        <h3>权限与来源</h3>
+        <div className={css.settingToggle}><span><strong>新 Topic 默认权限</strong><small>使用 DSH 权限；此设置只影响新 Topic。</small></span><PermissionControl value={settings.defaultPermission ?? 'read-only'} onChange={mode => { void companion.setSetting('defaultPermission', mode) }} /></div>
         <label className={css.settingToggle}>
           <span><strong>包含来源 reasoning</strong><small>关闭后 read_source_session 不向 CiteCiter 返回主 Agent 的思考正文。</small></span>
           <input
@@ -91,7 +71,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
           />
         </label>
         <label className={css.settingToggle}>
-          <span><strong>允许调查来源工作区</strong><small>提供 DSH 标准 read、glob 与 grep；写入、编辑、任意命令与外部副作用始终不可用。</small></span>
+          <span><strong>旧 Topic：允许调查来源工作区</strong><small>此开关仅控制旧 Topic 的只读文件工具。新 Topic 使用完整 DSH 工具，权限由输入框中的模式控制。</small></span>
           <input
             type="checkbox"
             checked={settings.allowSourceFiles}

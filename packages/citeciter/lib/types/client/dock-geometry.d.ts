@@ -7,15 +7,15 @@ export interface DockViewport {
     readonly caption: number;
     readonly percent: number;
 }
-/** The host keeps its conversation and details visible in both arrangements. */
+/** Wide windows reserve a column; compact windows navigate to a Citer page. */
 export interface DockGeometry {
-    readonly mode: 'columns' | 'rows';
+    readonly mode: 'columns' | 'page';
     readonly width: number;
     readonly height: number;
     readonly top: number;
 }
 /**
- * Reserve a separate column, or a bottom row when two readable columns cannot fit.
+ * Reserve a separate column, or the content area when two readable columns cannot fit.
  * CSS pixels already account for browser zoom and Windows display scaling.
  * @param viewport - measured host dimensions and the saved width preference.
  * @returns panel dimensions within the host, excluding its native caption.

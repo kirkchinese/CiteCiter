@@ -9,3 +9,4 @@
 .actions { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--dsw-alias-border-l1, #dfe3ea); padding-top: 16px; }
 .settings .danger, .error { color: var(--dsw-alias-state-error-primary, #c93f3f); }
 .error { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.hint { margin: 0; font-size: 12px; color: var(--dsw-alias-label-secondary, #606875); }
