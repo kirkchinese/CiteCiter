@@ -164,7 +164,9 @@ Desktop 文件选择对话框在本轮无法被 Computer Use 稳定选中，返�
 
 修复后的安装包已重新安装两种 profile。客户端 SHA-256 为 6B3E5F1CC0D1614347622844C48F1EA4DA969C2CFE9C9BEA1EEE777233AA7842，Host 为 B6BC342D127FB9D168ED7A9F7A3EE29F5A30C8F6DB76415DC14B949CB1E922AE；安装内容与构建相同。类型检查、完整构建、打包及 diff --check 通过。包内 118 项，无测试目录、模型替身、临时会话、凭据或嵌套安装包。
 
-原生截图工具随后连续返回 Direct3D11CaptureFramePool.CreateFreeThreaded / GPU device removed（0x887A0005），已停止原生输入，请用户复测同一文件的下载。结果待补充；不能据构建成功将下载标为通过。
+原生截图工具随后连续返回 Direct3D11CaptureFramePool.CreateFreeThreaded / GPU device removed（0x887A0005），已停止原生输入，由用户复测同一文件。用户确认“下载成功，发布”，普通文件下载按实际人工操作验收通过。Windows 与 Ubuntu CI 均通过；该功能结论来自真实文件复测，未用构建结果替代。
+
+最终安装包与已安装验收副本、GitHub Release 附件的 SHA-256 均为 066F6390A3467A6F1BD2AC7444D39B5CE6C2ABE09209FACB65AE1FBB6E5CE2EA，大小 787777 字节。发布使用这一个已验收安装包，不重新生成不同产物。
 
 ## 已知限制
 
