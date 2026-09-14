@@ -35,11 +35,19 @@ export type SourceEvidenceEvent = JsonValue;
 /** Complete bounded source-read payload recorded as the Topic tool result. */
 export interface SourceReadResult {
     readonly sourceSessionId: string;
+    /** Highest sequence in the entire readable snapshot, independent of request bounds. */
+    readonly sourceMaxSeq: number | null;
     readonly requestedFromSeq: number;
     readonly requestedThroughSeq: number | null;
+    /** Last scanned sequence; filtered records can advance this without adding evidence. */
     readonly capturedThroughSeq: number | null;
+    /** Legacy upper-bound marker; may precede fromSeq and is not the source horizon. */
     readonly availableThroughSeq: number | null;
+    /** A byte-budget stop within the requested range, not a source exhaustion flag. */
     readonly truncated: boolean;
+    readonly hasMore: boolean;
+    /** First unscanned sequence at or after fromSeq, including beyond a requested range cap. */
+    readonly nextFromSeq: number | null;
     readonly bytesUsed: number;
     readonly events: readonly SourceEvidenceEvent[];
 }
@@ -68,5 +76,5 @@ export declare function resolveToolEvidence(source: ObserverSourceSnapshot, rawC
  * @returns verified evidence with document offsets in its entry.
  */
 export declare function resolveDocumentEvidence(content: string, rawClaim: DocumentEvidenceClaim): ValidatedDocumentEvidence;
-/** Format one seq range without exposing chunks or exceeding the event-array byte budget. */
+/** Format a range plus the readable snapshot horizon and cursor, without exposing chunks or exceeding the event-array byte budget. */
 export declare function formatSourceSessionRead(source: ObserverSourceSnapshot, options: SourceReadOptions): SourceReadResult;

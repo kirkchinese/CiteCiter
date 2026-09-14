@@ -248,7 +248,8 @@ const topicMetadataFields = {
   updatedAt: z.number().int().nonnegative(),
   archivedAt: z.number().int().nonnegative().nullable(),
   sourceAvailable: z.boolean(),
-  observedThroughSeq: z.number().int().nonnegative().nullable().optional(),
+  /** Cursor from this Topic's last source read, never the source horizon or a permission boundary. */
+  observedThroughSeq: z.number().int().nonnegative().nullable().optional().describe('Last source-read scan cursor; not the source horizon or an access limit.'),
 }
 
 /** Canonical Topic metadata committed by the current runtime. */
@@ -319,7 +320,8 @@ export const topicSummarySchema = z.object({
   archived: z.boolean(),
   running: z.boolean(),
   sourceAvailable: z.boolean(),
-  observedThroughSeq: z.number().int().nonnegative().nullable(),
+  /** Cursor from this Topic's last source read, never the source horizon or a permission boundary. */
+  observedThroughSeq: z.number().int().nonnegative().nullable().describe('Last source-read scan cursor; not the source horizon or an access limit.'),
   modelConfig: modelConfigSchema,
 }).strict()
 

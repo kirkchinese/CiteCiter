@@ -88,7 +88,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
             onChange={(event) => { void companion.setSetting('activeRecall', event.currentTarget.checked) }} />
         </label>
         <label className={css.settingStack}>
-          <span><strong>自定义导师提示词</strong><small>在内置场景规则后补充教学偏好；留空只使用内置提示词。修改对之后恢复/新建的 Topic 生效。</small></span>
+          <span><strong>自定义导师提示词</strong><small>补充教学偏好；留空使用内置提示词。原生 Topic 从下次发送起生效；旧 Topic 恢复后生效。</small></span>
           <textarea
             className={css.promptTextarea}
             value={settings.tutorPrompt ?? ''}

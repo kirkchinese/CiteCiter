@@ -27,6 +27,7 @@ Follow the [DSH architecture](https://github.com/deepseek-ai/deepseek-harness/bl
 | source-session.ts | Source observation, disposal and submitted-reference checks |
 | topic-index.ts | Metadata validation, navigation and legacy private-log cleanup |
 | topic-runtime.ts | Topic use cases, tool contributions and legacy compatibility |
+| source-read-tool.ts / topic-prompts.ts | Source tool schema, paging guidance and native prompt composition |
 | board-capture.ts | Capture correlation, cancellation, timeout and native attachment storage |
 | client/native-composer.ts | Published DSH attachment, send and queue services |
 | native-attachment-read.ts / client/file-download.ts | Exact Topic authorization, native file/image reads and download lifetime |

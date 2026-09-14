@@ -363,7 +363,8 @@ export declare class TopicRuntime {
     private blackboardApplyTool;
     private readDocumentTool;
     private searchDocumentTool;
-    private sourceTool;
+    /** Share source-read instructions and contract across native and legacy Topic runtimes. */
+    private registerSourceTool;
     private ensureHandle;
     private disposeLateHandle;
     /** Resolve only after the accepted question is present in the durable model-input log. */

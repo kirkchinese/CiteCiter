@@ -5659,7 +5659,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			updatedAt: number().int().nonnegative(),
 			archivedAt: number().int().nonnegative().nullable(),
 			sourceAvailable: boolean(),
-			observedThroughSeq: number().int().nonnegative().nullable().optional()
+			/** Cursor from this Topic's last source read, never the source horizon or a permission boundary. */
+			observedThroughSeq: number().int().nonnegative().nullable().optional().describe("Last source-read scan cursor; not the source horizon or an access limit.")
 		};
 		object({
 			schemaVersion: literal(2),
@@ -5705,7 +5706,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			archived: boolean(),
 			running: boolean(),
 			sourceAvailable: boolean(),
-			observedThroughSeq: number().int().nonnegative().nullable(),
+			/** Cursor from this Topic's last source read, never the source horizon or a permission boundary. */
+			observedThroughSeq: number().int().nonnegative().nullable().describe("Last source-read scan cursor; not the source horizon or an access limit."),
 			modelConfig: modelConfigSchema
 		}).strict();
 		const messageAttachmentSchema = object({
@@ -39594,7 +39596,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							}),
 							(0, react_jsx_runtime.jsxs)("label", {
 								className: CiteCiter_module_css_default.settingStack,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "自定义导师提示词" }), (0, react_jsx_runtime.jsx)("small", { children: "在内置场景规则后补充教学偏好；留空只使用内置提示词。修改对之后恢复/新建的 Topic 生效。" })] }), (0, react_jsx_runtime.jsx)("textarea", {
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "自定义导师提示词" }), (0, react_jsx_runtime.jsx)("small", { children: "补充教学偏好；留空使用内置提示词。原生 Topic 从下次发送起生效；旧 Topic 恢复后生效。" })] }), (0, react_jsx_runtime.jsx)("textarea", {
 									className: CiteCiter_module_css_default.promptTextarea,
 									value: settings.tutorPrompt ?? "",
 									maxLength: 4e3,
