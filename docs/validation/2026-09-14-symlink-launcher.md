@@ -22,4 +22,6 @@
 
 安装包内容检查通过，共 118 个文件；未包含临时探针、模型替身、会话或凭据。临时预加载程序和 Linux 链接已删除。
 
+正式发布准备再次通过类型检查、完整构建和 diff 检查。最终包仍为 118 个文件，与已安装并完成真实模型验收的候选逐文件比较，仅中英文 README 更新了 0.8.0 弃用和 0.8.1 升级说明；全部运行文件、类型声明和包配置字节一致。最终包 SHA-256 为 b3fa5add5a324abd0c5237eaed7f053c0fd425660124ebcfe7b99b58fb44f26f，npm 完整性为 sha512-5kADjo/oYV9lqBFXmCQ8gNGPsktB0Oyb8xrNk7TOgor48E0uvmOw4hCgiI5QYpLS2+3hqwVouRuxncFUDJGfvQ==。
+
 Host/Client 类型检查和完整构建通过。Linux 使用真实 Node 模块加载，不是 Windows Node 模拟；但实际安装文件来自同一机器的 DSH 安装，未单独验收一次 Linux npm 安装。WSL 报网络初始化失败并回退到无网络，未进行 Linux 在线模型调用。macOS 无可用运行环境，不标为实测通过。此次不重复与入口修复无关的布局、工具及模型组合验收。
