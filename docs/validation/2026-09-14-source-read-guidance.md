@@ -40,3 +40,7 @@
 ## 发布核对
 
 用户随后授权测试通过后发布 0.8.2。修复提交 df76eb2 的 [Windows 与 Ubuntu CI](https://github.com/kirkchinese/CiteCiter/actions/runs/34802662004) 均通过。发布包与本机已验收候选包均含 120 个文件，逐文件比较仅两份 README 改变，全部运行代码、声明和配置一致。发布包 SHA-512 为 `sha512-MOcf/JfQXaxMqLcfEFOm96HjKuwL3rfWYQm9PLQZTCKjf8Al3HFBBJuGDC9jSmiAxGyLBXXCyQWZRRiHLsa79g==`。
+
+0.8.2 于 2026-09-14 正式发布。PR #7 已合并；tag v0.8.2 指向 e5f0f09d4ce6fd02b2dd004444456107c0953b32，该提交的 [Windows 与 Ubuntu CI](https://github.com/kirkchinese/CiteCiter/actions/runs/34813457287) 均通过。npm latest 为 0.8.2，从 registry 下载的 tarball 与发布包逐字节一致；[GitHub Release](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.8.2) 为正式版，附件 SHA-256 为 f55329eccf2b8d8e7c1898782b4ef2b10b10f0c2fa54cd60c9479226b2f65974。
+
+主要 Web、Desktop profile 均已从 npm 安装 0.8.2，全部 120 个安装文件与发布 tarball 一致。Desktop 重启后原 Topic 及历史正常恢复。0.8.0 的 npm 弃用提示与 GitHub 公告保留 Linux 符号链接错误说明，并指向 0.8.2。发布凭据仅用于临时配置，命令结束即删除；未写入仓库或用户 npm 配置。
