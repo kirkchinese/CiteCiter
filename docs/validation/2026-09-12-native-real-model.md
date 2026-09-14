@@ -168,6 +168,8 @@ Desktop 文件选择对话框在本轮无法被 Computer Use 稳定选中，返�
 
 最终安装包与已安装验收副本、GitHub Release 附件的 SHA-256 均为 066F6390A3467A6F1BD2AC7444D39B5CE6C2ABE09209FACB65AE1FBB6E5CE2EA，大小 787777 字节。发布使用这一个已验收安装包，不重新生成不同产物。
 
+发布后核对：npm latest 为 0.8.0，注册表 SHA-512 与本机安装包一致；[GitHub v0.8.0](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.8.0) 为公开正式版本，标签指向 dbd3c5815497ff60abffac3bdd45088ee36e1947，包含同一 tarball。标签提交的 Windows 与 Ubuntu CI 均成功。
+
 ## 已知限制
 
 真实模型曾生成表头 5 列、分隔行 6 列的 Markdown，界面按原文显示；后续正确 Markdown 表格可正常渲染。另一处代码把 console.log('2a'); f(); console.log('2b') 的顺序写错。此类内容准确性不由会话成功回执保证，未通过改写历史或猜测表格结构掩盖问题。
