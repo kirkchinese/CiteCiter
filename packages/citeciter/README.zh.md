@@ -2,19 +2,22 @@
 
 [English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
+> **0.8.0 已弃用。** Linux 通过符号链接启动 DSH 时，可能无法创建或恢复 Topic，报找不到 `@deepseek-ai/dsh-agent-loop`。请升级到 [0.8.1](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.8.1)。
+
 CiteCiter 为 DeepSeek Harness 提供带来源引用的独立工作区。可从主对话、工具结果和文档建立 Topic，处理文字、编程、图像和学习任务。新 Topic 使用 DSH 原生会话、权限、模型、附件与消息队列，来源对话继续独立工作。
 
-![Citer 原生工作区与手动发送流程示意](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.8.0/assets/docs/native-workspace.svg)
+![Citer 原生工作区与手动发送流程示意](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.8.1/assets/docs/native-workspace.svg)
 
 上图为交互示意，非运行截图。选文动作只准备草稿；模型在用户发送后开始回答。
 
 ## 版本与安装
 
-当前版本为 **0.8.0**。兼容基线为 DSH `0.1.5-rc.1`、[DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`；Node.js `^22.19.0 || >=24.0.0`。本轮 Windows 验收使用 Node 24.19.0。DSH 的 next、alpha 和 TUI 属于其他目标。
+当前版本为 **0.8.1**。兼容基线为 DSH `0.1.5-rc.1`、[DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`；Node.js `^22.19.0 || >=24.0.0`。本轮 Windows 验收使用 Node 24.19.0。DSH 的 next、alpha 和 TUI 属于其他目标。
 
 | 版本 | 状态 | 主要差异 |
 | --- | --- | --- |
-| 0.8.0 | 当前版本 | 原生会话、手动草稿、DSH 权限、原生附件与队列、AI 学习计划 |
+| 0.8.1 | 当前版本 | 修复 Linux/macOS 符号链接启动时无法打开 Topic |
+| 0.8.0 | 已弃用，请升级 0.8.1 | Linux 符号链接启动错误会阻止 Topic 打开 |
 | 0.7.0-beta.3 | 前一开发候选版 | 私有只读 Topic、选文轮盘、手动五阶段学习 |
 | 0.6.0 | 已发布 | DSH 0.1.2-rc.1 / Desktop 2.0.5 基线 |
 
@@ -22,11 +25,13 @@ CiteCiter 为 DeepSeek Harness 提供带来源引用的独立工作区。可从�
 
 ```powershell
 npm install -g @deepseek-ai/dsh@latest
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.0
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.1
 dsh web
 ```
 
-此命令安装 0.8.0。旧宿主 DSH 0.1.2-rc.1 / Desktop 2.0.5 应继续使用 @kirkchinese/dsh-citeciter@0.6.0。如 npm 提示本地原生依赖的安装脚本被阻止，按 npm 输出对明确列出的依赖放行后重装。不要通过全局关闭脚本限制解决。
+此命令安装 0.8.1。旧宿主 DSH 0.1.2-rc.1 / Desktop 2.0.5 应继续使用 @kirkchinese/dsh-citeciter@0.6.0。如 npm 提示本地原生依赖的安装脚本被阻止，按 npm 输出对明确列出的依赖放行后重装。不要通过全局关闭脚本限制解决。
+
+0.8.0 在 Linux/macOS 通过符号链接启动 DSH 时，可能无法打开 Topic，报找不到 dsh-agent-loop。0.8.1 先解析 CLI 入口真实路径再加载宿主模块，保留 Desktop 的 app.asar 路径。Linux 原生 Node 回归已通过，macOS 尚未实测。
 
 本地构建并安装此分支：
 
@@ -35,10 +40,10 @@ pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
-dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.0.tgz
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.1.tgz
 ```
 
-Desktop 使用自己的内置 DSH。更新 Desktop 应用后，在其管理终端执行 `dsh plugin add <安装包绝对路径>`；全局 CLI 更新不会更新 Desktop 内置运行时。安装后重启相应宿主。同一 DSH home 不要同时运行 Web 和 Desktop 写入进程。
+Desktop 使用自己的内置 DSH。在其管理终端执行 `dsh plugin add @kirkchinese/dsh-citeciter@0.8.1` 升级插件，也可传入本地安装包绝对路径；全局 CLI 更新不会更新 Desktop 内置运行时。安装后重启相应宿主。同一 DSH home 不要同时运行 Web 和 Desktop 写入进程。
 
 ## 草稿与引用
 
@@ -119,7 +124,7 @@ Citer 打开时，从右上角“…” → “文档阅读”进入阅读器；
 
 ## 开发与验收
 
-[开发规范](../../CONTRIBUTING.zh.md) · [0.8 版本说明](../../docs/releases/v0.8.0.md) · [真实模型验收](../../docs/validation/2026-09-12-native-real-model.md)
+[开发规范](../../CONTRIBUTING.zh.md) · [0.8.1 修复说明](../../docs/releases/v0.8.1.md) · [真实模型验收](../../docs/validation/2026-09-12-native-real-model.md)
 
 Host 和 Client 分别编译。原生会话适配、来源读取、索引存储、附件、发送队列、板书截图、学习计划和 UI 控件独立实现；不修改 DSH Agent Loop。完整宿主输入组件尚无跨会话嵌入接口，Citer 通过公开 ConversationController / SessionFace 复用行为，不能自动继承所有第三方输入区扩展。
 
