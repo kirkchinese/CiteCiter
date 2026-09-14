@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
-> **0.8.0 is deprecated.** On Linux, starting DSH through a symlink can prevent Topic creation or restoration with a missing `@deepseek-ai/dsh-agent-loop` error. Upgrade to [0.8.1](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.8.1).
+> **0.8.0 is deprecated.** On Linux, starting DSH through a symlink can prevent Topic creation or restoration with a missing `@deepseek-ai/dsh-agent-loop` error. Upgrade to [0.8.2](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.8.2).
 
 CiteCiter adds a source-aware workspace to DeepSeek Harness. Create independent Topics from conversations, tool results and documents for text, programming, image and learning tasks. New Topics use native DSH Sessions, permissions, models, attachments and message queues. The source conversation continues independently.
 
@@ -12,13 +12,13 @@ This is an interaction diagram, not a screenshot. Selection actions prepare draf
 
 ## Version and installation
 
-This branch is **0.8.2, an unpublished fix candidate**; the npm release is 0.8.1. Baseline: DSH `0.1.5-rc.1`, [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`, Node.js `^22.19.0 || >=24.0.0`. Windows acceptance uses Node 24.19.0. DSH next, alpha and TUI are separate targets.
+Current version: **0.8.2**. Baseline: DSH `0.1.5-rc.1`, [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`, Node.js `^22.19.0 || >=24.0.0`. Windows acceptance uses Node 24.19.0. DSH next, alpha and TUI are separate targets.
 
 | Version | Status | Main differences |
 | --- | --- | --- |
-| 0.8.2 | Unpublished fix candidate | Explicit source horizons and continuation; native first-answer question suggestions |
+| 0.8.2 | Stable | Explicit source horizons and continuation; native first-answer question suggestions |
 | 0.8.1 | Published | Fix Topic startup through Linux/macOS launcher symlinks |
-| 0.8.0 | Deprecated; upgrade to 0.8.1 | Linux launcher symlinks can prevent Topics from opening |
+| 0.8.0 | Deprecated; upgrade to 0.8.2 | Linux launcher symlinks can prevent Topics from opening |
 | 0.7.0-beta.3 | Previous development candidate | Private read-only Topics, selection wheel, manual five-stage learning |
 | 0.6.0 | Published | DSH 0.1.2-rc.1 / Desktop 2.0.5 baseline |
 
@@ -26,11 +26,11 @@ Update the host CLI and install the published package:
 
 ```powershell
 npm install -g @deepseek-ai/dsh@latest
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.2
 dsh web
 ```
 
-This installs 0.8.1. For DSH 0.1.2-rc.1 / Desktop 2.0.5, keep using @kirkchinese/dsh-citeciter@0.6.0. If npm blocks native dependency installation scripts, follow its output to allow the named dependencies and reinstall. Do not disable script restrictions globally.
+This installs 0.8.2. For DSH 0.1.2-rc.1 / Desktop 2.0.5, keep using @kirkchinese/dsh-citeciter@0.6.0. If npm blocks native dependency installation scripts, follow its output to allow the named dependencies and reinstall. Do not disable script restrictions globally.
 
 In 0.8.0, launching DSH through a Linux/macOS symlink can prevent Topics from opening with a missing dsh-agent-loop error. Version 0.8.1 resolves the real CLI entry before loading host modules and retains Desktop's app.asar anchor. Native Linux Node regression passed; macOS has not been tested.
 
@@ -44,7 +44,7 @@ pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs
 dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.2.tgz
 ```
 
-Desktop bundles its own DSH. Run `dsh plugin add @kirkchinese/dsh-citeciter@0.8.1` in its managed terminal to upgrade the plugin, or pass an absolute local package path. Updating the global CLI does not update Desktop's embedded runtime. Restart the relevant host after installation. Do not run Web and Desktop writers against the same DSH home simultaneously.
+Desktop bundles its own DSH. Run `dsh plugin add @kirkchinese/dsh-citeciter@0.8.2` in its managed terminal to upgrade the plugin, or pass an absolute local package path. Updating the global CLI does not update Desktop's embedded runtime. Restart the relevant host after installation. Do not run Web and Desktop writers against the same DSH home simultaneously.
 
 ## Source reading and suggested questions
 

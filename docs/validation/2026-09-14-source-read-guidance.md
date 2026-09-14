@@ -36,3 +36,7 @@
 ## 覆盖边界
 
 本轮聚焦来源读取、提示词传递和首答追问，不重复无代码变化的绘图、编程写入、归档、文件拖放及所有布局组合。Linux/macOS 的完整 UI 与在线对话不列为本轮已验收。
+
+## 发布核对
+
+用户随后授权测试通过后发布 0.8.2。修复提交 df76eb2 的 [Windows 与 Ubuntu CI](https://github.com/kirkchinese/CiteCiter/actions/runs/34802662004) 均通过。发布包与本机已验收候选包均含 120 个文件，逐文件比较仅两份 README 改变，全部运行代码、声明和配置一致。发布包 SHA-512 为 `sha512-MOcf/JfQXaxMqLcfEFOm96HjKuwL3rfWYQm9PLQZTCKjf8Al3HFBBJuGDC9jSmiAxGyLBXXCyQWZRRiHLsa79g==`。
