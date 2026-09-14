@@ -5,6 +5,7 @@ import { claimAskIntent, claimCreateFreeTopicIntent, claimCreateDocumentIntent, 
 import { isCurrentTopicResponse, shouldReopenLastTopic } from "./response-guard.js";
 /** Initial browser snapshot for the root-scoped CiteCiter controller. */
 export const INITIAL_COMPANION_SNAPSHOT = {
+    composeSeed: null,
     sourceSessionId: null,
     phase: 'idle',
     draftQuote: null,
@@ -81,7 +82,7 @@ function writeCitationAnchor(sourceSessionId, anchorSeq, anchorKey) {
     }
 }
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
-export function createCompanionController(readChat, settingsScope, request, onAutoOpen, store) {
+export function createCompanionController(readChat, settingsScope, request, onAutoOpen, store, nativeComposer) {
     let disposed = false;
     const lifecycle = new AbortController();
     const operations = new Set();
@@ -108,6 +109,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
     const pendingCreates = new Map();
     const pendingFreeCreates = new Map();
     const pendingAsks = new Map();
+    let actionFailure = null;
     const track = (pending, operation) => {
         let tracked;
         tracked = operation.finally(() => pending.delete(tracked));
@@ -123,12 +125,15 @@ export function createCompanionController(readChat, settingsScope, request, onAu
         if (!disposed)
             store.update(mutator);
     };
-    const fail = (error, operationGeneration = activeGeneration) => {
+    const fail = (error, operationGeneration = activeGeneration, sticky = true) => {
         if (disposed || operationGeneration !== activeGeneration)
             return;
+        const message = error instanceof Error ? error.message : String(error);
+        if (sticky)
+            actionFailure = { generation: operationGeneration, message };
         update((draft) => {
             draft.phase = 'error';
-            draft.error = error instanceof Error ? error.message : String(error);
+            draft.error = message;
         });
     };
     const withPendingModelConfig = (topic) => {
@@ -165,11 +170,14 @@ export function createCompanionController(readChat, settingsScope, request, onAu
         const topics = draft.topics.filter((candidate) => candidate.sessionId !== topic.sessionId);
         draft.topics = belongs ? [...topics, topic].sort((left, right) => right.updatedAt - left.updatedAt) : topics;
     };
-    const acceptTopic = (rawTopic, operationGeneration, expectedSessionId) => {
+    const acceptTopic = (rawTopic, operationGeneration, expectedSessionId, polling = false) => {
         const topic = clearRecoveredError(withPendingModelConfig(rawTopic));
         const current = store.getSnapshot();
         if (disposed || !isCurrentTopicResponse(operationGeneration, activeGeneration, current.sourceSessionId, topic.topic.sourceSessionId, topic.topic.sessionId, expectedSessionId))
             return;
+        if (!polling)
+            actionFailure = null;
+        const failure = actionFailure?.generation === operationGeneration ? actionFailure.message : null;
         update((draft) => {
             const lastMessage = topic.messages.at(-1);
             draft.active = topic;
@@ -178,8 +186,8 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 ? null
                 : readCitationAnchor(topic.topic.sourceSessionId, topic.topic.citation.anchorSeq);
             const stopped = lastMessage?.role === 'error' && lastMessage.status === 'stopped';
-            draft.phase = topic.topic.running ? 'running' : stopped ? 'stopped' : topic.error === null ? 'ready' : 'error';
-            draft.error = topic.error;
+            draft.phase = failure !== null ? 'error' : topic.topic.running ? 'running' : stopped ? 'stopped' : topic.error === null ? 'ready' : 'error';
+            draft.error = failure ?? topic.error;
             upsertTopic(draft, topic.topic);
         });
         writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId);
@@ -293,7 +301,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
             return;
         const response = await call({ action: 'get', topicSessionId: active.topic.sessionId });
         if (response.kind === 'topic')
-            acceptTopic(response.topic, operationGeneration, active.topic.sessionId);
+            acceptTopic(response.topic, operationGeneration, active.topic.sessionId, true);
     };
     const poll = async () => {
         if (!visible || disposed || polling)
@@ -311,7 +319,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 await refreshTopics();
         }
         catch (error) {
-            fail(error, operationGeneration);
+            fail(error, operationGeneration, false);
         }
         finally {
             polling = false;
@@ -440,7 +448,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 setVisible(false);
         };
     };
-    async function runCreate(selection, question, mode, scenario, intent) {
+    async function runCreate(selection, question, mode, scenario, intent, modelRoute) {
         if (disposed)
             return;
         const operationGeneration = ++activeGeneration;
@@ -477,6 +485,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                     question,
                     mode,
                     scenario,
+                    modelRoute,
                 });
             }
             else {
@@ -492,6 +501,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                     question,
                     mode,
                     scenario: 'investigate',
+                    modelRoute,
                 });
             }
             if (response.kind !== 'topic')
@@ -501,24 +511,28 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey);
             }
             acceptTopic(response.topic, operationGeneration);
+            if (operationGeneration === activeGeneration)
+                update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId }; });
             await refreshTopics();
         }
         catch (error) {
             fail(error, operationGeneration);
         }
     }
-    const create = async (selection, rawQuestion, mode, scenario = 'qa') => {
+    const create = async (selection, rawQuestion, mode, scenario = 'qa', modelRoute) => {
         if (disposed)
             return;
         const question = normalizeQuestion(rawQuestion);
         const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode;
-        const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario);
+        const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario, modelRoute);
         if (disposed)
             return;
+        if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId)
+            throw new Error('来源会话已切换，请重新选文');
         const pending = pendingCreates.get(intent.requestId);
         if (pending !== undefined)
             return pending;
-        const operation = runCreate(selection, question, resolvedMode, scenario, intent).finally(() => {
+        const operation = runCreate(selection, question, resolvedMode, scenario, intent, modelRoute).finally(() => {
             if (pendingCreates.get(intent.requestId) === operation)
                 pendingCreates.delete(intent.requestId);
         });
@@ -531,7 +545,7 @@ export function createCompanionController(readChat, settingsScope, request, onAu
         const sourceSessionId = store.getSnapshot().sourceSessionId;
         if (sourceSessionId === null)
             return false;
-        const question = normalizeQuestion(rawQuestion);
+        const question = rawQuestion.trim();
         const intent = await claimCreateFreeTopicIntent(sourceSessionId, question, scenario);
         if (disposed)
             return false;
@@ -558,6 +572,8 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                     throw new Error('CiteCiter 返回了错误的创建响应');
                 completeRequestIntent(intent);
                 acceptTopic(response.topic, operationGeneration);
+                if (operationGeneration === activeGeneration)
+                    update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId }; });
                 await refreshTopics();
                 return operationGeneration === activeGeneration;
             }
@@ -575,16 +591,20 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 pendingFreeCreates.delete(intent.requestId);
         }
     };
-    const createFromDocument = async (claim, rawQuestion) => {
+    const createFromDocument = async (claim, rawQuestion, capturedSource, modelRoute) => {
         if (disposed)
             return;
-        const sourceSessionId = store.getSnapshot().sourceSessionId;
+        const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId;
+        if (sourceSessionId !== store.getSnapshot().sourceSessionId)
+            throw new Error('来源会话已切换，请重新选文');
         if (sourceSessionId === null)
             throw new Error('打开 CiteCiter 面板后即可创建文档 Topic');
         const question = normalizeQuestion(rawQuestion);
-        const intent = await claimCreateDocumentIntent(claim, question);
+        const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute);
         if (disposed)
             return;
+        if (sourceSessionId !== store.getSnapshot().sourceSessionId)
+            throw new Error('来源会话已切换，请重新选文');
         const operationGeneration = ++activeGeneration;
         update((draft) => {
             draft.sourceSessionId = sourceSessionId;
@@ -609,15 +629,21 @@ export function createCompanionController(readChat, settingsScope, request, onAu
                 question,
                 mode: 'observer',
                 scenario: 'read',
+                modelRoute,
             });
             if (response.kind !== 'topic')
                 throw new Error('CiteCiter 返回了错误的文档 Topic 响应');
             completeRequestIntent(intent);
             acceptTopic(response.topic, operationGeneration);
+            if (operationGeneration === activeGeneration)
+                update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId }; });
+            if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId)
+                onAutoOpen();
             await refreshTopics();
         }
         catch (error) {
             fail(error, operationGeneration);
+            throw error;
         }
     };
     async function runAsk(active, question, intent) {
@@ -645,14 +671,43 @@ export function createCompanionController(readChat, settingsScope, request, onAu
             return false;
         }
     }
-    const ask = async (rawQuestion) => {
+    const ask = async (rawQuestion, attachments = [], mode = 'queue') => {
         if (disposed)
             return false;
         const snapshot = store.getSnapshot();
         const active = snapshot.active;
-        if (active === null || !['ready', 'stopped', 'error'].includes(snapshot.phase))
+        if (active === null || !['ready', 'stopped', 'error', 'running'].includes(snapshot.phase))
             return false;
         const sessionId = active.topic.sessionId;
+        if (active.topic.hosted === true) {
+            if (pendingAsks.has(sessionId))
+                return false;
+            const generation = activeGeneration;
+            const operation = (async () => {
+                try {
+                    await nativeComposer.send(sessionId, rawQuestion, attachments, mode);
+                }
+                catch (error) {
+                    fail(error, generation);
+                    return false;
+                }
+                // Host admission is authoritative. A later read failure must not keep an
+                // already accepted draft available for accidental duplicate submission.
+                if (generation === activeGeneration)
+                    actionFailure = null;
+                try {
+                    const response = await call({ action: 'get', topicSessionId: sessionId });
+                    if (response.kind === 'topic')
+                        acceptTopic(response.topic, generation, sessionId);
+                }
+                catch (error) {
+                    fail(error, generation, false);
+                }
+                return true;
+            })().finally(() => pendingAsks.delete(sessionId));
+            pendingAsks.set(sessionId, operation);
+            return operation;
+        }
         if (pendingAsks.has(sessionId))
             return false;
         const question = normalizeQuestion(rawQuestion);
@@ -681,6 +736,8 @@ export function createCompanionController(readChat, settingsScope, request, onAu
             const response = await call({ action: 'stop', topicSessionId: active.topic.sessionId });
             if (response.kind === 'topic')
                 acceptTopic(response.topic, operationGeneration, active.topic.sessionId);
+            if (operationGeneration === activeGeneration)
+                update(draft => { draft.notice = '已请求停止当前回答；待处理队列仍按 DSH 规则继续。'; });
         }
         catch (error) {
             fail(error, operationGeneration);
@@ -1009,13 +1066,28 @@ export function createCompanionController(readChat, settingsScope, request, onAu
         subscribe: store.subscribe,
         setSource,
         retainVisible,
-        create: (selection, question, mode, scenario) => admit(undefined, () => create(selection, question, mode, scenario)),
+        create: (...args) => admit(undefined, () => create(...args)),
         createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
-        createFromDocument: (claim, question) => admit(undefined, () => createFromDocument(claim, question)),
+        createFromDocument: (...args) => admit(undefined, () => createFromDocument(...args)),
         openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
-        ask: (question) => admit(false, () => ask(question)),
+        ask: (...args) => admit(false, () => ask(...args)),
+        setPermission: mode => admit(undefined, async () => {
+            const active = store.getSnapshot().active;
+            if (active === null)
+                return;
+            const generation = activeGeneration;
+            try {
+                const response = await call({ action: 'set-permission', topicSessionId: active.topic.sessionId, mode });
+                if (response.kind === 'topic')
+                    acceptTopic(response.topic, generation, active.topic.sessionId);
+            }
+            catch (error) {
+                fail(error, generation);
+            }
+        }),
         answerQuestion: (key, answer) => admit(undefined, () => answerQuestion(key, answer)),
         cancelQuestion: (key) => admit(undefined, () => cancelQuestion(key)),
+        boardCaptureReply: async (sessionId, id, png, error) => { await call({ action: 'board-capture', topicSessionId: sessionId, id, ...(png === undefined ? {} : { png }), ...(error === undefined ? {} : { error: error.slice(0, 500) }) }); },
         stop: () => admit(undefined, stop),
         rename: (title) => admit(false, () => rename(title)),
         archive: (archived) => admit(false, () => archive(archived)),

@@ -1,0 +1,32 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useEffect, useRef, useState } from 'react';
+import { DEFAULT_WHEEL_SLOTS, wheelSlotsSchema } from "../../actions.js";
+import { ModelChoice } from "./ModelChoice.js";
+import css from './ActionWheel.module.css';
+/** Edit eight stable slots as one validated settings transaction. */
+export function WheelSettings({ snapshot, companion }) {
+    const [slots, setSlots] = useState(() => [...(snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS)]);
+    const [error, setError] = useState(null);
+    const savedSlots = snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS;
+    const savedRevision = JSON.stringify(savedSlots);
+    const previousRevision = useRef(savedRevision);
+    useEffect(() => {
+        // Model/trigger saves can decode a new settings object without changing the saved slots.
+        // Preserve the local draft until the slot values themselves change.
+        if (previousRevision.current === savedRevision)
+            return;
+        previousRevision.current = savedRevision;
+        setSlots([...savedSlots]);
+    }, [savedSlots, savedRevision]);
+    const change = (index, patch) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? { label: '自定义', prompt: '', ask: true, scenario: 'qa', presentation: 'side' }), ...patch } : slot));
+    const swap = (index, offset) => setSlots(current => { const next = [...current]; const to = (index + offset + 8) % 8; [next[index], next[to]] = [next[to], next[index]]; return next; });
+    return _jsxs("section", { className: css.settings, children: [_jsx("h3", { children: "\u9009\u6587\u8F6E\u76D8" }), _jsx("p", { children: "\u9009\u4E2D\u6587\u5B57\u540E\u6309\u4F4F\u89E6\u53D1\u952E\uFF0C\u79FB\u5411\u52A8\u4F5C\uFF0C\u677E\u5F00\u540E\u51C6\u5907\u8349\u7A3F\u3002\u4E2D\u5FC3\u3001\u7A7A\u69FD\u548C Esc \u53D6\u6D88\uFF1B\u53F3\u952E\u77ED\u6309\u53EF\u6539\u4E3A\u70B9\u51FB\u9009\u62E9\uFF0CShift + \u53F3\u952E\u4FDD\u7559\u539F\u751F\u83DC\u5355\u3002" }), _jsxs("label", { children: ["\u6309\u4F4F\u89E6\u53D1\u952E", _jsxs("select", { "aria-label": "\u8F6E\u76D8\u89E6\u53D1\u952E", value: snapshot.settings.wheelTrigger ?? 'right-button', onChange: event => void companion.setSetting('wheelTrigger', event.currentTarget.value), children: [_jsx("option", { value: "right-button", children: "\u9F20\u6807\u53F3\u952E\uFF08\u9ED8\u8BA4\uFF09" }), _jsx("option", { value: "Alt", children: "Alt / Option" }), _jsx("option", { value: "Control", children: "Control" }), _jsx("option", { value: "Shift", children: "Shift" }), _jsx("option", { value: "Meta", children: "Meta / Command" })] })] }), _jsx(ModelChoice, { label: "Citer \u9ED8\u8BA4\u6A21\u578B", providers: snapshot.providers, value: snapshot.settings.defaultCiterModel ?? undefined, onChange: value => void companion.setSetting('defaultCiterModel', value ?? null) }), _jsx("p", { children: "\u6240\u6709\u52A8\u4F5C\u53EA\u51C6\u5907\u8349\u7A3F\uFF0C\u7531\u7528\u6237\u624B\u52A8\u53D1\u9001\u3002\u65E0\u9700\u8865\u5145\u95EE\u9898\u7684\u52A8\u4F5C\u4F7F\u7528\u9ED8\u8BA4\u6A21\u578B\uFF1B\u9700\u8981\u8F93\u5165\u7684\u52A8\u4F5C\u53EF\u5148\u9009\u6A21\u578B\u3002\u672A\u6307\u5B9A\u65F6\u8DDF\u968F\u6765\u6E90\u6A21\u578B\u3002\u516B\u69FD\u4ECE\u6B63\u4E0A\u65B9\u5F00\u59CB\u987A\u65F6\u9488\u6392\u5217\u3002" }), slots.map((slot, index) => _jsxs("details", { children: [_jsxs("summary", { children: [index + 1, " \u00B7 ", slot?.label ?? '空槽', slot === null ? '' : slot.ask ? ' · 需输入' : ' · 预设问题'] }), slot === null ? _jsx("button", { type: "button", onClick: () => change(index, {}), children: "\u6DFB\u52A0\u81EA\u5B9A\u4E49\u6A21\u5F0F" }) : _jsxs(_Fragment, { children: [_jsxs("label", { children: ["\u540D\u79F0", _jsx("input", { "aria-label": `槽位 ${index + 1} 名称`, maxLength: 20, value: slot.label, onChange: event => change(index, { label: event.currentTarget.value }) })] }), _jsxs("label", { children: ["\u63D0\u793A\u8BCD", _jsx("textarea", { "aria-label": `槽位 ${index + 1} 提示词`, rows: 3, maxLength: 4000, value: slot.prompt, onChange: event => change(index, { prompt: event.currentTarget.value }) })] }), _jsxs("label", { className: css.toggle, children: [_jsx("input", { type: "checkbox", checked: slot.ask, onChange: event => change(index, { ask: event.currentTarget.checked }) }), "\u5148\u8F93\u5165\u95EE\u9898\u5E76\u9009\u62E9\u6A21\u578B"] }), _jsxs("label", { children: ["\u5185\u5BB9\u65B9\u5F0F", _jsxs("select", { value: slot.scenario, onChange: event => change(index, { scenario: event.currentTarget.value }), children: [_jsx("option", { value: "qa", children: "\u76F4\u63A5\u95EE\u7B54" }), _jsx("option", { value: "present", children: "\u5B66\u4E60\u8BB2\u89E3\u4E0E\u677F\u4E66" })] })] }), _jsxs("label", { children: ["\u9ED8\u8BA4\u6253\u5F00\u4F4D\u7F6E", _jsxs("select", { value: slot.presentation, onChange: event => change(index, { presentation: event.currentTarget.value }), children: [_jsx("option", { value: "side", children: "\u4FA7\u8FB9\uFF08\u7A84\u7A97\u53E3\u81EA\u52A8\u60AC\u6D6E\uFF09" }), _jsx("option", { value: "floating", children: "\u60AC\u6D6E" })] })] })] }), _jsxs("div", { className: css.slotActions, children: [_jsx("button", { type: "button", onClick: () => swap(index, -1), children: "\u9006\u65F6\u9488\u79FB\u52A8" }), _jsx("button", { type: "button", onClick: () => swap(index, 1), children: "\u987A\u65F6\u9488\u79FB\u52A8" }), _jsx("button", { type: "button", onClick: () => setSlots(current => current.map((item, i) => i === index ? null : item)), children: "\u6E05\u7A7A" })] })] }, index)), error !== null && _jsx("p", { role: "alert", className: css.error, children: error }), _jsxs("div", { className: css.slotActions, children: [_jsx("button", { type: "button", onClick: () => { setSlots([...DEFAULT_WHEEL_SLOTS]); setError(null); }, children: "\u6062\u590D\u9ED8\u8BA4\u8349\u7A3F" }), _jsx("button", { className: css.save, type: "button", disabled: snapshot.settingsSaveStatus === 'saving', onClick: () => {
+                            const result = wheelSlotsSchema.safeParse(slots);
+                            if (!result.success) {
+                                setError('请填写模式名称；无需补充问题的模式必须有提示词。');
+                                return;
+                            }
+                            setError(null);
+                            void companion.setSetting('wheelSlots', result.data);
+                        }, children: "\u4FDD\u5B58\u516B\u4E2A\u69FD\u4F4D" })] })] });
+}

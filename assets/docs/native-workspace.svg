@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+<title id="title">Citer 0.8 — 原生工作区与手动发送 / Native workspace and manual submission</title>
+<desc id="desc">Source conversation and a separate Citer Topic appear side by side. Removable source and excerpt attachments remain in the draft until manual Send. DSH manages permissions, models, attachments and queue. AI updates a learning plan and inspects the rendered blackboard.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#edf4fa"/><stop offset="1" stop-color="#dce8e8"/></linearGradient><linearGradient id="glass" x2="0" y2="1"><stop stop-color="#fff" stop-opacity=".98"/><stop offset="1" stop-color="#fff" stop-opacity=".78"/></linearGradient><filter id="shadow" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#30465a" flood-opacity=".1"/></filter><marker id="arrow" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0 6 3 0 6" fill="none" stroke="#438371" stroke-width="1.5"/></marker></defs>
+<style>text{font-family:Inter,'Segoe UI','Microsoft YaHei',sans-serif;fill:#253546}.muted{fill:#66788c;font-size:13px}.small{fill:#66788c;font-size:11px}.body{font-size:16px}.title{font-size:22px;font-weight:600}.label{font-size:13px;font-weight:600}.line{fill:none;stroke:#66839a;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}</style>
+<rect width="1280" height="760" rx="30" fill="url(#bg)"/>
+<text x="42" y="48" class="title">Citer 0.8</text><text x="193" y="47" class="muted">带来源的原生工作区 · Source-aware native workspace</text><text x="1103" y="47" class="small">交互示意 / Diagram</text>
+<rect x="36" y="74" width="684" height="568" rx="24" fill="url(#glass)" stroke="#fff" filter="url(#shadow)"/>
+<rect x="738" y="74" width="506" height="568" rx="24" fill="url(#glass)" stroke="#fff" filter="url(#shadow)"/>
+<text x="60" y="111" class="label">来源对话 · Source conversation</text><text x="589" y="111" class="muted">对话　小黑板</text>
+<path d="M56 130H698M759 130H1224" stroke="#e6edf2"/>
+<rect x="68" y="152" width="563" height="48" rx="14" fill="#edf2fe"/><text x="85" y="182" class="body">Promise.all 失败后，其他任务会停止吗？</text>
+<text x="68" y="235" class="small">ASSISTANT</text><text x="68" y="269" class="body">第一个拒绝会使聚合 Promise 拒绝。</text>
+<rect x="63" y="286" width="415" height="34" rx="7" fill="#d6eee5"/><text x="68" y="309" class="body">已经启动的其他任务仍会继续运行。</text>
+<path d="M485 303H686" stroke="#438371" stroke-width="1.5" marker-end="url(#arrow)"/><text x="516" y="288" class="small">选文 → 草稿</text>
+<rect x="68" y="348" width="601" height="202" rx="18" fill="#193830"/>
+<text x="89" y="378" style="fill:#e1efe8;font-size:14px">同一块小黑板 · Shared blackboard</text>
+<path d="M103 411H529M103 444H307M103 477H590" fill="none" stroke="#80c8b0" stroke-width="8" stroke-linecap="round"/>
+<path d="M103 444H307" fill="none" stroke="#f19987" stroke-width="8" stroke-linecap="round"/>
+<path d="M307 396V498" stroke="#f2d495" stroke-width="1.5" stroke-dasharray="4 5"/>
+<text x="89" y="527" style="fill:#c0d6cc;font-size:12px">渲染 → 视觉检查 → 修改 / Render → inspect → revise</text>
+<rect x="68" y="574" width="601" height="45" rx="15" fill="#f3f6fa" stroke="#e4e9ef"/><text x="86" y="602" class="muted">主对话保持独立 · Source stays independent</text>
+<text x="761" y="111" class="title">⠿</text><text x="789" y="111" class="label">Promise.all · 双击重命名</text>
+<path class="line" d="M1125 98h17m-17 6h17m-17 6h17M1170 96v16m-8-8h16M1210 98l10 12m0-12-10 12"/>
+<rect x="760" y="149" width="460" height="47" rx="13" fill="#eff5f4"/><text x="777" y="177" class="label">✓ 学习路线　2 / 3　检查时间线</text><text x="1131" y="177" class="small">AI 管理</text>
+<text x="777" y="226" class="label">讲解</text><text x="855" y="226" class="muted">学习卡 2</text><path d="M770 237H817" stroke="#438371" stroke-width="2"/>
+<text x="777" y="275" class="body">先区分聚合结果与单个任务。</text><text x="777" y="305" class="body">再用实际时间线检查这个结论。</text>
+<rect x="768" y="331" width="450" height="55" rx="13" fill="#f5f7fa"/><text x="783" y="354" class="small">DSH QUEUE</text><text x="783" y="375" class="muted">排队：继续比较 allSettled</text><text x="1184" y="366" class="body">↗</text>
+<rect x="757" y="409" width="470" height="213" rx="25" fill="#fff" stroke="#d9e2ed" filter="url(#shadow)"/>
+<rect x="773" y="425" width="146" height="30" rx="9" fill="#eef3f9"/><text x="784" y="445" class="muted">×　↳ 来源对话</text>
+<rect x="928" y="425" width="137" height="30" rx="9" fill="#e6f3ed"/><text x="939" y="445" class="muted">×　❝ 引用文段</text>
+<text x="780" y="487" class="body">请解释这段话，并核对边界条件。</text><text x="780" y="514" class="small">编辑引用和问题后，手动发送 / Review, then Send</text>
+<path class="line" d="M789 569v18m-9-9h18M823 570l8-3 8 3v7c0 6-8 11-8 11s-8-5-8-11z"/>
+<text x="848" y="582" class="muted">只读</text><text x="954" y="582" class="label">模型</text><text x="1006" y="582" class="muted">› 思考强度</text>
+<circle cx="1192" cy="578" r="21" fill="#397dec"/><path d="M1192 587v-19m-7 7 7-7 7 7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="36" y="663" width="1208" height="65" rx="19" fill="#fff" fill-opacity=".62"/>
+<text x="59" y="690" class="label">DSH 提供权限、模型、附件、队列与持久化接口</text><text x="59" y="713" class="small">DSH provides permissions, models, attachments, queue and persistence APIs</text>
+<text x="683" y="690" class="label">Citer 管理来源、草稿、学习与自有会话</text><text x="683" y="713" class="small">Citer owns source references, drafts, learning and its Session storage</text>
+</svg>

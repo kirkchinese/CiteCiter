@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -59,13 +59,15 @@ function animationClass(name) {
     return css.animHighlight;
 }
 /**
- * Render one final-state blackboard projection in the main conversation workspace.
- * @param props - board snapshot, motion preference, and optional citation action.
+ * Render one final-state blackboard projection in either learning surface.
+ * @param props - snapshot, motion preference, optional compact reading mode and citation action.
  * @returns the safe blackboard canvas.
  */
-export function BoardView({ snapshot, animations, onQuoteElement, }) {
+export function BoardView({ snapshot, animations, onQuoteElement, compact = false, sessionId, }) {
     const board = snapshot ?? EMPTY_BOARD_SNAPSHOT;
-    return (_jsxs("section", { className: css.board, "data-citeciter-board": true, "data-animations": animations || undefined, "aria-label": "CiteCiter \u9ED1\u677F", children: [_jsxs("header", { className: css.boardHeader, children: [_jsxs("div", { children: [_jsx("strong", { children: "\u5C0F\u9ED1\u677F" }), _jsx("span", { children: "\u7531 CiteCiter \u968F\u8BB2\u89E3\u5B9E\u65F6\u6574\u7406" })] }), _jsx("span", { children: board.revision === 0 && board.elements.length === 0 ? '等待板书' : `第 ${board.revision} 次更新` })] }), board.invalid > 0 && _jsxs("p", { className: css.boardWarning, role: "status", children: ["\u5DF2\u5FFD\u7565 ", board.invalid, " \u6279\u65E0\u6548\u677F\u4E66\u63D0\u4EA4"] }), _jsx("div", { className: css.canvas, children: board.elements.length === 0 ? (_jsx("p", { className: css.boardHint, children: "\u521B\u5EFA\u8BB2\u89E3 Topic \u540E\uFF0C\u63D0\u7EB2\u3001\u516C\u5F0F\u548C\u56FE\u793A\u4F1A\u9010\u6B65\u51FA\u73B0\u5728\u8FD9\u91CC\u3002" })) : board.elements.map((element) => (_jsxs("div", { className: css.elementWrap, "data-board-element": element.id, "data-kind": element.kind, "data-focused": element.focused || undefined, style: {
+    const [notes, setNotes] = useState(compact);
+    const elements = notes ? [...board.elements].sort((a, b) => a.y - b.y || a.x - b.x) : board.elements;
+    return (_jsxs("section", { className: css.board, "data-citeciter-board": sessionId ?? '', "data-board-revision": board.revision, "data-compact": compact || undefined, "data-notes": notes || undefined, "data-animations": animations || undefined, "aria-label": "CiteCiter \u9ED1\u677F", children: [_jsxs("header", { className: css.boardHeader, children: [_jsxs("div", { children: [_jsx("strong", { children: "\u5C0F\u9ED1\u677F" }), _jsx("span", { children: "\u7531 CiteCiter \u968F\u8BB2\u89E3\u5B9E\u65F6\u6574\u7406" })] }), _jsx("span", { children: board.revision === 0 && board.elements.length === 0 ? '等待板书' : `第 ${board.revision} 次更新` }), compact && _jsx("button", { className: css.viewToggle, type: "button", onClick: () => setNotes(!notes), children: notes ? '查看画布' : '条目阅读' })] }), board.invalid > 0 && _jsxs("p", { className: css.boardWarning, role: "status", children: ["\u5DF2\u5FFD\u7565 ", board.invalid, " \u6279\u65E0\u6548\u677F\u4E66\u63D0\u4EA4"] }), _jsx("div", { className: css.canvas, children: board.elements.length === 0 ? (_jsx("p", { className: css.boardHint, children: "\u53D1\u9001\u9700\u8981\u677F\u4E66\u7684\u95EE\u9898\uFF0C\u516C\u5F0F\u3001\u63A8\u5BFC\u548C\u56FE\u793A\u4F1A\u6574\u7406\u5230\u8FD9\u91CC\u3002" })) : elements.map((element) => (_jsxs("div", { className: css.elementWrap, "data-board-element": element.id, "data-kind": element.kind, "data-focused": element.focused || undefined, style: {
                         left: `${element.x}%`,
                         top: `${element.y}%`,
                         width: `${element.w}%`,

@@ -11,6 +11,8 @@ export interface ReaderSnapshot {
     selection: ReaderSelection | null;
     question: string;
     creating: boolean;
+    importing: boolean;
+    loading: boolean;
     error: string | null;
 }
 export interface ReaderFace {
@@ -19,7 +21,11 @@ export interface ReaderFace {
     setOpen(open: boolean): void;
     refresh(): Promise<void>;
     importFile(name: string, content: string): Promise<DocumentSummary | null>;
+    /** Read a local text file; file access failures are displayed in the Reader. */
+    importLocalFile(file: Pick<File, 'name' | 'size' | 'text'>): Promise<void>;
     openDocument(documentId: string): Promise<void>;
+    /** Load a zero-based page of the active document, clearing its previous selection. */
+    openPage(page: number): Promise<void>;
     setSelection(selection: ReaderSelection | null): void;
     setQuestion(question: string): void;
     createTopic(): Promise<void>;

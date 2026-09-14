@@ -1,0 +1,10 @@
+.controls { margin-left: auto; min-width: 0; flex: 1 1 0; }
+.controls > .trigger { width: 100%; min-width: 0; max-width: none; }
+.controls > .trigger > span:first-child { flex: 1; min-width: 0; text-align: right; }
+.trigger { display: flex; align-items: center; gap: 7px; max-width: 240px; padding: 7px 10px; border: 0; border-radius: 11px; background: transparent; color: inherit; cursor: pointer; font: inherit; transition: background 130ms; }
+.trigger > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.trigger small { opacity: .55; }
+.trigger:hover, .trigger[aria-expanded="true"] { background: color-mix(in srgb, currentColor 7%, transparent); }
+.trigger:focus-visible { outline: 2px solid #6898f2; outline-offset: 2px; }
+.trigger:disabled { opacity: .5; cursor: wait; }
+@media (prefers-reduced-motion: reduce) { .trigger { transition: none; } }

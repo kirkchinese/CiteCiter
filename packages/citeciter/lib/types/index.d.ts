@@ -1,4 +1,4 @@
-/** Host entry for private Observer Topics and their browser Remote API. */
+/** Host entry for native Topics, legacy compatibility and the browser Remote API. */
 import { Service, type Context } from '@deepseek-ai/cordis';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import z from '@deepseek-ai/schemastery';
@@ -6,15 +6,15 @@ import { type UpdateCheckResponse } from './update.ts';
 import { type CiteCiterRequest, type CiteCiterResponse } from './topic.ts';
 /** Cordis/Typert package identity. */
 export declare const name = "@kirkchinese/dsh-citeciter";
-/** Services required by the private Topic runtime. */
-export declare const inject: readonly ["llm", "sessionQuery", "subprocess"];
+/** Explicit dependencies for native session composition and legacy compatibility. */
+export declare const inject: readonly ["llm", "sessionQuery", "subprocess", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
 /** Host settings identity shared with the browser settings scope. */
 export declare const CITECITER_SETTINGS_NS: "citeciter";
 /** Native settings schema for new Topics and the companion panel. */
 export declare const CITECITER_SETTINGS_SCHEMA: z<object>;
-/** Root-scoped Remote service owning one isolated DSH runtime. */
+/** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
 export declare class CiteCiterHost extends TypertRemoteService {
-    static inject: readonly ["llm", "sessionQuery", "subprocess"];
+    static inject: readonly ["llm", "sessionQuery", "subprocess", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
     private readonly topics;
     private readonly updates;
     private readonly service;

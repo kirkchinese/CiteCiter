@@ -1,4 +1,11 @@
 .board {
+  /* Native Markdown is embedded in a fixed dark canvas, independent of the host theme. */
+  --dsw-alias-markdown-inline-code: #0c211b;
+  --dsw-alias-markdown-code-block: #0c211b;
+  --dsw-alias-markdown-code-block-banner: #244438;
+  --dsw-alias-bg-base: #16302a;
+  --dsw-alias-border-l1: rgb(242 234 216 / 0.24);
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -13,6 +20,18 @@
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
   color: #f2ead8;
 }
+
+.board[data-compact] { padding: 16px; min-height: 350px; overflow: auto; }
+.board[data-compact] .boardHeader { flex-wrap: wrap; }
+.board[data-compact]:not([data-notes]) .canvas { flex: none; min-width: 640px; height: 480px; }
+.board[data-notes] .canvas { display: flex; flex-direction: column; gap: 16px; padding: 16px; box-sizing: border-box; overflow: visible; }
+.board[data-notes] .elementWrap { position: relative; left: auto !important; top: auto !important; width: 100% !important; height: auto !important; padding-bottom: 22px; border-bottom: 1px solid rgb(255 255 255 / .08); }
+.board[data-notes] .elementInner { height: auto; min-height: 24px; }
+.board[data-notes] [data-kind="svg"] .elementInner, .board[data-notes] [data-kind="html"] .elementInner { min-height: 180px; }
+.board[data-notes] .html { min-height: 220px; }
+.board[data-notes] .svg { max-height: 320px; }
+.board[data-notes] .quoteButton { opacity: .8; pointer-events: auto; }
+.viewToggle { cursor: pointer; font: inherit; font-size: 11px; padding: 6px 8px; border: 1px solid rgb(255 255 255 / .2); border-radius: 7px; color: #f2ead8; background: rgb(255 255 255 / .05); }
 
 .boardHeader {
   display: flex;
@@ -129,7 +148,7 @@
 }
 
 .math {
-  font-size: 15px;
+  font-size: inherit;
 }
 
 .svg {
@@ -137,7 +156,6 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: brightness(1.55) saturate(0.9);
 }
 
 .html {

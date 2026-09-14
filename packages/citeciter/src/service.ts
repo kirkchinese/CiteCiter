@@ -59,7 +59,7 @@ export interface CiteCiterService {
   /**
    * List Topics grouped by their source session.
    * @param sourceSessionId - source DSH Session identity.
-   * @param includeArchived - include archived Topics when true.
+   * @param includeArchived - select archived Topics when true; otherwise select active Topics.
    * @param signal - caller cancellation.
    * @returns summaries sorted by update time descending.
    */

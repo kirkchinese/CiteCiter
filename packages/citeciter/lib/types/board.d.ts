@@ -10,12 +10,12 @@ export declare const BOARD_MAX_ELEMENTS = 50;
 export declare const BOARD_MAX_CONTENT_BYTES = 500000;
 /** Element kinds the blackboard renders safely on the chalk canvas. */
 export declare const boardElementKindSchema: z.ZodEnum<{
+    image: "image";
     text: "text";
     markdown: "markdown";
     math: "math";
     svg: "svg";
     html: "html";
-    image: "image";
     table: "table";
 }>;
 export type BoardElementKind = z.infer<typeof boardElementKindSchema>;
@@ -32,12 +32,12 @@ export declare const boardOpSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     op: z.ZodLiteral<"set">;
     id: z.ZodString;
     kind: z.ZodEnum<{
+        image: "image";
         text: "text";
         markdown: "markdown";
         math: "math";
         svg: "svg";
         html: "html";
-        image: "image";
         table: "table";
     }>;
     content: z.ZodString;
@@ -93,12 +93,12 @@ export declare const boardBatchSchema: z.ZodArray<z.ZodDiscriminatedUnion<[z.Zod
     op: z.ZodLiteral<"set">;
     id: z.ZodString;
     kind: z.ZodEnum<{
+        image: "image";
         text: "text";
         markdown: "markdown";
         math: "math";
         svg: "svg";
         html: "html";
-        image: "image";
         table: "table";
     }>;
     content: z.ZodString;
@@ -185,12 +185,12 @@ export declare const boardSnapshotSchema: z.ZodObject<{
     elements: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
+            image: "image";
             text: "text";
             markdown: "markdown";
             math: "math";
             svg: "svg";
             html: "html";
-            image: "image";
             table: "table";
         }>;
         content: z.ZodString;

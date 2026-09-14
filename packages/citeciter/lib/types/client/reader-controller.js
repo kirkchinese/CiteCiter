@@ -10,6 +10,8 @@ export function createInitialReaderSnapshot() {
         selection: null,
         question: '',
         creating: false,
+        importing: false,
+        loading: false,
         error: null,
     };
 }
@@ -26,6 +28,8 @@ export function createReaderController(request, companion, store = createSnapsho
     let disposed = false;
     const lifecycle = new AbortController();
     const operations = new Set();
+    let documentGeneration = 0;
+    let refreshGeneration = 0;
     const update = (mutator) => {
         if (!disposed)
             store.update(mutator);
@@ -44,20 +48,22 @@ export function createReaderController(request, companion, store = createSnapsho
             const result = await request(command, lifecycle.signal);
             lifecycle.signal.throwIfAborted();
             return remoteValue(result);
-        })();
+        })().finally(() => operations.delete(operation));
         operations.add(operation);
-        void operation.finally(() => operations.delete(operation));
         return operation;
     };
     const refresh = async () => {
         if (disposed)
             return;
+        const generation = ++refreshGeneration;
         update((draft) => {
             draft.documentsStatus = 'loading';
             draft.error = null;
         });
         try {
             const response = await call({ action: 'documents' });
+            if (generation !== refreshGeneration)
+                return;
             if (response.kind !== 'documents')
                 throw new Error('CiteCiter 返回了错误的文档列表响应');
             update((draft) => {
@@ -66,7 +72,7 @@ export function createReaderController(request, companion, store = createSnapsho
             });
         }
         catch (error) {
-            if (!disposed)
+            if (!disposed && generation === refreshGeneration)
                 update((draft) => {
                     draft.documentsStatus = 'error';
                     draft.error = error instanceof Error ? error.message : String(error);
@@ -104,17 +110,23 @@ export function createReaderController(request, companion, store = createSnapsho
             return null;
         }
     };
-    const openDocument = async (documentId) => {
+    const loadPage = async (documentId, page, resetQuestion) => {
         if (disposed)
             return;
+        const generation = ++documentGeneration;
         update((draft) => {
-            draft.active = null;
+            if (resetQuestion)
+                draft.active = null;
             draft.selection = null;
-            draft.question = '';
+            if (resetQuestion)
+                draft.question = '';
             draft.error = null;
+            draft.loading = true;
         });
         try {
-            const response = await call({ action: 'document-get', documentId });
+            const response = await call({ action: 'document-get', documentId, page });
+            if (generation !== documentGeneration)
+                return;
             if (response.kind !== 'document-content')
                 throw new Error('CiteCiter 返回了错误的文档内容响应');
             update((draft) => {
@@ -122,13 +134,51 @@ export function createReaderController(request, companion, store = createSnapsho
             });
         }
         catch (error) {
+            if (generation === documentGeneration)
+                fail(error);
+        }
+        finally {
+            if (generation === documentGeneration)
+                update(draft => { draft.loading = false; });
+        }
+    };
+    const openDocument = (documentId) => loadPage(documentId, 0, true);
+    const openPage = async (page) => {
+        const { active, loading } = store.getSnapshot();
+        if (active === null || loading || page < 0 || page >= active.pageCount)
+            return;
+        await loadPage(active.documentId, page, false);
+    };
+    const importLocalFile = async (file) => {
+        if (disposed || store.getSnapshot().importing)
+            return;
+        update(draft => { draft.importing = true; draft.error = null; });
+        try {
+            if (file.size > 8 * 1024 * 1024)
+                throw new Error('文件过大；请导入不超过 2,000,000 个字符的文本');
+            const content = await file.text();
+            if (disposed)
+                return;
+            if (content.length > 2_000_000)
+                throw new Error('文档不能超过 2,000,000 个字符');
+            const imported = await importFile(file.name, content);
+            if (imported !== null)
+                await openDocument(imported.documentId);
+        }
+        catch (error) {
             fail(error);
+        }
+        finally {
+            update(draft => { draft.importing = false; });
         }
     };
     const createTopic = async () => {
         if (disposed)
             return;
         const snapshot = store.getSnapshot();
+        if (snapshot.creating || snapshot.loading)
+            return;
+        const generation = documentGeneration;
         const selection = snapshot.selection;
         const question = snapshot.question.trim();
         if (snapshot.active === null || selection === null) {
@@ -152,8 +202,11 @@ export function createReaderController(request, companion, store = createSnapsho
             }, question);
             update((draft) => {
                 draft.creating = false;
-                draft.selection = null;
-                draft.question = '';
+                if (generation === documentGeneration && draft.question === snapshot.question) {
+                    draft.open = false;
+                    draft.selection = null;
+                    draft.question = '';
+                }
             });
         }
         catch (error) {
@@ -166,7 +219,9 @@ export function createReaderController(request, companion, store = createSnapsho
         setOpen,
         refresh,
         importFile,
+        importLocalFile,
         openDocument,
+        openPage,
         setSelection: (selection) => {
             if (disposed)
                 return;

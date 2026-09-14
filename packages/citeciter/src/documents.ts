@@ -11,9 +11,10 @@ import {
   type DocumentSummary,
 } from './topic.ts'
 
+import { documentPages } from './document-pages.ts'
+export { DOCUMENT_CONTENT_MAX_BYTES } from './document-pages.ts'
+
 const DOCUMENT_ROOT = dshHomePath('citeciter', 'documents')
-/** Reader page budget keeps one document-get response comfortably bounded. */
-export const DOCUMENT_CONTENT_MAX_BYTES = 500 * 1024
 
 function errorCode(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error
@@ -58,10 +59,38 @@ function documentDirectory(root: string, documentId: string): string {
   return directory
 }
 
+/** Validate persisted metadata before it supplies a document identity or format. */
+function parseRecord(value: unknown, documentId: string): DocumentRecordFile {
+  if (typeof value !== 'object' || value === null || !('schemaVersion' in value) || value.schemaVersion !== 1) {
+    throw new Error('不支持的文档元数据版本')
+  }
+  const { schemaVersion: _version, ...fields } = value
+  const summary = documentSummarySchema.parse(fields)
+  if (summary.documentId !== documentId) throw new Error('文档元数据标识与目录不一致')
+  return { schemaVersion: 1, ...summary }
+}
+
 /** Validate and persist one imported text document under the private library. */
 export class DocumentStore {
+  private readonly summaries = new Map<string, DocumentSummary>()
   /** @param root - private document library root. */
   constructor(private readonly root: string = DOCUMENT_ROOT) {}
+
+  /** Read validated, immutable metadata without loading the document body. Missing documents return null; successful reads are cached for this store's lifetime. */
+  async summary(documentId: string): Promise<DocumentSummary | null> {
+    const cached = this.summaries.get(documentId)
+    if (cached !== undefined) return cached
+    try {
+      const record = parseRecord(JSON.parse(await readFile(resolve(documentDirectory(this.root, documentId), 'document.json'), 'utf8')), documentId)
+      const { schemaVersion: _version, ...summary } = record
+      this.summaries.set(documentId, summary)
+      return summary
+    } catch (error) {
+      // A removed document must not prevent opening the Topic's surviving conversation.
+      if (errorCode(error) === 'ENOENT') return null
+      throw error
+    }
+  }
 
   /**
    * Persist one imported document and its normalized UTF-8 text.
@@ -100,8 +129,9 @@ export class DocumentStore {
    */
   async read(documentId: string): Promise<{ readonly record: DocumentRecordFile, readonly content: string }> {
     const directory = documentDirectory(this.root, documentId)
-    const record = JSON.parse(await readFile(resolve(directory, 'document.json'), 'utf8')) as DocumentRecordFile
+    const record = parseRecord(JSON.parse(await readFile(resolve(directory, 'document.json'), 'utf8')), documentId)
     const content = await readFile(resolve(directory, 'content.txt'), 'utf8')
+    if (record.size !== Buffer.byteLength(content, 'utf8')) throw new Error('文档内容与保存的长度不一致')
     return { record, content }
   }
 
@@ -117,7 +147,7 @@ export class DocumentStore {
     const summaries: DocumentSummary[] = []
     for (const name of names.sort()) {
       try {
-        const record = JSON.parse(await readFile(resolve(documentDirectory(this.root, name), 'document.json'), 'utf8')) as DocumentRecordFile
+        const record = parseRecord(JSON.parse(await readFile(resolve(documentDirectory(this.root, name), 'document.json'), 'utf8')), name)
         const { schemaVersion: _schemaVersion, ...summary } = record
         summaries.push(documentSummarySchema.parse(summary) as DocumentSummary)
       } catch (error) {
@@ -131,24 +161,22 @@ export class DocumentStore {
   /**
    * Return one bounded Reader page.
    * @param documentId - private document identity.
-   * @returns the first content window, truncated when the text exceeds the page budget.
+   * @param pageIndex - zero-based page; omitted requests the first page. Out-of-range pages are rejected.
+   * @returns a UTF-8-budgeted page and the total page count; Unicode code points are never split.
    */
-  async get(documentId: string): Promise<DocumentContent> {
+  async get(documentId: string, pageIndex = 0): Promise<DocumentContent> {
     const { record, content } = await this.read(documentId)
-    let page = ''
-    let bytes = 0
-    for (const character of content) {
-      const characterBytes = Buffer.byteLength(character, 'utf8')
-      if (bytes + characterBytes > DOCUMENT_CONTENT_MAX_BYTES) break
-      page += character
-      bytes += characterBytes
-    }
+    const pages = documentPages(content)
+    const selected = pages[pageIndex]
+    if (selected === undefined) throw new Error('文档页码超出范围')
     return documentContentSchema.parse({
       documentId: record.documentId,
       title: record.title,
       format: record.format,
-      content: page,
-      truncated: page.length < content.length,
+      content: selected,
+      truncated: pageIndex < pages.length - 1,
+      page: pageIndex,
+      pageCount: pages.length,
     }) as DocumentContent
   }
 }

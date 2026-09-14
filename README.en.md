@@ -1,99 +1,126 @@
 # CiteCiter
 
-**A learning and investigation companion for DeepSeek Harness Web and Desktop.**
-
-Select a committed response and explore it in a private Topic while the main task continues. Ask follow-ups, change models, or let the presenter explain with formulas, diagrams, tables and animations.
-
 [简体中文](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
-<p align="center"><img src="assets/hero/citeciter-hero.png" width="100%" alt="Explore selected AI output in private CiteCiter Topics"></p>
+CiteCiter adds a source-aware workspace to DeepSeek Harness. Create independent Topics from conversations, tool results and documents for text, programming, image and learning tasks. New Topics use native DSH Sessions, permissions, models, attachments and message queues. The source conversation continues independently.
 
-## Install and compatibility
+![Native Citer workspace and manual submission diagram](assets/docs/native-workspace.svg)
 
-CiteCiter **0.6.0** targets DSH `0.1.2-rc.1` and [DSH Desktop 2.0.5](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.5). Node.js must satisfy `^22.19.0 || >=24.0.0`; Windows validation uses Node 24.19.0. DSH alpha and Desktop master are separate targets.
+This is an interaction diagram, not a screenshot. Selection actions prepare drafts; model work begins only after the user sends.
 
-| Environment | Installation target | Status |
+## Version and installation
+
+Current version: **0.8.0**. Baseline: DSH `0.1.5-rc.1`, [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`, Node.js `^22.19.0 || >=24.0.0`. Windows acceptance uses Node 24.19.0. DSH next, alpha and TUI are separate targets.
+
+| Version | Status | Main differences |
 | --- | --- | --- |
-| DSH Web 0.1.2-rc.1 | `web` profile | Windows runtime and UI verified |
-| DSH Desktop 2.0.5 | Current Desktop profile, default `desktop` | Targeted; see release notes for mode-specific checks |
-| DSH 0.1.1-rc.1 / rc.2 | Older environment | Keep CiteCiter 0.5.0 |
-| DSH alpha, TUI | — | Unsupported |
-| Linux / macOS | Same package | Not tested in this migration |
+| 0.8.0 | Current version | Native Sessions, manual drafts, DSH permissions, attachments, queue and AI learning plans |
+| 0.7.0-beta.3 | Previous development candidate | Private read-only Topics, selection wheel, manual five-stage learning |
+| 0.6.0 | Published | DSH 0.1.2-rc.1 / Desktop 2.0.5 baseline |
 
-Install or upgrade the Web plugin:
+Update the host CLI and install the published package:
 
 ```powershell
-npm install -g @deepseek-ai/dsh@0.1.2-rc.1
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.6.0
-dsh plugin --profile web list --depth 0
+npm install -g @deepseek-ai/dsh@latest
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.0
 dsh web
 ```
 
-Confirm version 0.6.0, restart the owning host and refresh the page. Alternatively, download the `.tgz` from the [GitHub Release](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.6.0) and replace the package name with the tarball's absolute path. See Contributing for a local workspace installation.
+This installs 0.8.0. For DSH 0.1.2-rc.1 / Desktop 2.0.5, keep using @kirkchinese/dsh-citeciter@0.6.0. If npm blocks native dependency installation scripts, follow its output to allow the named dependencies and reinstall. Do not disable script restrictions globally.
 
-For Desktop, confirm its selected profile and data directory, then install using the **same DSH_HOME**:
-
-```powershell
-dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.6.0
-dsh plugin --profile desktop list --depth 0
-```
-
-Replace `desktop` if a custom profile is selected; set `$env:DSH_HOME` in PowerShell if it uses a custom home. Restart Desktop. Updating the global npm CLI does not replace Desktop's embedded runtime.
-
-If npm 12 blocks the native dependency scripts listed by this DSH release, allow them for this installation:
+Build and install this branch locally:
 
 ```powershell
-npm install -g @deepseek-ai/dsh@0.1.2-rc.1 --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs
-```
-
-This addresses native installation. An old plugin importing the removed `effectiveSandboxMode` export requires a plugin upgrade; reinstalling the host alone does not fix it.
-
-## Use
-
-1. Select committed assistant answer or reasoning text, right-click, enter a question, and choose “开始提问” or “开始讲解”.
-2. Continue in the learning panel, change model/reasoning effort, and manage Topic titles, archives and deletion.
-3. Use `+ 新 Topic` for a free question or presentation. A new source session needs its first message before the Topic can reuse its model route.
-4. Presenter boards appear in the main workspace's “小黑板” tab. Board citations append to the current question draft.
-5. Tool results, terminal output, diffs and the text/Markdown Reader also provide Topic entry points.
-
-<p align="center"><img src="assets/demo/citeciter-0.4.0.gif" width="100%" alt="Select AI output and continue in a CiteCiter Topic"></p>
-
-This older recording demonstrates the citation workflow; host layout and controls differ in 0.6.
-
-## Keep the source conversation visible
-
-- Wide windows allocate a separate learning column and retain native details.
-- Saved panel proportions range from 28% to 55%. Actual width is capped to leave at least 480 CSS pixels for conversation, then returns to the preference when space permits.
-- Narrow or zoomed windows place the learning panel in a bottom row, with the conversation visible above it.
-- Closing restores host layout. Unrecognized frames show a compact compatibility message.
-
-Content uses public DSH slots, conversation projections and snapshot hooks. This release has no public right-dock sizing service, so a small maintained host adapter allocates space. Revalidate it after host upgrades.
-
-## Topics and data
-
-Observer discussions use private logs and read source events or project files as needed. Exact Fork inherits context from a completed source turn. File tools remain read-only and Topics never append to the source Session. Uncommitted streaming text has no stable citation position; Exact Fork requires a completed source turn.
-
-Atomic `blackboard_apply` commits support formulas, Markdown, tables, safe SVG, isolated HTML animations and embedded images. Topics support follow-ups, model changes, archive/restore and permanent deletion with a Session ID confirmation.
-
-Indexes live under `$DSH_HOME/citeciter/workspaces/`; logs under `$DSH_HOME/citeciter/sessions/`. Without the variable the home is usually `.dsh` in the user directory. Back up the complete home before upgrading. Version 0.6 uses the new runtime API without bulk-rewriting old logs. DSH's version-0 physical JSONL still uses `seedLength`; preserve and diagnose unknown events rather than deleting fields.
-
-Only one active CiteCiter host may own a home. Concurrent Web and Desktop instances need different homes. Update notices copy a command without installing anything; Desktop commands target the current profile.
-
-## Development
-
-```sh
+pnpm install --frozen-lockfile
 pnpm typecheck
-pnpm test
 pnpm build
-pnpm test:snapshot
+pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.0.tgz
 ```
 
-The real application snapshot uses a temporary profile and keyless model for Observer, Exact Fork, source reads, boards and source-log isolation. Host `ctx.citeciterRuntime` exposes `create`, `ask`, `get`, `list`, `delete` and Topic change events. Public frontend entry registration and preset extension APIs remain unfinished. See [Contributing](CONTRIBUTING.md) and the [0.6.0 release note](docs/releases/v0.6.0.md).
+Desktop bundles its own DSH. Update the Desktop application, then run `dsh plugin add <absolute package path>` in its managed terminal. Updating the global CLI does not update Desktop's embedded runtime. Restart the relevant host after installation. Do not run Web and Desktop writers against the same DSH home simultaneously.
 
-## Community and license
+## Drafts and references
 
-DSH-Citeciter QQ group: `1108040435`.
+1. Select text in the source conversation, hold the right mouse button, point at a wheel action and release. Tool results, the document reader and native file previews provide additional entry points.
+2. Citer opens an independent draft. Source conversation/document addresses and selected excerpts appear as removable attachments. Document chips show the filename; expand them to inspect the original path and snapshot address. Click × to remove a reference; the attachment menu can add sources and excerpts again.
+3. Review the question, references, permissions and model, then click Send or press Enter. Shift + Enter inserts a newline; Enter during IME composition does not submit.
 
-<p align="center"><img src="assets/community/qq-group.jpg" width="280" alt="DSH-Citeciter QQ group QR code"></p>
+Creating Topics, choosing wheel actions, changing models and quoting boards do not call a model. Actions that need a question first show an input and model choice. Other actions fill a preset question and still require manual Send. Submitted mode prompts and reference contents are recorded in the Topic's native log.
 
-[MIT License](LICENSE)
+Removing an unsent source attachment makes its reading tool reject access; new Topics do not silently inherit source history. Previously sent references remain in conversation history: removing a later draft copy does not retract them. Drafts survive panel close/reopen, Topic switches and window blur; browser reload or client exit does not retain unsent drafts or local attachments.
+
+## Permissions, input and queue
+
+New Topics start **read-only**, even when their source has full access. The input's permission menu selects native DSH read-only, workspace-write or full-access mode. Modification requires an explicit user mode choice or changed new-Topic default. DSH approval, sandbox and tool policies remain active.
+
+Input controls are attachments, permission mode, model/reasoning and Send. Choose the model first, then one of its supported reasoning levels. Images and generic files use native DSH attachment services, with upload state and retry. Select files from the attachment menu, paste images into the input, or drop files onto the Citer panel. The drop invitation names the receiving Topic; release adds attachments only to that Topic. Drops are unavailable without a current Topic, and files dropped into Citer are not copied into the source draft. Mixed image and text paste retains both. Sent files show a download icon and filename; click to save the original attachment. User messages omit the role label. Host rejection shows its cause and retains the draft; an accepted message is cleared even if the subsequent status read fails.
+
+While a reply runs, Enter and Send follow DSH's busy-send preference; Ctrl + Enter temporarily uses the other delivery mode. Queued messages run after the current turn; steering is admitted at its next step. The composer toggle overrides the current Topic without changing the host default. Pending rows can be removed or changed to steering. Stop ends the response and preserves existing output; pending work follows DSH's queue rules.
+
+New Topics use standard programming tools under DSH permissions. Existing records retain their conversation and permissions when migrated into the source directory. Migration verifies every event; records that cannot be verified stay in their original store with an error report. Permissions are not expanded automatically.
+
+Model-provided reasoning appears in an expandable Thinking row. While reasoning is streaming before the answer, the row shows Thinking in progress. Collapsed rows retain a one-line preview; expanding displays the full Markdown. Models that return no reasoning do not produce an empty row.
+
+## Learning, boards and images
+
+Learning route is off by default. When enabled, a submitted question asks the model to select and maintain a plan through DSH `todo_write`. It may use underlying logic, qualitative analysis, quantitative board work, concept connections and summary cards as needed; users do not click through stages individually.
+
+The board appears once, in the host conversation's blackboard tab. It supports text, Markdown, math, tables, SVG, images and isolated HTML. Quoting adds a draft attachment; math renders as math rather than raw object fields. Read, export and revise cards in Citer's Cards view.
+
+`blackboard_view` returns a browser-rendered PNG to an image-capable model, allowing it to inspect clipping, labels, arrows and layout before updating the board. The image contains only the board, not the conversation or window layout. When the tab is closed or the narrow layout hides the board, the same component renders offscreen at 1000×680. Keep Citer open during capture. SVG colors are preserved; Markdown code uses backgrounds suited to the dark board. Sandboxed HTML iframes cannot be captured; use SVG for inspectable diagrams.
+
+When [dsh-codex-connect](https://github.com/franksong2702/dsh-codex-connect) and its image tools are enabled in the host, new Topics can use `codex_connect_image_generate` and `view_image`. Citer does not require the connector or manage its account setup. Real generation and viewing have been exercised with connector `0.1.0-alpha.4.34`.
+
+Before saving cards, the model is instructed to check definitions, conditions, derivations, numbers and contradictions, then correct or mark unverified claims. Self-review does not ensure factual accuracy; acceptance found and corrected a model error. See the [validation record](docs/validation/2026-09-12-native-real-model.md). Active recall is optional and off by default. There is no spaced repetition, reminder or streak system.
+
+## Topics and layout
+
+The list icon opens searchable Topics for the current source; ＋ creates a blank Topic. Double-click the title or press F2 to rename; Enter/blur saves and Escape cancels. Archive hides a Topic while preserving its records, and the archive list restores it. Permanent deletion requires the full Session ID and removes only Citer-owned Topic files after releasing its runtime. Symlinks and paths outside the owned directory are rejected. Source Sessions are never deleted.
+
+Wide windows keep source and Citer side by side, with a resizable divider. Drag the title area away to float; release at the right window edge to dock. When space is insufficient, Citer occupies the main content area with a Back button at the top left. Back restores the source. It never moves below the source on narrow screens. Closing restores host space; native details and Desktop captions remain available.
+
+Surfaces use translucent backgrounds, blur and short transitions, respecting host themes and reduced-motion settings. A dedicated adapter owns layout changes; unknown host structures do not receive an intrusive full-screen fallback.
+
+## Storage and migration
+
+Topics appear only in Citer navigation. DSH does not recursively discover nested Topic logs. Citer owns live membership and navigation; native send services can address a loaded Topic by identity.
+
+```text
+.dsh/sessions/<workspace>/<sourceSession>/
+├── session.v3.jsonl[.zstd]       DSH-owned source
+└── citeciter/
+    ├── owner.json              Verified source ownership
+    ├── <topicNumber>/
+    │   ├── topic.json          Title, archive state, model and source
+    │   └── sessions/<workspace>/<citerSession>/session.v3.jsonl
+    └── migration-backups/      Verified original copies
+```
+
+Citer owns creation, archive, restore and deletion. Archiving preserves the full log. Deletion leaves other Topics, the source and migration backups intact. Migration reads and writes through public DSH persistence APIs, compares the header and every event before switching the index, and retains originals. Moving verified old copies out of the main list requires an explicitly confirmed scope.
+
+## Documents and native preview
+
+While Citer is open, use the top-right … → Document reading action. The standalone reader launcher remains available when Citer is closed and no longer covers its composer.
+
+Click 📖 to import `.txt`, `.md` or `.markdown`. The reader preserves the full document, displays at most 500 KiB of UTF-8 text per page and accepts up to 2,000,000 characters. Paging clears the previous selection but keeps the question. Preparing a draft collapses the reader. The document address and excerpt are separate removable attachments.
+
+When the optional documentPreviews service is present, select “CiteCiter 学习” in native file preview. The host reads the file; Citer provides selectable source text, pagination and references. Creating a Topic stores a complete snapshot, unaffected by later file changes. Each snapshot is limited to 8 MiB / 2,000,000 characters and requires a source Session address.
+
+The preview's public type baseline is resolved subpackage `0.1.5-rc.2`; the top-level DSH version does not establish service availability. Without it, conversation actions and the independent reader remain usable. The learning viewer does not provide PDF text extraction, Word parsing or OCR.
+
+## Wheel settings
+
+Configure the trigger, default model and eight slots in Settings → CiteCiter. Defaults are Ask, Explain, Find errors, Translate, Quantitative board, Summary cards and two empty slots. Each slot has a prompt, optional question step, content mode and default placement. Save slot edits explicitly.
+
+A short right-click leaves a clickable wheel; Shift + right-click preserves the native menu. Arrow keys, digits 1–8 and Enter select actions. Center, empty slots, outside release, Escape, source changes or wheel blur cancel. The question dialog survives app blur and closes only on explicit dismissal or source change.
+
+## Development and acceptance
+
+[Contributing](CONTRIBUTING.md) · [0.8 release notes](docs/releases/v0.8.0.md) · [Real-model acceptance](docs/validation/2026-09-12-native-real-model.md)
+
+Host and Client compile separately. Native session adaptation, source reading, index storage, attachments, queue, board capture, learning plans and UI controls are separate modules. The DSH Agent Loop is unchanged. The full host input component has no supported cross-session embedding interface; Citer reuses public ConversationController / SessionFace behavior and does not automatically inherit every third-party composer extension.
+
+Artificial model providers, test directories and temporary acceptance scripts have been removed from the current branch, with Git history preserved. CI checks dependencies, types, build and packaging. Functional acceptance uses real models, real source branches and actual UI; the validation record states coverage and unfinished work.
+
+MIT License.

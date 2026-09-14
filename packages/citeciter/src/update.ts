@@ -24,6 +24,14 @@ const stableVersionSchema = z.string().refine(
   'expected a stable MAJOR.MINOR.PATCH version with safe integer components',
 )
 
+/** Installed development builds may use a valid SemVer prerelease suffix; registry latest stays stable. */
+const installedVersionSchema = z.string().refine((version) => {
+  const [core, ...suffix] = version.split('-')
+  if (core === undefined || stableVersionParts(core) === null) return false
+  if (suffix.length === 0) return true
+  return suffix.join('-').split('.').every(part => /^[0-9A-Za-z-]+$/u.test(part) && (!/^\d+$/u.test(part) || part === '0' || !part.startsWith('0')))
+}, 'expected a stable version or a valid prerelease')
+
 /** Stable failure identifiers consumed by the Web settings and notification UI. */
 export const updateCheckErrorCodeSchema = z.enum([
   'installed-version-invalid',
@@ -42,7 +50,7 @@ export type UpdateCheckErrorCode = z.infer<typeof updateCheckErrorCodeSchema>
 export const updateCheckResponseSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('success'),
-    installedVersion: stableVersionSchema,
+    installedVersion: installedVersionSchema,
     latestVersion: stableVersionSchema,
     updateAvailable: z.boolean(),
     checkedAt: z.number().int().nonnegative(),
@@ -179,7 +187,7 @@ export class UpdateChecker {
     } catch {
       return { kind: 'error', code: 'installed-version-invalid', checkedAt: this.now() }
     }
-    if (stableVersionParts(installedVersion) === null) {
+    if (!installedVersionSchema.safeParse(installedVersion).success) {
       return { kind: 'error', code: 'installed-version-invalid', checkedAt: this.now() }
     }
 
@@ -206,7 +214,7 @@ export class UpdateChecker {
       }
       const latest = registryLatestSchema.safeParse(raw)
       if (!latest.success) return { kind: 'error', code: 'registry-response-invalid', checkedAt: this.now() }
-      const comparison = compareStableVersions(installedVersion, latest.data.version)
+      const comparison = compareStableVersions(installedVersion.split('-')[0]!, latest.data.version)
       if (comparison === null) return { kind: 'error', code: 'registry-version-invalid', checkedAt: this.now() }
 
       const checkedAt = this.now()
@@ -214,7 +222,7 @@ export class UpdateChecker {
         kind: 'success',
         installedVersion,
         latestVersion: latest.data.version,
-        updateAvailable: comparison < 0,
+        updateAvailable: comparison < 0 || comparison === 0 && installedVersion.includes('-'),
         checkedAt,
       }
       this.cached = { expiresAt: checkedAt + UPDATE_CHECK_TTL_MS, response: result }

@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { nativeStateSchema, nativeAttachmentRefSchema } from "./native-session-contract.js";
 import { boardSnapshotSchema } from "./board.js";
+import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from "./actions.js";
 /** Durable Citation version used by Observer Topics. v4 adds the EvidenceRef entry discriminator. */
 export const CITATION_SCHEMA_VERSION = 4;
 /** Navigation metadata version. v2 permits source-bound Topics without a selected Citation. */
@@ -37,7 +39,13 @@ export const citeCiterSettingsSchema = z.object({
     promptTemplates: z.array(promptTemplateSchema).max(8).optional(),
     shortcutOpenPanel: z.string().max(40).optional(),
     boardAnimations: z.boolean().optional(),
+    activeRecall: z.boolean().optional(),
     updateNotifications: z.boolean().optional(),
+    wheelSlots: wheelSlotsSchema.optional(),
+    wheelTrigger: wheelTriggerSchema.optional(),
+    defaultCiterModel: actionModelSchema.nullable().optional(),
+    defaultPermission: z.enum(['read-only', 'workspace-write', 'danger-full-access']).optional(),
+    learningRoute: z.boolean().optional(),
 }).strict();
 /** Settings used before an optional DSH settings provider becomes available. */
 export const DEFAULT_CITECITER_SETTINGS = Object.freeze({
@@ -48,6 +56,9 @@ export const DEFAULT_CITECITER_SETTINGS = Object.freeze({
     reopenLastTopic: true,
     followupQuestions: true,
     boardAnimations: true,
+    activeRecall: false,
+    defaultPermission: 'read-only',
+    learningRoute: false,
     updateNotifications: true,
     promptTemplates: [
         { id: 'explain', label: '解释这段', text: '请解释这段内容：讲清楚它为什么成立、关键推导和直觉。' },
@@ -180,6 +191,8 @@ export const modelConfigSchema = z.object({
 }).strict();
 /** Fields shared by the canonical Topic metadata schema and its on-disk reader. */
 const topicMetadataFields = {
+    hosted: z.boolean().optional(),
+    storage: z.literal('source').optional(),
     topicId: z.number().int().positive(),
     createRequestId: z.string().min(1).optional(),
     sessionId: z.string().min(1),
@@ -239,7 +252,11 @@ export function parseTopicMetadataFile(raw) {
         documentId: documentId ?? null,
     });
 }
+export const permissionSchema = z.enum(['read-only', 'workspace-write', 'danger-full-access']);
 export const topicSummarySchema = z.object({
+    permission: permissionSchema.optional(),
+    hosted: z.boolean().optional(),
+    storage: z.literal('source').optional(),
     topicId: z.number().int().positive(),
     sessionId: z.string().min(1),
     sourceSessionId: z.string().min(1),
@@ -257,6 +274,7 @@ export const topicSummarySchema = z.object({
     observedThroughSeq: z.number().int().nonnegative().nullable(),
     modelConfig: modelConfigSchema,
 }).strict();
+const messageAttachmentSchema = z.object({ kind: z.enum(['image', 'file']), id: z.string().min(1), name: z.string() }).strict();
 const topicMessageIdentitySchema = {
     id: z.string().min(1),
     seq: z.number().int().nonnegative(),
@@ -265,11 +283,14 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
     z.object({
         ...topicMessageIdentitySchema,
         role: z.literal('user'),
+        attachments: z.array(messageAttachmentSchema).optional(),
         text: z.string(),
     }).strict(),
     z.object({
         ...topicMessageIdentitySchema,
         role: z.literal('assistant'),
+        // Process-local presentation identity only; never changes a persisted message ID.
+        renderKey: z.string().optional(),
         text: z.string(),
         reasoning: z.string().nullable(),
         streaming: z.boolean(),
@@ -283,6 +304,7 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
     z.object({
         ...topicMessageIdentitySchema,
         role: z.literal('tool'),
+        attachments: z.array(messageAttachmentSchema).optional(),
         name: z.string().min(1),
         arguments: z.string(),
         result: z.string().nullable(),
@@ -321,6 +343,8 @@ export const pendingQuestionSchema = z.object({
     questions: z.array(questionItemSchema).min(1),
 }).strict();
 export const topicSnapshotSchema = z.object({
+    captureId: z.string().optional(),
+    documentTitle: z.string().optional(),
     topic: topicSummarySchema,
     messages: z.array(topicMessageSchema),
     pendingQuestion: pendingQuestionSchema.nullable(),
@@ -341,6 +365,7 @@ export const providerOptionSchema = z.object({
     name: z.string().min(1),
     models: z.array(modelOptionSchema),
 }).strict();
+const draftQuestionSchema = z.string().trim().max(12_000);
 const questionSchema = z.string().trim().min(1).max(12_000);
 const topicSessionIdSchema = z.string().min(1);
 const createModeSchema = z.enum(['observer', 'exact-fork', 'exact-when-available']);
@@ -376,45 +401,52 @@ export const documentContentSchema = z.object({
     format: documentFormatSchema,
     content: z.string(),
     truncated: z.boolean(),
+    page: z.number().int().nonnegative().default(0),
+    pageCount: z.number().int().positive().default(1),
 }).strict();
 const createRequestSchema = z.union([
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         sourceSessionId: z.string().min(1),
-        question: questionSchema,
+        question: draftQuestionSchema,
         mode: z.literal('observer'),
         scenario: z.enum(['qa', 'present']).optional(),
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         citation: citationDraftSchema,
-        question: questionSchema,
+        question: draftQuestionSchema,
         mode: createModeSchema,
         scenario: topicScenarioSchema.optional(),
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         selectionClaim: citationSelectionClaimSchema,
-        question: questionSchema,
+        question: draftQuestionSchema,
         mode: createModeSchema,
         scenario: topicScenarioSchema.optional(),
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         toolClaim: toolEvidenceClaimSchema,
-        question: questionSchema,
+        question: draftQuestionSchema,
         mode: createModeSchema,
         scenario: topicScenarioSchema.optional(),
     }).strict(),
     z.object({
         action: z.literal('create'),
+        modelRoute: actionModelSchema.optional(),
         requestId: z.string().min(1),
         documentClaim: documentEvidenceClaimSchema,
-        question: questionSchema,
+        question: draftQuestionSchema,
         mode: createModeSchema,
         scenario: topicScenarioSchema.optional(),
     }).strict(),
@@ -426,7 +458,10 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
             sourceSessionId: z.string().min(1),
             includeArchived: z.boolean().optional(),
         }).strict(),
+        z.object({ action: z.literal('board-capture'), topicSessionId: topicSessionIdSchema, id: z.string().min(1), png: z.string().max(8_000_000).regex(/^[A-Za-z0-9+/]+={0,2}$/).optional(), error: z.string().max(500).optional() }).strict(),
         z.object({ action: z.literal('get'), topicSessionId: topicSessionIdSchema }).strict(),
+        z.object({ action: z.literal('native-state'), topicSessionId: topicSessionIdSchema, requestIds: z.array(z.string().min(1).max(100)).max(32) }).strict(),
+        z.object({ action: z.literal('native-attachment'), topicSessionId: topicSessionIdSchema, attachmentId: z.string().min(1).max(200) }).strict(),
         z.object({
             action: z.literal('ask'),
             requestId: z.string().min(1).optional(),
@@ -462,6 +497,11 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
         }).strict(),
         z.object({ action: z.literal('models') }).strict(),
         z.object({
+            action: z.literal('set-permission'),
+            topicSessionId: topicSessionIdSchema,
+            mode: permissionSchema,
+        }).strict(),
+        z.object({
             action: z.literal('set-model-route'),
             topicSessionId: topicSessionIdSchema,
             provider: z.string().min(1),
@@ -487,10 +527,12 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
             content: z.string().min(1).max(2_000_000),
         }).strict(),
         z.object({ action: z.literal('documents') }).strict(),
-        z.object({ action: z.literal('document-get'), documentId: z.string().min(1) }).strict(),
+        z.object({ action: z.literal('document-get'), documentId: z.string().min(1), page: z.number().int().nonnegative().optional() }).strict(),
     ])]);
 /** Strict response union returned by the single Remote command endpoint. */
 export const citeCiterResponseSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('native-state'), state: nativeStateSchema }).strict(),
+    z.object({ kind: z.literal('native-attachment'), attachment: nativeAttachmentRefSchema, data: z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),
     z.object({ kind: z.literal('topic'), topic: topicSnapshotSchema }).strict(),
     z.object({ kind: z.literal('topics'), topics: z.array(topicSummarySchema) }).strict(),
     z.object({ kind: z.literal('models'), providers: z.array(providerOptionSchema) }).strict(),

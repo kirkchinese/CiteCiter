@@ -1,5 +1,6 @@
 import type { SessionId } from '@deepseek-ai/dsh-session/types';
 import type { ToolEvidenceProjection } from '../evidence-text.ts';
+import type { PanelPresentation } from '../actions.ts';
 /** One right-click selection inside a rendered assistant model call. */
 export interface AssistantCiteSelection {
     readonly entryId: 'citeciter.entry.assistant';
@@ -36,11 +37,11 @@ export interface BoardCitationRequest {
     readonly prompt: string;
 }
 export interface CiteOverlaySnapshot {
-    readonly menuSelection: CiteSelection | null;
     readonly panelOpen: boolean;
+    readonly presentation: PanelPresentation;
     readonly boardCitation: BoardCitationRequest | null;
 }
-/** Tiny observable state shared by the selection popover and independent dock. */
+/** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export declare class CiteBus {
     private readonly reportListenerError;
     private snapshot;
@@ -52,10 +53,10 @@ export declare class CiteBus {
     getSnapshot: () => CiteOverlaySnapshot;
     /** @param listener - observer. @returns disposer. */
     subscribe: (listener: () => void) => (() => void);
-    /** Show or dismiss the selection question popover. */
-    setMenuSelection(selection: CiteSelection | null): void;
     /** Open or close the independent companion dock. */
     setPanelOpen(panelOpen: boolean): void;
+    /** Change only the current workspace presentation, keeping its Topic and drafts. */
+    setPresentation(presentation: PanelPresentation): void;
     /**
      * Queue one user-requested board reference for the matching Topic composer.
      * @param topicSessionId - Topic that owns the referenced board.

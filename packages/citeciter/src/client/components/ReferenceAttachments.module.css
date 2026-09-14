@@ -1,0 +1,10 @@
+.attachments { min-width: 0; }
+.rail { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 8px 7px; }
+.rail:empty { display: none; }
+.chip { display: flex; align-items: center; max-width: 100%; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); }
+.chip button { border: 0; background: transparent; color: inherit; padding: 4px 7px; border-radius: 6px; font: inherit; font-size: 12px; cursor: pointer; }
+.chip button:hover { background: color-mix(in srgb, currentColor 9%, transparent); }
+.chip button:focus-visible { outline: 2px solid #6898f2; outline-offset: 1px; }
+.chip button:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.preview { margin: 0 8px 8px; padding: 10px; max-height: 180px; overflow: auto; border-radius: 10px; background: color-mix(in srgb, currentColor 4%, transparent); font-size: 13px; }
+.preview code { overflow-wrap: anywhere; font-size: 11px; opacity: .65; }

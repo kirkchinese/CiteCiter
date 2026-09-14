@@ -1,0 +1,24 @@
+.menu {
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  position: fixed;
+  z-index: 2147483000;
+  width: min(310px, calc(100vw - 16px));
+  overflow: auto;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary, #253040) 13%, transparent);
+  border-radius: 18px;
+  color: var(--dsw-alias-label-primary, #253040);
+  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1, #fff) 94%, transparent);
+  box-shadow: 0 12px 40px #0002, inset 0 1px #ffffff70;
+  backdrop-filter: blur(28px) saturate(140%);
+  animation: appear 130ms ease-out;
+}
+.menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 0; border-radius: 11px; padding: 11px 12px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.menu button:hover, .menu button:focus-visible { background: color-mix(in srgb, currentColor 7%, transparent); outline: none; }
+.menu button[aria-checked="true"] { background: color-mix(in srgb, #588bf7 13%, transparent); }
+.menu button:disabled { opacity: .45; cursor: default; }
+.menu small { display: block; padding: 10px 12px 4px; opacity: .6; }
+.menu button span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .68; }
+.menu button > span:first-child:not(:last-child) { flex-shrink: 0; white-space: nowrap; }
+@keyframes appear { from { opacity: 0; transform: translateY(4px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .menu { animation: none; } }

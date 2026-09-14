@@ -6,7 +6,7 @@ export { projectDiffMeta, projectToolEvidence, projectToolResultText, } from "./
 import { snapshotJsonValue } from '@deepseek-ai/dsh-util-values';
 import { canonicalCitationIdentity, citationDraftSchema, citationSelectionClaimSchema, documentEvidenceClaimSchema, toolEvidenceClaimSchema, } from "./topic.js";
 import { projectCitableAssistantContent } from "./assistant-content.js";
-import { resolveCitationRange, } from "./citation-mapping.js";
+import { resolveCitationRange, resolveDocumentRange, } from "./citation-mapping.js";
 function messageText(content) {
     return content
         .filter((block) => block.type === 'text')
@@ -181,7 +181,7 @@ export function resolveToolEvidence(source, rawClaim) {
  */
 export function resolveDocumentEvidence(content, rawClaim) {
     const claim = documentEvidenceClaimSchema.parse(rawClaim);
-    const range = resolveCitationRange(claim, content);
+    const range = resolveDocumentRange(claim, content);
     return {
         evidence: {
             sourceSessionId: claim.sourceSessionId,

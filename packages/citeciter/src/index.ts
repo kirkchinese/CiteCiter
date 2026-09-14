@@ -1,4 +1,4 @@
-/** Host entry for private Observer Topics and their browser Remote API. */
+/** Host entry for native Topics, legacy compatibility and the browser Remote API. */
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-llm'
@@ -10,6 +10,7 @@ import z from '@deepseek-ai/schemastery'
 import { TopicRuntime } from './topic-runtime.ts'
 import type { CiteCiterService } from './service.ts'
 import { UpdateChecker, type UpdateCheckResponse } from './update.ts'
+import { DEFAULT_WHEEL_SLOTS } from './actions.ts'
 import {
   CITECITER_SETTINGS_NAMESPACE,
   DEFAULT_CITECITER_SETTINGS,
@@ -23,8 +24,8 @@ import {
 
 /** Cordis/Typert package identity. */
 export const name = '@kirkchinese/dsh-citeciter'
-/** Services required by the private Topic runtime. */
-export const inject = ['llm', 'sessionQuery', 'subprocess'] as const
+/** Explicit dependencies for native session composition and legacy compatibility. */
+export const inject = ['llm', 'sessionQuery', 'subprocess', 'agents', 'agentPresets', 'sessionController', 'systemPrompt', 'tools', 'sandboxPolicy', 'sessions', 'sessionPersistence', 'sessionTitle', 'attachments'] as const
 
 /** Host settings identity shared with the browser settings scope. */
 export const CITECITER_SETTINGS_NS = CITECITER_SETTINGS_NAMESPACE
@@ -45,7 +46,19 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
   })).max(8).default([]),
   shortcutOpenPanel: z.string().max(40).default(''),
   boardAnimations: z.boolean().default(DEFAULT_CITECITER_SETTINGS.boardAnimations ?? true),
+  activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
+  defaultPermission: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
+  learningRoute: z.boolean().default(false),
   updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
+  wheelTrigger: z.union(['right-button', 'Alt', 'Control', 'Shift', 'Meta']).default('right-button'),
+  defaultCiterModel: z.union([z.const(null), z.object({ provider: z.string().min(1).max(200), model: z.string().min(1).max(200) })]).default(null),
+  wheelSlots: z.array(z.union([z.const(null), z.object({
+    label: z.string().min(1).max(20),
+    prompt: z.string().max(4000),
+    ask: z.boolean(),
+    scenario: z.union(['qa', 'present']),
+    presentation: z.union(['side', 'floating']),
+  })])).min(8).max(8).default([...DEFAULT_WHEEL_SLOTS]),
 })
 
 function currentSettings(ctx: Context): CiteCiterSettings {
@@ -54,7 +67,7 @@ function currentSettings(ctx: Context): CiteCiterSettings {
   return parsed.success ? parsed.data : DEFAULT_CITECITER_SETTINGS
 }
 
-/** Root-scoped Remote service owning one isolated DSH runtime. */
+/** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
 export class CiteCiterHost extends TypertRemoteService {
   static inject = inject
 
@@ -132,7 +145,7 @@ export class CiteCiterHost extends TypertRemoteService {
   @Remote('checkUpdate')
   async checkUpdate(signal: AbortSignal): Promise<UpdateCheckResponse> {
     const result = await this.updates.check(signal)
-    // Desktop 2.0.5 exports this immutable Host service; it never crosses into browser props.
+    // Desktop 2.x exports this immutable Host service; it never crosses into browser props.
     const desktop = this.ctx.get('desktopProfiles') as { readonly current: { readonly name: string } } | undefined
     return result.kind === 'success' && desktop !== undefined
       ? { ...result, profile: desktop.current.name }

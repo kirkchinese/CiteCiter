@@ -13,7 +13,7 @@ export type SettingsDocumentActions = Omit<SettingsDocumentController, 'getSnaps
 /** Callbacks the update view may invoke. */
 export type UpdateActions = Omit<UpdateController, 'getSnapshot' | 'subscribe' | 'dispose'>;
 /** Overlay events used by rendered components. */
-export type OverlayActions = Pick<CiteBus, 'setMenuSelection' | 'setPanelOpen' | 'requestBoardCitation' | 'clearBoardCitation'>;
+export type OverlayActions = Pick<CiteBus, 'setPanelOpen' | 'setPresentation' | 'requestBoardCitation' | 'clearBoardCitation'>;
 /**
  * Remove lifecycle and subscription methods from a plain controller's view props.
  * @param controller - Client-owned controller with arrow-function callbacks.

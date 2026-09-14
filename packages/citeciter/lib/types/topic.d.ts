@@ -54,7 +54,38 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
     }, z.core.$strict>>>;
     shortcutOpenPanel: z.ZodOptional<z.ZodString>;
     boardAnimations: z.ZodOptional<z.ZodBoolean>;
+    activeRecall: z.ZodOptional<z.ZodBoolean>;
     updateNotifications: z.ZodOptional<z.ZodBoolean>;
+    wheelSlots: z.ZodOptional<z.ZodArray<z.ZodNullable<z.ZodObject<{
+        label: z.ZodString;
+        prompt: z.ZodString;
+        ask: z.ZodBoolean;
+        scenario: z.ZodEnum<{
+            qa: "qa";
+            present: "present";
+        }>;
+        presentation: z.ZodEnum<{
+            side: "side";
+            floating: "floating";
+        }>;
+    }, z.core.$strict>>>>;
+    wheelTrigger: z.ZodOptional<z.ZodEnum<{
+        "right-button": "right-button";
+        Alt: "Alt";
+        Control: "Control";
+        Shift: "Shift";
+        Meta: "Meta";
+    }>>;
+    defaultCiterModel: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>>;
+    defaultPermission: z.ZodOptional<z.ZodEnum<{
+        "read-only": "read-only";
+        "workspace-write": "workspace-write";
+        "danger-full-access": "danger-full-access";
+    }>>;
+    learningRoute: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strict>;
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>;
 /** Settings used before an optional DSH settings provider becomes available. */
@@ -261,6 +292,8 @@ export declare const topicMetadataSchema: z.ZodObject<{
         investigate: "investigate";
     }>;
     documentId: z.ZodNullable<z.ZodString>;
+    hosted: z.ZodOptional<z.ZodBoolean>;
+    storage: z.ZodOptional<z.ZodLiteral<"source">>;
     topicId: z.ZodNumber;
     createRequestId: z.ZodOptional<z.ZodString>;
     sessionId: z.ZodString;
@@ -303,7 +336,19 @@ export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
  * @returns canonical TopicMetadata.
  */
 export declare function parseTopicMetadataFile(raw: unknown): TopicMetadata;
+export declare const permissionSchema: z.ZodEnum<{
+    "read-only": "read-only";
+    "workspace-write": "workspace-write";
+    "danger-full-access": "danger-full-access";
+}>;
 export declare const topicSummarySchema: z.ZodObject<{
+    permission: z.ZodOptional<z.ZodEnum<{
+        "read-only": "read-only";
+        "workspace-write": "workspace-write";
+        "danger-full-access": "danger-full-access";
+    }>>;
+    hosted: z.ZodOptional<z.ZodBoolean>;
+    storage: z.ZodOptional<z.ZodLiteral<"source">>;
     topicId: z.ZodNumber;
     sessionId: z.ZodString;
     sourceSessionId: z.ZodString;
@@ -375,11 +420,20 @@ export declare const topicSummarySchema: z.ZodObject<{
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     role: z.ZodLiteral<"user">;
+    attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        kind: z.ZodEnum<{
+            image: "image";
+            file: "file";
+        }>;
+        id: z.ZodString;
+        name: z.ZodString;
+    }, z.core.$strict>>>;
     text: z.ZodString;
     id: z.ZodString;
     seq: z.ZodNumber;
 }, z.core.$strict>, z.ZodObject<{
     role: z.ZodLiteral<"assistant">;
+    renderKey: z.ZodOptional<z.ZodString>;
     text: z.ZodString;
     reasoning: z.ZodNullable<z.ZodString>;
     streaming: z.ZodBoolean;
@@ -393,6 +447,14 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     seq: z.ZodNumber;
 }, z.core.$strict>, z.ZodObject<{
     role: z.ZodLiteral<"tool">;
+    attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        kind: z.ZodEnum<{
+            image: "image";
+            file: "file";
+        }>;
+        id: z.ZodString;
+        name: z.ZodString;
+    }, z.core.$strict>>>;
     name: z.ZodString;
     arguments: z.ZodString;
     result: z.ZodNullable<z.ZodString>;
@@ -450,7 +512,16 @@ export declare const pendingQuestionSchema: z.ZodObject<{
 }, z.core.$strict>;
 export type PendingQuestion = z.infer<typeof pendingQuestionSchema>;
 export declare const topicSnapshotSchema: z.ZodObject<{
+    captureId: z.ZodOptional<z.ZodString>;
+    documentTitle: z.ZodOptional<z.ZodString>;
     topic: z.ZodObject<{
+        permission: z.ZodOptional<z.ZodEnum<{
+            "read-only": "read-only";
+            "workspace-write": "workspace-write";
+            "danger-full-access": "danger-full-access";
+        }>>;
+        hosted: z.ZodOptional<z.ZodBoolean>;
+        storage: z.ZodOptional<z.ZodLiteral<"source">>;
         topicId: z.ZodNumber;
         sessionId: z.ZodString;
         sourceSessionId: z.ZodString;
@@ -521,11 +592,20 @@ export declare const topicSnapshotSchema: z.ZodObject<{
     }, z.core.$strict>;
     messages: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
         role: z.ZodLiteral<"user">;
+        attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            kind: z.ZodEnum<{
+                image: "image";
+                file: "file";
+            }>;
+            id: z.ZodString;
+            name: z.ZodString;
+        }, z.core.$strict>>>;
         text: z.ZodString;
         id: z.ZodString;
         seq: z.ZodNumber;
     }, z.core.$strict>, z.ZodObject<{
         role: z.ZodLiteral<"assistant">;
+        renderKey: z.ZodOptional<z.ZodString>;
         text: z.ZodString;
         reasoning: z.ZodNullable<z.ZodString>;
         streaming: z.ZodBoolean;
@@ -539,6 +619,14 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         seq: z.ZodNumber;
     }, z.core.$strict>, z.ZodObject<{
         role: z.ZodLiteral<"tool">;
+        attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            kind: z.ZodEnum<{
+                image: "image";
+                file: "file";
+            }>;
+            id: z.ZodString;
+            name: z.ZodString;
+        }, z.core.$strict>>>;
         name: z.ZodString;
         arguments: z.ZodString;
         result: z.ZodNullable<z.ZodString>;
@@ -578,12 +666,12 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         elements: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             kind: z.ZodEnum<{
+                image: "image";
                 text: "text";
                 markdown: "markdown";
                 math: "math";
                 svg: "svg";
                 html: "html";
-                image: "image";
                 table: "table";
             }>;
             content: z.ZodString;
@@ -686,11 +774,17 @@ export declare const documentContentSchema: z.ZodObject<{
     }>;
     content: z.ZodString;
     truncated: z.ZodBoolean;
+    page: z.ZodDefault<z.ZodNumber>;
+    pageCount: z.ZodDefault<z.ZodNumber>;
 }, z.core.$strict>;
 export type DocumentContent = z.infer<typeof documentContentSchema>;
 /** One strict direct-RPC command for the private CiteCiter runtime. */
 export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<readonly [z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     sourceSessionId: z.ZodString;
     question: z.ZodString;
@@ -701,6 +795,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     citation: z.ZodObject<{
         sourceSessionId: z.ZodString;
@@ -727,6 +825,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     selectionClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
@@ -750,6 +852,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     toolClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
@@ -775,6 +881,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
     requestId: z.ZodString;
     documentClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
@@ -800,8 +910,22 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     sourceSessionId: z.ZodString;
     includeArchived: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"board-capture">;
+    topicSessionId: z.ZodString;
+    id: z.ZodString;
+    png: z.ZodOptional<z.ZodString>;
+    error: z.ZodOptional<z.ZodString>;
+}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"get">;
     topicSessionId: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"native-state">;
+    topicSessionId: z.ZodString;
+    requestIds: z.ZodArray<z.ZodString>;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"native-attachment">;
+    topicSessionId: z.ZodString;
+    attachmentId: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"ask">;
     requestId: z.ZodOptional<z.ZodString>;
@@ -840,6 +964,14 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"models">;
 }, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"set-permission">;
+    topicSessionId: z.ZodString;
+    mode: z.ZodEnum<{
+        "read-only": "read-only";
+        "workspace-write": "workspace-write";
+        "danger-full-access": "danger-full-access";
+    }>;
+}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"set-model-route">;
     topicSessionId: z.ZodString;
     provider: z.ZodString;
@@ -868,13 +1000,154 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"document-get">;
     documentId: z.ZodString;
+    page: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strict>], "action">]>;
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>;
 /** Strict response union returned by the single Remote command endpoint. */
 export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    kind: z.ZodLiteral<"native-state">;
+    state: z.ZodObject<{
+        running: z.ZodBoolean;
+        blank: z.ZodBoolean;
+        error: z.ZodNullable<z.ZodString>;
+        queue: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            placement: z.ZodEnum<{
+                queued: "queued";
+                steering: "steering";
+                context: "context";
+            }>;
+            rpcId: z.ZodOptional<z.ZodString>;
+            text: z.ZodString;
+            attachments: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+                type: z.ZodLiteral<"image">;
+                attachment: z.ZodPipe<z.ZodObject<{
+                    attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                    mediaType: z.ZodEnum<{
+                        "image/png": "image/png";
+                        "image/jpeg": "image/jpeg";
+                        "image/webp": "image/webp";
+                        "image/gif": "image/gif";
+                    }>;
+                    bytes: z.ZodNumber;
+                    width: z.ZodNumber;
+                    height: z.ZodNumber;
+                    name: z.ZodOptional<z.ZodString>;
+                    originalDimensions: z.ZodOptional<z.ZodObject<{
+                        width: z.ZodNumber;
+                        height: z.ZodNumber;
+                    }, z.core.$strict>>;
+                }, z.core.$strict>, z.ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                    attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                    mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                    bytes: number;
+                    width: number;
+                    height: number;
+                    name?: string | undefined;
+                    originalDimensions?: {
+                        width: number;
+                        height: number;
+                    } | undefined;
+                }>>;
+            }, z.core.$strict>, z.ZodObject<{
+                type: z.ZodLiteral<"file">;
+                attachment: z.ZodObject<{
+                    attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                    name: z.ZodString;
+                    bytes: z.ZodNumber;
+                }, z.core.$strict>;
+            }, z.core.$strict>], "type">>;
+        }, z.core.$strict>>;
+        receipts: z.ZodArray<z.ZodObject<{
+            requestId: z.ZodString;
+            attachments: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
+                type: z.ZodLiteral<"image">;
+                attachment: z.ZodPipe<z.ZodObject<{
+                    attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                    mediaType: z.ZodEnum<{
+                        "image/png": "image/png";
+                        "image/jpeg": "image/jpeg";
+                        "image/webp": "image/webp";
+                        "image/gif": "image/gif";
+                    }>;
+                    bytes: z.ZodNumber;
+                    width: z.ZodNumber;
+                    height: z.ZodNumber;
+                    name: z.ZodOptional<z.ZodString>;
+                    originalDimensions: z.ZodOptional<z.ZodObject<{
+                        width: z.ZodNumber;
+                        height: z.ZodNumber;
+                    }, z.core.$strict>>;
+                }, z.core.$strict>, z.ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                    attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                    mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                    bytes: number;
+                    width: number;
+                    height: number;
+                    name?: string | undefined;
+                    originalDimensions?: {
+                        width: number;
+                        height: number;
+                    } | undefined;
+                }>>;
+            }, z.core.$strict>, z.ZodObject<{
+                type: z.ZodLiteral<"file">;
+                attachment: z.ZodObject<{
+                    attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                    name: z.ZodString;
+                    bytes: z.ZodNumber;
+                }, z.core.$strict>;
+            }, z.core.$strict>], "type">>;
+        }, z.core.$strict>>;
+    }, z.core.$strict>;
+}, z.core.$strict>, z.ZodObject<{
+    kind: z.ZodLiteral<"native-attachment">;
+    attachment: z.ZodUnion<readonly [z.ZodPipe<z.ZodObject<{
+        attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+        mediaType: z.ZodEnum<{
+            "image/png": "image/png";
+            "image/jpeg": "image/jpeg";
+            "image/webp": "image/webp";
+            "image/gif": "image/gif";
+        }>;
+        bytes: z.ZodNumber;
+        width: z.ZodNumber;
+        height: z.ZodNumber;
+        name: z.ZodOptional<z.ZodString>;
+        originalDimensions: z.ZodOptional<z.ZodObject<{
+            width: z.ZodNumber;
+            height: z.ZodNumber;
+        }, z.core.$strict>>;
+    }, z.core.$strict>, z.ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+        attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+        mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+        bytes: number;
+        width: number;
+        height: number;
+        name?: string | undefined;
+        originalDimensions?: {
+            width: number;
+            height: number;
+        } | undefined;
+    }>>, z.ZodObject<{
+        attachmentId: z.ZodPipe<z.ZodString, z.ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+        name: z.ZodString;
+        bytes: z.ZodNumber;
+    }, z.core.$strict>]>;
+    data: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"topic">;
     topic: z.ZodObject<{
+        captureId: z.ZodOptional<z.ZodString>;
+        documentTitle: z.ZodOptional<z.ZodString>;
         topic: z.ZodObject<{
+            permission: z.ZodOptional<z.ZodEnum<{
+                "read-only": "read-only";
+                "workspace-write": "workspace-write";
+                "danger-full-access": "danger-full-access";
+            }>>;
+            hosted: z.ZodOptional<z.ZodBoolean>;
+            storage: z.ZodOptional<z.ZodLiteral<"source">>;
             topicId: z.ZodNumber;
             sessionId: z.ZodString;
             sourceSessionId: z.ZodString;
@@ -945,11 +1218,20 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }, z.core.$strict>;
         messages: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
             role: z.ZodLiteral<"user">;
+            attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                kind: z.ZodEnum<{
+                    image: "image";
+                    file: "file";
+                }>;
+                id: z.ZodString;
+                name: z.ZodString;
+            }, z.core.$strict>>>;
             text: z.ZodString;
             id: z.ZodString;
             seq: z.ZodNumber;
         }, z.core.$strict>, z.ZodObject<{
             role: z.ZodLiteral<"assistant">;
+            renderKey: z.ZodOptional<z.ZodString>;
             text: z.ZodString;
             reasoning: z.ZodNullable<z.ZodString>;
             streaming: z.ZodBoolean;
@@ -963,6 +1245,14 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             seq: z.ZodNumber;
         }, z.core.$strict>, z.ZodObject<{
             role: z.ZodLiteral<"tool">;
+            attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                kind: z.ZodEnum<{
+                    image: "image";
+                    file: "file";
+                }>;
+                id: z.ZodString;
+                name: z.ZodString;
+            }, z.core.$strict>>>;
             name: z.ZodString;
             arguments: z.ZodString;
             result: z.ZodNullable<z.ZodString>;
@@ -1002,12 +1292,12 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             elements: z.ZodArray<z.ZodObject<{
                 id: z.ZodString;
                 kind: z.ZodEnum<{
+                    image: "image";
                     text: "text";
                     markdown: "markdown";
                     math: "math";
                     svg: "svg";
                     html: "html";
-                    image: "image";
                     table: "table";
                 }>;
                 content: z.ZodString;
@@ -1038,6 +1328,13 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
 }, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"topics">;
     topics: z.ZodArray<z.ZodObject<{
+        permission: z.ZodOptional<z.ZodEnum<{
+            "read-only": "read-only";
+            "workspace-write": "workspace-write";
+            "danger-full-access": "danger-full-access";
+        }>>;
+        hosted: z.ZodOptional<z.ZodBoolean>;
+        storage: z.ZodOptional<z.ZodLiteral<"source">>;
         topicId: z.ZodNumber;
         sessionId: z.ZodString;
         sourceSessionId: z.ZodString;
@@ -1165,6 +1462,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }>;
         content: z.ZodString;
         truncated: z.ZodBoolean;
+        page: z.ZodDefault<z.ZodNumber>;
+        pageCount: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strict>;
 }, z.core.$strict>], "kind">;
 export type CiteCiterResponse = z.infer<typeof citeCiterResponseSchema>;

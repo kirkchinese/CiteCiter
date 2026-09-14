@@ -18,6 +18,8 @@ export interface BlackboardWorkspaceInjected {
 export type BlackboardWorkspaceProps = ConvViewProps & BlackboardWorkspaceInjected
 
 function citationPrompt(element: BoardElementState): string {
+  if (element.kind === 'math') return `$$\n${element.content}\n$$`
+  if (['text', 'markdown', 'table'].includes(element.kind)) return element.content
   const compact = element.content.replaceAll(/\s+/gu, ' ').trim()
   const label = ['text', 'markdown', 'math', 'table'].includes(element.kind) && compact !== ''
     ? compact.slice(0, 80)
@@ -49,13 +51,14 @@ export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, o
     return (
       <section className={css.workspaceEmpty} aria-label="CiteCiter 小黑板">
         <strong>小黑板</strong>
-        <p>在 CiteCiter 右栏点击“+ 新 Topic → 讲解”，或打开已有讲解 Topic，板书会显示在这里。</p>
+        <p>在 Citer 中发送绘图或教学问题，板书会显示在这里。</p>
       </section>
     )
   }
 
   return (
     <BoardView
+      sessionId={active.topic.sessionId}
       snapshot={active.board}
       animations={snapshot.settings.boardAnimations ?? true}
       onQuoteElement={quote}

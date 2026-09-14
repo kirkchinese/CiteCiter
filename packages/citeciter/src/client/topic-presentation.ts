@@ -21,7 +21,7 @@ export function appendBoardCitation(draft: string, prompt: string): string {
  */
 export function isTopicMessageVisible(message: TopicMessage, messages: readonly TopicMessage[]): boolean {
   if (message.role === 'context') return false
-  if (message.role === 'assistant' && message.text.trim() === '') return false
+  if (message.role === 'assistant' && message.text.trim() === '' && (message.reasoning ?? '').trim() === '') return false
   if (message.role === 'tool') {
     if (!message.isError && INTERNAL_TOOLS.has(message.name)) return false
     if (!message.isError) return true

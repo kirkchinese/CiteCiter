@@ -1,10 +1,9 @@
 import { Context } from '@deepseek-ai/cordis';
 import { SessionLogOffset, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session';
 import { type SessionTitleProviderRequest } from '@deepseek-ai/dsh-session-title';
-import { z } from 'zod';
 import { type BoardSnapshot } from './board.ts';
 import { type ObserverSourceSnapshot } from './observer.ts';
-import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type CitationRecord, type TopicMessage, type TopicMetadata, type TopicMode, type TopicScenario, type TopicSummary } from './topic.ts';
+import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type CitationRecord, type TopicMessage, type TopicMode, type TopicScenario, type TopicSummary } from './topic.ts';
 type CreateRequest = Extract<CiteCiterRequest, {
     action: 'create';
 }>;
@@ -247,55 +246,8 @@ export interface RuntimeTopicLog {
     readonly header: SessionHeader;
     readonly events: readonly SessionEvent[];
     readonly inheritedEventCount: SessionLogOffset;
-}
-/**
- * Remove one artifact from a caller-owned JSONL root without following links.
- * @param root - fixed private JSONL root owned by the caller.
- * @param artifact - location returned by that exact JSONL backend.
- * @returns when the file/link and its empty per-session directory are absent.
- */
-export declare function removeOwnedJsonlArtifact(root: string, artifact: {
-    readonly kind: string;
-    readonly path: string;
-} | undefined): Promise<void>;
-declare const topicDeletionMarkerSchema: z.ZodObject<{
-    schemaVersion: z.ZodLiteral<1>;
-    sessionId: z.ZodString;
-    sourceSessionId: z.ZodString;
-    topicId: z.ZodNumber;
-    sessionHeader: z.ZodObject<{
-        version: z.ZodNumber;
-        id: z.ZodString;
-        createdAt: z.ZodNumber;
-        isSeeded: z.ZodDefault<z.ZodBoolean>;
-        cwd: z.ZodOptional<z.ZodString>;
-    }, z.core.$strict>;
-}, z.core.$strict>;
-type TopicDeletionMarker = Omit<z.infer<typeof topicDeletionMarkerSchema>, 'sessionHeader'> & {
-    readonly sessionHeader: SessionHeader;
-};
-/** Minimal on-disk navigation index; Session history stays in standard DSH JSONL. */
-export declare class TopicIndex {
-    private readonly root;
-    /** @param root - private Topic index root. */
-    constructor(root?: string);
-    reserve(sourceSessionId: string): Promise<{
-        topicId: number;
-        directory: string;
-    }>;
-    save(metadata: TopicMetadata): Promise<void>;
-    loadBySessionId(sessionId: string): Promise<TopicMetadata>;
-    list(sourceSessionId: string): Promise<TopicMetadata[]>;
-    /** Commit a minimal deletion marker before making Topic metadata unreachable. */
-    markDeleting(metadata: TopicMetadata, sessionHeader: SessionHeader): Promise<TopicDeletionMarker>;
-    /** Discover committed deletion markers without following linked directories. */
-    listDeleting(): Promise<TopicDeletionMarker[]>;
-    /** Remove the marker and its now-empty Topic directory after artifact cleanup. */
-    finishDeleting(marker: TopicDeletionMarker): Promise<void>;
-    private directory;
-    private read;
-    private readIfPresent;
-    private deletionMarkerIfPresent;
+    readonly liveMessage?: TopicMessage | undefined;
+    readonly renderKeys?: ReadonlyMap<number, string> | undefined;
 }
 /**
  * Project transcript rows and the latest turn's active failure banner.
@@ -325,8 +277,12 @@ export declare function firstPostSeedUserQuestion(log: RuntimeTopicLog): string 
  * @returns the matching question, or `null` when the request is not committed.
  */
 export declare function postSeedUserQuestionById(log: RuntimeTopicLog, messageId: string): string | null;
-/** Fold only titles created inside the private Topic, excluding inherited fork titles. */
-export declare function foldTopicTitle(metadata: TopicMetadata, events: readonly SessionEvent[]): import("@deepseek-ai/dsh-session-title").SessionTitleSnapshot | undefined;
+/**
+ * Fold child-owned titles using the restored logical prefix, including after migration.
+ * @param log - restored Topic events and the host-owned inherited event count.
+ * @returns the latest Topic title projection, or undefined before any title is recorded.
+ */
+export declare function foldTopicTitle(log: RuntimeTopicLog): import("@deepseek-ai/dsh-session-title").SessionTitleSnapshot | undefined;
 /** Resolve the actual Topic mode without forking through an open DSH turn. */
 export declare function resolveTopicModeAndSeed(requested: CreateRequest, source: ObserverSourceSnapshot, anchorSeq: number): {
     mode: TopicMode;
@@ -338,7 +294,9 @@ export declare class TopicRuntime {
     private readonly host;
     private readonly settings;
     private readonly runtime;
+    private readonly native;
     private readonly index;
+    private readonly sourceStorage;
     private readonly documents;
     private readonly lifecycleAbort;
     private readonly fibers;
@@ -359,6 +317,7 @@ export declare class TopicRuntime {
     private readonly sourceAvailabilityChecks;
     private readonly ready;
     private readonly topicListeners;
+    private readonly streams;
     private disposal;
     private releasing;
     private releaseLlm;
@@ -378,6 +337,7 @@ export declare class TopicRuntime {
      * @returns disposer removing the exact listener.
      */
     onTopicChange(listener: TopicChangeListener): () => void;
+    private readonly boardCapture;
     private executeRequest;
     /** Stop every owned Agent and plugin fiber before releasing bridged services. */
     dispose(): Promise<void>;
@@ -385,6 +345,8 @@ export declare class TopicRuntime {
     private beginClosing;
     private assertOpen;
     private start;
+    /** Adopt existing Citer histories into each source directory without deleting or rewriting their original logs. */
+    private migrateStorage;
     private releaseRuntime;
     private releaseOwnedRuntime;
     private settleOwnedOperations;
@@ -394,8 +356,10 @@ export declare class TopicRuntime {
     private createIdempotent;
     private resumeOrCreate;
     private createHandle;
+    private setupHostedAgent;
     private setupAgent;
     private globTool;
+    private learningCardsTool;
     private blackboardApplyTool;
     private readDocumentTool;
     private searchDocumentTool;
@@ -416,9 +380,9 @@ export declare class TopicRuntime {
     private archive;
     private delete;
     private deleteAdmitted;
-    /** Await JSONL retirement without populating its prepared-session cache. */
+    /** Observe the retired Session after its Agent has released write ownership. */
     private readRetiredSessionHeader;
-    /** Remove one artifact only from CiteCiter's fixed private JSONL backend. */
+    /** Remove every retired generation only from CiteCiter's fixed private JSONL backend. */
     private removeSessionArtifact;
     private finishDeletion;
     private recoverDeletions;

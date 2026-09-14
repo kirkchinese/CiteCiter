@@ -1,99 +1,128 @@
 # CiteCiter
 
-**为 DeepSeek Harness Web 与 Desktop 打造的 AI 输出学习、检查与纠偏插件。**
-
-选中一段已提交的回答，在旁边创建独立 Topic，反复追问、切换模型，或让 AI 用公式、图形、表格和动画逐步讲解。主任务继续运行，学习记录保存在独立日志中。
-
 [English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
-<p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/hero/citeciter-hero.png" width="100%" alt="CiteCiter 将选中的 AI 回答展开为独立 Topic"></p>
+CiteCiter 为 DeepSeek Harness 提供带来源引用的独立工作区。可从主对话、工具结果和文档建立 Topic，处理文字、编程、图像和学习任务。新 Topic 使用 DSH 原生会话、权限、模型、附件与消息队列，来源对话继续独立工作。
 
-## 0.6.0 安装与兼容
+![Citer 原生工作区与手动发送流程示意](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.8.0/assets/docs/native-workspace.svg)
 
-CiteCiter **0.6.0** 的安装基线是 DSH `0.1.2-rc.1`，Desktop 对应 [DSH Desktop 2.0.5](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.5)。Node.js 要求 `^22.19.0 || >=24.0.0`；Windows 实测使用 Node 24.19.0。DSH alpha 与 Desktop master 不在此兼容承诺中。
+上图为交互示意，非运行截图。选文动作只准备草稿；模型在用户发送后开始回答。
 
-| 环境 | 安装目标 | 状态 |
+## 版本与安装
+
+当前版本为 **0.8.0**。兼容基线为 DSH `0.1.5-rc.1`、[DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`；Node.js `^22.19.0 || >=24.0.0`。本轮 Windows 验收使用 Node 24.19.0。DSH 的 next、alpha 和 TUI 属于其他目标。
+
+| 版本 | 状态 | 主要差异 |
 | --- | --- | --- |
-| DSH Web 0.1.2-rc.1 | `web` profile | Windows 实际运行与 UI 验证 |
-| DSH Desktop 2.0.5 | Desktop 当前 profile，默认 `desktop` | 适配目标，分模式验证见 release 文档 |
-| DSH 0.1.1-rc.1 / rc.2 | 旧环境 | 保留 CiteCiter 0.5.0 |
-| DSH alpha、TUI | — | 未支持 |
-| Linux / macOS | 相同包 | 本轮未运行平台验证 |
+| 0.8.0 | 当前版本 | 原生会话、手动草稿、DSH 权限、原生附件与队列、AI 学习计划 |
+| 0.7.0-beta.3 | 前一开发候选版 | 私有只读 Topic、选文轮盘、手动五阶段学习 |
+| 0.6.0 | 已发布 | DSH 0.1.2-rc.1 / Desktop 2.0.5 基线 |
 
-安装或升级 Web 插件：
+更新主机 CLI，然后安装已发布包：
 
 ```powershell
-npm install -g @deepseek-ai/dsh@0.1.2-rc.1
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.6.0
-dsh plugin --profile web list --depth 0
+npm install -g @deepseek-ai/dsh@latest
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.8.0
 dsh web
 ```
 
-确认版本为 0.6.0 后重启相应宿主并刷新页面。也可从 [GitHub Release](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.6.0) 下载 `.tgz`，将安装命令中的包名替换为 tarball 的绝对路径。源码开发使用贡献指南中的本地工作区安装流程。
+此命令安装 0.8.0。旧宿主 DSH 0.1.2-rc.1 / Desktop 2.0.5 应继续使用 @kirkchinese/dsh-citeciter@0.6.0。如 npm 提示本地原生依赖的安装脚本被阻止，按 npm 输出对明确列出的依赖放行后重装。不要通过全局关闭脚本限制解决。
 
-Desktop 中先确认当前 profile 名称和数据目录，使用**相同的 DSH_HOME**安装：
-
-```powershell
-dsh plugin --profile desktop add @kirkchinese/dsh-citeciter@0.6.0
-dsh plugin --profile desktop list --depth 0
-```
-
-若 Desktop 选择了自定义 profile，把 `desktop` 换成该名称；若使用自定义 home，先在当前 PowerShell 中设置 `$env:DSH_HOME`。重启 Desktop。全局 npm 更新只影响 CLI，Desktop 内置的 DSH 随桌面应用更新。
-
-npm 12 若提示安装脚本被拦截，按此次依赖列表一次性放行并重装；不必改变全局永久策略：
+本地构建并安装此分支：
 
 ```powershell
-npm install -g @deepseek-ai/dsh@0.1.2-rc.1 --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs
-```
-
-这解决原生依赖安装问题；旧插件引用已移除的 `effectiveSandboxMode` 则需要升级插件，单独重装宿主不会修复。
-
-## 开始使用
-
-1. 选中已提交的助手回答或思考内容，右键输入问题，选择“开始提问”或“开始讲解”。
-2. 在右侧学习栏继续追问、切换模型和思考强度，或管理 Topic 标题、归档和删除。
-3. 使用 `+ 新 Topic` 创建自由问答或讲解。新的主会话需先发送消息，让 Topic 取得当前模型配置。
-4. 讲解内容位于主工作区“小黑板”标签；“引用到提问”会追加到现有草稿。
-5. 也可从工具结果、终端结果、差异片段及文本/Markdown Reader 创建 Topic。
-
-<p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/demo/citeciter-0.4.0.gif" width="100%" alt="选中 AI 回答并在 CiteCiter 中继续追问"></p>
-
-上图演示引用流程，录制于旧版；0.6 的宿主布局和控件可能不同。
-
-## 并排学习，不遮挡主对话
-
-- 宽屏为学习栏分配独立列，保留主对话和原生详情栏。
-- 保存的面板比例为 28%–55%。空间不足时限制实际宽度，为主对话保留至少 480 CSS 像素；扩大窗口后恢复偏好比例。
-- 窄窗口或缩放后无法容纳两列时，学习栏移至下方，主对话仍在上方可见。
-- 关闭学习栏后恢复宿主布局。无法识别的宿主仅显示兼容提示。
-
-内容通过 DSH 公开 slots、会话投影和快照 hooks 接入。当前宿主没有公开的右侧 dock 尺寸接口，因此尺寸分配使用集中维护的宿主布局适配器，升级宿主后需重新验收。
-
-## Topic 与数据
-
-Observer 在私有日志中讨论，按需读取来源事件和项目文件；Exact Fork 继承已结束来源轮次的上下文。文件工具保持只读，Topic 不向主 Session 追加事件。未提交的流式文字没有稳定引用坐标；Exact Fork 需等待来源轮次结束。
-
-Presenter 的 `blackboard_apply` 原子提交支持公式、Markdown、表格、安全 SVG、隔离 HTML 动画和内嵌图片。Topic 可继续追问、切换模型、归档、恢复及带 Session ID 确认的永久删除。
-
-Topic 索引在 `$DSH_HOME/citeciter/workspaces/`，日志在 `$DSH_HOME/citeciter/sessions/`；未设置变量时通常为用户目录下的 `.dsh`。升级前备份整个 home。0.6 使用新版会话 API；没有批量重写旧日志。DSH 版本 0 JSONL 的物理 `seedLength` 仍由宿主读取，遇到未知事件应保留原件并诊断，不能删字段绕过。
-
-一个 home 只能由一个活动 CiteCiter 宿主使用。Web 与 Desktop 同时运行时使用不同 home；不要让两者并发写入同一私有存储。更新提醒只复制命令，不自动安装；Desktop 命令使用当前 profile。
-
-## 开发
-
-```sh
+pnpm install --frozen-lockfile
 pnpm typecheck
-pnpm test
 pnpm build
-pnpm test:snapshot
+pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.0.tgz
 ```
 
-实际应用快照使用临时 profile 与无密钥模型，覆盖 Observer、Exact Fork、来源读取、板书和来源日志不变性。Host API `ctx.citeciterRuntime` 提供 `create`、`ask`、`get`、`list`、`delete` 及 Topic 变化事件。前端入口注册 API 和 preset 扩展仍未稳定。开发流程见 [贡献指南](https://github.com/kirkchinese/CiteCiter/blob/main/CONTRIBUTING.zh.md)，公开变更见 [0.6.0 发布说明](https://github.com/kirkchinese/CiteCiter/blob/main/docs/releases/v0.6.0.md)。
+Desktop 使用自己的内置 DSH。更新 Desktop 应用后，在其管理终端执行 `dsh plugin add <安装包绝对路径>`；全局 CLI 更新不会更新 Desktop 内置运行时。安装后重启相应宿主。同一 DSH home 不要同时运行 Web 和 Desktop 写入进程。
 
-## 社区与许可证
+## 草稿与引用
 
-DSH-Citeciter QQ 群：`1108040435`。
+1. 在主对话选中文字，按住右键打开八槽轮盘，移向动作后松开。也可从工具结果、文档阅读器或原生文件预览创建 Topic。
+2. Citer 打开独立草稿。来源对话地址、来源文档地址及选中文段显示为附件。文档附件显示文件名，展开查看原始路径和快照地址。点击 × 移除；附件菜单可重新添加来源或选文。
+3. 检查问题、引用、权限和模型，点击发送或按 Enter。Shift + Enter 换行；输入法组词期间 Enter 不发送。
 
-<p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/community/qq-group.jpg" width="280" alt="DSH-Citeciter QQ 群二维码"></p>
+创建 Topic、选择轮盘动作、切换模型、引用板书均不调用模型。需要补充问题的轮盘动作先打开输入框和模型选择；无需补充的动作填入预设问题，仍需手动发送。模式提示词和发送时的引用内容写入当前 Topic 的原生日志。
 
-[MIT License](https://github.com/kirkchinese/CiteCiter/blob/main/LICENSE)
+未发送的来源附件被删除后，来源读取工具会拒绝读取该来源；新 Topic 不隐式复制来源历史。已经发送的附件属于历史消息，删除后续草稿中的副本不会撤回历史上下文。草稿在关闭/重开学习栏、切换 Topic 和窗口失焦时保留；刷新或退出客户端不保留未发送草稿和本地附件。
+
+## 权限、输入与队列
+
+新 Topic 默认 **只读**，即使来源会话具有完全权限。输入框的权限菜单使用 DSH 的只读、工作区内修改、完全权限模式。只有用户主动选择模式或更改新 Topic 默认值后，才允许相应修改。DSH 审批、沙箱和工具限制继续生效；插件不绕过权限服务。
+
+输入框从左到右为附件、权限模式、模型与思考强度、发送。模型菜单先选模型，再选该模型支持的思考强度。图片和普通文件通过 DSH 原生附件服务发送，文件显示上传状态，失败可重试。可从附件菜单选择文件，在输入框粘贴图片，或拖入 Citer 面板。拖放提示显示接收的 Topic，松开只向该 Topic 添加附件；没有可用 Topic 时不接收。主对话不会收到拖入 Citer 的副本。混合粘贴时同时保留图片与文字。已发送文件显示下载图标与文件名，点击保存原附件；用户消息不显示角色标签。宿主拒收时显示原因并保留草稿；宿主已接收的消息不会因后续状态读取失败而重新留在输入框。
+
+回答运行时，Enter 和发送按钮跟随 DSH 设置中的“繁忙时的发送行为”；Ctrl + Enter 临时使用另一种方式。排队在当前轮结束后处理，插话由 DSH 在当前轮的下一步接收。输入区的切换按钮只覆盖当前 Topic，不改写宿主默认值。队列显示待处理内容，可移除或转为插话。停止结束当前回答并保留已生成内容；待处理队列继续遵循 DSH 规则。
+
+新 Topic 可使用标准编程工具，操作范围由 DSH 权限决定。旧版记录迁入来源目录后仍保留原有对话和权限。迁移会逐条核验日志；无法核验的记录保留原存储并报告，不自动扩大权限。
+
+DSH 工具审批、补充问题和计划确认显示在对应 Topic 中，决定交回宿主原生交互处理。审批卡保留工具名称、理由及关联参数供查看。
+
+模型返回的思考内容显示为可展开的“思考”行；生成思考而尚无正文时显示“思考中”。折叠状态保留一行预览，展开后显示完整 Markdown。未返回思考内容的模型不显示空行。
+
+## 学习、板书与图片
+
+“学习路线”默认关闭。开启后，用户发送问题时要求模型通过 DSH `todo_write` 自行选择、排列和更新学习计划。可用方式包括底层逻辑、定性分析、定量板书、概念关联和总结卡片；模型按内容取舍，无需逐个点击阶段。
+
+小黑板统一显示在主区“小黑板”标签。支持文本、Markdown、公式、表格、SVG、图片和隔离 HTML。板书引用进入草稿附件，公式渲染为数学内容，不显示原始对象字段。学习卡在 Citer 的“学习卡”视图查看、导出和修订。
+
+`blackboard_view` 把浏览器真实渲染的 PNG 返回给支持视觉输入的模型。模型可检查遮挡、标签、箭头和布局后继续修改板书。截图仅包含板书，不包含主对话或窗口布局；标签关闭或窄屏隐藏板书时，使用相同组件按 1000×680 离屏渲染。需保持 Citer 打开。SVG 保留原始颜色，Markdown 代码使用适合深色板书的背景。沙箱 HTML iframe 暂不支持截图，需改用 SVG 才能进行此视觉检查。
+
+如果宿主已安装并启用 [dsh-codex-connect](https://github.com/franksong2702/dsh-codex-connect) 的图片工具，新 Topic 可直接使用 `codex_connect_image_generate` 和 `view_image`；Citer 不要求该插件，也不代替其账户配置。本轮已验证连接插件 `0.1.0-alpha.4.34` 生成并查看真实图片。
+
+请求总结卡片时，模型先核对定义、条件、推导、数值及前后矛盾，再保存完整卡片组；无法核实的内容应标明或省略。自查不能保证知识正确，验收中已发现并纠正模型错误，见[验收记录](../../docs/validation/2026-09-12-native-real-model.md)。主动回忆默认关闭，可在卡片中开启；不提供间隔复习、提醒或打卡。
+
+## Topic 与布局
+
+点击列表图标浏览、搜索并切换当前来源的 Topic；＋建立空 Topic。双击标题或按 F2 重命名，Enter/失焦保存，Esc 取消。归档用于隐藏并保留记录，可从归档列表恢复。永久删除要求输入完整 Session ID，只删除 Citer 自己维护的 Topic 目录；删除前停止并释放该 Topic，拒绝符号链接及越界路径。主 Session 不删除。
+
+宽窗口并排显示来源和 Citer，可拖动分隔线调整比例。拖动标题栏离开侧边后变为悬浮窗；拖回窗口右缘释放后停靠。空间不足时，Citer 占据主内容区并显示左上角返回键；返回后释放主对话。窄屏不把学习栏放到下方。关闭面板后恢复宿主空间；原生详情面板和 Desktop 标题栏保留。
+
+菜单和面板使用半透明背景、背景模糊与短动效，支持宿主主题和系统减少动态效果设置。布局适配集中在独立模块中，未知宿主结构不会强制覆盖主界面。
+
+## 会话存储与迁移
+
+Citer 的 Topic 只出现在 Citer 列表。DSH 的会话磁盘索引不递归扫描 Topic 子目录；插件独立维护实时成员和导航，原生发送服务按身份访问当前 Topic。
+
+```text
+.dsh/sessions/<工作区>/<主Session>/
+├── session.v3.jsonl[.zstd]       主会话，由 DSH 管理
+└── citeciter/
+    ├── owner.json              来源与目录归属
+    ├── <Topic编号>/
+    │   ├── topic.json          标题、归档状态、模型和来源
+    │   └── sessions/<工作区>/<CiterSession>/session.v3.jsonl
+    └── migration-backups/      已核验旧副本的备份
+```
+
+新建、归档、恢复和删除均由 Citer 管理。归档保留全文；删除不影响其他 Topic、主 Session 或迁移备份。迁移使用 DSH 公开持久化接口读取和写入，核验头部和全部事件后才切换索引；旧副本保留，清除主列表重复入口时需明确确认移动范围。
+
+## 文档与原生预览
+
+Citer 打开时，从右上角“…” → “文档阅读”进入阅读器；关闭 Citer 后保留独立读书入口，避免悬浮按钮遮挡输入区。
+
+点击 📖 导入 `.txt`、`.md`、`.markdown`。阅读器保存全文，每页最多 500 KiB UTF-8 文本，导入最多 2,000,000 字符。翻页清除旧选区、保留问题；选文并准备草稿后自动收起阅读器。文档地址和选文分别作为待发送附件，可独立删除。
+
+安装了可选 documentPreviews 服务时，在原生文件预览中选择“CiteCiter 学习”。宿主读取文件，Citer 提供可选取的源文本、分页与引用；创建 Topic 时保存完整快照，文件之后的变化不会改写该快照。单个快照最多 8 MiB / 2,000,000 字符，必须携带来源 Session 地址。
+
+该服务的公开类型基线为解析后的子包 `0.1.5-rc.2`；仅查看 DSH 顶层版本不足以判断能力。缺少服务时，对话轮盘与独立阅读器仍可用。学习查看方式不提供 PDF 文本层、Word 解析或 OCR。
+
+## 轮盘设置
+
+在“设置 → CiteCiter”选择触发键、默认模型和八个槽位。默认槽位为自由提问、解释这段、找错误、翻译、定量板书、总结卡片、两个空槽；每槽可设置提示词、是否先补充问题、内容方式及默认位置。槽位更改需点击保存。
+
+右键短按保留可点击轮盘，Shift + 右键使用原生菜单；可用方向键、数字 1–8 和 Enter 选择。中心、空槽、轮盘外、Esc、来源切换或轮盘失焦取消动作。补充问题输入框在应用失焦时保留，主动关闭或切换来源才取消。
+
+## 开发与验收
+
+[开发规范](../../CONTRIBUTING.zh.md) · [0.8 版本说明](../../docs/releases/v0.8.0.md) · [真实模型验收](../../docs/validation/2026-09-12-native-real-model.md)
+
+Host 和 Client 分别编译。原生会话适配、来源读取、索引存储、附件、发送队列、板书截图、学习计划和 UI 控件独立实现；不修改 DSH Agent Loop。完整宿主输入组件尚无跨会话嵌入接口，Citer 通过公开 ConversationController / SessionFace 复用行为，不能自动继承所有第三方输入区扩展。
+
+当前分支已移除人工模型提供者、测试目录与临时验收脚本，保留 Git 历史。CI 进行锁文件、类型、构建和打包检查。功能验收使用真实模型、真实来源分支及实际 UI，覆盖情况与未完成项以验收记录为准。
+
+MIT License.

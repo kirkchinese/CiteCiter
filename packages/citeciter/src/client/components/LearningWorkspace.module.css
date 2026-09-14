@@ -1,0 +1,36 @@
+.route { flex: none; padding: 12px 16px 10px; border-bottom: 1px solid var(--dsw-alias-border-l1, #e4e7ec); }
+.routeTop, .cardsHeader, .cardActions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.eyebrow, .cardEyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--dsw-alias-label-tertiary, #778178); }
+.stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 9px; }
+.stages button { display: grid; gap: 5px; place-items: center; padding: 8px 2px; border-radius: 9px; border: 1px solid transparent; cursor: pointer; color: var(--dsw-alias-label-secondary, #64706a); background: transparent; font: inherit; font-size: 12px; }
+.stages button span { font-size: 12px; opacity: .65; }
+.stages button[aria-pressed="true"] { color: var(--dsw-alias-label-primary, #234d3d); border-color: color-mix(in srgb, #3c876a 28%, transparent); background: color-mix(in srgb, #5baf8b 11%, transparent); font-weight: 600; }
+.hint { margin: 8px 0 0; color: var(--dsw-alias-label-tertiary, #7c827f); font-size: 12px; line-height: 1.6; }
+.views { display: flex; flex: none; gap: 5px; padding: 8px 14px 0; border-bottom: 1px solid var(--dsw-alias-border-l1, #e4e7ec); }
+.views button { display: flex; align-items: center; gap: 7px; padding: 9px 12px; cursor: pointer; font: inherit; font-size: 12px; color: var(--dsw-alias-label-secondary, #64706a); background: transparent; border: 0; border-bottom: 2px solid transparent; }
+.views button[aria-pressed="true"] { border-bottom-color: #4c9777; color: var(--dsw-alias-label-primary, #234d3d); font-weight: 600; }
+.count { font-size: 12px; padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, #768d80 12%, transparent); }
+.content { display: flex; flex: 1; min-height: 0; overflow: auto; }
+.content > * { flex: 1; min-width: 0; }
+.cards { padding: 20px clamp(14px, 4%, 26px); color: var(--dsw-alias-label-primary, #29372f); background: color-mix(in srgb, var(--dsw-alias-bg-base, #fff) 97%, #b7c6a5); }
+.cards h2 { margin: 4px 0 0; font-size: 18px; font-weight: 600; }
+.recallToggle { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+.recallToggle input { accent-color: #447e63; }
+.muted { color: var(--dsw-alias-label-tertiary, #7c827f); font-size: 12px; line-height: 1.8; }
+.card { margin: 18px 0; padding: 20px; border: 1px solid var(--dsw-alias-border-l1, #dfe6dc); border-radius: 14px; background: var(--dsw-alias-bg-base, #fff); box-shadow: 0 3px 12px rgb(0 0 0 / .025); font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.card h3 { margin: 8px 0 16px; font-size: 17px; line-height: 1.5; }
+.example { border-left: 2px solid #91b89e; padding-left: 12px; margin-top: 16px; }
+.example strong, .recallQuestion strong, .reference strong { color: var(--dsw-alias-label-tertiary, #7c827f); font-size: 12px; font-weight: 500; }
+.reference { margin-top: 16px; border-top: 1px dashed var(--dsw-alias-border-l1, #dfe6dc); padding-top: 12px; }
+.action { display: inline-flex; padding: 7px 11px; font: inherit; font-size: 12px; color: var(--dsw-alias-label-primary, #325841); border: 1px solid var(--dsw-alias-border-l1, #dfe6dc); border-radius: 8px; background: var(--dsw-alias-bg-base, #fff); cursor: pointer; text-decoration: none; }
+.action:hover, .stages button:hover, .views button:hover { background: color-mix(in srgb, #709b83 10%, transparent); }
+.empty { padding: 24px 12px; margin-top: 20px; text-align: center; border: 1px dashed var(--dsw-alias-border-l1, #dfe6dc); border-radius: 14px; }
+.empty p { max-width: 34em; margin: 10px auto 18px; font-size: 12px; line-height: 1.8; color: var(--dsw-alias-label-secondary, #69776e); }
+.empty h3 { font-size: 15px; font-weight: 500; }
+.emptyGlyph { font-size: 32px; color: #7d9f88; }
+.provenance { margin-top: 18px; font-size: 12px; color: var(--dsw-alias-label-secondary, #69776e); overflow-wrap: anywhere; }
+.provenance summary { cursor: pointer; }
+.source summary { cursor: pointer; color: var(--dsw-alias-label-secondary, #69776e); font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.source blockquote { margin-top: 8px; }
+.questionDetails > summary { cursor: pointer; font-size: 12px; opacity: .65; }
+.questionDetails p { white-space: pre-wrap; font-size: 12px; }

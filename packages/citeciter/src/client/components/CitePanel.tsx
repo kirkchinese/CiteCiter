@@ -1,3 +1,18 @@
+import { useCompactNavigation } from '../compact-navigation.ts'
+import { useTranscriptPosition } from '../transcript-position.ts'
+import { TopicHeader } from './TopicHeader.tsx'
+import { UserMessageBody } from './UserMessageBody.tsx'
+import type { NativeComposer, DeliveryMode } from '../native-composer.ts'
+import type { ComposerAttachment } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { MessageAttachments } from './MessageAttachments.tsx'
+import { BoardCaptureSurface } from './BoardCaptureSurface.tsx'
+import { FileAttachments } from './FileAttachments.tsx'
+import { FileDropHint } from './FileDropHint.tsx'
+import { useFileDrop } from '../file-drop.ts'
+import { NativeQueue } from './NativeQueue.tsx'
+import { NativeInteraction } from './NativeInteraction.tsx'
+import type { UseSessionPendingInteraction } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { CiteOverlaySnapshot } from '../types.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
@@ -8,6 +23,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -16,25 +32,36 @@ import {
 import {
   Button,
   DisclosureRow,
-  IconArchiveOutline20,
   IconQuestionOutline14,
-  IconSendOutline16,
   IconSparkle16,
-  IconStopFill16,
   JsonTree,
   Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CompanionPhase } from '../companion-controller.ts'
 import type { TopicMessage } from '../../topic.ts'
 import { parseNextQuestions } from '../prompt.ts'
-import { appendBoardCitation, isTopicMessageVisible } from '../topic-presentation.ts'
+import { isTopicMessageVisible } from '../topic-presentation.ts'
 import collapseArrowUrl from '../assets/collapse-arrow.svg'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import { QuestionCard } from './QuestionCard.tsx'
+import { OverlayPortal } from './OverlayPortal.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
+import { ReasoningDisclosure } from './ReasoningDisclosure.tsx'
 import css from './CiteCiter.module.css'
 import { jsonTreeLabels } from '../copy.ts'
+import { usePanelDrag } from '../panel-drag.ts'
 import { findContainingFrame, useHostDock } from '../host-dock.ts'
+import { projectLearningCards } from '../../learning.ts'
+import { topicDraftReferences, serializeDraftReferences, type DraftReference } from '../draft-references.ts'
+import { withLearningRoute } from '../learning-route.ts'
+import { ReferenceAttachments } from './ReferenceAttachments.tsx'
+import { LearningRoute } from './LearningRoute.tsx'
+import { LearningCards } from './LearningCards.tsx'
+import { TopicComposer } from './TopicComposer.tsx'
+import { TopicSettingsDialog } from './TopicSettingsDialog.tsx'
+import { TopicNavigation } from './TopicNavigation.tsx'
+import { TopicTitle } from './TopicTitle.tsx'
+import learningCss from './LearningWorkspace.module.css'
 
 const PHASE_LABEL: Record<CompanionPhase, string> = {
   idle: '新建或选择 Topic',
@@ -44,15 +71,6 @@ const PHASE_LABEL: Record<CompanionPhase, string> = {
   stopping: '正在停止…',
   stopped: '已停止，可继续',
   error: '需要处理',
-}
-
-function modelValue(provider: string, model: string): string {
-  return encodeURIComponent(provider) + '|' + encodeURIComponent(model)
-}
-
-function parseModelValue(value: string): [string, string] {
-  const divider = value.indexOf('|')
-  return [decodeURIComponent(value.slice(0, divider)), decodeURIComponent(value.slice(divider + 1))]
 }
 
 function compactPreview(text: string, limit = 120): string {
@@ -107,22 +125,23 @@ function FlowDisclosure({
   )
 }
 
-function ToolRow({ message }: { readonly message: Extract<TopicMessage, { role: 'tool' }> }) {
+function ToolRow({ message, sessionId, load }: { readonly message: Extract<TopicMessage, { role: 'tool' }>, readonly sessionId: string, readonly load: NativeComposer['attachment'] }) {
   const args = jsonObject(message.arguments)
   const result = message.result === null ? null : jsonObject(message.result)
   const summary = message.running
     ? compactPreview(message.arguments)
     : message.isError
       ? '调用失败'
-      : compactPreview(message.result ?? '完成')
+      : compactPreview(message.result || ((message.attachments?.length ?? 0) > 0 ? '图片已返回' : '完成'))
   return (
-    <FlowDisclosure
+    <div data-citeciter-message={message.id}><FlowDisclosure
       icon={message.name === 'ask_user_question' ? <IconQuestionOutline14 /> : <IconSparkle16 />}
       title={message.name}
       summary={summary}
       running={message.running}
     >
       <div className={css.toolPreview}>
+        <MessageAttachments sessionId={sessionId} attachments={message.attachments ?? []} load={load} />
         <strong>参数</strong>
         {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label="工具参数" copyable={false} labels={jsonTreeLabels} />}
         {message.result !== null && (
@@ -134,7 +153,7 @@ function ToolRow({ message }: { readonly message: Extract<TopicMessage, { role: 
           </>
         )}
       </div>
-    </FlowDisclosure>
+    </FlowDisclosure></div>
   )
 }
 
@@ -143,6 +162,7 @@ function ErrorTurn({ message }: { readonly message: Extract<TopicMessage, { role
   return (
     <article
       className={css.errorTurn}
+      data-citeciter-message={message.id}
       data-status={message.status}
       role={message.status === 'failed' ? 'alert' : undefined}
     >
@@ -161,12 +181,12 @@ function ErrorTurn({ message }: { readonly message: Extract<TopicMessage, { role
 function AssistantTurn({
   message,
   disabled,
-  companion,
+  onQuestion,
   reportParseError,
 }: {
   readonly message: Extract<TopicMessage, { role: 'assistant' }>
   readonly disabled: boolean
-  readonly companion: CompanionActions
+  readonly onQuestion: (question: string) => void
   readonly reportParseError: (messageId: string) => void
 }) {
   const parsed = useMemo(
@@ -177,8 +197,11 @@ function AssistantTurn({
     if (!message.streaming && parsed.invalid) reportParseError(message.id)
   }, [message.id, message.streaming, parsed.invalid, reportParseError])
   return (
-    <article className={css.assistantTurn}>
+    <article className={css.assistantTurn} data-citeciter-message={message.renderKey ?? message.id}>
       <div className={css.turnRole}>CiteCiter</div>
+      {message.reasoning !== null && message.reasoning.trim() !== '' && (
+        <ReasoningDisclosure text={message.reasoning} active={message.streaming && message.text === ''} />
+      )}
       {parsed.text !== '' && <RichAnswer text={parsed.text} streaming={message.streaming} />}
       {!message.streaming && parsed.questions.length === 3 && (
         <fieldset className={css.nextQuestions}>
@@ -188,7 +211,7 @@ function AssistantTurn({
               type="button"
               key={question}
               disabled={disabled}
-              onClick={() => { void companion.ask(question) }}
+              onClick={() => onQuestion(question)}
             >
               {question}
             </button>
@@ -200,11 +223,15 @@ function AssistantTurn({
 }
 
 export interface CitePanelProps {
+  readonly nativeComposer: NativeComposer
   readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
   readonly useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>
+  readonly useInteractions: UseSessionPendingInteraction
+  readonly useSubmission: SnapshotSelectorHook<DeliveryMode>
   readonly bus: OverlayActions
   readonly companion: CompanionActions
   readonly closePanel: () => void
+  readonly openReader: () => void
   readonly reportParseError: (messageId: string) => void
 }
 
@@ -213,17 +240,29 @@ export interface CitePanelProps {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel, reportParseError }: CitePanelProps) {
+export function CitePanel({ nativeComposer, useCompanion, useOverlay, useInteractions, useSubmission, bus, companion, closePanel, openReader, reportParseError }: CitePanelProps) {
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
-  const [question, setQuestion] = useState('')
-  const [title, setTitle] = useState('')
-  const [titleDirty, setTitleDirty] = useState(false)
-  const [newTopicOpen, setNewTopicOpen] = useState(false)
-  const [newTopicQuestion, setNewTopicQuestion] = useState('')
-  const [newTopicScenario, setNewTopicScenario] = useState<'qa' | 'present'>('qa')
-  const [newTopicSubmitting, setNewTopicSubmitting] = useState(false)
-  const [newTopicError, setNewTopicError] = useState<string | null>(null)
+  const pendingInteraction = useInteractions(value => snapshot.active?.topic.hosted === true ? value.get(snapshot.active.topic.sessionId as SessionId) : undefined)
+  const draftKey = snapshot.active?.topic.sessionId ?? snapshot.sourceSessionId ?? 'new'
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const question = drafts[draftKey] ?? ''
+  const setQuestion = useCallback((value: string | ((current: string) => string)) => {
+    setDrafts(current => ({ ...current, [draftKey]: typeof value === 'string' ? value : value(current[draftKey] ?? '') }))
+  }, [draftKey])
+  const [files, setFiles] = useState<Record<string, readonly ComposerAttachment[]>>({})
+  const defaultDelivery = useSubmission(value => value)
+  const [deliveryOverride, setDeliveryOverride] = useState<{ key: string, base: DeliveryMode, mode: DeliveryMode } | null>(null)
+  const delivery = deliveryOverride?.key === draftKey && deliveryOverride.base === defaultDelivery ? deliveryOverride.mode : defaultDelivery
+  const setDelivery = (mode: DeliveryMode) => setDeliveryOverride({ key: draftKey, base: defaultDelivery, mode })
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const [references, setReferences] = useState<Record<string, readonly DraftReference[]>>({})
+  const consumedSeeds = useRef(new Set<string>())
+  const [views, setViews] = useState<Record<string, 'explain' | 'cards'>>({})
+  const view = views[draftKey] ?? 'explain'
+  const setView = (next: 'explain' | 'cards') => setViews(current => ({ ...current, [draftKey]: next }))
+  const cards = useMemo(() => projectLearningCards(snapshot.active?.messages ?? []), [snapshot.active?.messages])
+  const [topicSettingsOpen, setTopicSettingsOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ readonly sessionId: string, readonly title: string } | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -232,25 +271,37 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
   const resizeOrigin = useRef<{ x: number, width: number, frameWidth: number } | null>(null)
   const panelRef = useRef<HTMLElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
+  const transcript = useTranscriptPosition(draftKey, snapshot.active?.messages)
   const modalReturnFocusRef = useRef<HTMLElement | null>(null)
   const open = overlay.panelOpen
   const active = snapshot.active
-  const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error'
-  const dock = useHostDock(panelRef, open, widthPercent)
-  const docked = dock?.mode === 'columns'
+  const addFiles = (batch: readonly File[]) => {
+    if (active === null) return
+    const key = active.topic.sessionId
+    void nativeComposer.add(key, batch).then(added => {
+      setFiles(current => ({ ...current, [key]: [...(current[key] ?? []), ...added] }))
+      setAttachmentError(null)
+    }).catch(error => setAttachmentError(String(error)))
+  }
+  const canDropFiles = active !== null && active.topic.modelConfig !== undefined
+  const fileDrop = useFileDrop(open, canDropFiles, addFiles)
+  const canAsk = snapshot.phase === 'ready' || snapshot.phase === 'stopped' || snapshot.phase === 'error' || snapshot.phase === 'running'
+  const dock = useHostDock(panelRef, open, widthPercent, overlay.presentation === 'floating')
+  const compact = dock?.mode === 'page'
+  const floating = overlay.presentation === 'floating' && !compact
+  useCompactNavigation(panelRef, open && compact)
+  const drag = usePanelDrag(panelRef, floating, bus.setPresentation)
+  const floatPosition = drag.position
+  const docked = !floating && dock?.mode === 'columns'
+  const composerFolded = false
 
   useEffect(() => open ? companion.retainVisible() : undefined, [companion, open])
+
   useEffect(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent])
   useEffect(() => {
-    setQuestion('')
-    setTitle(active?.topic.title ?? '')
-    setTitleDirty(false)
+    setTopicSettingsOpen(false)
   }, [active?.topic.sessionId])
   useEffect(() => {
-    setNewTopicOpen(false)
-    setNewTopicQuestion('')
-    setNewTopicSubmitting(false)
-    setNewTopicError(null)
     setDeleteTarget(null)
     setDeleteConfirmation('')
     setDeleteError(null)
@@ -262,16 +313,22 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
     }
   }, [active?.topic.sessionId, deleteTarget])
   useEffect(() => {
-    if (!titleDirty) setTitle(active?.topic.title ?? '')
-  }, [active?.topic.title, titleDirty])
-  useEffect(() => {
     const citation = overlay.boardCitation
     if (citation === null || active?.topic.sessionId !== citation.topicSessionId) return
-    setQuestion((current) => appendBoardCitation(current, citation.prompt))
+    setReferences(current => ({ ...current, [citation.topicSessionId]: [...(current[citation.topicSessionId] ?? []), { id: `board-${citation.id}`, kind: 'board', label: '板书引用', content: citation.prompt }] }))
+    setViews(current => ({ ...current, [citation.topicSessionId]: 'explain' }))
     bus.clearBoardCitation(citation.id)
     requestAnimationFrame(() => composerRef.current?.focus())
-  }, [active?.topic.sessionId, bus, overlay.boardCitation])
-  const modalTitle = newTopicOpen ? '新建自由 Topic' : deleteTarget === null ? null : '永久删除 Topic'
+  }, [active?.topic.sessionId, bus, overlay.boardCitation, setQuestion])
+  useEffect(() => {
+    const seed = snapshot.composeSeed
+    if (seed === null || active?.topic.sessionId !== seed.sessionId || consumedSeeds.current.has(seed.id)) return
+    consumedSeeds.current.add(seed.id)
+    setDrafts(current => ({ ...current, [seed.sessionId]: seed.question }))
+    setReferences(current => ({ ...current, [seed.sessionId]: topicDraftReferences(active.topic, active.documentTitle) }))
+    requestAnimationFrame(() => composerRef.current?.focus())
+  }, [snapshot.composeSeed, active])
+  const modalTitle = deleteTarget !== null ? '永久删除 Topic' : topicSettingsOpen ? 'Topic 设置' : null
   useEffect(() => {
     if (modalTitle === null) return
     const dialog = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]
@@ -319,45 +376,29 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
     }
   }, [modalTitle])
 
-  const selectedProvider = snapshot.providers.find((provider) => provider.id === active?.topic.modelConfig.provider)
-  const selectedModel = selectedProvider?.models.find((model) => model.id === active?.topic.modelConfig.model)
   const visibleMessages = active?.messages.filter((message) => isTopicMessageVisible(message, active.messages)) ?? []
 
   if (!open) return null
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: FormEvent, mode: DeliveryMode = delivery) => {
     event.preventDefault()
-    if (!canAsk) return
+    if (!canAsk || snapshot.modelRouteSaving || snapshot.reasoningEffortSaving) return
     const value = question.trim()
-    if (value === '') return
+    if (value === '' && (references[draftKey]?.length ?? 0) === 0 && (files[draftKey]?.length ?? 0) === 0) return
     const submitted = question
-    void companion.ask(value).then((sent) => {
-      if (sent) setQuestion((current) => current === submitted ? '' : current)
+    const selectedReferences = references[draftKey] ?? []
+    const payload = withLearningRoute(serializeDraftReferences(value, selectedReferences), snapshot.settings.learningRoute ?? false)
+    const sentFiles = files[draftKey] ?? []
+    void companion.ask(payload, sentFiles.map(file => file.id), mode).then((sent) => {
+      if (sent) {
+        setQuestion((current) => current === submitted ? '' : current)
+        setFiles(current => ({ ...current, [draftKey]: (current[draftKey] ?? []).filter(file => !sentFiles.some(sent => sent.id === file.id)) }))
+        const sentIds = new Set(selectedReferences.map(item => item.id))
+        setReferences(current => ({ ...current, [draftKey]: (current[draftKey] ?? []).filter(item => !sentIds.has(item.id)) }))
+      }
     })
   }
-  const openNewTopic = () => {
-    modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    setNewTopicQuestion('')
-    setNewTopicScenario('qa')
-    setNewTopicError(null)
-    setNewTopicOpen(true)
-  }
-  const submitNewTopic = async () => {
-    const value = newTopicQuestion.trim()
-    if (value === '' || newTopicSubmitting || snapshot.sourceSessionId === null) return
-    setNewTopicSubmitting(true)
-    setNewTopicError(null)
-    try {
-      if (await companion.createFree(value, newTopicScenario)) {
-        setNewTopicOpen(false)
-        setNewTopicQuestion('')
-      } else {
-        setNewTopicError('Topic 未创建，请重试。')
-      }
-    } finally {
-      setNewTopicSubmitting(false)
-    }
-  }
+  const openNewTopic = () => { void companion.createFree('', 'qa') }
   const confirmDelete = async () => {
     if (
       deleteTarget === null
@@ -405,20 +446,26 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
 
   return (
     <>
+      {active?.captureId && <BoardCaptureSurface key={active.captureId} id={active.captureId} sessionId={active.topic.sessionId} board={active.board} reply={companion.boardCaptureReply} />}
+      {drag.dockTarget && <OverlayPortal><div className={css.dockTarget} aria-label="松开以停靠" /></OverlayPortal>}
+      <OverlayPortal inline={!floating}>
       <aside
       ref={panelRef}
-      className={css.dock}
+      className={`${css.dock} ${floating ? css.floating : ''}`}
       style={{
-        width: dock?.width,
-        height: dock?.height,
-        top: dock?.top,
+        width: floating ? undefined : dock?.width,
+        height: floating ? undefined : dock?.height,
+        top: floating ? undefined : dock?.top,
+        ...(floating && floatPosition !== null ? { left: floatPosition.left, top: floatPosition.top, right: 'auto' } : {}),
         '--citeciter-panel-width': `${dockWidthPercent}vw`,
       } as CSSProperties}
       data-citeciter-panel
-      data-arrangement={dock?.mode ?? 'unsupported'}
+      {...fileDrop.handlers}
+      data-arrangement={floating ? 'floating' : dock?.mode ?? 'unsupported'}
       aria-label="CiteCiter 学习伴侣"
     >
-      {docked && (
+      {fileDrop.active && <FileDropHint enabled={canDropFiles} title={active?.topic.title} />}
+      {docked && !floating && (
         <div
           className={css.resizeHandle}
           role="separator"
@@ -435,57 +482,39 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
           onKeyDown={resizeKey}
         />
       )}
-      <button className={css.closeButton} type="button" onClick={closePanel} aria-label="关闭 CiteCiter">
+      {!compact && <button className={css.closeButton} type="button" onClick={closePanel} aria-label="关闭 CiteCiter">
         <img src={collapseArrowUrl} alt="" />
-      </button>
+      </button>}
 
-      {dock === null && <p className={css.layoutNotice} role="status">当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。</p>}
+      {!floating && dock === null && <p className={css.layoutNotice} role="status">当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。</p>}
 
       <div className={css.dockBody}>
         <section className={css.learningWorkspace}>
-          <header className={css.dockHeader}>
-            <div className={css.dockHeading}>
-              <span className={css.modeBadge}>{active === null
-                ? snapshot.phase === 'creating' ? '待确认' : '学习栏'
-                : active.topic.mode === 'exact-fork' ? 'Exact Fork' : 'Observer'}</span>
-              <strong>{active?.topic.title ?? '新的学习讨论'}</strong>
-              <span>{dock?.mode === 'rows' ? '窗口较窄，学习栏已移至下方' : PHASE_LABEL[snapshot.phase]}</span>
-            </div>
-            <select
-              className={css.compactTopicSelect}
-              aria-label="选择 Topic"
-              value={active?.topic.sessionId ?? ''}
-              disabled={snapshot.topics.length === 0}
-              onChange={(event) => {
-                if (event.currentTarget.value !== '') void companion.openTopic(event.currentTarget.value)
-              }}
-            >
-              <option value="">选择 Topic</option>
-              {snapshot.topics.map((topic) => (
-                <option value={topic.sessionId} key={topic.sessionId}>{topic.title}</option>
-              ))}
-            </select>
-            <div className={css.compactHeaderActions}>
-              <button className={css.compactNewTopic} type="button" onClick={openNewTopic}>+ 新 Topic</button>
-              <button type="button" onClick={() => companion.setIncludeArchived(!snapshot.includeArchived)}>
-                {snapshot.includeArchived ? '返回活动' : '查看归档'}
-              </button>
-            </div>
-          </header>
+          <TopicHeader compact={compact} onBack={closePanel} onDrag={drag.start} status={PHASE_LABEL[snapshot.phase]}
+            title={active === null ? <strong>Citer</strong> : <TopicTitle id={active.topic.sessionId} title={active.topic.title} onRename={companion.rename} />}>
+            <TopicNavigation topics={snapshot.topics} activeId={active?.topic.sessionId} archived={snapshot.includeArchived}
+              onOpen={id => { void companion.openTopic(id) }} onNew={openNewTopic} onArchiveView={companion.setIncludeArchived}
+              onReader={openReader}
+              onSettings={() => { modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setTopicSettingsOpen(true) }}
+            />
+          </TopicHeader>
 
+          {snapshot.topicsStatus === 'error' && <p className={css.panelError} role="alert">Topic 读取失败：{snapshot.topicsError}</p>}
           {snapshot.notice !== null && <div className={css.panelNotice} role="status">{snapshot.notice}</div>}
 
           {active === null && snapshot.draftQuote === null ? (
             <div className={css.emptyState}>
               <div className={css.emptyWhale} aria-hidden="true"><img src={mascotUrl} alt="" /></div>
-              <h2>编程别停，问题放到旁边问</h2>
-              <p>直接新建自由 Topic，或选中主对话里一次已完成模型调用的文字后右键提问。</p>
+              <h2>把没懂的地方，慢慢讲明白</h2>
+              <p>新建一个学习 Topic，或选中主对话中的文字，从问题本身开始。</p>
+              <button className={learningCss.action} type="button" onClick={openNewTopic}>开始学习</button>
               {snapshot.phase === 'creating' && <div className={css.loadingCard}>正在创建 Topic…</div>}
               {snapshot.error !== null && <p className={css.panelError} role="alert">{friendlyFailure(snapshot.error)}</p>}
             </div>
           ) : (
             <>
-              <div className={css.contextBar}>
+              <details className={`${css.contextBar} ${learningCss.source}`}>
+                <summary>{active?.topic.citation == null ? '自由讨论 · 查看上下文' : `引用来源 · ${compactPreview(active.topic.citation.displayText, 70)}`}</summary>
                 <blockquote>{active?.topic.citation === null
                   ? '无引用 · 自由讨论'
                   : '“' + (active?.topic.citation?.displayText ?? snapshot.draftQuote) + '”'}</blockquote>
@@ -499,281 +528,102 @@ export function CitePanel({ useCompanion, useOverlay, bus, companion, closePanel
                       : '来源已同步'}</span>
                   </div>
                 )}
+              </details>
+
+              <LearningRoute enabled={snapshot.settings.learningRoute ?? false} messages={active?.messages ?? []} onChange={value => { void companion.setSetting('learningRoute', value) }} />
+
+              <div className={learningCss.views} aria-label="学习内容视图">
+                <button type="button" aria-pressed={view === 'explain'} onClick={() => setView('explain')}>讲解</button>
+                <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>学习卡<span className={learningCss.count}>{cards.cards.length}</span></button>
               </div>
 
-              <div className={css.transcript} aria-live="polite">
+              {view === 'explain' && <div ref={transcript.ref} className={css.transcript} aria-live="polite" onScroll={transcript.onScroll}>
                 {visibleMessages.map((message) => {
-                  if (message.role === 'tool') return <ToolRow key={message.id} message={message} />
+                  if (message.role === 'tool') return <ToolRow key={message.id} message={message} sessionId={active!.topic.sessionId} load={nativeComposer.attachment} />
                   if (message.role === 'user') return (
-                    <article key={message.id} className={css.userTurn}>
-                      <div className={css.turnRole}>你</div><p>{message.text}</p>
+                    <article key={message.id} className={css.userTurn} data-citeciter-message={message.id} aria-label="用户消息">
+                      <MessageAttachments sessionId={active!.topic.sessionId} attachments={message.attachments ?? []} load={nativeComposer.attachment} />
+                      {message.text.startsWith('【学习阶段：') ? <details className={learningCss.questionDetails}>
+                        <summary>{message.text.split('\n')[0]}{message.text.includes('\n\n我的问题：') ? ` · ${message.text.split('\n\n我的问题：').slice(1).join('\n\n我的问题：')}` : ''}</summary><p>{message.text}</p>
+                      </details> : <UserMessageBody text={message.text} />}
                     </article>
                   )
                   if (message.role === 'error') return <ErrorTurn key={message.id} message={message} />
                   if (message.role === 'context') return null
                   return (
                     <AssistantTurn
-                      key={message.id}
+                      key={message.renderKey ?? message.id}
                       message={message}
                       disabled={!canAsk}
-                      companion={companion}
+                      onQuestion={(value) => {
+                        setQuestion(current => current.trim() === '' ? value : `${current}\n${value}`)
+                        requestAnimationFrame(() => composerRef.current?.focus())
+                      }}
                       reportParseError={reportParseError}
                     />
                   )
                 })}
                 {snapshot.phase === 'creating' && <div className={css.loadingCard}>正在验证引用并建立 Topic…</div>}
-                {snapshot.error !== null && !visibleMessages.some((message) =>
-                  message.role === 'error' || message.role === 'tool' && message.isError) && (
+                {snapshot.error !== null && (
                   <p className={css.panelError} data-citeciter-error role="alert">{friendlyFailure(snapshot.error)}</p>
                 )}
-              </div>
+              </div>}
+              {view === 'cards' && active !== null && <div className={learningCss.content}><LearningCards key={active.topic.sessionId}
+                projection={cards} recall={snapshot.settings.activeRecall ?? false}
+                setRecall={value => { void companion.setSetting('activeRecall', value) }} disabled={snapshot.settingsSaveStatus === 'saving'}
+                topicTitle={active.topic.title} topicId={active.topic.sessionId}
+                source={active.topic.citation?.displayText ?? '无引用 · 自由讨论'} onRevise={() => {
+                  setQuestion('请先核对本 Topic 的结论，纠正错误并标明未核实内容，再生成总结学习卡片。')
+                  setView('explain')
+                  requestAnimationFrame(() => composerRef.current?.focus())
+                }}
+              /></div>}
+              {view !== 'explain' && snapshot.error !== null && <p className={css.panelError} role="alert">{friendlyFailure(snapshot.error)}</p>}
 
-              {active !== null && (
-                <div className={css.topicToolbar} aria-label="Topic 设置">
-                  <form onSubmit={(event) => {
-                    event.preventDefault()
-                    void companion.rename(title).then((saved) => {
-                      if (saved) setTitleDirty(false)
-                    })
-                  }}>
-                    <input
-                      value={title}
-                      aria-label="Topic 标题"
-                      onChange={(event) => {
-                        setTitle(event.currentTarget.value)
-                        setTitleDirty(true)
-                      }}
-                    />
-                    <button type="submit" disabled={title.trim() === '' || !titleDirty || snapshot.renaming}>
-                      {snapshot.renaming ? '保存中…' : titleDirty ? '保存' : '已保存'}
-                    </button>
-                  </form>
-                  <select
-                    aria-label="CiteCiter 模型"
-                    value={modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model)}
-                    disabled={snapshot.modelRouteSaving}
-                    onChange={(event) => {
-                      const [provider, model] = parseModelValue(event.currentTarget.value)
-                      void companion.setModelRoute(provider, model)
-                    }}
-                  >
-                    {!snapshot.providers.some((provider) =>
-                      provider.id === active.topic.modelConfig.provider
-                      && provider.models.some((model) => model.id === active.topic.modelConfig.model)) && (
-                      <option value={modelValue(active.topic.modelConfig.provider, active.topic.modelConfig.model)}>
-                        {active.topic.modelConfig.provider} / {active.topic.modelConfig.model}
-                      </option>
-                    )}
-                    {snapshot.providers.map((provider) => (
-                      <optgroup label={provider.name} key={provider.id}>
-                        {provider.models.map((model) => (
-                          <option value={modelValue(provider.id, model.id)} key={model.id}>{model.name}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  {selectedModel !== undefined && selectedModel.reasoningEfforts.length > 0 && (
-                    <select
-                      aria-label="思考强度"
-                      value={active.topic.modelConfig.reasoningEffort ?? ''}
-                      disabled={snapshot.reasoningEffortSaving || snapshot.modelRouteSaving}
-                      onChange={(event) => {
-                        void companion.setReasoningEffort(event.currentTarget.value === '' ? null : event.currentTarget.value)
-                      }}
-                    >
-                      <option value="">模型默认思考</option>
-                      {selectedModel.reasoningEfforts.map((effort) => (
-                        <option value={effort.id} key={effort.id}>{effort.name}</option>
-                      ))}
-                    </select>
-                  )}
-                  <button
-                    type="button"
-                    className={css.archiveButton}
-                    aria-label={active.topic.archived ? '恢复当前 Topic' : '归档当前 Topic'}
-                    disabled={snapshot.archiving}
-                    onClick={() => { void companion.archive(!active.topic.archived) }}
-                  >
-                    <IconArchiveOutline20 size={14} />
-                    {snapshot.archiving ? '处理中…' : active.topic.archived ? '恢复' : '归档'}
-                  </button>
-                  <button
-                    type="button"
-                    className={css.deleteButton}
-                    disabled={snapshot.deleting}
-                    onClick={() => {
-                      modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-                      setDeleteTarget({ sessionId: active.topic.sessionId, title: active.topic.title })
-                      setDeleteConfirmation('')
-                      setDeleteError(null)
-                    }}
-                  >
-                    永久删除
-                  </button>
-                </div>
-              )}
 
+              {active?.topic.hosted === true && <NativeQueue sessionId={active.topic.sessionId} native={nativeComposer} />}
+              {pendingInteraction !== undefined && <NativeInteraction key={pendingInteraction.key} pending={pendingInteraction} messages={active?.messages ?? []} />}
               {active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
-                ? <QuestionCard key={active.pendingQuestion.key} pending={active.pendingQuestion} companion={companion} />
+                ? <QuestionCard key={active.pendingQuestion.key} pending={active.pendingQuestion} onAnswer={answer => companion.answerQuestion(active.pendingQuestion!.key, answer)} onCancel={() => companion.cancelQuestion(active.pendingQuestion!.key)} />
                 : (
-                  <form className={css.composer} onSubmit={submit}>
-                    <textarea
-                      ref={composerRef}
-                      rows={3}
-                      maxLength={12_000}
-                      aria-label="继续向 CiteCiter 提问"
-                      value={question}
-                      disabled={active === null}
-                      onChange={(event) => setQuestion(event.currentTarget.value)}
-                      placeholder={active === null ? 'Topic 创建后可继续追问' : '继续追问，或聊点题外话…'}
-                    />
-                    <div className={css.composerActions}>
-                      <span>只读 · 不干预主 Agent</span>
-                      <button
-                        className={css.sendButton}
-                        type={snapshot.phase === 'running' ? 'button' : 'submit'}
-                        disabled={snapshot.phase === 'stopping'
-                          || snapshot.phase !== 'running' && (!canAsk || active === null || question.trim() === '')}
-                        aria-label={snapshot.phase === 'running' ? '停止回答' : snapshot.phase === 'stopping' ? '正在停止' : '发送'}
-                        onClick={snapshot.phase === 'running' ? () => { void companion.stop() } : undefined}
-                      >
-                        {snapshot.phase === 'running' || snapshot.phase === 'stopping'
-                          ? <IconStopFill16 size={16} />
-                          : <IconSendOutline16 size={16} />}
-                      </button>
-                    </div>
-                  </form>
+                  <TopicComposer sources={active === null ? [] : topicDraftReferences(active.topic, active.documentTitle).filter(reference => !(references[draftKey] ?? []).some(current => current.label === reference.label))}
+                    onReference={reference => setReferences(current => ({ ...current, [draftKey]: [...(current[draftKey] ?? []), reference] }))} permission={active?.topic.permission ?? 'read-only'} onPermission={mode => { void companion.setPermission(mode) }} delivery={delivery} onDelivery={setDelivery}
+                    onFiles={addFiles} question={question} route={active?.topic.modelConfig} providers={snapshot.providers}
+                    phase={snapshot.phase} canSend={canAsk && active !== null && (question.trim() !== '' || (references[draftKey]?.length ?? 0) > 0 || (files[draftKey]?.length ?? 0) > 0)}
+                    routeSaving={snapshot.modelRouteSaving || snapshot.reasoningEffortSaving}
+                    folded={composerFolded} inputRef={composerRef} onQuestion={setQuestion} onSubmit={submit}
+                    placeholder="输入问题 · Enter 发送，Shift + Enter 换行"
+                    attachments={<>{attachmentError && <p role="alert">{attachmentError}</p>}<FileAttachments native={nativeComposer} sessionId={draftKey} files={files[draftKey] ?? []} remove={id => { nativeComposer.remove(id); setFiles(current => ({ ...current, [draftKey]: (current[draftKey] ?? []).filter(file => file.id !== id) })) }} /><ReferenceAttachments references={references[draftKey] ?? []} onRemove={id => setReferences(current => ({ ...current, [draftKey]: (current[draftKey] ?? []).filter(item => item.id !== id) }))} /></>}
+                    onExpand={() => {
+                      requestAnimationFrame(() => composerRef.current?.focus())
+                    }}
+                    onStop={() => { void companion.stop() }}
+                    onModel={(provider, model) => { void companion.setModelRoute(provider, model) }}
+                    onReasoning={effort => { void companion.setReasoningEffort(effort) }}
+                  />
                 )}
             </>
           )}
         </section>
 
-        <nav className={css.topicRail} aria-label="CiteCiter Topics">
-          <div className={css.brand}>
-            <span className={css.mascotStatus}>
-              <img src={mascotUrl} alt="" />
-            </span>
-            <div><strong>CiteCiter</strong><span>学习伴侣</span></div>
-          </div>
-          <div className={css.railCaption}>
-            <span>{snapshot.includeArchived ? '归档讨论' : '当前来源的讨论'}</span>
-            <div className={css.railActions}>
-              <button type="button" onClick={openNewTopic}>+ 新 Topic</button>
-              <button type="button" onClick={() => companion.setIncludeArchived(!snapshot.includeArchived)}>
-                {snapshot.includeArchived ? '返回活动' : '查看归档'}
-              </button>
-            </div>
-          </div>
-          <div className={css.topicList}>
-            {snapshot.topics.map((topic) => (
-              <button
-                className={css.topicItem}
-                data-active={active?.topic.sessionId === topic.sessionId || undefined}
-                aria-current={active?.topic.sessionId === topic.sessionId ? 'page' : undefined}
-                data-archived={topic.archived || undefined}
-                data-citeciter-topic={topic.sessionId}
-                type="button"
-                key={topic.sessionId}
-                onClick={() => { void companion.openTopic(topic.sessionId) }}
-              >
-                <span className={css.topicStatus} data-running={topic.running || undefined} />
-                <span className={css.topicCopy}>
-                  <strong data-pending={topic.titlePending || undefined}>{topic.title}</strong>
-                  <small>{topic.citation === null ? '无引用 · 自由讨论' : '“' + compactPreview(topic.citation.displayText, 54) + '”'}</small>
-                </span>
-              </button>
-            ))}
-            {snapshot.topicsStatus === 'loading' && <p className={css.railEmpty} role="status">正在读取 Topic…</p>}
-            {snapshot.topicsStatus === 'error' && (
-              <p className={css.railError} role="alert">Topic 读取失败<br />{snapshot.topicsError}</p>
-            )}
-            {snapshot.topicsStatus === 'ready' && snapshot.topics.length === 0 && (
-              <p className={css.railEmpty}>{snapshot.includeArchived
-                ? '当前来源还没有归档 Topic。'
-                : '点击“+ 新 Topic”可直接问答或讲解，也可从中央对话选中文字后开始。'}</p>
-            )}
-          </div>
-          <div className={css.railFoot}>
-            <span>{snapshot.topicsStatus === 'ready' ? snapshot.topics.length + ' 个 Topic' : 'Topic 状态未知'}</span>
-            <span>{widthPercent}%</span>
-          </div>
-        </nav>
       </div>
       </aside>
+      </OverlayPortal>
 
-      <Modal
-        open={newTopicOpen}
-        onClose={() => {
-          if (!newTopicSubmitting) {
-            setNewTopicOpen(false)
-            setNewTopicError(null)
-            companion.dismissError()
-          }
+      {!floating && <OverlayPortal><div className={css.fullscreenNotice} role="status">学习栏已打开。退出文件全屏查看，或 <button type="button" onClick={() => bus.setPresentation('floating')}>悬浮查看</button></div></OverlayPortal>}
+
+      <TopicSettingsDialog open={topicSettingsOpen} topic={active?.topic}
+        archiving={snapshot.archiving} deleting={snapshot.deleting}
+        error={snapshot.error === null ? null : friendlyFailure(snapshot.error)}
+        onClose={() => setTopicSettingsOpen(false)} onArchive={companion.archive}
+        onDelete={() => {
+          if (active === null) return
+          setTopicSettingsOpen(false)
+          setDeleteTarget({ sessionId: active.topic.sessionId, title: active.topic.title })
+          setDeleteConfirmation('')
+          setDeleteError(null)
         }}
-        closeLabel="关闭"
-        title="新建自由 Topic"
-        description="首条问题发出后才会创建 Topic；新主会话请先发送一条主对话消息，让模型路由就绪。"
-        footer={(
-          <>
-            <Button variant="outline" disabled={newTopicSubmitting} onClick={() => {
-              setNewTopicOpen(false)
-              setNewTopicError(null)
-              companion.dismissError()
-            }}>取消</Button>
-            <Button
-              variant="primary"
-              disabled={newTopicQuestion.trim() === '' || newTopicSubmitting || snapshot.sourceSessionId === null}
-              onClick={() => { void submitNewTopic() }}
-            >
-              {newTopicSubmitting ? '创建中…' : newTopicScenario === 'present' ? '开始讲解' : '开始问答'}
-            </Button>
-          </>
-        )}
-      >
-        <div className={css.newTopicForm}>
-          <fieldset className={css.scenarioPicker}>
-            <legend>Topic 形态</legend>
-            <button
-              type="button"
-              data-active={newTopicScenario === 'qa' || undefined}
-              aria-pressed={newTopicScenario === 'qa'}
-              onClick={() => {
-                setNewTopicScenario('qa')
-                setNewTopicError(null)
-              }}
-            >
-              <strong>问答</strong><span>围绕问题直接分析</span>
-            </button>
-            <button
-              type="button"
-              data-active={newTopicScenario === 'present' || undefined}
-              aria-pressed={newTopicScenario === 'present'}
-              onClick={() => {
-                setNewTopicScenario('present')
-                setNewTopicError(null)
-              }}
-            >
-              <strong>讲解</strong><span>配合小黑板逐步说明</span>
-            </button>
-          </fieldset>
-          <textarea
-            autoFocus
-            rows={5}
-            maxLength={12_000}
-            value={newTopicQuestion}
-            disabled={newTopicSubmitting}
-            aria-label="自由 Topic 的首个问题"
-            placeholder={newTopicScenario === 'present' ? '想让 CiteCiter 讲解什么？' : '想和 CiteCiter 讨论什么？'}
-            onChange={(event) => {
-              setNewTopicQuestion(event.currentTarget.value)
-              setNewTopicError(null)
-            }}
-          />
-          {newTopicError !== null && (
-            <div className={css.modalError} role="alert">{friendlyFailure(snapshot.error ?? newTopicError)}</div>
-          )}
-        </div>
-      </Modal>
+      />
 
       <Modal
         open={deleteTarget !== null}

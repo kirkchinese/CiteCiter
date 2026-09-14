@@ -44,7 +44,7 @@ const SVG_VIRTUAL_PREFIX = '\0citeciter-svg:'
  * runtime identity to share. Everything else under @deepseek-ai/* is either a
  * module-table entry (external) or a leak the purity gate rejects.
  */
-const INLINE_SAFE = /^@deepseek-ai\/dsh-(host-apiproxy|session|llm|tools|brand)(\/|$)/
+const INLINE_SAFE = /^@deepseek-ai\/dsh-(host-apiproxy|session|llm|tools|brand|util-workspace-path)(\/|$)/
 
 /** Vendored framework libraries with no cross-plugin runtime identity. */
 const VENDORED_LIBRARY = /^@deepseek-ai\/(cosmokit|schemastery)(\/|$)/

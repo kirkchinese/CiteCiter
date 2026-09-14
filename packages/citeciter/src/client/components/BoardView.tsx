@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
@@ -76,31 +76,38 @@ function animationClass(name: 'fade-in' | 'slide-in' | 'pulse' | 'highlight'): s
 }
 
 /**
- * Render one final-state blackboard projection in the main conversation workspace.
- * @param props - board snapshot, motion preference, and optional citation action.
+ * Render one final-state blackboard projection in either learning surface.
+ * @param props - snapshot, motion preference, optional compact reading mode and citation action.
  * @returns the safe blackboard canvas.
  */
 export function BoardView({
   snapshot,
   animations,
   onQuoteElement,
+  compact = false,
+  sessionId,
 }: {
   readonly snapshot: BoardSnapshot | undefined
   readonly animations: boolean
   readonly onQuoteElement?: (element: BoardElementState) => void
+  readonly compact?: boolean
+  readonly sessionId?: string
 }) {
   const board = snapshot ?? EMPTY_BOARD_SNAPSHOT
+  const [notes, setNotes] = useState(compact)
+  const elements = notes ? [...board.elements].sort((a, b) => a.y - b.y || a.x - b.x) : board.elements
   return (
-    <section className={css.board} data-citeciter-board data-animations={animations || undefined} aria-label="CiteCiter 黑板">
+    <section className={css.board} data-citeciter-board={sessionId ?? ''} data-board-revision={board.revision} data-compact={compact || undefined} data-notes={notes || undefined} data-animations={animations || undefined} aria-label="CiteCiter 黑板">
       <header className={css.boardHeader}>
         <div><strong>小黑板</strong><span>由 CiteCiter 随讲解实时整理</span></div>
         <span>{board.revision === 0 && board.elements.length === 0 ? '等待板书' : `第 ${board.revision} 次更新`}</span>
+        {compact && <button className={css.viewToggle} type="button" onClick={() => setNotes(!notes)}>{notes ? '查看画布' : '条目阅读'}</button>}
       </header>
       {board.invalid > 0 && <p className={css.boardWarning} role="status">已忽略 {board.invalid} 批无效板书提交</p>}
       <div className={css.canvas}>
           {board.elements.length === 0 ? (
-            <p className={css.boardHint}>创建讲解 Topic 后，提纲、公式和图示会逐步出现在这里。</p>
-          ) : board.elements.map((element) => (
+            <p className={css.boardHint}>发送需要板书的问题，公式、推导和图示会整理到这里。</p>
+          ) : elements.map((element) => (
             <div
               key={`${element.id}:${element.animation?.run ?? 0}`}
               className={css.elementWrap}

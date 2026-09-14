@@ -1,5 +1,6 @@
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ToolEvidenceProjection } from '../evidence-text.ts'
+import type { PanelPresentation } from '../actions.ts'
 
 /** One right-click selection inside a rendered assistant model call. */
 export interface AssistantCiteSelection {
@@ -41,14 +42,14 @@ export interface BoardCitationRequest {
 }
 
 export interface CiteOverlaySnapshot {
-  readonly menuSelection: CiteSelection | null
   readonly panelOpen: boolean
+  readonly presentation: PanelPresentation
   readonly boardCitation: BoardCitationRequest | null
 }
 
-/** Tiny observable state shared by the selection popover and independent dock. */
+/** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export class CiteBus {
-  private snapshot: CiteOverlaySnapshot = { menuSelection: null, panelOpen: false, boardCitation: null }
+  private snapshot: CiteOverlaySnapshot = { panelOpen: false, presentation: 'side', boardCitation: null }
   private readonly listeners = new Set<() => void>()
   private nextCitationId = 1
 
@@ -66,17 +67,17 @@ export class CiteBus {
     }
   }
 
-  /** Show or dismiss the selection question popover. */
-  setMenuSelection(selection: CiteSelection | null): void {
-    if (this.snapshot.menuSelection === selection) return
-    this.snapshot = { ...this.snapshot, menuSelection: selection }
-    this.notify()
-  }
-
   /** Open or close the independent companion dock. */
   setPanelOpen(panelOpen: boolean): void {
     if (this.snapshot.panelOpen === panelOpen) return
     this.snapshot = { ...this.snapshot, panelOpen }
+    this.notify()
+  }
+
+  /** Change only the current workspace presentation, keeping its Topic and drafts. */
+  setPresentation(presentation: PanelPresentation): void {
+    if (this.snapshot.presentation === presentation) return
+    this.snapshot = { ...this.snapshot, presentation }
     this.notify()
   }
 

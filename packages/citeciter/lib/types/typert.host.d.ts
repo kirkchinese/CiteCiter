@@ -57,6 +57,13 @@ export declare const TYPERT: {
     }, {
         readonly name: "TopicSummary";
         readonly schema: import("zod").ZodObject<{
+            permission: import("zod").ZodOptional<import("zod").ZodEnum<{
+                "read-only": "read-only";
+                "workspace-write": "workspace-write";
+                "danger-full-access": "danger-full-access";
+            }>>;
+            hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
+            storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
             topicId: import("zod").ZodNumber;
             sessionId: import("zod").ZodString;
             sourceSessionId: import("zod").ZodString;
@@ -128,7 +135,16 @@ export declare const TYPERT: {
     }, {
         readonly name: "TopicSnapshot";
         readonly schema: import("zod").ZodObject<{
+            captureId: import("zod").ZodOptional<import("zod").ZodString>;
+            documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
             topic: import("zod").ZodObject<{
+                permission: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    "read-only": "read-only";
+                    "workspace-write": "workspace-write";
+                    "danger-full-access": "danger-full-access";
+                }>>;
+                hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
                 topicId: import("zod").ZodNumber;
                 sessionId: import("zod").ZodString;
                 sourceSessionId: import("zod").ZodString;
@@ -199,11 +215,20 @@ export declare const TYPERT: {
             }, import("zod/v4/core").$strict>;
             messages: import("zod").ZodArray<import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
                 role: import("zod").ZodLiteral<"user">;
+                attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                    kind: import("zod").ZodEnum<{
+                        image: "image";
+                        file: "file";
+                    }>;
+                    id: import("zod").ZodString;
+                    name: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>>>;
                 text: import("zod").ZodString;
                 id: import("zod").ZodString;
                 seq: import("zod").ZodNumber;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 role: import("zod").ZodLiteral<"assistant">;
+                renderKey: import("zod").ZodOptional<import("zod").ZodString>;
                 text: import("zod").ZodString;
                 reasoning: import("zod").ZodNullable<import("zod").ZodString>;
                 streaming: import("zod").ZodBoolean;
@@ -217,6 +242,14 @@ export declare const TYPERT: {
                 seq: import("zod").ZodNumber;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 role: import("zod").ZodLiteral<"tool">;
+                attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                    kind: import("zod").ZodEnum<{
+                        image: "image";
+                        file: "file";
+                    }>;
+                    id: import("zod").ZodString;
+                    name: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>>>;
                 name: import("zod").ZodString;
                 arguments: import("zod").ZodString;
                 result: import("zod").ZodNullable<import("zod").ZodString>;
@@ -256,12 +289,12 @@ export declare const TYPERT: {
                 elements: import("zod").ZodArray<import("zod").ZodObject<{
                     id: import("zod").ZodString;
                     kind: import("zod").ZodEnum<{
+                        image: "image";
                         text: "text";
                         markdown: "markdown";
                         math: "math";
                         svg: "svg";
                         html: "html";
-                        image: "image";
                         table: "table";
                     }>;
                     content: import("zod").ZodString;
@@ -293,6 +326,10 @@ export declare const TYPERT: {
         readonly name: "CiteCiterRequest";
         readonly schema: import("zod").ZodUnion<readonly [import("zod").ZodUnion<readonly [import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             sourceSessionId: import("zod").ZodString;
             question: import("zod").ZodString;
@@ -303,6 +340,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             citation: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -329,6 +370,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             selectionClaim: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -352,6 +397,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             toolClaim: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -377,6 +426,10 @@ export declare const TYPERT: {
             }>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"create">;
+            modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                provider: import("zod").ZodString;
+                model: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
             requestId: import("zod").ZodString;
             documentClaim: import("zod").ZodObject<{
                 sourceSessionId: import("zod").ZodString;
@@ -402,8 +455,22 @@ export declare const TYPERT: {
             sourceSessionId: import("zod").ZodString;
             includeArchived: import("zod").ZodOptional<import("zod").ZodBoolean>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"board-capture">;
+            topicSessionId: import("zod").ZodString;
+            id: import("zod").ZodString;
+            png: import("zod").ZodOptional<import("zod").ZodString>;
+            error: import("zod").ZodOptional<import("zod").ZodString>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"get">;
             topicSessionId: import("zod").ZodString;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"native-state">;
+            topicSessionId: import("zod").ZodString;
+            requestIds: import("zod").ZodArray<import("zod").ZodString>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"native-attachment">;
+            topicSessionId: import("zod").ZodString;
+            attachmentId: import("zod").ZodString;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"ask">;
             requestId: import("zod").ZodOptional<import("zod").ZodString>;
@@ -442,6 +509,14 @@ export declare const TYPERT: {
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"models">;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"set-permission">;
+            topicSessionId: import("zod").ZodString;
+            mode: import("zod").ZodEnum<{
+                "read-only": "read-only";
+                "workspace-write": "workspace-write";
+                "danger-full-access": "danger-full-access";
+            }>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"set-model-route">;
             topicSessionId: import("zod").ZodString;
             provider: import("zod").ZodString;
@@ -470,13 +545,154 @@ export declare const TYPERT: {
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"document-get">;
             documentId: import("zod").ZodString;
+            page: import("zod").ZodOptional<import("zod").ZodNumber>;
         }, import("zod/v4/core").$strict>], "action">]>;
     }, {
         readonly name: "CiteCiterResponse";
         readonly schema: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"native-state">;
+            state: import("zod").ZodObject<{
+                running: import("zod").ZodBoolean;
+                blank: import("zod").ZodBoolean;
+                error: import("zod").ZodNullable<import("zod").ZodString>;
+                queue: import("zod").ZodArray<import("zod").ZodObject<{
+                    id: import("zod").ZodString;
+                    placement: import("zod").ZodEnum<{
+                        queued: "queued";
+                        steering: "steering";
+                        context: "context";
+                    }>;
+                    rpcId: import("zod").ZodOptional<import("zod").ZodString>;
+                    text: import("zod").ZodString;
+                    attachments: import("zod").ZodArray<import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                        type: import("zod").ZodLiteral<"image">;
+                        attachment: import("zod").ZodPipe<import("zod").ZodObject<{
+                            attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                            mediaType: import("zod").ZodEnum<{
+                                "image/png": "image/png";
+                                "image/jpeg": "image/jpeg";
+                                "image/webp": "image/webp";
+                                "image/gif": "image/gif";
+                            }>;
+                            bytes: import("zod").ZodNumber;
+                            width: import("zod").ZodNumber;
+                            height: import("zod").ZodNumber;
+                            name: import("zod").ZodOptional<import("zod").ZodString>;
+                            originalDimensions: import("zod").ZodOptional<import("zod").ZodObject<{
+                                width: import("zod").ZodNumber;
+                                height: import("zod").ZodNumber;
+                            }, import("zod/v4/core").$strict>>;
+                        }, import("zod/v4/core").$strict>, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                            attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                            mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                            bytes: number;
+                            width: number;
+                            height: number;
+                            name?: string | undefined;
+                            originalDimensions?: {
+                                width: number;
+                                height: number;
+                            } | undefined;
+                        }>>;
+                    }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                        type: import("zod").ZodLiteral<"file">;
+                        attachment: import("zod").ZodObject<{
+                            attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                            name: import("zod").ZodString;
+                            bytes: import("zod").ZodNumber;
+                        }, import("zod/v4/core").$strict>;
+                    }, import("zod/v4/core").$strict>], "type">>;
+                }, import("zod/v4/core").$strict>>;
+                receipts: import("zod").ZodArray<import("zod").ZodObject<{
+                    requestId: import("zod").ZodString;
+                    attachments: import("zod").ZodArray<import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                        type: import("zod").ZodLiteral<"image">;
+                        attachment: import("zod").ZodPipe<import("zod").ZodObject<{
+                            attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                            mediaType: import("zod").ZodEnum<{
+                                "image/png": "image/png";
+                                "image/jpeg": "image/jpeg";
+                                "image/webp": "image/webp";
+                                "image/gif": "image/gif";
+                            }>;
+                            bytes: import("zod").ZodNumber;
+                            width: import("zod").ZodNumber;
+                            height: import("zod").ZodNumber;
+                            name: import("zod").ZodOptional<import("zod").ZodString>;
+                            originalDimensions: import("zod").ZodOptional<import("zod").ZodObject<{
+                                width: import("zod").ZodNumber;
+                                height: import("zod").ZodNumber;
+                            }, import("zod/v4/core").$strict>>;
+                        }, import("zod/v4/core").$strict>, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                            attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                            mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                            bytes: number;
+                            width: number;
+                            height: number;
+                            name?: string | undefined;
+                            originalDimensions?: {
+                                width: number;
+                                height: number;
+                            } | undefined;
+                        }>>;
+                    }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                        type: import("zod").ZodLiteral<"file">;
+                        attachment: import("zod").ZodObject<{
+                            attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                            name: import("zod").ZodString;
+                            bytes: import("zod").ZodNumber;
+                        }, import("zod/v4/core").$strict>;
+                    }, import("zod/v4/core").$strict>], "type">>;
+                }, import("zod/v4/core").$strict>>;
+            }, import("zod/v4/core").$strict>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"native-attachment">;
+            attachment: import("zod").ZodUnion<readonly [import("zod").ZodPipe<import("zod").ZodObject<{
+                attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                mediaType: import("zod").ZodEnum<{
+                    "image/png": "image/png";
+                    "image/jpeg": "image/jpeg";
+                    "image/webp": "image/webp";
+                    "image/gif": "image/gif";
+                }>;
+                bytes: import("zod").ZodNumber;
+                width: import("zod").ZodNumber;
+                height: import("zod").ZodNumber;
+                name: import("zod").ZodOptional<import("zod").ZodString>;
+                originalDimensions: import("zod").ZodOptional<import("zod").ZodObject<{
+                    width: import("zod").ZodNumber;
+                    height: import("zod").ZodNumber;
+                }, import("zod/v4/core").$strict>>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                bytes: number;
+                width: number;
+                height: number;
+                name?: string | undefined;
+                originalDimensions?: {
+                    width: number;
+                    height: number;
+                } | undefined;
+            }>>, import("zod").ZodObject<{
+                attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                name: import("zod").ZodString;
+                bytes: import("zod").ZodNumber;
+            }, import("zod/v4/core").$strict>]>;
+            data: import("zod").ZodString;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             kind: import("zod").ZodLiteral<"topic">;
             topic: import("zod").ZodObject<{
+                captureId: import("zod").ZodOptional<import("zod").ZodString>;
+                documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
                 topic: import("zod").ZodObject<{
+                    permission: import("zod").ZodOptional<import("zod").ZodEnum<{
+                        "read-only": "read-only";
+                        "workspace-write": "workspace-write";
+                        "danger-full-access": "danger-full-access";
+                    }>>;
+                    hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                    storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
                     topicId: import("zod").ZodNumber;
                     sessionId: import("zod").ZodString;
                     sourceSessionId: import("zod").ZodString;
@@ -547,11 +763,20 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>;
                 messages: import("zod").ZodArray<import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
                     role: import("zod").ZodLiteral<"user">;
+                    attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                        kind: import("zod").ZodEnum<{
+                            image: "image";
+                            file: "file";
+                        }>;
+                        id: import("zod").ZodString;
+                        name: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>>;
                     text: import("zod").ZodString;
                     id: import("zod").ZodString;
                     seq: import("zod").ZodNumber;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     role: import("zod").ZodLiteral<"assistant">;
+                    renderKey: import("zod").ZodOptional<import("zod").ZodString>;
                     text: import("zod").ZodString;
                     reasoning: import("zod").ZodNullable<import("zod").ZodString>;
                     streaming: import("zod").ZodBoolean;
@@ -565,6 +790,14 @@ export declare const TYPERT: {
                     seq: import("zod").ZodNumber;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     role: import("zod").ZodLiteral<"tool">;
+                    attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                        kind: import("zod").ZodEnum<{
+                            image: "image";
+                            file: "file";
+                        }>;
+                        id: import("zod").ZodString;
+                        name: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>>;
                     name: import("zod").ZodString;
                     arguments: import("zod").ZodString;
                     result: import("zod").ZodNullable<import("zod").ZodString>;
@@ -604,12 +837,12 @@ export declare const TYPERT: {
                     elements: import("zod").ZodArray<import("zod").ZodObject<{
                         id: import("zod").ZodString;
                         kind: import("zod").ZodEnum<{
+                            image: "image";
                             text: "text";
                             markdown: "markdown";
                             math: "math";
                             svg: "svg";
                             html: "html";
-                            image: "image";
                             table: "table";
                         }>;
                         content: import("zod").ZodString;
@@ -640,6 +873,13 @@ export declare const TYPERT: {
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             kind: import("zod").ZodLiteral<"topics">;
             topics: import("zod").ZodArray<import("zod").ZodObject<{
+                permission: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    "read-only": "read-only";
+                    "workspace-write": "workspace-write";
+                    "danger-full-access": "danger-full-access";
+                }>>;
+                hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
                 topicId: import("zod").ZodNumber;
                 sessionId: import("zod").ZodString;
                 sourceSessionId: import("zod").ZodString;
@@ -767,6 +1007,8 @@ export declare const TYPERT: {
                 }>;
                 content: import("zod").ZodString;
                 truncated: import("zod").ZodBoolean;
+                page: import("zod").ZodDefault<import("zod").ZodNumber>;
+                pageCount: import("zod").ZodDefault<import("zod").ZodNumber>;
             }, import("zod/v4/core").$strict>;
         }, import("zod/v4/core").$strict>], "kind">;
     }, {
@@ -814,6 +1056,10 @@ export declare const TYPERT: {
                 readonly typeSymbol: "@kirkchinese/dsh-citeciter#CiteCiterRequest";
                 readonly schema: import("zod").ZodUnion<readonly [import("zod").ZodUnion<readonly [import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     sourceSessionId: import("zod").ZodString;
                     question: import("zod").ZodString;
@@ -824,6 +1070,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     citation: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;
@@ -850,6 +1100,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     selectionClaim: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;
@@ -873,6 +1127,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     toolClaim: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;
@@ -898,6 +1156,10 @@ export declare const TYPERT: {
                     }>>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"create">;
+                    modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                        provider: import("zod").ZodString;
+                        model: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
                     requestId: import("zod").ZodString;
                     documentClaim: import("zod").ZodObject<{
                         sourceSessionId: import("zod").ZodString;
@@ -923,8 +1185,22 @@ export declare const TYPERT: {
                     sourceSessionId: import("zod").ZodString;
                     includeArchived: import("zod").ZodOptional<import("zod").ZodBoolean>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"board-capture">;
+                    topicSessionId: import("zod").ZodString;
+                    id: import("zod").ZodString;
+                    png: import("zod").ZodOptional<import("zod").ZodString>;
+                    error: import("zod").ZodOptional<import("zod").ZodString>;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"get">;
                     topicSessionId: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"native-state">;
+                    topicSessionId: import("zod").ZodString;
+                    requestIds: import("zod").ZodArray<import("zod").ZodString>;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"native-attachment">;
+                    topicSessionId: import("zod").ZodString;
+                    attachmentId: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"ask">;
                     requestId: import("zod").ZodOptional<import("zod").ZodString>;
@@ -963,6 +1239,14 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"models">;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"set-permission">;
+                    topicSessionId: import("zod").ZodString;
+                    mode: import("zod").ZodEnum<{
+                        "read-only": "read-only";
+                        "workspace-write": "workspace-write";
+                        "danger-full-access": "danger-full-access";
+                    }>;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"set-model-route">;
                     topicSessionId: import("zod").ZodString;
                     provider: import("zod").ZodString;
@@ -991,6 +1275,7 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"document-get">;
                     documentId: import("zod").ZodString;
+                    page: import("zod").ZodOptional<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>], "action">]>;
             };
         }];
@@ -1001,9 +1286,149 @@ export declare const TYPERT: {
             readonly mode: "strict";
             readonly typeSymbol: "@kirkchinese/dsh-citeciter#CiteCiterResponse";
             readonly schema: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                kind: import("zod").ZodLiteral<"native-state">;
+                state: import("zod").ZodObject<{
+                    running: import("zod").ZodBoolean;
+                    blank: import("zod").ZodBoolean;
+                    error: import("zod").ZodNullable<import("zod").ZodString>;
+                    queue: import("zod").ZodArray<import("zod").ZodObject<{
+                        id: import("zod").ZodString;
+                        placement: import("zod").ZodEnum<{
+                            queued: "queued";
+                            steering: "steering";
+                            context: "context";
+                        }>;
+                        rpcId: import("zod").ZodOptional<import("zod").ZodString>;
+                        text: import("zod").ZodString;
+                        attachments: import("zod").ZodArray<import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                            type: import("zod").ZodLiteral<"image">;
+                            attachment: import("zod").ZodPipe<import("zod").ZodObject<{
+                                attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                                mediaType: import("zod").ZodEnum<{
+                                    "image/png": "image/png";
+                                    "image/jpeg": "image/jpeg";
+                                    "image/webp": "image/webp";
+                                    "image/gif": "image/gif";
+                                }>;
+                                bytes: import("zod").ZodNumber;
+                                width: import("zod").ZodNumber;
+                                height: import("zod").ZodNumber;
+                                name: import("zod").ZodOptional<import("zod").ZodString>;
+                                originalDimensions: import("zod").ZodOptional<import("zod").ZodObject<{
+                                    width: import("zod").ZodNumber;
+                                    height: import("zod").ZodNumber;
+                                }, import("zod/v4/core").$strict>>;
+                            }, import("zod/v4/core").$strict>, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                                attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                                mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                                bytes: number;
+                                width: number;
+                                height: number;
+                                name?: string | undefined;
+                                originalDimensions?: {
+                                    width: number;
+                                    height: number;
+                                } | undefined;
+                            }>>;
+                        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                            type: import("zod").ZodLiteral<"file">;
+                            attachment: import("zod").ZodObject<{
+                                attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                                name: import("zod").ZodString;
+                                bytes: import("zod").ZodNumber;
+                            }, import("zod/v4/core").$strict>;
+                        }, import("zod/v4/core").$strict>], "type">>;
+                    }, import("zod/v4/core").$strict>>;
+                    receipts: import("zod").ZodArray<import("zod").ZodObject<{
+                        requestId: import("zod").ZodString;
+                        attachments: import("zod").ZodArray<import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                            type: import("zod").ZodLiteral<"image">;
+                            attachment: import("zod").ZodPipe<import("zod").ZodObject<{
+                                attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                                mediaType: import("zod").ZodEnum<{
+                                    "image/png": "image/png";
+                                    "image/jpeg": "image/jpeg";
+                                    "image/webp": "image/webp";
+                                    "image/gif": "image/gif";
+                                }>;
+                                bytes: import("zod").ZodNumber;
+                                width: import("zod").ZodNumber;
+                                height: import("zod").ZodNumber;
+                                name: import("zod").ZodOptional<import("zod").ZodString>;
+                                originalDimensions: import("zod").ZodOptional<import("zod").ZodObject<{
+                                    width: import("zod").ZodNumber;
+                                    height: import("zod").ZodNumber;
+                                }, import("zod/v4/core").$strict>>;
+                            }, import("zod/v4/core").$strict>, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                                attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                                mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                                bytes: number;
+                                width: number;
+                                height: number;
+                                name?: string | undefined;
+                                originalDimensions?: {
+                                    width: number;
+                                    height: number;
+                                } | undefined;
+                            }>>;
+                        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                            type: import("zod").ZodLiteral<"file">;
+                            attachment: import("zod").ZodObject<{
+                                attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                                name: import("zod").ZodString;
+                                bytes: import("zod").ZodNumber;
+                            }, import("zod/v4/core").$strict>;
+                        }, import("zod/v4/core").$strict>], "type">>;
+                    }, import("zod/v4/core").$strict>>;
+                }, import("zod/v4/core").$strict>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                kind: import("zod").ZodLiteral<"native-attachment">;
+                attachment: import("zod").ZodUnion<readonly [import("zod").ZodPipe<import("zod").ZodObject<{
+                    attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                    mediaType: import("zod").ZodEnum<{
+                        "image/png": "image/png";
+                        "image/jpeg": "image/jpeg";
+                        "image/webp": "image/webp";
+                        "image/gif": "image/gif";
+                    }>;
+                    bytes: import("zod").ZodNumber;
+                    width: import("zod").ZodNumber;
+                    height: import("zod").ZodNumber;
+                    name: import("zod").ZodOptional<import("zod").ZodString>;
+                    originalDimensions: import("zod").ZodOptional<import("zod").ZodObject<{
+                        width: import("zod").ZodNumber;
+                        height: import("zod").ZodNumber;
+                    }, import("zod/v4/core").$strict>>;
+                }, import("zod/v4/core").$strict>, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").ImageAttachmentRef, {
+                    attachmentId: import("@deepseek-ai/dsh-attachment").AttachmentId;
+                    mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+                    bytes: number;
+                    width: number;
+                    height: number;
+                    name?: string | undefined;
+                    originalDimensions?: {
+                        width: number;
+                        height: number;
+                    } | undefined;
+                }>>, import("zod").ZodObject<{
+                    attachmentId: import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<import("@deepseek-ai/dsh-attachment").AttachmentId, string>>;
+                    name: import("zod").ZodString;
+                    bytes: import("zod").ZodNumber;
+                }, import("zod/v4/core").$strict>]>;
+                data: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 kind: import("zod").ZodLiteral<"topic">;
                 topic: import("zod").ZodObject<{
+                    captureId: import("zod").ZodOptional<import("zod").ZodString>;
+                    documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
                     topic: import("zod").ZodObject<{
+                        permission: import("zod").ZodOptional<import("zod").ZodEnum<{
+                            "read-only": "read-only";
+                            "workspace-write": "workspace-write";
+                            "danger-full-access": "danger-full-access";
+                        }>>;
+                        hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                        storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
                         topicId: import("zod").ZodNumber;
                         sessionId: import("zod").ZodString;
                         sourceSessionId: import("zod").ZodString;
@@ -1074,11 +1499,20 @@ export declare const TYPERT: {
                     }, import("zod/v4/core").$strict>;
                     messages: import("zod").ZodArray<import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
                         role: import("zod").ZodLiteral<"user">;
+                        attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                            kind: import("zod").ZodEnum<{
+                                image: "image";
+                                file: "file";
+                            }>;
+                            id: import("zod").ZodString;
+                            name: import("zod").ZodString;
+                        }, import("zod/v4/core").$strict>>>;
                         text: import("zod").ZodString;
                         id: import("zod").ZodString;
                         seq: import("zod").ZodNumber;
                     }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                         role: import("zod").ZodLiteral<"assistant">;
+                        renderKey: import("zod").ZodOptional<import("zod").ZodString>;
                         text: import("zod").ZodString;
                         reasoning: import("zod").ZodNullable<import("zod").ZodString>;
                         streaming: import("zod").ZodBoolean;
@@ -1092,6 +1526,14 @@ export declare const TYPERT: {
                         seq: import("zod").ZodNumber;
                     }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                         role: import("zod").ZodLiteral<"tool">;
+                        attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                            kind: import("zod").ZodEnum<{
+                                image: "image";
+                                file: "file";
+                            }>;
+                            id: import("zod").ZodString;
+                            name: import("zod").ZodString;
+                        }, import("zod/v4/core").$strict>>>;
                         name: import("zod").ZodString;
                         arguments: import("zod").ZodString;
                         result: import("zod").ZodNullable<import("zod").ZodString>;
@@ -1131,12 +1573,12 @@ export declare const TYPERT: {
                         elements: import("zod").ZodArray<import("zod").ZodObject<{
                             id: import("zod").ZodString;
                             kind: import("zod").ZodEnum<{
+                                image: "image";
                                 text: "text";
                                 markdown: "markdown";
                                 math: "math";
                                 svg: "svg";
                                 html: "html";
-                                image: "image";
                                 table: "table";
                             }>;
                             content: import("zod").ZodString;
@@ -1167,6 +1609,13 @@ export declare const TYPERT: {
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 kind: import("zod").ZodLiteral<"topics">;
                 topics: import("zod").ZodArray<import("zod").ZodObject<{
+                    permission: import("zod").ZodOptional<import("zod").ZodEnum<{
+                        "read-only": "read-only";
+                        "workspace-write": "workspace-write";
+                        "danger-full-access": "danger-full-access";
+                    }>>;
+                    hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                    storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
                     topicId: import("zod").ZodNumber;
                     sessionId: import("zod").ZodString;
                     sourceSessionId: import("zod").ZodString;
@@ -1294,6 +1743,8 @@ export declare const TYPERT: {
                     }>;
                     content: import("zod").ZodString;
                     truncated: import("zod").ZodBoolean;
+                    page: import("zod").ZodDefault<import("zod").ZodNumber>;
+                    pageCount: import("zod").ZodDefault<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>;
             }, import("zod/v4/core").$strict>], "kind">;
         };

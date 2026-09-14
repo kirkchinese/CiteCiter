@@ -1,7 +1,7 @@
-/** Tiny observable state shared by the selection popover and independent dock. */
+/** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export class CiteBus {
     reportListenerError;
-    snapshot = { menuSelection: null, panelOpen: false, boardCitation: null };
+    snapshot = { panelOpen: false, presentation: 'side', boardCitation: null };
     listeners = new Set();
     nextCitationId = 1;
     /** @param reportListenerError - contains one failed browser subscriber. */
@@ -17,18 +17,18 @@ export class CiteBus {
             this.listeners.delete(listener);
         };
     };
-    /** Show or dismiss the selection question popover. */
-    setMenuSelection(selection) {
-        if (this.snapshot.menuSelection === selection)
-            return;
-        this.snapshot = { ...this.snapshot, menuSelection: selection };
-        this.notify();
-    }
     /** Open or close the independent companion dock. */
     setPanelOpen(panelOpen) {
         if (this.snapshot.panelOpen === panelOpen)
             return;
         this.snapshot = { ...this.snapshot, panelOpen };
+        this.notify();
+    }
+    /** Change only the current workspace presentation, keeping its Topic and drafts. */
+    setPresentation(presentation) {
+        if (this.snapshot.presentation === presentation)
+            return;
+        this.snapshot = { ...this.snapshot, presentation };
         this.notify();
     }
     /**

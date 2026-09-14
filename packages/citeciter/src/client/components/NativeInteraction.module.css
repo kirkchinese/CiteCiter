@@ -1,0 +1,10 @@
+.approval, .questions { flex: none; max-height: min(340px, 42vh); overflow: auto; margin: 8px 12px 0; border: 1px solid var(--dsw-alias-border-l2, #d9dde5); border-radius: 16px; color: var(--dsw-alias-label-primary, #20232a); background: var(--dsw-alias-bg-layer-1, #fff); font-size: 13px; }
+.body { padding: 12px; overflow-wrap: anywhere; }
+.body p { margin: 8px 0; white-space: pre-wrap; }
+.body pre { white-space: pre-wrap; font-size: 12px; }
+.body summary { cursor: pointer; }
+.actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 8px 12px; background: var(--dsw-alias-bg-layer-1, #fff); border-top: 1px solid var(--dsw-alias-border-l2, #d9dde5); }
+.actions button { min-height: 36px; padding: 6px 14px; border: 1px solid var(--dsw-alias-border-l2, #d9dde5); border-radius: 10px; color: inherit; background: transparent; cursor: pointer; font: inherit; }
+.actions button:last-child { background: #3478f6; border-color: #3478f6; color: #fff; }
+.actions button:disabled { opacity: .5; cursor: default; }
+.actions button:focus-visible { outline: 2px solid #3478f6; outline-offset: 2px; }

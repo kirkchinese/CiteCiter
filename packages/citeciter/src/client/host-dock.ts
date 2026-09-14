@@ -1,4 +1,4 @@
-/** Isolated, disposable layout adapter for DSH rc.1 and Desktop 2.0.5 frames. */
+/** Isolated, disposable layout adapter for DSH 0.1.5-rc.1 and Desktop 2.0.9 frames. */
 import { useEffect, useState, type RefObject } from 'react'
 import { resolveDockGeometry, type DockGeometry } from './dock-geometry.ts'
 
@@ -19,7 +19,7 @@ export function findContainingFrame(panel: HTMLElement | null): HTMLElement | nu
  * @param percent - user's preferred fraction of the content viewport.
  * @returns measured panel placement; null when the host frame is unsupported.
  */
-export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number): DockGeometry | null {
+export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number, floating = false): DockGeometry | null {
   const [geometry, setGeometry] = useState<DockGeometry | null>(null)
   useEffect(() => {
     if (!open) return
@@ -47,7 +47,7 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
       if (frame.dataset.citeciterDockOwner !== undefined && frame.dataset.citeciterDockOwner !== owner) return
       const columns = frame.style.gridTemplateColumns
       const tracks = /^(\d+(?:\.\d+)?)px\s+minmax\(0(?:px)?,\s*1fr\)\s+(\d+(?:\.\d+)?)px$/u.exec(columns)
-      if (tracks === null || getComputedStyle(frame).display !== 'grid') {
+      if (tracks === null || frame.hasAttribute('data-rightbar-fullscreen') || getComputedStyle(frame).display !== 'grid') {
         clear()
         setGeometry(null)
         return
@@ -58,6 +58,12 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
       const next = resolveDockGeometry({
         width: rect.width, height: rect.height, sidebar: Number(tracks[1]), details: Number(tracks[2]), caption, percent,
       })
+      if (floating && next.mode === 'columns') {
+        clear()
+        setGeometry(previous => previous?.mode === next.mode && previous.width === next.width
+          && previous.height === next.height && previous.top === next.top ? previous : next)
+        return
+      }
       setTrack('--citeciter-host-columns', columns)
       setTrack('--citeciter-dock-width', next.width + 'px')
       setTrack('--citeciter-dock-height', next.height + 'px')
@@ -72,12 +78,12 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
     const resize = new ResizeObserver(apply)
     const mutations = new MutationObserver(apply)
     resize.observe(frame)
-    mutations.observe(frame, { attributes: true, attributeFilter: ['style', 'class'], childList: true })
+    mutations.observe(frame, { attributes: true, attributeFilter: ['style', 'class', 'data-rightbar-fullscreen'], childList: true })
     return () => {
       resize.disconnect()
       mutations.disconnect()
       clear()
     }
-  }, [open, panel, percent])
+  }, [open, panel, percent, floating])
   return geometry
 }
