@@ -260,7 +260,7 @@ function formatEvidenceEvent(event, includeReasoning) {
             return null;
     }
 }
-/** Format one seq range without exposing chunks or exceeding the event-array byte budget. */
+/** Format a range plus the readable snapshot horizon and cursor, without exposing chunks or exceeding the event-array byte budget. */
 export function formatSourceSessionRead(source, options) {
     const fromSeq = options.fromSeq ?? 0;
     if (!Number.isSafeInteger(fromSeq) || fromSeq < 0)
@@ -326,13 +326,17 @@ export function formatSourceSessionRead(source, options) {
         bytesUsed += eventBytes;
         capturedThroughSeq = event.seq;
     }
+    const nextFromSeq = source.events.find(event => event.seq >= fromSeq && (capturedThroughSeq === null || event.seq > capturedThroughSeq))?.seq ?? null;
     return {
         sourceSessionId: source.session.id,
+        sourceMaxSeq: source.events.at(-1)?.seq ?? null,
         requestedFromSeq: fromSeq,
         requestedThroughSeq: options.throughSeq ?? null,
         capturedThroughSeq,
         availableThroughSeq,
         truncated,
+        hasMore: nextFromSeq !== null,
+        nextFromSeq,
         bytesUsed,
         events,
     };

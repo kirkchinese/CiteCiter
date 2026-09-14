@@ -12,11 +12,12 @@ CiteCiter 为 DeepSeek Harness 提供带来源引用的独立工作区。可从�
 
 ## 版本与安装
 
-当前版本为 **0.8.1**。兼容基线为 DSH `0.1.5-rc.1`、[DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`；Node.js `^22.19.0 || >=24.0.0`。本轮 Windows 验收使用 Node 24.19.0。DSH 的 next、alpha 和 TUI 属于其他目标。
+本分支为 **0.8.2 修复候选版，尚未发布**；npm 正式版为 0.8.1。兼容基线为 DSH `0.1.5-rc.1`、[DSH Desktop](https://github.com/anywhere-labs/dsh-desktop) `2.0.9`；Node.js `^22.19.0 || >=24.0.0`。本轮 Windows 验收使用 Node 24.19.0。DSH 的 next、alpha 和 TUI 属于其他目标。
 
 | 版本 | 状态 | 主要差异 |
 | --- | --- | --- |
-| 0.8.1 | 当前版本 | 修复 Linux/macOS 符号链接启动时无法打开 Topic |
+| 0.8.2 | 修复候选版，未发布 | 明确来源读取上界与续读位置，恢复原生 Topic 首答建议追问 |
+| 0.8.1 | 已发布 | 修复 Linux/macOS 符号链接启动时无法打开 Topic |
 | 0.8.0 | 已弃用，请升级 0.8.1 | Linux 符号链接启动错误会阻止 Topic 打开 |
 | 0.7.0-beta.3 | 前一开发候选版 | 私有只读 Topic、选文轮盘、手动五阶段学习 |
 | 0.6.0 | 已发布 | DSH 0.1.2-rc.1 / Desktop 2.0.5 基线 |
@@ -40,10 +41,16 @@ pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
-dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.1.tgz
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.8.2.tgz
 ```
 
 Desktop 使用自己的内置 DSH。在其管理终端执行 `dsh plugin add @kirkchinese/dsh-citeciter@0.8.1` 升级插件，也可传入本地安装包绝对路径；全局 CLI 更新不会更新 Desktop 内置运行时。安装后重启相应宿主。同一 DSH home 不要同时运行 Web 和 Desktop 写入进程。
+
+## 来源读取与建议追问
+
+`read_source_session` 按字节预算分页。`sourceMaxSeq` 是本次快照的可读上界；`availableThroughSeq` 是旧版请求上界标记，不能用它判断来源结束。`hasMore` 为 true 时，以 `nextFromSeq` 作为下一次 `fromSeq`，省略 `throughSeq` 继续读取。`truncated` 只表示当前范围因字节预算停止；空页、过滤事件及超大内容占位不代表来源不存在。Observer 每次读取当前已提交事件，Exact Fork 只读取继承前缀。
+
+原生 Topic 的首答默认提供三条建议追问，可在 CiteCiter 设置中关闭。点击建议只填入草稿，手动发送后才调用模型。来源说明和建议追问由独立提示词模块提供；来源内容继续按已发送附件读取。
 
 ## 草稿与引用
 
@@ -124,7 +131,7 @@ Citer 打开时，从右上角“…” → “文档阅读”进入阅读器；
 
 ## 开发与验收
 
-[开发规范](../../CONTRIBUTING.zh.md) · [0.8.1 修复说明](../../docs/releases/v0.8.1.md) · [真实模型验收](../../docs/validation/2026-09-12-native-real-model.md)
+[开发规范](../../CONTRIBUTING.zh.md) · [0.8.2 修复说明](../../docs/releases/v0.8.2.md) · [真实模型验收](../../docs/validation/2026-09-14-source-read-guidance.md)
 
 Host 和 Client 分别编译。原生会话适配、来源读取、索引存储、附件、发送队列、板书截图、学习计划和 UI 控件独立实现；不修改 DSH Agent Loop。完整宿主输入组件尚无跨会话嵌入接口，Citer 通过公开 ConversationController / SessionFace 复用行为，不能自动继承所有第三方输入区扩展。
 

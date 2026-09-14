@@ -27,6 +27,7 @@ git diff --check
 | source-session.ts | 来源观察、释放与已发送附件检查 |
 | topic-index.ts | 元数据校验、索引与旧私有日志清理 |
 | topic-runtime.ts | Topic 用例编排、工具贡献及旧日志兼容 |
+| source-read-tool.ts / topic-prompts.ts | 来源工具契约、分页说明与原生提示词组合 |
 | board-capture.ts | 截图请求关联、取消、超时和原生附件保存 |
 | client/native-composer.ts | 适配公开 DSH 附件、发送与队列服务 |
 | client/draft-references.ts | 待发送引用构造和精确序列化 |
