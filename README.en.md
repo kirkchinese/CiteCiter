@@ -127,6 +127,14 @@ Configure the trigger, default model and eight slots in Settings → CiteCiter. 
 
 A short right-click leaves a clickable wheel; Shift + right-click preserves the native menu. Arrow keys, digits 1–8 and Enter select actions. Center, empty slots, outside release, Escape, source changes or wheel blur cancel. The question dialog survives app blur and closes only on explicit dismissal or source change.
 
+## Sibling project
+
+CiteCiter and [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, serve one workflow: moving knowledge between agent tools and then reusing it.
+
+- **Claude2DSH** — migrates Claude Code conversations, skills, subagents, slash commands, memory and MCP servers into DeepSeek Harness as native resumable sessions and assets, and exports back. It brings the past context in; CiteCiter keeps what you conclude from it traceable.
+
+Both follow the same rules: public extension points only, nothing written into a foreign tool's directory without explicit authorization, and a real-profile acceptance run before every release. If you are reorganizing past sessions, importing first makes citing them much easier.
+
 ## Development and acceptance
 
 [Contributing](CONTRIBUTING.md) · [0.8.2 fix notes](docs/releases/v0.8.2.md) · [Real-model acceptance](docs/validation/2026-09-14-source-read-guidance.md)
