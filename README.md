@@ -129,6 +129,14 @@ Citer 打开时，从右上角“…” → “文档阅读”进入阅读器；
 
 右键短按保留可点击轮盘，Shift + 右键使用原生菜单；可用方向键、数字 1–8 和 Enter 选择。中心、空槽、轮盘外、Esc、来源切换或轮盘失焦取消动作。补充问题输入框在应用失焦时保留，主动关闭或切换来源才取消。
 
+## 兄弟项目
+
+CiteCiter 与同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 面向同一类工作流：在多个 agent 工具之间迁移并复用知识。
+
+- **Claude2DSH** —— 把 Claude Code 的会话、技能、子 agent、斜杠命令、记忆与 MCP 服务器迁移为 DSH 原生可续聊会话与资产，并支持反向导出。它负责「把过去的上下文搬进来」，CiteCiter 负责「让搬进来之后的答案可追溯」。
+
+两者遵循同一套约定：只使用公开扩展点、未经显式授权不写入外部工具目录、发布前跑真实 profile 验收。如果你正在整理历史会话，先迁入再引用会顺手很多。
+
 ## 开发与验收
 
 [开发规范](CONTRIBUTING.zh.md) · [0.8.2 修复说明](docs/releases/v0.8.2.md) · [真实模型验收](docs/validation/2026-09-14-source-read-guidance.md)
