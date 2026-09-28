@@ -1,6 +1,6 @@
 # 0.9.0-alpha.1 发布检查
 
-2026-09-28。用户确认将只读 PowerShell 问题作为上游宿主限制，不再阻挡本次 alpha 预发布。代码与安装核对完成，远端 CI 和发布结果在下方补记；npm next、GitHub prerelease，正式版 latest 保持 0.8.2。
+2026-09-28。用户确认将只读 PowerShell 问题作为上游宿主限制，不再阻挡本次 alpha 预发布。代码、安装核对和远端 CI 已完成，GitHub 预发布已发布；npm 上传被自动审批拒绝，待用户手动执行。具体结果见文末；npm next、GitHub prerelease，正式版 latest 保持 0.8.2。
 
 ## 发布决定与最终包
 
@@ -42,8 +42,8 @@ npm 查询：DSH latest/next 为 0.1.7-rc.2，alpha 为 0.1.7-alpha.2；Codex Co
 | 只读 PowerShell | 已知上游限制，用户接受本次 alpha 携带该限制发布；未修复、未计为功能通过，不修改权限 |
 | 偶发 UNKNOWN | 本轮完整构建通过；历史错误根因未确定，不声称修复或添加无证据重试 |
 | 本地旧目录 | 用户清理后五项已不存在；dsh-rc1 仍在，排除于包和 Git，备份保留 |
-| Git 与远端验收 | 正在提交本次发布相关内容；个人 VS Code 配置与既有宣传制作记录不纳入此次提交，远端 CI 结果待补记 |
-| 发布 | 已获准 next 预发布，待当前提交 CI 完成后执行并核对公开包摘要 |
+| Git 与远端验收 | 4b2a89e 经 PR #10 合并为 main 616ea87；Windows / Ubuntu CI 的锁文件、两套 SDK、构建与打包全部通过。个人 VS Code 配置和既有宣传制作记录未纳入提交 |
+| 发布 | GitHub v0.9.0-alpha.1 prerelease 已发布并核对资产 SHA-256；npm publish 被自动审批拒绝，尚未上传，待用户操作 |
 
 安装时 pnpm peers check 报告宿主 peers 未列入 Profile 自身的依赖图；实际 DSH 通过共享依赖链接提供它们。两端实际模块解析和版本核对均通过，因此该警告与 Issue #9 的版本闸门拒绝分别记录，没有额外安装第二套宿主单例来消除警告。
 
@@ -52,3 +52,11 @@ npm 查询：DSH latest/next 为 0.1.7-rc.2，alpha 为 0.1.7-alpha.2；Codex Co
 ## 发布参数演练
 
 第一轮 tarball dry-run 暴露本机默认 registry 为 npmmirror.com。第二十二包明确声明官方 registry；但省略 --tag 的 tarball dry-run 仍选择 latest，说明不能仅依赖 publishConfig.tag。最后以 --registry=https://registry.npmjs.org --tag next --access public --dry-run --ignore-scripts 检查同一个候选 tarball，输出确认官方 npm、next、公有包，退出码 0。所有演练都有 --dry-run，没有上传。登录提示仍存在；dry-run 不证明正式发布凭据有效。
+
+## 公开发布结果
+
+[PR #10](https://github.com/kirkchinese/CiteCiter/pull/10) 已合并；发布标签 v0.9.0-alpha.1 指向 616ea87a7aecc0d0fca9b2d2eff9b98cc7839675，与通过检查的 4b2a89e249626114d9e2dae5f86e9d259b57a7be 源码树一致。[CI 36416110193](https://github.com/kirkchinese/CiteCiter/actions/runs/36416110193) 的 Windows / Node 24 与 Ubuntu / Node 22.19.0 均通过，Ubuntu 的静态检查不扩展本轮 Linux 功能声明。
+
+[GitHub Release](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.1) 已作为 prerelease 发布，未设为 latest；包含 900835 字节 tgz 和 SHA256SUMS，GitHub 报告的 tgz digest 与本地最终包完全一致。Release 正文明示 npm 尚待上传，可以使用附件 tgz 安装。
+
+npm 正式上传命令被自动审批在执行前拒绝，仅返回 blocked by policy，未提供具体规则。没有换工具、CI 或 DSH 重试同一受限动作。提供给用户的本地手动发布助手固定官方 registry、next、公有包和上述 SHA-256，隐藏输入密钥，只向临时子进程提供凭据，结束后恢复环境并清理无密钥配置文件；助手不入库，语法检查通过，未由代理执行。此前官方 whoami 成功，不能据此宣称上传已经完成。
