@@ -1,5 +1,16 @@
+/** Append real references once per unsent draft. A later explicit selection can restore a removed item. */
+export function mergeDraftReferences(current, incoming) {
+    const result = [...current];
+    for (const reference of incoming) {
+        if (!result.some(item => item.id === reference.id || item.kind === reference.kind && item.address === reference.address && item.content === reference.content))
+            result.push(reference);
+    }
+    return result;
+}
 /** Build initial references without submitting them. Stable Topic-scoped IDs preserve menu focus during live snapshot refreshes. */
 export function topicDraftReferences(topic, documentTitle) {
+    if (topic.citation === null && topic.documentId === null)
+        return [];
     const address = `dsh://session/${encodeURIComponent(topic.sourceSessionId)}`;
     const references = [{ id: `source:${topic.sessionId}`, kind: 'source', label: '来源对话', content: topic.sourceSessionId, address }];
     if (topic.documentId !== null)

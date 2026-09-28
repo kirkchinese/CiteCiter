@@ -8,8 +8,8 @@ export declare class CiterAgentRegistry extends AgentRegistry {
         readonly registry: AgentRegistry;
     });
     enter(agent: Agent, owner: Agent | undefined): () => void;
-    announce(agent: Agent): void;
-    register(agent: Agent): () => void;
+    announce(...args: Parameters<AgentRegistry['announce']>): ReturnType<AgentRegistry['announce']>;
+    register(agent: Agent): ReturnType<AgentRegistry['register']>;
     get(id: SessionId): Agent | undefined;
     list(): Agent[];
     roots(): Agent[];

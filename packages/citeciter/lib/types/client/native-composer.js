@@ -1,4 +1,8 @@
 import { CiterSessionFace } from "./citer-session-face.js";
+import { requireSelectedModel } from "../model-admission.js";
+/** A lost transport response is not proof that the host rejected a submission. */
+export class UncertainSubmissionError extends Error {
+}
 /** Adapt the installed conversation service's published composer methods; never reach its private input machine. */
 export function createNativeComposer(ctx) {
     const conversation = ctx.conversation;
@@ -58,9 +62,14 @@ export function createNativeComposer(ctx) {
             return drafts;
         },
         remove: id => { conversation.releaseDraftAttachment(id); owned.delete(id); },
-        send: async (id, text, attachments, mode) => {
+        send: async (id, text, attachments, mode, requestId) => {
             const target = await binding(id);
-            const outcome = await conversation.sendSession(target.session, text, attachments, mode);
+            requireSelectedModel({ modelSelectionRequired: target.session.getSnapshot().modelSelectionRequired });
+            if (requestId !== undefined)
+                target.session.prepareSubmission(requestId);
+            const outcome = await conversation.sendSession(target.session, text, attachments, mode).catch(error => {
+                throw new UncertainSubmissionError(`未收到发送结果：${String(error)}；请核对发送状态，草稿已保留`);
+            });
             if (outcome.kind === 'error') {
                 const failure = target.session.getSnapshot().promptError?.error;
                 const details = failure?.details;
@@ -68,6 +77,8 @@ export function createNativeComposer(ctx) {
                 const reason = failure?.code === 'session/attachment-invalid' && (attachmentReason === 'INVALID_IMAGE' || attachmentReason === 'IMAGE_TYPE_MISMATCH')
                     ? '附件格式无效或内容损坏，请移除或更换附件后重试'
                     : failure?.message ?? outcome.text ?? 'DSH 未接受此次发送';
+                if (failure === undefined)
+                    throw new UncertainSubmissionError(`${reason}；请核对发送状态，草稿已保留`);
                 throw new Error(`${reason}；草稿已保留`);
             }
             for (const id of attachments)

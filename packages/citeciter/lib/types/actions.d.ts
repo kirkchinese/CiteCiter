@@ -12,6 +12,10 @@ export declare const citeActionSchema: z.ZodObject<{
         side: "side";
         floating: "floating";
     }>;
+    target: z.ZodOptional<z.ZodEnum<{
+        current: "current";
+        new: "new";
+    }>>;
 }, z.core.$strict>;
 export type CiteAction = z.infer<typeof citeActionSchema>;
 export declare const wheelSlotsSchema: z.ZodArray<z.ZodNullable<z.ZodObject<{
@@ -26,6 +30,10 @@ export declare const wheelSlotsSchema: z.ZodArray<z.ZodNullable<z.ZodObject<{
         side: "side";
         floating: "floating";
     }>;
+    target: z.ZodOptional<z.ZodEnum<{
+        current: "current";
+        new: "new";
+    }>>;
 }, z.core.$strict>>>;
 export declare const wheelTriggerSchema: z.ZodEnum<{
     "right-button": "right-button";
@@ -43,5 +51,7 @@ export declare const actionModelSchema: z.ZodObject<{
 export type ActionModel = z.infer<typeof actionModelSchema>;
 /** Clockwise from twelve o'clock. Empty slots retain their positions. */
 export declare const DEFAULT_WHEEL_SLOTS: readonly (CiteAction | null)[];
+/** Preserve customized legacy slots; only the unchanged built-in free question gains append behavior. */
+export declare function actionTarget(action: CiteAction): 'current' | 'new';
 /** Combine a mode and optional user question without hidden system state. */
 export declare function actionQuestion(action: CiteAction, question: string): string;

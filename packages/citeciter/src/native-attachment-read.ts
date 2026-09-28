@@ -1,11 +1,11 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { assembleAssistantStream, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { Session } from '@deepseek-ai/dsh-session'
+import { toolResultRecord } from './tool-events.ts'
 
 function* attachments(content: readonly ContentBlock[]): Generator<Extract<ContentBlock, { type: 'image' | 'file' }>> {
   for (const block of content) {
     if (block.type === 'image' || block.type === 'file') yield block
-    else if (block.type === 'tool-result') yield* attachments(block.content)
   }
 }
 
@@ -25,7 +25,7 @@ export async function readNativeAttachment(ctx: Context, session: Session, id: s
     const content = event.type === 'user/message' ? event.data.content
       : event.type === 'assistant/message' ? event.data.message.content
       : event.type === 'assistant/attempt' ? assembleAssistantStream(event.data.stream).blocks()
-      : event.type === 'tool/result' ? event.data.message.content : []
+      : toolResultRecord(event)?.content ?? []
     for (const block of attachments(content)) if (String(block.attachment.attachmentId) === id) {
       if (block.type === 'image') {
         const stored = await ctx.attachments.readImage(block.attachment, signal)

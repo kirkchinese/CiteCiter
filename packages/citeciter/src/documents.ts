@@ -1,6 +1,6 @@
 /** Private CiteCiter document library: durable text/Markdown sources for Reading Topics. */
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
 import { isAbsolute, relative, resolve } from 'node:path'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import {
@@ -12,6 +12,7 @@ import {
 } from './topic.ts'
 
 import { documentPages } from './document-pages.ts'
+import { atomicReplace } from './atomic-replace.ts'
 export { DOCUMENT_CONTENT_MAX_BYTES } from './document-pages.ts'
 
 const DOCUMENT_ROOT = dshHomePath('citeciter', 'documents')
@@ -33,7 +34,7 @@ async function atomicWriteJson(path: string, value: unknown): Promise<void> {
   const temp = `${path}.${randomUUID()}.tmp`
   try {
     await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
-    await rename(temp, path)
+    await atomicReplace(temp, path)
   } catch (error) {
     try {
       await unlink(temp)

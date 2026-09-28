@@ -1,5 +1,6 @@
 /** Host entry for native Topics, legacy compatibility and the browser Remote API. */
 import { Service, type Context } from '@deepseek-ai/cordis';
+import { type SettingsReader } from './host-settings-adapter.ts';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import z from '@deepseek-ai/schemastery';
 import { type UpdateCheckResponse } from './update.ts';
@@ -15,11 +16,12 @@ export declare const CITECITER_SETTINGS_SCHEMA: z<object>;
 /** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
 export declare class CiteCiterHost extends TypertRemoteService {
     static inject: readonly ["llm", "sessionQuery", "subprocess", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
+    static Config: z<object>;
     private readonly topics;
     private readonly updates;
     private readonly service;
     private releaseService;
-    constructor(ctx: Context);
+    constructor(ctx: Context, config?: SettingsReader);
     /** Do not publish the Remote service until its private runtime is ready. */
     [Service.init](): Promise<void>;
     /** Resolve one create/ask command into a committed Topic snapshot. */

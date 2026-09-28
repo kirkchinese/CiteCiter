@@ -2,9 +2,11 @@ import { parseFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ActionSource } from './action-controller.ts'
 import type { ReaderSelection } from './reader-selection.ts'
+import type { DocumentPreviewProps } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 
 /** Decode a complete Host-owned preview buffer. Reject binary, partial and oversized imports. */
-export function decodeNativeText(content: { readonly kind: 'text', readonly text: string, readonly eof: boolean } | { readonly kind: 'bytes', readonly data: Uint8Array }): string {
+export function decodeNativeText(content: DocumentPreviewProps['content']): string {
+  if (content.kind !== 'text' && content.kind !== 'bytes') throw new Error('此预览没有文本数据，请切换到文本文件的学习查看方式')
   if (content.kind === 'text' && !content.eof) throw new Error('请等待原生预览读取完整文件后再学习')
   if (content.kind === 'bytes' && content.data.byteLength > 8 * 1024 * 1024) throw new Error('学习文本超过 8 MiB 上限')
   const text = content.kind === 'text' ? content.text : new TextDecoder('utf-8', { fatal: true }).decode(content.data)

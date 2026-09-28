@@ -6,10 +6,12 @@ export interface DockViewport {
     readonly details: number;
     readonly caption: number;
     readonly percent: number;
+    /** Explicit Citer navigation may temporarily take the compact page from details. */
+    readonly preferDetails?: boolean;
 }
-/** Wide windows reserve a column; compact windows navigate to a Citer page. */
+/** Wide windows reserve a column; compact details take priority unless Citer was explicitly selected. */
 export interface DockGeometry {
-    readonly mode: 'columns' | 'page';
+    readonly mode: 'columns' | 'page' | 'suspended';
     readonly width: number;
     readonly height: number;
     readonly top: number;

@@ -1,4 +1,6 @@
+import { actionTarget } from "../actions.js";
 import { actionSourceSession } from "./action-controller.js";
+import { selectionReferences } from "./selection-references.js";
 /** Bind explicit Topic and document services. No UI, global listeners or Cordis discovery. */
 export function createActionExecutor(companion, reader, open) {
     const imports = new WeakMap();
@@ -10,11 +12,17 @@ export function createActionExecutor(companion, reader, open) {
         };
         assertSource();
         open(action.presentation);
+        const target = actionTarget(action) === 'current' ? await companion.resolveDraftTopic(sourceId) : null;
+        assertSource();
         if (source.kind === 'conversation') {
-            await companion.create(source.selection, question, undefined, action.scenario, modelRoute);
+            if (target !== null)
+                companion.appendSelection(sourceId, target, question, selectionReferences(source));
+            else {
+                await companion.create(source.selection, question, undefined, action.scenario, modelRoute);
+                if (companion.getSnapshot().phase === 'error')
+                    throw new Error(companion.getSnapshot().error ?? '创建失败');
+            }
             assertSource();
-            if (companion.getSnapshot().phase === 'error')
-                throw new Error(companion.getSnapshot().error ?? '创建失败');
             return;
         }
         let documentId = source.documentId ?? imports.get(source);
@@ -28,7 +36,10 @@ export function createActionExecutor(companion, reader, open) {
             imports.set(source, documentId);
         }
         assertSource();
-        await companion.createFromDocument({ documentId, displayText: source.displayText, prefixText: source.prefixText, suffixText: source.suffixText }, question, sourceId, modelRoute);
+        if (target !== null)
+            companion.appendSelection(sourceId, target, question, selectionReferences(source, documentId));
+        else
+            await companion.createFromDocument({ documentId, displayText: source.displayText, prefixText: source.prefixText, suffixText: source.suffixText }, question, sourceId, modelRoute);
         assertSource();
         reader.setOpen(false);
     };

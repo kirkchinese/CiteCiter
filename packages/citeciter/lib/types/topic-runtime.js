@@ -1,14 +1,22 @@
 import { SourceStorage } from "./source-storage.js";
+import { DraftStore } from "./draft-store.js";
+import { requireSelectedModel, selectInitialModel } from "./model-admission.js";
 import { createSourceReadTool, sourceReadPrompt, SOURCE_READ_SECTION_NAME } from "./source-read-tool.js";
 import { composeHostedTopicPrompt, FIRST_ANSWER_FOLLOWUPS } from "./topic-prompts.js";
 import { readNativeState } from "./native-session-read.js";
 import { readNativeAttachment } from "./native-attachment-read.js";
+import { toolCallRecord, toolResultRecord } from "./tool-events.js";
+import { contextMessage } from "./message-projection.js";
+import { latestTopicSubmission, topicSubmissionTime } from "./topic-archive.js";
+import { resolveReadableDocument } from "./document-access.js";
+import { createDocumentReadTool, createDocumentSearchTool } from "./document-tools.js";
 import { removeOwnedSessionTree } from "./owned-session-cleanup.js";
 import { copySessionHistory } from "./session-migration.js";
 import { TopicIndex, unlinkIfPresent, rmdirIfEmpty, removeOwnedTopicGenerations } from "./topic-index.js";
 /** Private DSH runtime and durable Topic index for CiteCiter conversations. */
 import { randomUUID } from 'node:crypto';
-import { LEARNING_PROMPT, learningCardsInputSchema } from "./learning.js";
+import { LEARNING_PROMPT, LEARNING_CARD_FIELD_DESCRIPTIONS, learningCardsInputSchema } from "./learning.js";
+import { LEARNING_EXAMPLE_PARAMETER } from "./learning-example.js";
 import { relative, resolve, matchesGlob } from 'node:path';
 import { Context } from '@deepseek-ai/cordis';
 import AgentRegistry, { installModelSelection, } from '@deepseek-ai/dsh-agent';
@@ -36,8 +44,6 @@ import { HostSessionAdapter } from "./host-session-adapter.js";
 import { TopicStreamProjection } from "./topic-stream.js";
 import { CITATION_CONTEXT_NAME, CITATION_SCHEMA_VERSION, DEFAULT_CITECITER_SETTINGS, DEFAULT_TOPIC_SCENARIO, TOPIC_METADATA_SCHEMA_VERSION, TUTOR_SECTION_NAME, citeCiterRequestSchema, renderCitationContext, topicMetadataSchema, } from "./topic.js";
 const TOPIC_SESSION_ROOT = dshHomePath('citeciter', 'sessions');
-const DOCUMENT_TOOL_MAX_BYTES = 50 * 1024;
-const DOCUMENT_SEARCH_MAX_MATCHES = 20;
 const ALWAYS_AVAILABLE_TOOLS = new Set(['read_source_session', 'ask_user_question', 'blackboard_apply', 'learning_cards']);
 const SOURCE_FILE_TOOLS = new Set(['read', 'glob', 'grep']);
 /**
@@ -258,8 +264,7 @@ function textBlocks(content, type) {
     return content.flatMap((block) => block.type === type ? [block.text] : []).join('');
 }
 function toolResultText(content) {
-    const result = content.find((block) => block.type === 'tool-result');
-    return result?.type === 'tool-result' ? textBlocks(result.content, 'text') : '';
+    return textBlocks(content, 'text');
 }
 function validatedQuestionAnswer(questions, answer) {
     if (answer.answers.length !== questions.length)
@@ -298,19 +303,26 @@ function latestObservedSeq(events) {
     const sourceCalls = new Set();
     let observed = null;
     for (const event of events) {
-        if (event.type === 'tool/call' && event.data.name === 'read_source_session') {
-            sourceCalls.add(event.data.callId);
+        const call = toolCallRecord(event);
+        if (call?.name === 'read_source_session') {
+            sourceCalls.add(call.callId);
             continue;
         }
-        if (event.type !== 'tool/result')
+        const result = toolResultRecord(event);
+        if (result === undefined || result.isError || !sourceCalls.has(result.callId))
             continue;
-        const result = event.data.message.content[0];
-        if (!sourceCalls.has(result.toolCallId))
-            continue;
-        const meta = event.data.meta;
+        let meta = result.meta;
+        if (meta === undefined) {
+            try {
+                meta = JSON.parse(toolResultText(result.content));
+            }
+            catch {
+                continue;
+            } // Non-JSON results do not contain a recoverable source cursor.
+        }
         if (typeof meta !== 'object' || meta === null || Array.isArray(meta))
             continue;
-        const value = meta.capturedThroughSeq;
+        const value = 'capturedThroughSeq' in meta ? meta.capturedThroughSeq : undefined;
         if (value === null || typeof value === 'number')
             observed = value;
     }
@@ -350,14 +362,15 @@ export function topicMessages(log) {
                 });
             continue;
         }
-        if (event.type === 'user/message' && event.data.source.kind === 'plugin') {
-            const text = textBlocks(event.data.content, 'text');
+        const context = contextMessage(event);
+        if (context !== undefined) {
+            const text = textBlocks(context.content, 'text');
             if (text !== '')
                 messages.push({
-                    id: event.data.id,
+                    id: context.id,
                     seq: event.seq,
                     role: 'context',
-                    label: event.data.source.plugin === '@deepseek-ai/dsh-system-prompt' ? '提示词注入' : '上下文注入',
+                    label: context.label,
                     text,
                 });
             continue;
@@ -382,22 +395,24 @@ export function topicMessages(log) {
                 });
             continue;
         }
-        if (event.type === 'tool/call') {
-            toolIndexes.set(String(event.data.callId), messages.length);
+        const toolCall = toolCallRecord(event);
+        if (toolCall !== undefined) {
+            toolIndexes.set(toolCall.callId, messages.length);
             messages.push({
-                id: String(event.data.callId),
+                id: toolCall.callId,
                 seq: event.seq,
                 role: 'tool',
-                name: event.data.name,
-                arguments: event.data.arguments,
+                name: toolCall.name,
+                arguments: toolCall.arguments,
                 result: null,
                 isError: false,
                 running: true,
             });
             continue;
         }
-        if (event.type === 'tool/result') {
-            const callId = String(event.data.message.source.callId);
+        const toolResult = toolResultRecord(event);
+        if (toolResult !== undefined) {
+            const callId = toolResult.callId;
             const index = toolIndexes.get(callId);
             if (index === undefined)
                 continue;
@@ -407,9 +422,9 @@ export function topicMessages(log) {
             messages[index] = {
                 ...call,
                 seq: event.seq,
-                result: toolResultText(event.data.message.content),
-                attachments: event.data.message.content.flatMap(block => block.type === 'tool-result' ? block.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []) : []),
-                isError: event.data.error !== undefined || event.data.message.content[0].isError === true,
+                result: toolResultText(toolResult.content),
+                attachments: toolResult.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []),
+                isError: toolResult.isError,
                 running: false,
             };
             continue;
@@ -449,21 +464,20 @@ export function projectBoardFromLog(log) {
     let invalid = 0;
     const start = log.inheritedEventCount;
     for (const event of log.events.slice(start)) {
-        if (event.type === 'tool/call' && event.data.name === 'blackboard_apply') {
-            calls.set(String(event.data.callId), event.data.arguments);
+        const call = toolCallRecord(event);
+        if (call?.name === 'blackboard_apply') {
+            calls.set(call.callId, call.arguments);
             continue;
         }
-        if (event.type !== 'tool/result')
+        const result = toolResultRecord(event);
+        if (result === undefined)
             continue;
-        const result = event.data.message.content.find((block) => block.type === 'tool-result');
-        if (result?.type !== 'tool-result')
-            continue;
-        const callId = String(result.toolCallId);
+        const callId = result.callId;
         const args = calls.get(callId);
         if (args === undefined)
             continue;
         calls.delete(callId);
-        if (event.data.error !== undefined || result.isError === true)
+        if (result.isError)
             continue;
         try {
             const raw = JSON.parse(args);
@@ -727,14 +741,44 @@ export class TopicRuntime {
     async executeRequest(request, signal) {
         this.assertOpen(signal);
         switch (request.action) {
+            case 'draft-get':
+            case 'draft-save':
+            case 'draft-file-put':
+            case 'draft-file-get':
+                return this.queueTopicAdmission(request.topicSessionId, async () => {
+                    const metadata = await this.index.loadBySessionId(request.topicSessionId);
+                    if (metadata.storage !== 'source')
+                        throw new Error('请先将旧 Topic 迁移到来源目录，再保存草稿');
+                    const drafts = new DraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId));
+                    if (request.action === 'draft-file-put') {
+                        await drafts.put(request.file, request.offset, request.data);
+                        return { kind: 'draft-file-saved' };
+                    }
+                    if (request.action === 'draft-file-get')
+                        return { kind: 'draft-file', data: await drafts.chunk(request.fileId, request.offset) };
+                    if (request.action === 'draft-save') {
+                        if (request.state.pending !== null)
+                            requireSelectedModel(metadata);
+                        return { kind: 'draft', ...await drafts.save(request.state.revision, request.state) };
+                    }
+                    let state = await drafts.read();
+                    if (state.pending !== null) {
+                        const handle = await this.ensureHandle(metadata, signal);
+                        if (readNativeState(handle.agent, [state.pending.requestId]).receipts.length > 0)
+                            state = await drafts.acknowledge(state);
+                    }
+                    return { kind: 'draft', state, conflict: false };
+                }, signal);
             case 'create':
                 return { kind: 'topic', topic: await this.createIdempotent(request, signal) };
             case 'list':
                 return { kind: 'topics', topics: await this.list(request.sourceSessionId, request.includeArchived ?? false, signal) };
+            case 'board-capture-pending':
+                return { kind: 'board-captures', jobs: this.boardCapture.jobs() };
             case 'board-capture': {
                 const metadata = await this.index.loadBySessionId(request.topicSessionId);
                 this.boardCapture.reply(metadata.sessionId, request.id, request.png, request.error);
-                return { kind: 'topic', topic: await this.snapshot(metadata, signal) };
+                return { kind: 'board-capture-accepted' };
             }
             case 'get':
                 return { kind: 'topic', topic: await this.get(request.topicSessionId, signal) };
@@ -743,7 +787,7 @@ export class TopicRuntime {
                 const metadata = await this.index.loadBySessionId(request.topicSessionId);
                 const handle = await this.ensureHandle(metadata, signal);
                 return request.action === 'native-state'
-                    ? { kind: 'native-state', state: readNativeState(handle.agent, request.requestIds) }
+                    ? { kind: 'native-state', state: { ...readNativeState(handle.agent, request.requestIds), modelSelectionRequired: metadata.modelSelectionRequired === true } }
                     : { kind: 'native-attachment', ...await readNativeAttachment(handle.agent.ctx, handle.agent.session, request.attachmentId, signal) };
             }
             case 'ask':
@@ -1190,7 +1234,7 @@ export class TopicRuntime {
         if (metadata.hosted === true) {
             const handle = await this.native.create(metadata, seed, signal);
             this.handles.set(metadata.sessionId, handle);
-            await this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: metadata.modelConfig.provider, model: metadata.modelConfig.model, ...(metadata.modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: metadata.modelConfig.reasoningEffort }) });
+            await selectInitialModel(metadata, () => this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: metadata.modelConfig.provider, model: metadata.modelConfig.model, ...(metadata.modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: metadata.modelConfig.reasoningEffort }) }));
             return handle;
         }
         const handle = await this.runtime.agents.create({
@@ -1222,6 +1266,18 @@ export class TopicRuntime {
         return handle;
     }
     async setupHostedAgent(agentCtx, agent, metadata) {
+        agentCtx.on('session/event', (session, event) => {
+            if (session !== agent.session)
+                return;
+            const submittedAt = topicSubmissionTime(event);
+            if (submittedAt === null)
+                return;
+            // Never await the admission chain inside the host's synchronous log dispatch.
+            void this.restoreSubmittedTopic(metadata, submittedAt).catch((error) => {
+                if (!this.closed && !this.deleting.has(metadata.sessionId))
+                    this.host.logger.warn('CiteCiter could not restore a submitted Topic', error);
+            });
+        });
         const stream = new TopicStreamProjection();
         this.streams.set(metadata.sessionId, stream);
         agentCtx.on('agent/assistant-stream', ({ frame }) => stream.accept(frame, agent.session.snapshotEvents().length));
@@ -1232,16 +1288,14 @@ export class TopicRuntime {
         agentCtx.systemPrompt.section({
             name: TUTOR_SECTION_NAME,
             order: 20,
-            text: () => composeHostedTopicPrompt(this.settings().tutorPrompt, Boolean(this.settings().followupQuestions ?? DEFAULT_CITECITER_SETTINGS.followupQuestions)),
+            text: () => composeHostedTopicPrompt(this.settings().tutorPrompt, Boolean(this.settings().followupQuestions ?? DEFAULT_CITECITER_SETTINGS.followupQuestions), this.settings().learningRoute ?? false),
         });
-        if (metadata.documentId === null)
-            this.registerSourceTool(agentCtx, metadata, agent);
-        else {
-            agentCtx.tools.register(this.readDocumentTool(metadata));
-            agentCtx.tools.register(this.searchDocumentTool(metadata));
-        }
+        this.registerSourceTool(agentCtx, metadata, agent);
+        this.registerDocumentTools(agentCtx, metadata);
         agentCtx.tools.register(this.blackboardApplyTool());
-        agentCtx.tools.register(this.boardCapture.tool(agentCtx));
+        agentCtx.tools.register(this.boardCapture.tool(agentCtx, current => projectBoardFromLog({
+            header: current.session.header, events: current.session.snapshotEvents(), inheritedEventCount: current.session.inheritedEventCount,
+        })));
         agentCtx.tools.register(this.learningCardsTool());
         agentCtx.on('user-questions/request', request => this.askUser(request));
     }
@@ -1282,8 +1336,7 @@ export class TopicRuntime {
             this.registerSourceTool(agentCtx, metadata, agent);
         }
         else {
-            agentCtx.tools.register(this.readDocumentTool(metadata));
-            agentCtx.tools.register(this.searchDocumentTool(metadata));
+            this.registerDocumentTools(agentCtx, metadata);
         }
         agentCtx.tools.register(this.blackboardApplyTool());
         agentCtx.tools.register(this.learningCardsTool());
@@ -1403,11 +1456,11 @@ export class TopicRuntime {
                     items: {
                         type: 'object', additionalProperties: false,
                         properties: {
-                            title: { type: 'string', required: true, description: 'Non-empty title, at most 100 characters.' },
-                            summary: { type: 'string', required: true, description: 'Non-empty summary, at most 2000 characters.' },
-                            example: { type: 'string', required: true, description: 'Non-empty example, at most 1500 characters.' },
-                            question: { type: 'string', required: true, description: 'Non-empty question, at most 500 characters.' },
-                            answer: { type: 'string', required: true, description: 'Non-empty answer, at most 2000 characters.' },
+                            title: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.title },
+                            summary: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.summary },
+                            example: LEARNING_EXAMPLE_PARAMETER,
+                            question: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.question },
+                            answer: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.answer },
                         },
                     },
                 },
@@ -1461,136 +1514,15 @@ export class TopicRuntime {
             }),
         });
     }
-    readDocumentTool(metadata) {
-        return defineTool({
-            name: 'read_document',
-            description: 'Read a bounded window of this Topic\'s source document by UTF-16 offsets. Use fromOffset/throughOffset to page through long documents.',
-            parameters: {
-                fromOffset: { type: 'integer', description: 'Inclusive document offset; defaults to 0.' },
-                throughOffset: { type: 'integer', description: 'Optional exclusive document offset; defaults to the document end.' },
-            },
-            output: {
-                schema: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                        documentId: { type: 'string', required: true },
-                        fromOffset: { type: 'integer', required: true },
-                        throughOffset: { type: 'integer', required: true },
-                        truncated: { type: 'boolean', required: true },
-                        bytesUsed: { type: 'integer', required: true },
-                        text: { type: 'string', required: true },
-                    },
-                },
-                render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
-                presentationMeta: (_args, value) => ({ fromOffset: value.fromOffset, throughOffset: value.throughOffset }),
-            },
-            execute: async (args, exec) => {
-                const documentId = metadata.documentId;
-                if (metadata.hosted === true && !hasSentSource(exec.agent?.session, `dsh://document/${encodeURIComponent(documentId ?? '')}`))
-                    throw new Error('来源文档未作为附件发送，请用户附加后再读取');
-                if (documentId === null)
-                    throw new Error('read_document requires a document Topic');
-                const { content } = await this.documents.read(documentId);
-                exec.signal.throwIfAborted();
-                const fromOffset = args.fromOffset ?? 0;
-                if (!Number.isSafeInteger(fromOffset) || fromOffset < 0 || fromOffset > content.length) {
-                    throw new Error('fromOffset must be a safe integer inside the document');
-                }
-                const requestedThrough = args.throughOffset ?? content.length;
-                if (!Number.isSafeInteger(requestedThrough) || requestedThrough < fromOffset || requestedThrough > content.length) {
-                    throw new Error('throughOffset must be a safe integer at or after fromOffset and inside the document');
-                }
-                const requested = content.slice(fromOffset, requestedThrough);
-                let text = '';
-                let bytesUsed = 0;
-                for (const character of requested) {
-                    const characterBytes = Buffer.byteLength(character, 'utf8');
-                    if (bytesUsed + characterBytes > DOCUMENT_TOOL_MAX_BYTES)
-                        break;
-                    text += character;
-                    bytesUsed += characterBytes;
-                }
-                return {
-                    documentId,
-                    fromOffset,
-                    throughOffset: fromOffset + text.length,
-                    truncated: text.length < requested.length,
-                    bytesUsed,
-                    text,
-                };
-            },
-            presentCall: (args) => ({ card: 'generic', title: `阅读文档 · ${args.fromOffset ?? 0}` }),
-            presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '文档读取失败' : '已读取文档' }),
-        });
-    }
-    searchDocumentTool(metadata) {
-        return defineTool({
-            name: 'search_document',
-            description: 'Find up to 20 case-insensitive occurrences of one term in this Topic\'s source document. Returns UTF-16 offsets for each match.',
-            parameters: {
-                query: { type: 'string', required: true, description: 'Case-insensitive substring to locate, at most 200 characters.' },
-            },
-            output: {
-                schema: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                        documentId: { type: 'string', required: true },
-                        query: { type: 'string', required: true },
-                        truncated: { type: 'boolean', required: true },
-                        matches: {
-                            type: 'array',
-                            required: true,
-                            items: {
-                                type: 'object',
-                                additionalProperties: false,
-                                properties: {
-                                    startOffset: { type: 'integer', required: true },
-                                    endOffset: { type: 'integer', required: true },
-                                },
-                            },
-                        },
-                    },
-                },
-                render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
-                presentationMeta: (_args, value) => ({ matches: value.matches.length }),
-            },
-            execute: async (args, exec) => {
-                const documentId = metadata.documentId;
-                if (metadata.hosted === true && !hasSentSource(exec.agent?.session, `dsh://document/${encodeURIComponent(documentId ?? '')}`))
-                    throw new Error('来源文档未作为附件发送，请用户附加后再读取');
-                if (documentId === null)
-                    throw new Error('search_document requires a document Topic');
-                const query = args.query.trim();
-                if (query === '' || query.length > 200)
-                    throw new Error('query must be 1-200 characters');
-                const { content } = await this.documents.read(documentId);
-                exec.signal.throwIfAborted();
-                const needle = query.toLocaleLowerCase();
-                const haystack = content.toLocaleLowerCase();
-                const matches = [];
-                let cursor = 0;
-                while (matches.length < DOCUMENT_SEARCH_MAX_MATCHES) {
-                    const startOffset = haystack.indexOf(needle, cursor);
-                    if (startOffset === -1)
-                        break;
-                    matches.push({ startOffset, endOffset: startOffset + query.length });
-                    cursor = startOffset + query.length;
-                }
-                return {
-                    documentId,
-                    query,
-                    truncated: haystack.indexOf(needle, cursor) !== -1,
-                    matches,
-                };
-            },
-            presentCall: (args) => ({ card: 'generic', title: `检索文档 · ${args.query}` }),
-            presentResult: (_args, result) => ({
-                card: 'generic',
-                title: result.isError ? '检索失败' : `检索到 ${result.meta?.matches ?? 0} 处`,
-            }),
-        });
+    /** Keep storage and submitted-reference authorization outside the shared document tool contract. */
+    registerDocumentTools(agentCtx, metadata) {
+        const read = async (requested, session) => {
+            const documentId = resolveReadableDocument(session, metadata.hosted === true, metadata.documentId, requested);
+            const { content } = await this.documents.read(documentId);
+            return { documentId, content };
+        };
+        agentCtx.tools.register(createDocumentReadTool(read));
+        agentCtx.tools.register(createDocumentSearchTool(read));
     }
     /** Share source-read instructions and contract across native and legacy Topic runtimes. */
     registerSourceTool(agentCtx, metadata, agent) {
@@ -1681,6 +1613,7 @@ export class TopicRuntime {
     /** Resolve only after the accepted question is present in the durable model-input log. */
     async commitFollowup(handle, message, admissionSignal) {
         this.assertOpen(admissionSignal);
+        requireSelectedModel(await this.index.loadBySessionId(String(handle.agent.session.header.id)));
         if (this.host.agents.get(handle.agent.session.header.id) === handle.agent) {
             await this.host.sessionController.prompt({
                 sessionId: handle.agent.session.header.id,
@@ -1777,7 +1710,7 @@ export class TopicRuntime {
                 source: { kind: 'user' },
             })
             : identifiedQuestion(requestId, question), signal);
-        const updated = { ...metadata, updatedAt: Date.now() };
+        const updated = { ...metadata, archivedAt: null, updatedAt: Date.now() };
         await this.index.save(updated);
         return this.snapshot(updated, signal, true);
     }
@@ -1899,7 +1832,8 @@ export class TopicRuntime {
         this.assertOpen(signal);
         const handle = await this.ensureHandle(metadata, signal);
         this.assertOpen(signal);
-        const renamed = (metadata.hosted === true ? this.host : this.runtime).sessionTitle.rename(handle.agent.session, title);
+        const owner = metadata.hosted === true ? await this.native.context(metadata) : this.runtime;
+        const renamed = owner.sessionTitle.rename(handle.agent.session, title);
         await handle.agent.ctx.sessions.flush(handle.agent.session);
         const updated = {
             ...metadata,
@@ -1917,6 +1851,16 @@ export class TopicRuntime {
         const updated = { ...metadata, archivedAt: archived ? Date.now() : null, updatedAt: Date.now() };
         await this.index.save(updated);
         return this.snapshot(updated, signal, true);
+    }
+    /** Restore only admissions newer than the latest explicit archive; serialize with rename/delete/archive. */
+    restoreSubmittedTopic(metadata, submittedAt, admitted = false) {
+        const restore = async () => {
+            const latest = await this.index.loadBySessionId(metadata.sessionId);
+            if (submittedAt === null || latest.archivedAt === null || submittedAt <= latest.archivedAt)
+                return latest;
+            return this.patchMetadata(latest, { archivedAt: null, updatedAt: Math.max(latest.updatedAt, submittedAt) });
+        };
+        return admitted ? restore() : this.queueTopicAdmission(metadata.sessionId, restore, this.lifecycleAbort.signal);
     }
     async delete(sessionId, confirmSessionId, signal) {
         if (sessionId !== confirmSessionId)
@@ -1996,6 +1940,7 @@ export class TopicRuntime {
                 throw new Error('Citer 来源所有权标记不可用，已保留待清理记录');
             this.index.bindSource(marker.sourceSessionId, root);
             await this.index.forgetLegacy(marker);
+            await new DraftStore(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId)).remove();
             await removeOwnedSessionTree(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId));
         }
         else
@@ -2041,11 +1986,12 @@ export class TopicRuntime {
                 throw new Error('Topic model selector is unavailable');
             const modelConfig = { ...metadata.modelConfig, provider: request.provider, model: request.model };
             delete modelConfig.reasoningEffort;
-            const updated = { ...metadata, modelConfig, updatedAt: Date.now() };
-            await this.index.save(updated);
+            const updated = { ...metadata, modelConfig, modelSelectionRequired: false, updatedAt: Date.now() };
+            // The host may reject a retired catalog entry. Do not persist a selection it did not accept.
             if (metadata.hosted === true)
                 await this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: request.provider, model: request.model });
-            else if (selection !== undefined)
+            await this.index.save(updated);
+            if (metadata.hosted !== true && selection !== undefined)
                 selection.current = { provider: request.provider, model: request.model };
             return this.snapshot(updated, signal, true);
         }, signal);
@@ -2068,11 +2014,11 @@ export class TopicRuntime {
                 delete modelConfig.reasoningEffort;
             else
                 modelConfig.reasoningEffort = request.reasoningEffort;
-            const updated = { ...metadata, modelConfig, updatedAt: Date.now() };
-            await this.index.save(updated);
+            const updated = { ...metadata, modelConfig, modelSelectionRequired: false, updatedAt: Date.now() };
             if (metadata.hosted === true)
                 await this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: modelConfig.provider, model: modelConfig.model, ...(modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: modelConfig.reasoningEffort }) });
-            else if (selection !== undefined)
+            await this.index.save(updated);
+            if (metadata.hosted !== true && selection !== undefined)
                 selection.current = {
                     provider: modelConfig.provider,
                     model: modelConfig.model,
@@ -2102,6 +2048,7 @@ export class TopicRuntime {
         delete previousModelConfig.reasoningEffort;
         const updated = {
             ...metadata,
+            modelSelectionRequired: false,
             modelConfig: {
                 ...previousModelConfig,
                 provider: request.provider,
@@ -2110,10 +2057,10 @@ export class TopicRuntime {
             },
             updatedAt: Date.now(),
         };
-        await this.index.save(updated);
         if (metadata.hosted === true)
             await this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: updated.modelConfig.provider, model: updated.modelConfig.model, ...(updated.modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: updated.modelConfig.reasoningEffort }) });
-        else if (selection !== undefined)
+        await this.index.save(updated);
+        if (metadata.hosted !== true && selection !== undefined)
             selection.current = {
                 provider: request.provider,
                 model: request.model,
@@ -2212,6 +2159,7 @@ export class TopicRuntime {
             sourceAvailable: this.sourceAvailability.get(metadata.sourceSessionId) ?? metadata.sourceAvailable,
             observedThroughSeq: metadata.observedThroughSeq ?? null,
             modelConfig: metadata.modelConfig,
+            modelSelectionRequired: metadata.modelSelectionRequired === true,
         };
     }
     async get(sessionId, signal) {
@@ -2283,6 +2231,9 @@ export class TopicRuntime {
         let current = metadata;
         this.scheduleSourceAvailabilityCheck(current);
         const log = await this.readLog(current, signal);
+        if (current.hosted === true && current.archivedAt !== null) {
+            current = await this.restoreSubmittedTopic(current, latestTopicSubmission(log.events, log.inheritedEventCount), admitted);
+        }
         const title = foldTopicTitle(log);
         const latest = log.events.at(-1)?.time ?? metadata.updatedAt;
         const observedThroughSeq = latestObservedSeq(log.events);

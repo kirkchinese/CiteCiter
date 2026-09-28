@@ -1,7 +1,20 @@
 import type { Context } from '@deepseek-ai/cordis';
 import type { SessionFace, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client';
 import { type SessionId } from '@deepseek-ai/dsh-session/types';
+import type { MessageId } from '@deepseek-ai/dsh-llm';
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types';
+import type { NativeState } from '../native-session-contract.ts';
+/** Native control state plus Citer's read-only view of the authoritative inbox. */
+export interface CiterSessionSnapshot extends SessionSnapshot {
+    readonly modelSelectionRequired?: boolean;
+    readonly queue: readonly (NativeState['queue'][number] & {
+        id: MessageId;
+        messageId: MessageId;
+        rpcId?: SessionRequestId;
+        content: import('@deepseek-ai/dsh-llm').ContentBlock[];
+        preview: string;
+    })[];
+}
 type Submission = Parameters<SessionFace['beginSubmission']>[0];
 /** Own the published SessionFace contract for Citer navigation. Sending, uploads and inbox mutations remain native DSH operations. */
 export declare class CiterSessionFace implements SessionFace {
@@ -17,8 +30,11 @@ export declare class CiterSessionFace implements SessionFace {
     private observers;
     private timer;
     private refreshing;
+    private nextRequestId;
+    /** Use the draft's durable identity for this explicit send, including retries after restart. */
+    prepareSubmission(requestId: string): void;
     constructor(ctx: Context, sessionId: SessionId);
-    getSnapshot: () => SessionSnapshot;
+    getSnapshot: () => CiterSessionSnapshot;
     subscribe: (listener: () => void) => (() => void);
     /** Establish ownership and obtain a real baseline before accepting composer work. */
     ready(): Promise<void>;

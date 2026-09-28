@@ -1,12 +1,9 @@
 import type { TopicSummary } from '../topic.ts';
+import type { DraftContent } from '../draft-contract.ts';
 /** One unsent model-visible reference. Removing this value removes its serialized content. */
-export interface DraftReference {
-    readonly id: string;
-    readonly kind: 'source' | 'excerpt' | 'board';
-    readonly label: string;
-    readonly content: string;
-    readonly address?: string;
-}
+export type DraftReference = DraftContent['references'][number];
+/** Append real references once per unsent draft. A later explicit selection can restore a removed item. */
+export declare function mergeDraftReferences(current: readonly DraftReference[], incoming: readonly DraftReference[]): readonly DraftReference[];
 /** Build initial references without submitting them. Stable Topic-scoped IDs preserve menu focus during live snapshot refreshes. */
 export declare function topicDraftReferences(topic: TopicSummary, documentTitle?: string): readonly DraftReference[];
 /** Display a document filename while retaining the full title/path in its serialized content. Legacy ID-only references keep their generic label. */

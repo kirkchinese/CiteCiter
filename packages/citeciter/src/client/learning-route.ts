@@ -20,5 +20,5 @@ export function learningTodos(messages: readonly TopicMessage[]): readonly Learn
 
 /** One user-submitted learning request. Planning continues inside its ordinary Agent turn. */
 export function withLearningRoute(question: string, enabled: boolean): string {
-  return !enabled ? question : `${question}\n\n【学习路线已开启】请根据问题自动决定讲解方式与阶段，使用宿主 todo_write 建立和更新学习计划。可选择底层逻辑、定性分析、定量分析（板书）、概念关联和总结学习卡片；按内容取舍，不机械补齐。计划由你维护，完成后更新状态，不要要求用户逐个点击阶段。不额外启动模型请求。生成学习卡前先核对与纠错，标明未核实内容。`
+  return !enabled ? question : `${question}\n\n【学习路线已开启】请根据问题自动决定讲解方式与阶段，使用宿主 todo_write 建立和更新学习计划。可选择底层逻辑、定性分析、定量分析（板书）、概念关联和总结学习卡片；只保留有助于当前问题的步骤，不机械补齐。上文明确的范围、篇幅、工具限制和卡片数量优先；开启路线不扩大任务，一张卡片就是一张，不按阶段增发。计划由你维护，完成后更新状态，不要要求用户逐个点击阶段。不额外启动模型请求。生成学习卡前先核对与纠错，标明未核实内容。`
 }

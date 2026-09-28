@@ -2,11 +2,18 @@ import type { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionFace, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+import type { MessageId } from '@deepseek-ai/dsh-llm'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
 import type {} from '../typert.remote-client.ts'
 import type {} from '@deepseek-ai/dsh-api-session-controller/remote'
 import type {} from '@deepseek-ai/dsh-commands/remote'
+import type { NativeState } from '../native-session-contract.ts'
+
+/** Native control state plus Citer's read-only view of the authoritative inbox. */
+export interface CiterSessionSnapshot extends SessionSnapshot {
+  readonly modelSelectionRequired?: boolean
+  readonly queue: readonly (NativeState['queue'][number] & { id: MessageId; messageId: MessageId; rpcId?: SessionRequestId; content: import('@deepseek-ai/dsh-llm').ContentBlock[]; preview: string })[]
+}
 
 type Submission = Parameters<SessionFace['beginSubmission']>[0]
 type Retirement = Parameters<NonNullable<Submission['onRetire']>>[0]
@@ -21,16 +28,20 @@ export class CiterSessionFace implements SessionFace {
   private observers = 0
   private timer: ReturnType<typeof setTimeout> | undefined
   private refreshing: Promise<void> | undefined
+  private nextRequestId: SessionRequestId | undefined
+
+  /** Use the draft's durable identity for this explicit send, including retries after restart. */
+  prepareSubmission(requestId: string): void { this.nextRequestId = requestId as SessionRequestId }
 
   constructor(private readonly ctx: Context, readonly sessionId: SessionId) {
-    this.store = createSnapshotStore<SessionSnapshot>({
+    this.store = createSnapshotStore<CiterSessionSnapshot>({
       sessionId, queue: [], pendingSubmissions: [], running: false, subagent: null, removed: false,
       openState: 'cold', openError: null, hasMore: false, loadingOlder: false, promptError: null,
       blank: true, lastAgentError: null, promptAttempted: false, awaitingFirstTurn: false,
     })
   }
 
-  getSnapshot = (): SessionSnapshot => this.store.getSnapshot()
+  getSnapshot = (): CiterSessionSnapshot => this.store.getSnapshot()
   subscribe = (listener: () => void): (() => void) => {
     this.observers++
     const release = this.store.subscribe(listener)
@@ -41,7 +52,7 @@ export class CiterSessionFace implements SessionFace {
   /** Establish ownership and obtain a real baseline before accepting composer work. */
   async ready(): Promise<void> { await this.refresh(); this.lifetime.signal.throwIfAborted() }
 
-  private patch(patch: Partial<SessionSnapshot>): void { this.store.set({ ...this.getSnapshot(), ...patch }) }
+  private patch(patch: Partial<CiterSessionSnapshot>): void { this.store.set({ ...this.getSnapshot(), ...patch }) }
 
   private retire(id: SessionRequestId, outcome: Retirement): void {
     const input = this.pending.get(id)
@@ -54,7 +65,8 @@ export class CiterSessionFace implements SessionFace {
 
   beginSubmission(input: Submission) {
     this.lifetime.signal.throwIfAborted()
-    const requestId = crypto.randomUUID() as SessionRequestId
+    const requestId = this.nextRequestId ?? crypto.randomUUID() as SessionRequestId
+    this.nextRequestId = undefined
     this.pending.set(requestId, input)
     const current = this.getSnapshot()
     this.patch({ promptAttempted: true, pendingSubmissions: [...current.pendingSubmissions, {
@@ -145,10 +157,10 @@ export class CiterSessionFace implements SessionFace {
       if (this.lifetime.signal.aborted) return
       const state = result.value.state
       this.patch({ openState: 'open', openError: null, running: state.running, blank: state.blank, lastAgentError: state.error,
-        queue: state.queue.map(row => ({
-          id: row.id as MessageId, messageId: row.id as MessageId, placement: row.placement,
-          ...(row.rpcId === undefined ? {} : { rpcId: row.rpcId as SessionRequestId }),
-          text: row.text || null, preview: row.text || '附件', content: [{ type: 'text', text: row.text }, ...row.attachments],
+        modelSelectionRequired: state.modelSelectionRequired === true,
+        queue: state.queue.map(({ rpcId, ...row }) => ({ ...row, id: row.id as MessageId, messageId: row.id as MessageId,
+          ...(rpcId === undefined ? {} : { rpcId: rpcId as SessionRequestId }),
+          preview: row.text || '附件', content: [{ type: 'text' as const, text: row.text }, ...row.attachments],
         })),
       })
       for (const receipt of state.receipts) this.retire(receipt.requestId as SessionRequestId, { reason: 'observed', attachments: receipt.attachments.map(block => block.attachment) })

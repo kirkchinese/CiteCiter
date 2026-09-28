@@ -1,5 +1,5 @@
-/** Isolated, disposable layout adapter for DSH 0.1.5-rc.1 and Desktop 2.0.9 frames. */
-import { useEffect, useState, type RefObject } from 'react'
+/** Isolated, disposable layout adapter for DSH alpha and legacy three-column frames. */
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { resolveDockGeometry, type DockGeometry } from './dock-geometry.ts'
 
 /**
@@ -17,10 +17,13 @@ export function findContainingFrame(panel: HTMLElement | null): HTMLElement | nu
  * @param panel - mounted panel reference.
  * @param open - whether space should be reserved.
  * @param percent - user's preferred fraction of the content viewport.
+ * @param floating - whether the user detached the panel.
+ * @param activation - increases only on explicit Citer navigation, permitting return from details.
  * @returns measured panel placement; null when the host frame is unsupported.
  */
-export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number, floating = false): DockGeometry | null {
+export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number, floating = false, activation = 0): DockGeometry | null {
   const [geometry, setGeometry] = useState<DockGeometry | null>(null)
+  const navigation = useRef({ activation: -1, details: 0, preferDetails: true })
   useEffect(() => {
     if (!open) return
     const frame = findContainingFrame(panel.current)
@@ -46,7 +49,8 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
     const apply = () => {
       if (frame.dataset.citeciterDockOwner !== undefined && frame.dataset.citeciterDockOwner !== owner) return
       const columns = frame.style.gridTemplateColumns
-      const tracks = /^(\d+(?:\.\d+)?)px\s+minmax\(0(?:px)?,\s*1fr\)\s+(\d+(?:\.\d+)?)px$/u.exec(columns)
+      // Alpha makes the details track shrinkable; legacy frames use a fixed px track.
+      const tracks = /^(\d+(?:\.\d+)?)px\s+minmax\((?:0|\d+(?:\.\d+)?px),\s*1fr\)\s+(?:minmax\(0(?:px)?,\s*(\d+(?:\.\d+)?)px\)|(\d+(?:\.\d+)?)px)$/u.exec(columns)
       if (tracks === null || frame.hasAttribute('data-rightbar-fullscreen') || getComputedStyle(frame).display !== 'grid') {
         clear()
         setGeometry(null)
@@ -55,10 +59,18 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
       const rect = frame.getBoundingClientRect()
       const caption = frame.querySelector<HTMLElement>(':scope > .dshDesktopWindowsCaptionRow, :scope > .dshDesktopMacCaptionRow')
         ?.getBoundingClientRect().height ?? 0
+      const details = Number(tracks[2] ?? tracks[3])
+      const priority = navigation.current
+      if (details !== priority.details) priority.preferDetails = true
+      if (activation !== priority.activation) priority.preferDetails = false
+      priority.activation = activation
+      priority.details = details
       const next = resolveDockGeometry({
-        width: rect.width, height: rect.height, sidebar: Number(tracks[1]), details: Number(tracks[2]), caption, percent,
+        width: rect.width, height: rect.height, sidebar: Number(tracks[1]), details, caption, percent, preferDetails: priority.preferDetails,
       })
-      if (floating && next.mode === 'columns') {
+      // Once both panes fit, subsequent shrinking gives native details priority again.
+      if (next.mode === 'columns' || details === 0) priority.preferDetails = true
+      if (next.mode === 'suspended' || floating && next.mode === 'columns') {
         clear()
         setGeometry(previous => previous?.mode === next.mode && previous.width === next.width
           && previous.height === next.height && previous.top === next.top ? previous : next)
@@ -84,6 +96,6 @@ export function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean,
       mutations.disconnect()
       clear()
     }
-  }, [open, panel, percent, floating])
+  }, [open, panel, percent, floating, activation])
   return geometry
 }

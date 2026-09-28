@@ -1,5 +1,6 @@
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store';
-import { CITECITER_SETTINGS_NAMESPACE, citeCiterSettingsSchema, } from "../topic.js";
+import { SessionId } from '@deepseek-ai/dsh-session/types';
+import { CITECITER_SETTINGS_NAMESPACE, } from "../topic.js";
 import { TYPERT_REMOTE } from "../typert.remote-client.js";
 import { createCompanionController, INITIAL_COMPANION_SNAPSHOT } from "./companion-controller.js";
 import { BlackboardWorkspace } from "./components/BlackboardWorkspace.js";
@@ -23,12 +24,12 @@ import { createNativeComposer } from "./native-composer.js";
 import { bindSubmissionPreference } from "./submission-preference.js";
 import { viewActions } from "./view-actions.js";
 import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from "./update-controller.js";
+import { createBoardCaptureController } from "./board-capture-controller.js";
+import { BoardCaptureWorker } from "./components/BoardCaptureWorker.js";
+import { createDraftController } from "./draft-controller.js";
+import { hostSettings, hostInteractions } from "./host-ui-adapter.js";
 export const name = '@kirkchinese/dsh-citeciter';
-export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'settingsScope', 'conversation'];
-function decodeSettings(section) {
-    const parsed = citeCiterSettingsSchema.safeParse(section);
-    return parsed.success ? parsed.data : undefined;
-}
+export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'conversation'];
 /** Register one root-scoped companion without entering DSH's Session list. */
 export async function apply(ctx) {
     const unmountRemote = await ctx.remote.$mount(TYPERT_REMOTE);
@@ -43,11 +44,9 @@ export async function apply(ctx) {
             conversation.activate('chat');
             return conversation.target('chat').getSnapshot();
         };
-        const settingsBinder = remoteCtx.settingsScope;
-        const settings = settingsBinder.bind({
-            namespace: CITECITER_SETTINGS_NAMESPACE,
-            decode: decodeSettings,
-        });
+        const settingsBinder = hostSettings(remoteCtx);
+        const interactions = hostInteractions(remoteCtx);
+        const settings = settingsBinder.get(CITECITER_SETTINGS_NAMESPACE);
         const settingsDocument = createSettingsDocumentController(settingsBinder.describe(), async (signal) => {
             const response = await remoteCtx.remote.settings.openSettingsDocument(signal);
             if (!response.ok)
@@ -65,6 +64,37 @@ export async function apply(ctx) {
                 : null;
         }, createSnapshotStore(INITIAL_UPDATE_SNAPSHOT), undefined, (error) => remoteCtx.logger.warn('CiteCiter update check failed', error));
         const nativeComposer = createNativeComposer(remoteCtx);
+        const drafts = createDraftController(async (request) => {
+            const response = await remoteCtx.remote.citeciter.request(request);
+            if (!response.ok)
+                throw new Error(response.error.message);
+            return response.value;
+        }, nativeComposer);
+        remoteCtx.effect(() => () => drafts.dispose(), 'citeciter: durable drafts');
+        remoteCtx.effect(() => {
+            const beforeUnload = (event) => {
+                if (!drafts.hasUnsavedChanges())
+                    return;
+                void drafts.flushAll();
+                event.preventDefault();
+                event.returnValue = '';
+            };
+            const visibility = () => { if (document.visibilityState === 'hidden')
+                void drafts.flushAll(); };
+            window.addEventListener('beforeunload', beforeUnload);
+            document.addEventListener('visibilitychange', visibility);
+            return () => {
+                window.removeEventListener('beforeunload', beforeUnload);
+                document.removeEventListener('visibilitychange', visibility);
+            };
+        }, 'citeciter: draft navigation guard');
+        const capture = createBoardCaptureController(async (request, signal) => {
+            const response = await remoteCtx.remote.citeciter.request(request, signal);
+            if (!response.ok)
+                throw new Error(response.error.message);
+            return response.value;
+        }, error => remoteCtx.logger.warn('CiteCiter board capture failed', error));
+        remoteCtx.effect(() => () => capture.dispose(), 'citeciter: background board capture');
         const submissionPreference = bindSubmissionPreference(remoteCtx);
         const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error));
         const openPanel = () => {
@@ -98,14 +128,19 @@ export async function apply(ctx) {
             reportedParseErrors.add(messageId);
             remoteCtx.logger.warn(`CiteCiter ignored malformed first-answer follow-up questions in ${messageId}`);
         };
+        const currentSession = remoteCtx.uiSession.adapter.current;
+        const readSource = () => {
+            const key = currentSession.getSnapshot().key;
+            return key === undefined ? null : SessionId(key);
+        };
         const syncSource = () => {
-            const source = sessions.list.getSnapshot().current ?? null;
+            const source = readSource();
             if (companion.getSnapshot().sourceSessionId !== source)
                 actions.cancel();
             companion.setSource(source);
         };
         syncSource();
-        const unsubscribeSessions = sessions.list.subscribe(syncSource);
+        const unsubscribeSessions = currentSession.subscribe(syncSource);
         remoteCtx.effect(() => {
             const entries = createCiteCiterEntryRegistry();
             const disposeAssistantEntry = remoteCtx.effect(() => entries.register(createAssistantEntry()), 'citeciter: assistant selection entry');
@@ -114,8 +149,8 @@ export async function apply(ctx) {
                 const owned = surfaces.read(event.target);
                 if (owned !== null)
                     return owned;
-                const sourceSessionId = sessions.list.getSnapshot().current;
-                if (sourceSessionId === undefined)
+                const sourceSessionId = readSource();
+                if (sourceSessionId === null)
                     return null;
                 const claim = entries.claim(event, { readChat, sourceSessionId });
                 return claim === null ? null : { kind: 'conversation', selection: claim.selection };
@@ -132,6 +167,10 @@ export async function apply(ctx) {
             requestBoardCitation: bus.requestBoardCitation.bind(bus),
             clearBoardCitation: bus.clearBoardCitation.bind(bus),
         };
+        remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
+            name: 'shell.overlay', id: 'citeciter.board-capture',
+            inject: () => ({ reply: capture.reply, hooks: { capture } }),
+        }, BoardCaptureWorker));
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay', id: 'citeciter.wheel',
             inject: () => ({ actions: viewActions(actions), companion: companionActions, hooks: { actions, companion } }),
@@ -155,7 +194,7 @@ export async function apply(ctx) {
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',
             id: 'citeciter.panel',
-            inject: () => ({ nativeComposer, bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, hooks: { companion, overlay: bus, submission: submissionPreference, interactions: remoteCtx.uiSession.pendingInteractions } }),
+            inject: () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions } }),
         }, CitePanel));
         remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
             name: 'shell.overlay',

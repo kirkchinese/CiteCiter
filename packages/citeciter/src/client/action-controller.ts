@@ -28,7 +28,6 @@ export interface WheelSnapshot {
 export interface ActionSnapshot {
   wheel: WheelSnapshot | null
   pending: { readonly source: ActionSource, readonly action: CiteAction, readonly x: number, readonly y: number } | null
-  question: string
   submitting: boolean
   error: string | null
   model: ActionModel | undefined
@@ -41,25 +40,23 @@ export function wheelSector(dx: number, dy: number): number | null {
   return Math.floor(((Math.atan2(dy, dx) + Math.PI / 2 + Math.PI * 2 + Math.PI / 8) % (Math.PI * 2)) / (Math.PI / 4))
 }
 
-/** Controller owns duplicate submission, retry drafts and source-change cancellation. Dispose with the Client. */
+/** Prepare a draft through the action's destination policy; the Topic composer owns input and submission. */
 export function createActionController(execute: (source: ActionSource, action: CiteAction, question: string, model?: ActionModel) => Promise<void>, defaultModel: () => ActionModel | undefined = () => undefined) {
-  const store = createSnapshotStore<ActionSnapshot>({ wheel: null, pending: null, question: '', submitting: false, error: null, model: undefined })
+  const store = createSnapshotStore<ActionSnapshot>({ wheel: null, pending: null, submitting: false, error: null, model: undefined })
   let disposed = false
   let generation = 0
   const update = (fn: (draft: ActionSnapshot) => void) => { if (!disposed) store.update(fn) }
-  const cancel = () => { generation++; update(d => { d.wheel = null; d.pending = null; d.error = null; d.question = '' }) }
+  const cancel = () => { generation++; update(d => { d.wheel = null; d.pending = null; d.error = null }) }
   const submit = async () => {
     const snapshot = store.getSnapshot()
     if (disposed || snapshot.submitting || snapshot.pending === null) return
     const { source, action } = snapshot.pending
-    if (action.ask && snapshot.question.trim() === '') return
-    const question = actionQuestion(action, snapshot.question)
-    if (question === '') return
+    const question = actionQuestion(action, '')
     const ticket = generation
     update(d => { d.submitting = true; d.error = null })
     try {
       await execute(source, action, question, snapshot.model)
-      if (ticket === generation) update(d => { d.pending = null; d.question = '' })
+      if (ticket === generation) update(d => { d.pending = null })
     } catch (error) {
       if (ticket === generation) update(d => { d.error = error instanceof Error ? error.message : String(error) })
     } finally { update(d => { d.submitting = false }) }
@@ -69,8 +66,8 @@ export function createActionController(execute: (source: ActionSource, action: C
     if (disposed || submitting || wheel === null) return
     const action = index === null ? null : wheel.slots[index]
     if (action == null) { cancel(); return }
-    update(d => { d.wheel = null; d.pending = { source: wheel.source, action, x: wheel.x, y: wheel.y }; d.question = ''; d.error = null })
-    if (!action.ask) void submit()
+    update(d => { d.wheel = null; d.pending = { source: wheel.source, action, x: wheel.x, y: wheel.y }; d.error = null })
+    void submit()
   }
   return {
     getSnapshot: store.getSnapshot,
@@ -95,11 +92,9 @@ export function createActionController(execute: (source: ActionSource, action: C
       if (quick && wheel.active === null) update(d => { d.wheel = { ...wheel, held: false } })
       else choose(wheel.active)
     },
-    /** Cancel only the transient gesture; a question draft belongs to its explicit close/source lifecycle. */
+    /** Focus loss cancels only the transient gesture; the Topic composer retains its draft. */
     dismissWheel() { update(d => { d.wheel = null }) },
     choose, cancel, submit,
-    setModel(model: ActionModel | undefined) { if (!store.getSnapshot().submitting) update(d => { d.model = model }) },
-    setQuestion(question: string) { if (!store.getSnapshot().submitting) update(d => { d.question = question }) },
     async dispose() { cancel(); disposed = true },
   }
 }

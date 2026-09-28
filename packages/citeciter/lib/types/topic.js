@@ -1,6 +1,8 @@
 import { z } from 'zod';
+import { draftStateSchema, draftFileSchema } from "./draft-contract.js";
 import { nativeStateSchema, nativeAttachmentRefSchema } from "./native-session-contract.js";
 import { boardSnapshotSchema } from "./board.js";
+import { boardCaptureJobSchema } from "./board-capture-protocol.js";
 import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from "./actions.js";
 /** Durable Citation version used by Observer Topics. v4 adds the EvidenceRef entry discriminator. */
 export const CITATION_SCHEMA_VERSION = 4;
@@ -191,6 +193,7 @@ export const modelConfigSchema = z.object({
 }).strict();
 /** Fields shared by the canonical Topic metadata schema and its on-disk reader. */
 const topicMetadataFields = {
+    modelSelectionRequired: z.boolean().optional(),
     hosted: z.boolean().optional(),
     storage: z.literal('source').optional(),
     topicId: z.number().int().positive(),
@@ -255,6 +258,7 @@ export function parseTopicMetadataFile(raw) {
 }
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'danger-full-access']);
 export const topicSummarySchema = z.object({
+    modelSelectionRequired: z.boolean().optional(),
     permission: permissionSchema.optional(),
     hosted: z.boolean().optional(),
     storage: z.literal('source').optional(),
@@ -455,12 +459,17 @@ const createRequestSchema = z.union([
 ]);
 /** One strict direct-RPC command for the private CiteCiter runtime. */
 export const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnion('action', [
+        z.object({ action: z.literal('draft-get'), topicSessionId: topicSessionIdSchema }).strict(),
+        z.object({ action: z.literal('draft-save'), topicSessionId: topicSessionIdSchema, state: draftStateSchema }).strict(),
+        z.object({ action: z.literal('draft-file-put'), topicSessionId: topicSessionIdSchema, file: draftFileSchema, offset: z.number().int().nonnegative(), data: z.string().max(349_528).regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),
+        z.object({ action: z.literal('draft-file-get'), topicSessionId: topicSessionIdSchema, fileId: z.uuid(), offset: z.number().int().nonnegative() }).strict(),
         z.object({
             action: z.literal('list'),
             sourceSessionId: z.string().min(1),
             includeArchived: z.boolean().optional(),
         }).strict(),
         z.object({ action: z.literal('board-capture'), topicSessionId: topicSessionIdSchema, id: z.string().min(1), png: z.string().max(8_000_000).regex(/^[A-Za-z0-9+/]+={0,2}$/).optional(), error: z.string().max(500).optional() }).strict(),
+        z.object({ action: z.literal('board-capture-pending') }).strict(),
         z.object({ action: z.literal('get'), topicSessionId: topicSessionIdSchema }).strict(),
         z.object({ action: z.literal('native-state'), topicSessionId: topicSessionIdSchema, requestIds: z.array(z.string().min(1).max(100)).max(32) }).strict(),
         z.object({ action: z.literal('native-attachment'), topicSessionId: topicSessionIdSchema, attachmentId: z.string().min(1).max(200) }).strict(),
@@ -533,6 +542,11 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
     ])]);
 /** Strict response union returned by the single Remote command endpoint. */
 export const citeCiterResponseSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('draft'), state: draftStateSchema, conflict: z.boolean() }).strict(),
+    z.object({ kind: z.literal('draft-file-saved') }).strict(),
+    z.object({ kind: z.literal('draft-file'), data: z.string().max(349_528).regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),
+    z.object({ kind: z.literal('board-captures'), jobs: z.array(boardCaptureJobSchema) }).strict(),
+    z.object({ kind: z.literal('board-capture-accepted') }).strict(),
     z.object({ kind: z.literal('native-state'), state: nativeStateSchema }).strict(),
     z.object({ kind: z.literal('native-attachment'), attachment: nativeAttachmentRefSchema, data: z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),
     z.object({ kind: z.literal('topic'), topic: topicSnapshotSchema }).strict(),

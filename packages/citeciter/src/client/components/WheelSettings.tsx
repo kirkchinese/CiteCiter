@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { DEFAULT_WHEEL_SLOTS, wheelSlotsSchema, type CiteAction, type WheelTrigger } from '../../actions.ts'
+import { actionTarget, DEFAULT_WHEEL_SLOTS, wheelSlotsSchema, type CiteAction, type WheelTrigger } from '../../actions.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions } from '../view-actions.ts'
 import { ModelChoice } from './ModelChoice.tsx'
@@ -19,7 +19,7 @@ export function WheelSettings({ snapshot, companion }: { snapshot: CompanionSnap
     previousRevision.current = savedRevision
     setSlots([...savedSlots])
   }, [savedSlots, savedRevision])
-  const change = (index: number, patch: Partial<CiteAction>) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? { label: '自定义', prompt: '', ask: true, scenario: 'qa', presentation: 'side' }), ...patch } : slot))
+  const change = (index: number, patch: Partial<CiteAction>) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? { label: '自定义', prompt: '', ask: true, scenario: 'qa', presentation: 'side', target: 'new' }), ...patch } : slot))
   const swap = (index: number, offset: number) => setSlots(current => { const next = [...current]; const to = (index + offset + 8) % 8; [next[index], next[to]] = [next[to]!, next[index]!]; return next })
   return <section className={css.settings}>
     <h3>选文轮盘</h3>
@@ -28,14 +28,15 @@ export function WheelSettings({ snapshot, companion }: { snapshot: CompanionSnap
       <option value="right-button">鼠标右键（默认）</option><option value="Alt">Alt / Option</option><option value="Control">Control</option><option value="Shift">Shift</option><option value="Meta">Meta / Command</option>
     </select></label>
     <ModelChoice label="Citer 默认模型" providers={snapshot.providers} value={snapshot.settings.defaultCiterModel ?? undefined} onChange={value => void companion.setSetting('defaultCiterModel', value ?? null)} />
-    <p>所有动作只准备草稿，由用户手动发送。无需补充问题的动作使用默认模型；需要输入的动作可先选模型。未指定时跟随来源模型。八槽从正上方开始顺时针排列。</p>
+    <p>自由提问加入当前 Topic，其他内置动作默认新建。加入时保留草稿、模型与权限；新建时使用默认模型，未指定则跟随来源。所有动作均在 Citer 输入框编辑并手动发送。八槽从正上方顺时针排列。</p>
     {slots.map((slot, index) => <details key={index}><summary>{index + 1} · {slot?.label ?? '空槽'}{slot === null ? '' : slot.ask ? ' · 需输入' : ' · 预设问题'}</summary>
       {slot === null ? <button type="button" onClick={() => change(index,{})}>添加自定义模式</button> : <>
         <label>名称<input aria-label={`槽位 ${index + 1} 名称`} maxLength={20} value={slot.label} onChange={event => change(index, { label: event.currentTarget.value })} /></label>
         <label>提示词<textarea aria-label={`槽位 ${index + 1} 提示词`} rows={3} maxLength={4000} value={slot.prompt} onChange={event => change(index,{ prompt:event.currentTarget.value })} /></label>
         <label className={css.toggle}><input type="checkbox" checked={slot.ask} onChange={event => change(index,{ ask:event.currentTarget.checked })} />先输入问题并选择模型</label>
+        <label>引用目标<select aria-label={`槽位 ${index + 1} 引用目标`} value={actionTarget(slot)} onChange={event => change(index, { target: event.currentTarget.value as 'current' | 'new' })}><option value="current">加入当前 Topic</option><option value="new">新建 Topic</option></select></label>
         <label>内容方式<select value={slot.scenario} onChange={event => change(index,{ scenario:event.currentTarget.value as CiteAction['scenario'] })}><option value="qa">直接问答</option><option value="present">学习讲解与板书</option></select></label>
-        <label>默认打开位置<select value={slot.presentation} onChange={event => change(index,{ presentation:event.currentTarget.value as CiteAction['presentation'] })}><option value="side">侧边（窄窗口自动悬浮）</option><option value="floating">悬浮</option></select></label>
+        <label>默认打开位置<select value={slot.presentation} onChange={event => change(index,{ presentation:event.currentTarget.value as CiteAction['presentation'] })}><option value="side">侧边（窄窗口独立页面）</option><option value="floating">悬浮</option></select></label>
       </>}
       <div className={css.slotActions}><button type="button" onClick={() => swap(index,-1)}>逆时针移动</button><button type="button" onClick={() => swap(index,1)}>顺时针移动</button><button type="button" onClick={() => setSlots(current => current.map((item,i) => i === index ? null : item))}>清空</button></div>
     </details>)}

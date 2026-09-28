@@ -2,21 +2,24 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ComposerAttachment, ConversationController, DraftAttachmentId, DraftFileUploads } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import type { SessionFace, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
-import { CiterSessionFace } from './citer-session-face.ts'
+import { CiterSessionFace, type CiterSessionSnapshot } from './citer-session-face.ts'
+import { requireSelectedModel } from '../model-admission.ts'
 
 export type DeliveryMode = 'queue' | 'steer'
+/** A lost transport response is not proof that the host rejected a submission. */
+export class UncertainSubmissionError extends Error {}
 export interface NativeComposer {
   readonly uploads: ObservableSnapshot<DraftFileUploads>
   retry(sessionId: string, id: DraftAttachmentId): void
-  watch(sessionId: string, listener: (snapshot: SessionSnapshot) => void): () => void
+  watch(sessionId: string, listener: (snapshot: CiterSessionSnapshot) => void): () => void
   queue(sessionId: string, id: Parameters<SessionFace['updateQueue']>[0], action: Parameters<SessionFace['updateQueue']>[1]): Promise<void>
   /** Read an image or file through its owning Session's attachment authorization. */
   attachment(sessionId: string, id: string): Promise<Blob>
   add(sessionId: string, files: readonly File[]): Promise<readonly ComposerAttachment[]>
   remove(id: DraftAttachmentId): void
-  send(sessionId: string, text: string, attachments: readonly DraftAttachmentId[], mode: DeliveryMode): Promise<void>
+  send(sessionId: string, text: string, attachments: readonly DraftAttachmentId[], mode: DeliveryMode, requestId?: string): Promise<void>
 }
 
 /** Adapt the installed conversation service's published composer methods; never reach its private input machine. */
@@ -68,9 +71,13 @@ export function createNativeComposer(ctx: Context): NativeComposer {
       return drafts
     },
     remove: id => { conversation.releaseDraftAttachment(id); owned.delete(id) },
-    send: async (id, text, attachments, mode) => {
+    send: async (id, text, attachments, mode, requestId) => {
       const target = await binding(id)
-      const outcome = await conversation.sendSession(target.session, text, attachments, mode)
+      requireSelectedModel({ modelSelectionRequired: target.session.getSnapshot().modelSelectionRequired })
+      if (requestId !== undefined) target.session.prepareSubmission(requestId)
+      const outcome = await conversation.sendSession(target.session, text, attachments, mode).catch(error => {
+        throw new UncertainSubmissionError(`未收到发送结果：${String(error)}；请核对发送状态，草稿已保留`)
+      })
       if (outcome.kind === 'error') {
         const failure = target.session.getSnapshot().promptError?.error
         const details = failure?.details
@@ -78,6 +85,7 @@ export function createNativeComposer(ctx: Context): NativeComposer {
         const reason = failure?.code === 'session/attachment-invalid' && (attachmentReason === 'INVALID_IMAGE' || attachmentReason === 'IMAGE_TYPE_MISMATCH')
           ? '附件格式无效或内容损坏，请移除或更换附件后重试'
           : failure?.message ?? outcome.text ?? 'DSH 未接受此次发送'
+        if (failure === undefined) throw new UncertainSubmissionError(`${reason}；请核对发送状态，草稿已保留`)
         throw new Error(`${reason}；草稿已保留`)
       }
       for (const id of attachments) owned.delete(id)

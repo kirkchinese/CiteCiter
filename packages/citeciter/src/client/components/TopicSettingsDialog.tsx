@@ -1,4 +1,5 @@
-import { IconArchiveOutline20, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconArchiveOutlineMedium } from '../host-icons.ts'
 import css from './TopicSettingsDialog.module.css'
 
 /**
@@ -21,7 +22,7 @@ export function TopicSettingsDialog({ open, topic, archiving, deleting, error, o
       <div className={css.actions}>
         <button type="button" aria-label={topic.archived ? '恢复当前 Topic' : '归档当前 Topic'} disabled={archiving}
           onClick={() => { void onArchive(!topic.archived).then(saved => { if (saved) onClose() }) }}>
-          <IconArchiveOutline20 size={16} />{archiving ? '处理中…' : topic.archived ? '恢复' : '归档'}
+          <IconArchiveOutlineMedium size={16} />{archiving ? '处理中…' : topic.archived ? '恢复' : '归档'}
         </button>
         <button type="button" className={css.danger} disabled={deleting || topic.hosted === true && topic.storage !== 'source'} onClick={onDelete}
           title={topic.hosted === true && topic.storage !== 'source' ? '重启 DSH 后迁移至 Citer 自有目录' : undefined}>永久删除</button>

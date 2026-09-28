@@ -5,13 +5,84 @@ window.__ModuleLoader__.load({
 		var exports = module.exports;
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 		//#region \0rolldown/runtime.js
+		var __create = Object.create;
+		var __defProp = Object.defineProperty;
+		var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+		var __getOwnPropNames = Object.getOwnPropertyNames;
+		var __getProtoOf = Object.getPrototypeOf;
+		var __hasOwnProp = Object.prototype.hasOwnProperty;
 		var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
+		var __copyProps = (to, from, except, desc) => {
+			if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
+				key = keys[i];
+				if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
+					get: ((k) => from[k]).bind(null, key),
+					enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
+				});
+			}
+			return to;
+		};
+		var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
+			value: mod,
+			enumerable: true
+		}) : target, mod));
 		//#endregion
 		let _deepseek_ai_dsh_client_store = require("@deepseek-ai/dsh-client-store");
 		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
+		_deepseek_ai_dsh_client_ui_primitives = __toESM(_deepseek_ai_dsh_client_ui_primitives, 1);
 		let react_dom = require("react-dom");
+		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-brand@0.1.7-rc.2_@deepseek-ai+cordis@4.0.4/node_modules/@deepseek-ai/dsh-brand/lib/index.js
+		/**
+		* Duplicate-install-safe nominal primitive helpers.
+		*
+		* A brand makes structurally identical strings or numbers non-interchangeable
+		* at the type level: a `SessionId` cannot be passed where a `ToolCallId` is
+		* expected, and an event sequence cannot be passed as a log offset. Comparison,
+		* logging, and serialization retain the underlying primitive behavior.
+		*
+		* This package owns no concrete domain value and keeps no runtime identity or mutable
+		* state, so independently installed copies produce interchangeable values.
+		*
+		* @module @deepseek-ai/dsh-brand
+		*/
+		/**
+		* Apply a compile-time string brand without changing the value.
+		* @param value - string admitted by the domain that owns the target brand.
+		* @returns the same string with the requested compile-time brand.
+		*/
+		function brandString(value) {
+			return value;
+		}
+		/**
+		* Apply a compile-time number brand without changing the value.
+		* @param value - number admitted by the domain that owns the target brand.
+		* @returns the same number with the requested compile-time brand.
+		*/
+		function brandNumber(value) {
+			return value;
+		}
+		//#endregion
+		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-session@0._96480dbecf47e43f89b841d272151264/node_modules/@deepseek-ai/dsh-session/lib/types/types.js
+		/**
+		* Brand a string as a {@link SessionId}.
+		* @param id - the raw session id string.
+		* @returns the same string with the session-id brand.
+		*/
+		function SessionId(id) {
+			return brandString(id);
+		}
+		/**
+		* Admit a numeric value as an existing Session event position.
+		* @param value - non-negative safe integer admitted by the owning log operation.
+		* @returns the same number with the Session-sequence brand.
+		*/
+		function SessionSeq(value) {
+			if (!Number.isSafeInteger(value) || value < 0 || Object.is(value, -0)) throw new TypeError(`SessionSeq must be a non-negative safe integer, got ${String(value)}`);
+			return brandNumber(value);
+		}
+		//#endregion
 		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/util.js
 		function getEnumValues(entries) {
 			const numericValues = Object.values(entries).filter((v) => typeof v === "number");
@@ -882,7 +953,7 @@ window.__ModuleLoader__.load({
 		/** Returns a regex for validating an RFC 9562/4122 UUID.
 		*
 		* @param version Optionally specify a version 1-8. If no version is specified, all versions are supported. */
-		const uuid = (version) => {
+		const uuid$1 = (version) => {
 			if (!version) return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
 			return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 		};
@@ -1475,8 +1546,8 @@ window.__ModuleLoader__.load({
 					v8: 8
 				}[def.version];
 				if (v === void 0) throw new Error(`Invalid UUID version: "${def.version}"`);
-				def.pattern ?? (def.pattern = uuid(v));
-			} else def.pattern ?? (def.pattern = uuid());
+				def.pattern ?? (def.pattern = uuid$1(v));
+			} else def.pattern ?? (def.pattern = uuid$1());
 			$ZodStringFormat.init(inst, def);
 		});
 		const $ZodEmail = /*@__PURE__*/ $constructor("$ZodEmail", (inst, def) => {
@@ -4586,6 +4657,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			$ZodUUID.init(inst, def);
 			ZodStringFormat.init(inst, def);
 		});
+		function uuid(params) {
+			return /* @__PURE__ */ _uuid(ZodUUID, params);
+		}
 		const ZodURL = /*@__PURE__*/ $constructor("ZodURL", (inst, def) => {
 			$ZodURL.init(inst, def);
 			ZodStringFormat.init(inst, def);
@@ -5102,6 +5176,61 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return /* @__PURE__ */ _superRefine(fn, params);
 		}
 		//#endregion
+		//#region lib/types/draft-contract.js
+		/** Persisted drafts are user work, never model input until explicitly submitted. */
+		const draftReferenceSchema = object({
+			id: string().min(1).max(500),
+			kind: _enum([
+				"source",
+				"excerpt",
+				"board"
+			]),
+			label: string().max(1e3),
+			content: string().max(5e5),
+			address: string().max(4e3).optional()
+		}).strict();
+		const draftFileSchema = object({
+			id: uuid(),
+			name: string().min(1).max(1e3),
+			type: string().max(200),
+			size: number().int().nonnegative().max(104857600),
+			lastModified: number().int().nonnegative()
+		}).strict();
+		const draftContentSchema = object({
+			text: string().max(11e3),
+			references: array(draftReferenceSchema).max(64),
+			files: array(draftFileSchema).max(32)
+		}).strict();
+		const draftStateSchema = object({
+			version: literal(1),
+			revision: number().int().nonnegative(),
+			content: draftContentSchema,
+			pending: object({
+				requestId: uuid(),
+				content: draftContentSchema
+			}).strict().nullable()
+		}).strict();
+		const EMPTY_DRAFT = {
+			text: "",
+			references: [],
+			files: []
+		};
+		const EMPTY_DRAFT_STATE = {
+			version: 1,
+			revision: 0,
+			content: EMPTY_DRAFT,
+			pending: null
+		};
+		const DRAFT_CHUNK_BYTES = 262144;
+		/** Remove only the acknowledged submission, preserving edits made while it was pending. */
+		function subtractSubmitted(current, submitted) {
+			return {
+				text: current.text === submitted.text ? "" : current.text,
+				references: current.references.filter((item) => !submitted.references.some((sent) => sent.id === item.id)),
+				files: current.files.filter((item) => !submitted.files.some((sent) => sent.id === item.id))
+			};
+		}
+		//#endregion
 		//#region lib/types/native-session-contract.js
 		const attachmentId = string().min(1).transform((value) => value);
 		const nativeImageSchema = object({
@@ -5141,6 +5270,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}).strict()]);
 		/** Read-only control projection. The Agent inbox remains the only authoritative queue. */
 		const nativeStateSchema = object({
+			modelSelectionRequired: boolean().optional(),
 			running: boolean(),
 			blank: boolean(),
 			error: string().nullable(),
@@ -5310,6 +5440,37 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			invalid: 0
 		});
 		//#endregion
+		//#region lib/types/board-capture-protocol.js
+		/** Immutable board revision requested by one real model tool call, independent of UI selection. */
+		const boardCaptureJobSchema = object({
+			id: string().min(1),
+			sessionId: string().min(1),
+			board: boardSnapshotSchema
+		}).strict();
+		//#endregion
+		//#region lib/types/learning-example.js
+		/** Shared contract for model input and persisted card examples. Code is never Markdown. */
+		const descriptions = {
+			text: "A prose example in Markdown, at most 1500 characters. Use the code variant for source code.",
+			code: "Raw source code, at most 1500 characters. Preserve line breaks and indentation; do not add Markdown fences.",
+			language: "Language identifier such as javascript, python, html or text; 1–40 letters, digits, underscores, plus signs, dots, hashes or hyphens."
+		};
+		const learningExampleSchema = discriminatedUnion("kind", [object({
+			kind: literal("text"),
+			content: string().trim().min(1).max(1500).describe(descriptions.text)
+		}).strict(), object({
+			kind: literal("code"),
+			content: string().min(1).max(1500).refine((value) => value.trim().length > 0, "Code must not be blank").describe(descriptions.code),
+			language: string().regex(/^[a-zA-Z0-9_+#.-]{1,40}$/).describe(descriptions.language)
+		}).strict()]);
+		descriptions.text, descriptions.code, descriptions.language;
+		/** Export code literally, including embedded fences; the renderer never guesses its type. */
+		function learningExampleMarkdown(example) {
+			if (example.kind === "text") return example.content;
+			const fence = "`".repeat(Math.max(3, ...[...example.content.matchAll(/`+/g)].map((match) => match[0].length + 1)));
+			return `${fence}${example.language}\n${example.content}${example.content.endsWith("\n") ? "" : "\n"}${fence}`;
+		}
+		//#endregion
 		//#region lib/types/learning.js
 		/** User-selected teaching stages; these indicate intent, never measured mastery. */
 		const LEARNING_STAGES = [
@@ -5354,13 +5515,25 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const stage = LEARNING_STAGES.find((candidate) => candidate.id === stageId);
 			return `【学习阶段：${stage.label}】\n${stage.instruction}${question.trim() === "" ? "" : `\n\n我的问题：${question.trim()}`}`;
 		}
-		const learningCardsInputSchema = object({ cards: array(object({
-			title: string().trim().min(1).max(100),
-			summary: string().trim().min(1).max(2e3),
-			example: string().trim().min(1).max(1500),
-			question: string().trim().min(1).max(500),
-			answer: string().trim().min(1).max(2e3)
-		}).strict()).min(1).max(8) }).strict();
+		/** The validation schema and model-visible native tool must expose the same field contract. */
+		const LEARNING_CARD_FIELD_DESCRIPTIONS = {
+			title: "Non-empty title, at most 100 characters.",
+			summary: "Markdown summary, at most 2000 characters. Separate independent points with lists or paragraphs; include conditions and corrections.",
+			question: "Non-empty self-test question, at most 500 characters.",
+			answer: "Markdown reference answer, at most 2000 characters, consistent with the summary and example. Fence multiline code."
+		};
+		const learningCardSchema = object({
+			title: string().trim().min(1).max(100).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.title),
+			summary: string().trim().min(1).max(2e3).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.summary),
+			example: learningExampleSchema,
+			question: string().trim().min(1).max(500).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.question),
+			answer: string().trim().min(1).max(2e3).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.answer)
+		}).strict();
+		object({ cards: array(learningCardSchema).min(1).max(8) }).strict();
+		const persistedCardsInputSchema = object({ cards: array(learningCardSchema.extend({ example: union([learningExampleSchema, string().trim().min(1).max(1500).transform((content) => ({
+			kind: "text",
+			content
+		}))]) })).min(1).max(8) }).strict();
 		/**
 		* Recover the latest complete card set from successful Topic tool records.
 		* Pending, failed and malformed records cannot replace the previous valid set.
@@ -5375,7 +5548,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			for (const message of messages) {
 				if (message.role !== "tool" || message.name !== "learning_cards" || message.running || message.isError || message.result === null) continue;
 				try {
-					const input = learningCardsInputSchema.parse(JSON.parse(message.arguments));
+					const input = persistedCardsInputSchema.parse(JSON.parse(message.arguments));
 					if (object({ saved: number().int().min(1).max(8) }).strict().parse(JSON.parse(message.result)).saved !== input.cards.length) throw new Error("card count does not match the committed result");
 					result = {
 						...result,
@@ -5393,14 +5566,15 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Export the visible set with its Topic provenance; content is plain Markdown, never executed. */
 		function learningCardsMarkdown(cards, topicTitle, topicId, source) {
-			return `# ${topicTitle}\n\nTopic: ${topicId}\n\n来源：${source}\n\n${cards.map((card, index) => `## ${index + 1}. ${card.title}\n\n${card.summary}\n\n**例子**\n\n${card.example}\n\n**可选自测**\n\n${card.question}\n\n**参考答案**\n\n${card.answer}`).join("\n\n---\n\n")}\n`;
+			return `# ${topicTitle}\n\nTopic: ${topicId}\n\n来源：${source}\n\n${cards.map((card, index) => `## ${index + 1}. ${card.title}\n\n${card.summary}\n\n**例子**\n\n${learningExampleMarkdown(card.example)}\n\n**可选自测**\n\n${card.question}\n\n**参考答案**\n\n${card.answer}`).join("\n\n---\n\n")}\n`;
 		}
 		const wheelSlotsSchema = array(object({
 			label: string().trim().min(1).max(20),
 			prompt: string().max(4e3),
 			ask: boolean(),
 			scenario: _enum(["qa", "present"]),
-			presentation: _enum(["side", "floating"])
+			presentation: _enum(["side", "floating"]),
+			target: _enum(["current", "new"]).optional()
 		}).strict().refine((action) => action.ask || action.prompt.trim() !== "", "直接执行的模式需要提示词").nullable()).length(8);
 		const wheelTriggerSchema = _enum([
 			"right-button",
@@ -5420,7 +5594,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				prompt: "",
 				ask: true,
 				scenario: "qa",
-				presentation: "side"
+				presentation: "side",
+				target: "current"
 			},
 			{
 				label: "解释这段",
@@ -5460,6 +5635,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			null,
 			null
 		];
+		/** Preserve customized legacy slots; only the unchanged built-in free question gains append behavior. */
+		function actionTarget(action) {
+			if (action.target !== void 0) return action.target;
+			return action.label === "自由提问" && action.prompt === "" && action.ask && action.scenario === "qa" && action.presentation === "side" ? "current" : "new";
+		}
 		/** Combine a mode and optional user question without hidden system state. */
 		function actionQuestion(action, question) {
 			return [action.prompt.trim(), question.trim() === "" ? "" : `我的问题：${question.trim()}`].filter(Boolean).join("\n\n");
@@ -5484,8 +5664,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			label: string().trim().min(1).max(40),
 			text: string().trim().min(1).max(600)
 		}).strict();
-		/** User preferences applied to new Topics and source reads. */
-		const citeCiterSettingsSchema = object({
+		object({
 			defaultMode: _enum(["observer", "exact-when-available"]),
 			includeSourceReasoning: boolean(),
 			allowSourceFiles: boolean(),
@@ -5637,6 +5816,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}).strict();
 		/** Fields shared by the canonical Topic metadata schema and its on-disk reader. */
 		const topicMetadataFields = {
+			modelSelectionRequired: boolean().optional(),
 			hosted: boolean().optional(),
 			storage: literal("source").optional(),
 			topicId: number().int().positive(),
@@ -5689,6 +5869,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"danger-full-access"
 		]);
 		const topicSummarySchema = object({
+			modelSelectionRequired: boolean().optional(),
 			permission: permissionSchema.optional(),
 			hosted: boolean().optional(),
 			storage: literal("source").optional(),
@@ -5898,6 +6079,28 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}).strict()
 		]), discriminatedUnion("action", [
 			object({
+				action: literal("draft-get"),
+				topicSessionId: topicSessionIdSchema
+			}).strict(),
+			object({
+				action: literal("draft-save"),
+				topicSessionId: topicSessionIdSchema,
+				state: draftStateSchema
+			}).strict(),
+			object({
+				action: literal("draft-file-put"),
+				topicSessionId: topicSessionIdSchema,
+				file: draftFileSchema,
+				offset: number().int().nonnegative(),
+				data: string().max(349528).regex(/^[A-Za-z0-9+/]*={0,2}$/)
+			}).strict(),
+			object({
+				action: literal("draft-file-get"),
+				topicSessionId: topicSessionIdSchema,
+				fileId: uuid(),
+				offset: number().int().nonnegative()
+			}).strict(),
+			object({
 				action: literal("list"),
 				sourceSessionId: string().min(1),
 				includeArchived: boolean().optional()
@@ -5909,6 +6112,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				png: string().max(8e6).regex(/^[A-Za-z0-9+/]+={0,2}$/).optional(),
 				error: string().max(500).optional()
 			}).strict(),
+			object({ action: literal("board-capture-pending") }).strict(),
 			object({
 				action: literal("get"),
 				topicSessionId: topicSessionIdSchema
@@ -6000,6 +6204,21 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		/** Strict response union returned by the single Remote command endpoint. */
 		const citeCiterResponseSchema = discriminatedUnion("kind", [
 			object({
+				kind: literal("draft"),
+				state: draftStateSchema,
+				conflict: boolean()
+			}).strict(),
+			object({ kind: literal("draft-file-saved") }).strict(),
+			object({
+				kind: literal("draft-file"),
+				data: string().max(349528).regex(/^[A-Za-z0-9+/]*={0,2}$/)
+			}).strict(),
+			object({
+				kind: literal("board-captures"),
+				jobs: array(boardCaptureJobSchema)
+			}).strict(),
+			object({ kind: literal("board-capture-accepted") }).strict(),
+			object({
 				kind: literal("native-state"),
 				state: nativeStateSchema
 			}).strict(),
@@ -6088,6 +6307,17 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}).strict()]);
 		object({ version: string() }).passthrough();
 		//#endregion
+		//#region lib/types/typert-codec.js
+		/** Public Typert schema forms: 0.1.5 reads schema; 0.1.7 creates it lazily. Both refer to one schema. */
+		function strictCodec(typeSymbol, schema) {
+			return {
+				mode: "strict",
+				typeSymbol,
+				schema,
+				create: () => schema
+			};
+		}
+		//#endregion
 		//#region lib/types/typert.remote-client.js
 		/** Browser contribution mounted by the CiteCiter Client fiber. */
 		const TYPERT_REMOTE = {
@@ -6102,18 +6332,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					name: "rawRequest",
 					wire: "rawRequest",
 					source: "json",
-					codec: {
-						mode: "strict",
-						typeSymbol: "@kirkchinese/dsh-citeciter#CiteCiterRequest",
-						schema: citeCiterRequestSchema
-					}
+					codec: strictCodec("@kirkchinese/dsh-citeciter#CiteCiterRequest", citeCiterRequestSchema)
 				}],
 				cancellation: { parameter: "signal" },
-				result: {
-					mode: "strict",
-					typeSymbol: "@kirkchinese/dsh-citeciter#CiteCiterResponse",
-					schema: citeCiterResponseSchema
-				},
+				result: strictCodec("@kirkchinese/dsh-citeciter#CiteCiterResponse", citeCiterResponseSchema),
 				sourceLocation: {
 					file: "src/index.ts",
 					line: 127,
@@ -6127,11 +6349,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				invocation: { kind: "direct" },
 				parameters: [],
 				cancellation: { parameter: "signal" },
-				result: {
-					mode: "strict",
-					typeSymbol: "@kirkchinese/dsh-citeciter#UpdateCheckResponse",
-					schema: updateCheckResponseSchema
-				},
+				result: strictCodec("@kirkchinese/dsh-citeciter#UpdateCheckResponse", updateCheckResponseSchema),
 				sourceLocation: {
 					file: "src/index.ts",
 					line: 134,
@@ -6139,6 +6357,350 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}
 			}]
 		};
+		//#endregion
+		//#region lib/types/client/citer-session-face.js
+		/** Own the published SessionFace contract for Citer navigation. Sending, uploads and inbox mutations remain native DSH operations. */
+		var CiterSessionFace = class {
+			ctx;
+			sessionId;
+			store;
+			pending = /* @__PURE__ */ new Map();
+			lifetime = new AbortController();
+			emptyProjection = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(void 0);
+			projections = { faceOf: (_key) => this.emptyProjection };
+			observers = 0;
+			timer;
+			refreshing;
+			nextRequestId;
+			/** Use the draft's durable identity for this explicit send, including retries after restart. */
+			prepareSubmission(requestId) {
+				this.nextRequestId = requestId;
+			}
+			constructor(ctx, sessionId) {
+				this.ctx = ctx;
+				this.sessionId = sessionId;
+				this.store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({
+					sessionId,
+					queue: [],
+					pendingSubmissions: [],
+					running: false,
+					subagent: null,
+					removed: false,
+					openState: "cold",
+					openError: null,
+					hasMore: false,
+					loadingOlder: false,
+					promptError: null,
+					blank: true,
+					lastAgentError: null,
+					promptAttempted: false,
+					awaitingFirstTurn: false
+				});
+			}
+			getSnapshot = () => this.store.getSnapshot();
+			subscribe = (listener) => {
+				this.observers++;
+				const release = this.store.subscribe(listener);
+				this.schedule(0);
+				return () => {
+					release();
+					this.observers--;
+					this.schedule();
+				};
+			};
+			/** Establish ownership and obtain a real baseline before accepting composer work. */
+			async ready() {
+				await this.refresh();
+				this.lifetime.signal.throwIfAborted();
+			}
+			patch(patch) {
+				this.store.set({
+					...this.getSnapshot(),
+					...patch
+				});
+			}
+			retire(id, outcome) {
+				const input = this.pending.get(id);
+				if (input === void 0) return;
+				this.pending.delete(id);
+				this.patch({ pendingSubmissions: this.getSnapshot().pendingSubmissions.filter((row) => row.requestId !== id) });
+				input.onRetire?.(outcome);
+				this.schedule();
+			}
+			beginSubmission(input) {
+				this.lifetime.signal.throwIfAborted();
+				const requestId = this.nextRequestId ?? crypto.randomUUID();
+				this.nextRequestId = void 0;
+				this.pending.set(requestId, input);
+				const current = this.getSnapshot();
+				this.patch({
+					promptAttempted: true,
+					pendingSubmissions: [...current.pendingSubmissions, {
+						requestId,
+						placement: current.running ? input.mode === "steer" ? "steering" : "queued" : "transcript",
+						time: Date.now(),
+						text: input.text,
+						attachments: input.attachments
+					}]
+				});
+				this.schedule(0);
+				return {
+					requestId,
+					abandon: () => this.retire(requestId, { reason: "failed" })
+				};
+			}
+			prompt = async (content, mode, signal, requestId) => {
+				const id = requestId ?? crypto.randomUUID();
+				this.patch({
+					promptError: null,
+					lastAgentError: null,
+					promptAttempted: true
+				});
+				try {
+					const result = await this.ctx.remote.session.prompt({
+						sessionId: this.sessionId,
+						requestId: id,
+						content,
+						mode,
+						clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+					}, AbortSignal.any([this.lifetime.signal, ...signal === void 0 ? [] : [signal]]));
+					if (!result.ok) {
+						this.retire(id, { reason: "failed" });
+						this.patch({ promptError: {
+							op: "send",
+							error: result.error
+						} });
+					} else {
+						this.patch({ blank: false });
+						this.schedule(0);
+					}
+					return result;
+				} catch (error) {
+					this.retire(id, { reason: "failed" });
+					throw error;
+				}
+			};
+			/** Generic Citer attachment read; the installed SessionFace verb only supports images. */
+			readCiterAttachment = async (attachmentId) => {
+				const result = await this.ctx.remote.citeciter.request({
+					action: "native-attachment",
+					topicSessionId: this.sessionId,
+					attachmentId
+				}, this.lifetime.signal);
+				if (!result.ok) return result;
+				if (result.value.kind !== "native-attachment") throw new Error("Citer 附件响应类型不匹配");
+				return {
+					ok: true,
+					value: {
+						attachment: result.value.attachment,
+						data: Uint8Array.from(atob(result.value.data), (char) => char.charCodeAt(0))
+					}
+				};
+			};
+			readAttachment = async (attachmentId) => {
+				const result = await this.readCiterAttachment(attachmentId);
+				if (!result.ok) return result;
+				if (!("mediaType" in result.value.attachment)) throw new Error("此附件是普通文件，请使用文件下载入口");
+				return {
+					ok: true,
+					value: {
+						attachment: result.value.attachment,
+						data: result.value.data
+					}
+				};
+			};
+			updateQueue = async (itemId, action) => {
+				const result = await this.ctx.remote.session.updateQueue({
+					sessionId: this.sessionId,
+					itemId,
+					action
+				});
+				this.schedule(0);
+				return result;
+			};
+			cancel = async () => {
+				const result = await this.ctx.remote.session.cancel({ sessionId: this.sessionId });
+				if (!result.ok) this.patch({ promptError: {
+					op: "stop",
+					error: result.error
+				} });
+				this.schedule(0);
+				return result;
+			};
+			rename = async (title) => {
+				const result = await this.ctx.remote.session.rename({
+					sessionId: this.sessionId,
+					title
+				});
+				return result.ok ? {
+					ok: true,
+					value: {
+						title: result.value.title,
+						seq: SessionSeq(result.value.seq)
+					}
+				} : result;
+			};
+			command = async (line) => {
+				const result = await this.ctx.remote.commands.execute(this.sessionId, line, []);
+				return result.ok ? {
+					ok: true,
+					value: { matched: result.value !== void 0 }
+				} : result;
+			};
+			loadOlder = async () => {};
+			loadThrough = async () => {};
+			schedule(delay = 350) {
+				clearTimeout(this.timer);
+				this.timer = void 0;
+				if (this.lifetime.signal.aborted || this.observers === 0 && this.pending.size === 0) return;
+				this.timer = setTimeout(() => {
+					this.timer = void 0;
+					this.refresh().catch((error) => {
+						if (!this.lifetime.signal.aborted) this.patch({
+							openState: "error",
+							lastAgentError: String(error)
+						});
+					}).finally(() => this.schedule());
+				}, delay);
+			}
+			refresh() {
+				if (this.refreshing !== void 0) return this.refreshing;
+				const operation = (async () => {
+					const result = await this.ctx.remote.citeciter.request({
+						action: "native-state",
+						topicSessionId: this.sessionId,
+						requestIds: [...this.pending.keys()].slice(0, 32)
+					}, this.lifetime.signal);
+					if (!result.ok) throw new Error(result.error.message);
+					if (result.value.kind !== "native-state") throw new Error("Citer 会话状态响应类型不匹配");
+					if (this.lifetime.signal.aborted) return;
+					const state = result.value.state;
+					this.patch({
+						openState: "open",
+						openError: null,
+						running: state.running,
+						blank: state.blank,
+						lastAgentError: state.error,
+						modelSelectionRequired: state.modelSelectionRequired === true,
+						queue: state.queue.map(({ rpcId, ...row }) => ({
+							...row,
+							id: row.id,
+							messageId: row.id,
+							...rpcId === void 0 ? {} : { rpcId },
+							preview: row.text || "附件",
+							content: [{
+								type: "text",
+								text: row.text
+							}, ...row.attachments]
+						}))
+					});
+					for (const receipt of state.receipts) this.retire(receipt.requestId, {
+						reason: "observed",
+						attachments: receipt.attachments.map((block) => block.attachment)
+					});
+				})();
+				this.refreshing = operation;
+				operation.finally(() => {
+					if (this.refreshing === operation) this.refreshing = void 0;
+				}).catch(() => {});
+				return operation;
+			}
+			/** Stop polling and settle each owned submission exactly once when its plugin closes. */
+			dispose() {
+				this.lifetime.abort();
+				clearTimeout(this.timer);
+				for (const id of this.pending.keys()) this.retire(id, { reason: "failed" });
+			}
+		};
+		//#endregion
+		//#region lib/types/model-admission.js
+		/** Keep an unavailable inherited route visible until the user explicitly replaces it. */
+		const MODEL_SELECTION_REQUIRED = "来源模型已不可用。草稿已保留，请选择可用模型后发送。";
+		/** Check the durable flag before an explicit submission, without changing permissions or model defaults. */
+		function requireSelectedModel(metadata) {
+			if (metadata.modelSelectionRequired === true) throw new Error(MODEL_SELECTION_REQUIRED);
+		}
+		//#endregion
+		//#region lib/types/client/native-composer.js
+		/** A lost transport response is not proof that the host rejected a submission. */
+		var UncertainSubmissionError = class extends Error {};
+		/** Adapt the installed conversation service's published composer methods; never reach its private input machine. */
+		function createNativeComposer(ctx) {
+			const conversation = ctx.conversation;
+			const owned = /* @__PURE__ */ new Set();
+			const sessions = /* @__PURE__ */ new Map();
+			let disposed = false;
+			ctx.effect(() => () => {
+				disposed = true;
+				for (const session of sessions.values()) session.dispose();
+				sessions.clear();
+				for (const id of owned) conversation.releaseDraftAttachment(id);
+				owned.clear();
+			}, "citeciter: native attachment drafts");
+			if (typeof conversation.sendSession !== "function" || typeof conversation.createDrafts !== "function") throw new Error("当前 DSH 不提供 Citer 所需的原生附件发送接口");
+			const face = (id) => {
+				if (disposed) throw new Error("Citer 已关闭");
+				let session = sessions.get(id);
+				if (session === void 0) {
+					session = new CiterSessionFace(ctx, id);
+					sessions.set(id, session);
+				}
+				return session;
+			};
+			const binding = async (id) => {
+				const session = face(id);
+				await session.ready();
+				return { session };
+			};
+			return {
+				uploads: conversation.fileUploads,
+				retry: (id, attachment) => conversation.retryFileUpload(id, attachment),
+				watch: (id, listener) => {
+					const session = face(id);
+					const update = () => listener(session.getSnapshot());
+					const unsubscribe = session.subscribe(update);
+					update();
+					return unsubscribe;
+				},
+				queue: async (id, item, action) => {
+					const result = await (await binding(id)).session.updateQueue(item, action);
+					if (!result.ok && result.error.code !== "session/queue-item-not-found") throw new Error(result.error.message);
+				},
+				attachment: async (sessionId, id) => {
+					const result = await (await binding(sessionId)).session.readCiterAttachment(id);
+					if (!result.ok) throw new Error(result.error.message);
+					return new Blob([new Uint8Array(result.value.data)], { type: "mediaType" in result.value.attachment ? result.value.attachment.mediaType : "application/octet-stream" });
+				},
+				add: async (id, files) => {
+					await binding(id);
+					if (disposed) throw new Error("Citer 已关闭，未创建附件");
+					const drafts = conversation.createDrafts(id, files);
+					for (const draft of drafts) owned.add(draft.id);
+					return drafts;
+				},
+				remove: (id) => {
+					conversation.releaseDraftAttachment(id);
+					owned.delete(id);
+				},
+				send: async (id, text, attachments, mode, requestId) => {
+					const target = await binding(id);
+					requireSelectedModel({ modelSelectionRequired: target.session.getSnapshot().modelSelectionRequired });
+					if (requestId !== void 0) target.session.prepareSubmission(requestId);
+					const outcome = await conversation.sendSession(target.session, text, attachments, mode).catch((error) => {
+						throw new UncertainSubmissionError(`未收到发送结果：${String(error)}；请核对发送状态，草稿已保留`);
+					});
+					if (outcome.kind === "error") {
+						const failure = target.session.getSnapshot().promptError?.error;
+						const details = failure?.details;
+						const attachmentReason = details !== null && typeof details === "object" && "reason" in details ? details.reason : void 0;
+						const reason = failure?.code === "session/attachment-invalid" && (attachmentReason === "INVALID_IMAGE" || attachmentReason === "IMAGE_TYPE_MISMATCH") ? "附件格式无效或内容损坏，请移除或更换附件后重试" : failure?.message ?? outcome.text ?? "DSH 未接受此次发送";
+						if (failure === void 0) throw new UncertainSubmissionError(`${reason}；请核对发送状态，草稿已保留`);
+						throw new Error(`${reason}；草稿已保留`);
+					}
+					for (const id of attachments) owned.delete(id);
+				}
+			};
+		}
 		//#endregion
 		//#region lib/types/assistant-content.js
 		/**
@@ -6188,8 +6750,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* prose. System Tutor and Citation Context travel through their own layers.
 		*/
 		function normalizeQuestion(rawQuestion) {
-			const question = rawQuestion.trim();
+			const question = normalizeDraftQuestion(rawQuestion);
 			if (question === "") throw new Error("question cannot be empty");
+			return question;
+		}
+		/** Creation may prepare an empty composer; length limits apply before any request. */
+		function normalizeDraftQuestion(rawQuestion) {
+			const question = rawQuestion.trim();
 			if (question.length > 12e3) throw new Error(`question exceeds ${MAX_QUESTION_CHARS} characters`);
 			return question;
 		}
@@ -6397,10 +6964,79 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return !hasActiveTopic && phaseIsIdle && reopenLastTopic && !showingArchived && !attempted && !suppressed;
 		}
 		//#endregion
+		//#region lib/types/client/draft-references.js
+		/** Append real references once per unsent draft. A later explicit selection can restore a removed item. */
+		function mergeDraftReferences(current, incoming) {
+			const result = [...current];
+			for (const reference of incoming) if (!result.some((item) => item.id === reference.id || item.kind === reference.kind && item.address === reference.address && item.content === reference.content)) result.push(reference);
+			return result;
+		}
+		/** Build initial references without submitting them. Stable Topic-scoped IDs preserve menu focus during live snapshot refreshes. */
+		function topicDraftReferences(topic, documentTitle) {
+			if (topic.citation === null && topic.documentId === null) return [];
+			const address = `dsh://session/${encodeURIComponent(topic.sourceSessionId)}`;
+			const references = [{
+				id: `source:${topic.sessionId}`,
+				kind: "source",
+				label: "来源对话",
+				content: topic.sourceSessionId,
+				address
+			}];
+			if (topic.documentId !== null) references.push({
+				id: `document:${topic.sessionId}:${topic.documentId}`,
+				kind: "source",
+				label: "来源文档",
+				content: documentTitle ?? topic.documentId,
+				address: `dsh://document/${encodeURIComponent(topic.documentId)}`
+			});
+			if (topic.citation !== null) references.push({
+				id: `excerpt:${topic.sessionId}`,
+				kind: "excerpt",
+				label: "引用文段",
+				content: topic.citation.displayText
+			});
+			return references;
+		}
+		/** Display a document filename while retaining the full title/path in its serialized content. Legacy ID-only references keep their generic label. */
+		function draftReferenceName(reference) {
+			if (reference.label !== "来源文档" || reference.address?.endsWith(`/${encodeURIComponent(reference.content)}`)) return reference.label;
+			return reference.content.split(/[\\/]/u).at(-1) || reference.label;
+		}
+		/** Serialize the exact visible attachment collection only at manual submission. */
+		function serializeDraftReferences(question, references) {
+			if (references.length === 0) return question.trim();
+			const attachments = references.map((reference) => `【附件：${reference.label}】\n${reference.address === void 0 ? "" : `来源：${reference.address}\n`}${reference.content}`).join("\n\n");
+			return `${question.trim()}\n\n${attachments}`.trim();
+		}
+		/** Present sent reference blocks as expandable attachments while retaining the exact serialized model input in the Session log. Unrecognized text is preserved. */
+		function parseSentReferences(text) {
+			const matches = [...text.matchAll(/(?:^|\n\n)【附件：(来源对话|来源文档|引用文段|板书引用)】\n/gu)];
+			if (matches.length === 0) return {
+				question: text,
+				references: []
+			};
+			const references = matches.map((match, index) => {
+				const label = match[1];
+				const block = text.slice(match.index + match[0].length, matches[index + 1]?.index ?? text.length).trimEnd();
+				const address = /^来源：(dsh:\/\/(?:session|document)\/[^\n]+)\n/u.exec(block);
+				return {
+					id: `sent-${index}`,
+					kind: label === "板书引用" ? "board" : label === "引用文段" ? "excerpt" : "source",
+					label,
+					content: address === null ? block : block.slice(address[0].length),
+					...address === null ? {} : { address: address[1] }
+				};
+			});
+			return {
+				question: text.slice(0, matches[0].index).trimEnd(),
+				references
+			};
+		}
+		//#endregion
 		//#region lib/types/client/companion-controller.js
 		/** Initial browser snapshot for the root-scoped CiteCiter controller. */
 		const INITIAL_COMPANION_SNAPSHOT = {
-			composeSeed: null,
+			composeSeeds: [],
 			sourceSessionId: null,
 			phase: "idle",
 			draftQuote: null,
@@ -6462,7 +7098,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			} catch {}
 		}
 		/** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
-		function createCompanionController(readChat, settingsScope, request, onAutoOpen, store, nativeComposer) {
+		function createCompanionController(readChat, configForms, request, onAutoOpen, store, nativeComposer) {
 			let disposed = false;
 			const lifecycle = new AbortController();
 			const operations = /* @__PURE__ */ new Set();
@@ -6552,10 +7188,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const acceptTopic = (rawTopic, operationGeneration, expectedSessionId, polling = false) => {
 				const topic = clearRecoveredError(withPendingModelConfig(rawTopic));
 				const current = store.getSnapshot();
+				if (polling && current.active?.topic.sessionId !== topic.topic.sessionId) return;
 				if (disposed || !isCurrentTopicResponse(operationGeneration, activeGeneration, current.sourceSessionId, topic.topic.sourceSessionId, topic.topic.sessionId, expectedSessionId)) return;
 				if (!polling) actionFailure = null;
 				const failure = actionFailure?.generation === operationGeneration ? actionFailure.message : null;
+				const restored = current.active?.topic.sessionId === topic.topic.sessionId && current.active.topic.archived && !topic.topic.archived && current.includeArchived;
 				update((draft) => {
+					if (restored) {
+						draft.includeArchived = false;
+						draft.topics = [];
+					}
 					const lastMessage = topic.messages.at(-1);
 					draft.active = topic;
 					draft.draftQuote = null;
@@ -6565,7 +7207,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					draft.error = failure ?? topic.error;
 					upsertTopic(draft, topic.topic);
 				});
-				writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId);
+				if (!polling) writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId);
+				if (restored) refreshTopics();
 			};
 			const call = (command) => track(remoteOperations, (async () => {
 				lifecycle.signal.throwIfAborted();
@@ -6662,10 +7305,19 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				});
 				if (response.kind === "topic") acceptTopic(response.topic, operationGeneration, active.topic.sessionId, true);
 			};
+			const resolveDraftTopic = async (sourceSessionId) => {
+				if (disposed || store.getSnapshot().sourceSessionId !== sourceSessionId) throw new Error("来源已切换，请重新选文");
+				const current = store.getSnapshot();
+				if (current.deleting || current.archiving || current.phase === "creating") throw new Error("Topic 正在切换，请稍后重新选文");
+				if (current.active !== null && !current.active.topic.archived) return current.active.topic.sessionId;
+				return null;
+			};
 			const poll = async () => {
 				if (!visible || disposed || polling) return;
 				if (pendingFreeCreates.size > 0) return;
-				const active = store.getSnapshot().active;
+				const current = store.getSnapshot();
+				if (current.phase === "creating") return;
+				const active = current.active;
 				if (active !== null && pendingAsks.has(active.topic.sessionId)) return;
 				polling = true;
 				const operationGeneration = activeGeneration;
@@ -6690,7 +7342,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (generation === sourceGeneration) fail(error);
 				}
 			};
-			const settingsSnapshot = settingsScope.getSnapshot();
+			const settingsSnapshot = configForms.getSnapshot();
 			settingsReady = settingsSnapshot.status !== "loading";
 			const initialSettings = settingsSnapshot.value ?? DEFAULT_CITECITER_SETTINGS;
 			update((draft) => {
@@ -6701,8 +7353,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				for (const [key, pending] of pendingSettings) Object.assign(merged, { [key]: pending.value });
 				return merged;
 			};
-			const unsubscribeSettings = settingsScope.subscribe(() => {
-				const scopeSnapshot = settingsScope.getSnapshot();
+			const unsubscribeSettings = configForms.subscribe(() => {
+				const scopeSnapshot = configForms.getSnapshot();
 				const becameReady = !settingsReady && scopeSnapshot.status !== "loading";
 				settingsReady = scopeSnapshot.status !== "loading";
 				const value = scopeSnapshot.value;
@@ -6836,11 +7488,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (response.topic.topic.citation !== null) writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey);
 					acceptTopic(response.topic, operationGeneration);
 					if (operationGeneration === activeGeneration) update((draft) => {
-						draft.composeSeed = {
+						draft.composeSeeds = [...draft.composeSeeds, {
 							sessionId: response.topic.topic.sessionId,
 							question,
-							id: intent.requestId
-						};
+							id: intent.requestId,
+							references: topicDraftReferences(response.topic.topic, response.topic.documentTitle)
+						}];
 					});
 					await refreshTopics();
 				} catch (error) {
@@ -6849,7 +7502,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}
 			const create = async (selection, rawQuestion, mode, scenario = "qa", modelRoute) => {
 				if (disposed) return;
-				const question = normalizeQuestion(rawQuestion);
+				const question = normalizeDraftQuestion(rawQuestion);
 				const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode;
 				const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario, modelRoute);
 				if (disposed) return;
@@ -6891,11 +7544,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						completeRequestIntent(intent);
 						acceptTopic(response.topic, operationGeneration);
 						if (operationGeneration === activeGeneration) update((draft) => {
-							draft.composeSeed = {
+							draft.composeSeeds = [...draft.composeSeeds, {
 								sessionId: response.topic.topic.sessionId,
 								question,
-								id: intent.requestId
-							};
+								id: intent.requestId,
+								references: topicDraftReferences(response.topic.topic, response.topic.documentTitle)
+							}];
 						});
 						await refreshTopics();
 						return operationGeneration === activeGeneration;
@@ -6916,7 +7570,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId;
 				if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error("来源会话已切换，请重新选文");
 				if (sourceSessionId === null) throw new Error("打开 CiteCiter 面板后即可创建文档 Topic");
-				const question = normalizeQuestion(rawQuestion);
+				const question = normalizeDraftQuestion(rawQuestion);
 				const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute);
 				if (disposed) return;
 				if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error("来源会话已切换，请重新选文");
@@ -6950,11 +7604,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					completeRequestIntent(intent);
 					acceptTopic(response.topic, operationGeneration);
 					if (operationGeneration === activeGeneration) update((draft) => {
-						draft.composeSeed = {
+						draft.composeSeeds = [...draft.composeSeeds, {
 							sessionId: response.topic.topic.sessionId,
 							question,
-							id: intent.requestId
-						};
+							id: intent.requestId,
+							references: topicDraftReferences(response.topic.topic, response.topic.documentTitle)
+						}];
 					});
 					if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId) onAutoOpen();
 					await refreshTopics();
@@ -6969,6 +7624,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				update((draft) => {
 					draft.phase = "running";
 					draft.error = null;
+					draft.notice = null;
 				});
 				try {
 					const response = await call({
@@ -6985,7 +7641,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					return false;
 				}
 			}
-			const ask = async (rawQuestion, attachments = [], mode = "queue") => {
+			const ask = async (rawQuestion, attachments = [], mode = "queue", requestId, expectedSessionId) => {
 				if (disposed) return false;
 				const snapshot = store.getSnapshot();
 				const active = snapshot.active;
@@ -6996,17 +7652,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					"running"
 				].includes(snapshot.phase)) return false;
 				const sessionId = active.topic.sessionId;
+				if (expectedSessionId !== void 0 && expectedSessionId !== sessionId) return false;
 				if (active.topic.hosted === true) {
 					if (pendingAsks.has(sessionId)) return false;
 					const generation = activeGeneration;
 					const operation = (async () => {
 						try {
-							await nativeComposer.send(sessionId, rawQuestion, attachments, mode);
+							await nativeComposer.send(sessionId, rawQuestion, attachments, mode, requestId);
 						} catch (error) {
 							fail(error, generation);
+							if (error instanceof UncertainSubmissionError) throw error;
 							return false;
 						}
-						if (generation === activeGeneration) actionFailure = null;
+						if (generation === activeGeneration) {
+							actionFailure = null;
+							update((draft) => {
+								draft.notice = null;
+							});
+						}
 						try {
 							const response = await call({
 								action: "get",
@@ -7310,11 +7973,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					draft.settingsSaveMessage = "正在保存…";
 				});
 				try {
-					if (value === void 0) await track(remoteOperations, settingsScope.unset(key));
-					else await track(remoteOperations, settingsScope.set(key, value));
+					if (value === void 0) await track(remoteOperations, configForms.unset(key));
+					else await track(remoteOperations, configForms.set(key, value));
 					if (pendingSettings.get(key)?.operation !== operation || disposed) return;
 					pendingSettings.delete(key);
-					const authoritative = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
+					const authoritative = configForms.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
 					update((draft) => {
 						draft.settings = settingsWithPending(authoritative);
 						draft.settingsSaveStatus = pendingSettings.size === 0 ? "saved" : "saving";
@@ -7323,7 +7986,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				} catch (error) {
 					if (pendingSettings.get(key)?.operation !== operation || disposed) return;
 					pendingSettings.delete(key);
-					const restored = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
+					const restored = configForms.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS;
 					update((draft) => {
 						draft.settings = settingsWithPending(restored);
 						draft.settingsSaveStatus = "error";
@@ -7340,6 +8003,22 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
 				createFromDocument: (...args) => admit(void 0, () => createFromDocument(...args)),
 				openTopic: (sessionId) => admit(void 0, () => openTopic(sessionId, ++activeGeneration)),
+				resolveDraftTopic: (sourceSessionId) => admit(null, () => resolveDraftTopic(sourceSessionId)),
+				appendSelection: (sourceSessionId, topicSessionId, question, references) => {
+					const snapshot = store.getSnapshot();
+					if (disposed || snapshot.sourceSessionId !== sourceSessionId || snapshot.active?.topic.sessionId !== topicSessionId || snapshot.active.topic.archived || snapshot.deleting || snapshot.archiving || snapshot.phase === "creating") throw new Error("当前 Topic 已切换或不可编辑，请重新选文");
+					update((draft) => {
+						draft.composeSeeds = [...draft.composeSeeds, {
+							sessionId: topicSessionId,
+							question,
+							references,
+							id: crypto.randomUUID()
+						}];
+					});
+				},
+				consumeComposeSeed: (id) => update((draft) => {
+					draft.composeSeeds = draft.composeSeeds.filter((seed) => seed.id !== id);
+				}),
 				ask: (...args) => admit(false, () => ask(...args)),
 				setPermission: (mode) => admit(void 0, async () => {
 					const active = store.getSnapshot().active;
@@ -7358,15 +8037,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}),
 				answerQuestion: (key, answer) => admit(void 0, () => answerQuestion(key, answer)),
 				cancelQuestion: (key) => admit(void 0, () => cancelQuestion(key)),
-				boardCaptureReply: async (sessionId, id, png, error) => {
-					await call({
-						action: "board-capture",
-						topicSessionId: sessionId,
-						id,
-						...png === void 0 ? {} : { png },
-						...error === void 0 ? {} : { error: error.slice(0, 500) }
-					});
-				},
 				stop: () => admit(void 0, stop),
 				rename: (title) => admit(false, () => rename(title)),
 				archive: (archived) => admit(false, () => archive(archived)),
@@ -34092,221 +34762,94 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		//#endregion
-		//#region lib/types/client/dock-geometry.js
-		/**
-		* Reserve a separate column, or the content area when two readable columns cannot fit.
-		* CSS pixels already account for browser zoom and Windows display scaling.
-		* @param viewport - measured host dimensions and the saved width preference.
-		* @returns panel dimensions within the host, excluding its native caption.
-		*/
-		function resolveDockGeometry(viewport) {
-			const contentHeight = Math.max(0, viewport.height - viewport.caption);
-			const available = viewport.width - viewport.sidebar - viewport.details - 480;
-			if (available >= 360) return {
-				mode: "columns",
-				width: Math.min(available, Math.max(360, viewport.width * viewport.percent / 100)),
-				height: contentHeight,
-				top: viewport.caption
-			};
-			return {
-				mode: "page",
-				width: Math.max(0, viewport.width - viewport.sidebar),
-				height: contentHeight,
-				top: viewport.caption
-			};
+		//#region lib/types/client/host-icons.js
+		/** DSH renamed size-specific icons in 0.1.7; the module-table import remains shared. */
+		function icon(modern, legacy) {
+			const exports = _deepseek_ai_dsh_client_ui_primitives;
+			const component = exports[modern] ?? exports[legacy];
+			if (component === void 0) throw new Error(`DSH 缺少图标：${modern}`);
+			return component;
 		}
+		const IconSettingsOutlineMedium = icon("IconSettingsOutlineMedium", "IconSettingsOutline14");
+		const IconQuestionOutlineMedium = icon("IconQuestionOutlineMedium", "IconQuestionOutline14");
+		const IconSparkleMedium = icon("IconSparkleMedium", "IconSparkle16");
+		const IconDownloadOutlineMedium = icon("IconDownloadOutlineMedium", "IconDownloadOutline16");
+		const IconThinkOutlineMedium = icon("IconThinkOutlineMedium", "IconThinkOutline14");
+		const IconStopFillMedium = icon("IconStopFillMedium", "IconStopFill16");
+		const IconArchiveOutlineMedium = icon("IconArchiveOutlineMedium", "IconArchiveOutline20");
 		//#endregion
-		//#region lib/types/client/host-dock.js
-		/** Isolated, disposable layout adapter for DSH 0.1.5-rc.1 and Desktop 2.0.9 frames. */
+		//#region lib/types/client/file-download.js
 		/**
-		* Locate the frame owning the public shell.overlay contribution.
-		* @param panel - mounted learning panel.
-		* @returns its immediate frame, or null before mounting.
+		* Download one committed attachment on demand through its owning Session.
+		* @param sessionId - the exact Topic that authorizes the attachment read.
+		* @param id - the durable native attachment identity.
+		* @param name - suggested local filename; never used as a source filesystem path.
+		* @param load - native attachment reader, provided by the client controller.
+		* @returns the download action and its visible progress/error state.
+		* Repeated clicks share one request. Identity changes and unmount cancel UI effects
+		* and release the owned object URL without cancelling the host's shared reader.
 		*/
-		function findContainingFrame(panel) {
-			return panel?.closest("[data-shell-overlay]")?.parentElement ?? null;
-		}
-		/**
-		* Reserve host space without rewriting the host's saved columns or hiding details.
-		* Unknown frame structures receive no DOM changes. All owned styles disappear on close.
-		* @param panel - mounted panel reference.
-		* @param open - whether space should be reserved.
-		* @param percent - user's preferred fraction of the content viewport.
-		* @returns measured panel placement; null when the host frame is unsupported.
-		*/
-		function useHostDock(panel, open, percent, floating = false) {
-			const [geometry, setGeometry] = (0, react.useState)(null);
+		function useFileDownload(sessionId, id, name, load) {
+			const requestRef = (0, react.useRef)();
+			const [busy, setBusy] = (0, react.useState)(false);
+			const [error, setError] = (0, react.useState)();
 			(0, react.useEffect)(() => {
-				if (!open) return;
-				const frame = findContainingFrame(panel.current);
-				if (frame === null) return;
-				const owner = crypto.randomUUID();
-				const saved = /* @__PURE__ */ new Map();
-				const setTrack = (name, value) => {
-					if (!saved.has(name)) saved.set(name, {
-						value: frame.style.getPropertyValue(name),
-						priority: frame.style.getPropertyPriority(name)
-					});
-					if (frame.style.getPropertyValue(name) !== value) frame.style.setProperty(name, value);
+				const request = {
+					active: true,
+					pending: false
 				};
-				const clear = () => {
-					if (frame.dataset.citeciterDockOwner !== owner) return;
-					delete frame.dataset.citeciterDockOwner;
-					delete frame.dataset.citeciterLayout;
-					for (const [name, prior] of saved) if (prior.value === "") frame.style.removeProperty(name);
-					else frame.style.setProperty(name, prior.value, prior.priority);
-					saved.clear();
-				};
-				const apply = () => {
-					if (frame.dataset.citeciterDockOwner !== void 0 && frame.dataset.citeciterDockOwner !== owner) return;
-					const columns = frame.style.gridTemplateColumns;
-					const tracks = /^(\d+(?:\.\d+)?)px\s+minmax\(0(?:px)?,\s*1fr\)\s+(\d+(?:\.\d+)?)px$/u.exec(columns);
-					if (tracks === null || frame.hasAttribute("data-rightbar-fullscreen") || getComputedStyle(frame).display !== "grid") {
-						clear();
-						setGeometry(null);
-						return;
-					}
-					const rect = frame.getBoundingClientRect();
-					const caption = frame.querySelector(":scope > .dshDesktopWindowsCaptionRow, :scope > .dshDesktopMacCaptionRow")?.getBoundingClientRect().height ?? 0;
-					const next = resolveDockGeometry({
-						width: rect.width,
-						height: rect.height,
-						sidebar: Number(tracks[1]),
-						details: Number(tracks[2]),
-						caption,
-						percent
-					});
-					if (floating && next.mode === "columns") {
-						clear();
-						setGeometry((previous) => previous?.mode === next.mode && previous.width === next.width && previous.height === next.height && previous.top === next.top ? previous : next);
-						return;
-					}
-					setTrack("--citeciter-host-columns", columns);
-					setTrack("--citeciter-dock-width", next.width + "px");
-					setTrack("--citeciter-dock-height", next.height + "px");
-					setTrack("--citeciter-host-rows", caption > 0 ? `${caption}px minmax(0, 1fr)` : "minmax(0, 1fr)");
-					setTrack("--citeciter-sidebar-row-end", caption > 0 ? "3" : "2");
-					frame.dataset.citeciterDockOwner = owner;
-					frame.dataset.citeciterLayout = next.mode;
-					setGeometry((previous) => previous?.mode === next.mode && previous.width === next.width && previous.height === next.height && previous.top === next.top ? previous : next);
-				};
-				apply();
-				const resize = new ResizeObserver(apply);
-				const mutations = new MutationObserver(apply);
-				resize.observe(frame);
-				mutations.observe(frame, {
-					attributes: true,
-					attributeFilter: [
-						"style",
-						"class",
-						"data-rightbar-fullscreen"
-					],
-					childList: true
-				});
+				requestRef.current = request;
+				setBusy(false);
+				setError(void 0);
 				return () => {
-					resize.disconnect();
-					mutations.disconnect();
-					clear();
+					request.active = false;
+					if (request.url !== void 0) URL.revokeObjectURL(request.url);
 				};
 			}, [
-				open,
-				panel,
-				percent,
-				floating
+				sessionId,
+				id,
+				name,
+				load
 			]);
-			return geometry;
-		}
-		//#endregion
-		//#region lib/types/client/compact-navigation.js
-		/** Suspend only covered host panes while Citer occupies the compact content page; restore their focusability on return. */
-		function useCompactNavigation(panel, active) {
-			(0, react.useEffect)(() => {
-				if (!active) return;
-				const frame = findContainingFrame(panel.current);
-				if (frame === null) return;
-				const owned = /* @__PURE__ */ new Map();
-				const cover = () => {
-					const bounds = panel.current?.getBoundingClientRect();
-					if (bounds === void 0) return;
-					for (const element of frame.children) {
-						if (!(element instanceof HTMLElement) || element.hasAttribute("data-shell-overlay") || owned.has(element)) continue;
-						const rect = element.getBoundingClientRect();
-						if (rect.width <= 0 || rect.height <= 0 || rect.right <= bounds.left + 1 || rect.bottom <= bounds.top + 1) continue;
-						if (element.classList.contains("dshDesktopWindowsCaptionRow") || element.classList.contains("dshDesktopMacCaptionRow")) continue;
-						owned.set(element, {
-							inert: element.inert,
-							hidden: element.getAttribute("aria-hidden")
-						});
-						element.inert = true;
-						element.setAttribute("aria-hidden", "true");
-						element.setAttribute("data-citeciter-covered", "");
+			const download = async () => {
+				const request = requestRef.current;
+				if (request === void 0 || !request.active || request.pending) return;
+				request.pending = true;
+				setBusy(true);
+				setError(void 0);
+				try {
+					if (request.url === void 0) {
+						const blob = await load(sessionId, id);
+						if (!request.active) return;
+						request.url = URL.createObjectURL(blob);
 					}
-				};
-				cover();
-				const observer = new MutationObserver(cover);
-				observer.observe(frame, { childList: true });
-				return () => {
-					observer.disconnect();
-					for (const [element, previous] of owned) {
-						element.inert = previous.inert;
-						if (previous.hidden === null) element.removeAttribute("aria-hidden");
-						else element.setAttribute("aria-hidden", previous.hidden);
-						element.removeAttribute("data-citeciter-covered");
+					const link = document.createElement("a");
+					link.href = request.url;
+					link.download = name;
+					link.hidden = true;
+					document.body.append(link);
+					try {
+						link.click();
+					} finally {
+						link.remove();
 					}
-				};
-			}, [panel, active]);
-		}
-		//#endregion
-		//#region lib/types/client/transcript-position.js
-		function capture(node) {
-			const child = [...node.children].find((child) => child instanceof HTMLElement && child.hasAttribute("data-citeciter-message") && child.offsetTop + child.offsetHeight > node.scrollTop + 1);
-			const anchor = child?.getAttribute("data-citeciter-message");
-			return {
-				top: node.scrollTop,
-				follow: node.scrollHeight - node.scrollTop - node.clientHeight < 80,
-				...anchor == null || child === void 0 ? {} : {
-					anchor,
-					offset: (node.scrollTop - child.offsetTop) / Math.max(1, child.offsetHeight)
+				} catch (reason) {
+					if (request.active) setError(reason instanceof Error ? reason.message : String(reason));
+				} finally {
+					request.pending = false;
+					if (request.active) setBusy(false);
 				}
 			};
-		}
-		function restore(node, position) {
-			if (position?.follow !== false) {
-				node.scrollTop = node.scrollHeight;
-				return;
-			}
-			const child = [...node.children].find((child) => child instanceof HTMLElement && child.getAttribute("data-citeciter-message") === position.anchor);
-			node.scrollTop = child === void 0 ? position.top : child.offsetTop + (position.offset ?? 0) * child.offsetHeight;
-		}
-		/** Keep each Topic's reading position across portal moves, view changes and close/reopen. Follow new output only while the reader is near the end. */
-		function useTranscriptPosition(topicId, revision) {
-			const positions = (0, react.useRef)(/* @__PURE__ */ new Map());
-			const element = (0, react.useRef)(null);
-			const ref = (0, react.useCallback)((node) => {
-				const previous = element.current;
-				if (previous !== null) {
-					if (!positions.current.has(topicId)) positions.current.set(topicId, capture(previous));
-				}
-				element.current = node;
-				if (node !== null) restore(node, positions.current.get(topicId));
-			}, [topicId]);
-			const onScroll = (0, react.useCallback)((event) => {
-				const node = event.currentTarget;
-				positions.current.set(topicId, capture(node));
-			}, [topicId]);
-			(0, react.useLayoutEffect)(() => {
-				const node = element.current;
-				if (node !== null && positions.current.get(topicId)?.follow !== false) node.scrollTop = node.scrollHeight;
-			}, [topicId, revision]);
 			return {
-				ref,
-				onScroll
+				download,
+				busy,
+				error
 			};
 		}
 		//#endregion
-		//#region \0dsh-css:src\client\components\CompactBackButton.module.css.mjs
-		const css$19 = "._7a-iNW_back{width:40px;height:40px;color:var(--dsw-alias-label-primary,#20232a);cursor:pointer;background:0 0;border:0;border-radius:12px;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}._7a-iNW_back:hover{background:color-mix(in srgb,var(--dsw-alias-label-primary,#20232a) 7%,transparent)}._7a-iNW_back:focus-visible{outline-offset:2px;outline:2px solid #3478f6}";
-		const tagId$19 = "@kirkchinese/dsh-citeciter/CompactBackButton.module.css";
+		//#region \0dsh-css:src\client\components\MessageAttachments.module.css.mjs
+		const css$19 = ".OSwWHW_attachments{flex-wrap:wrap;align-items:start;gap:8px;min-width:0;margin-bottom:8px;display:flex}.OSwWHW_attachments:empty{display:none}.OSwWHW_imageButton{cursor:zoom-in;background:0 0;border:0;border-radius:12px;max-width:100%;padding:0;display:block}.OSwWHW_imageButton img{object-fit:contain;border-radius:inherit;max-width:100%;max-height:320px;display:block}.OSwWHW_imageButton:focus-visible{outline:2px solid var(--dsw-alias-link,#3478f6);outline-offset:3px}.OSwWHW_legacyPreview{width:min(1100px,100vw - 32px);max-width:calc(100vw - 32px)}.OSwWHW_previewImage{object-fit:contain;max-width:100%;max-height:calc(100dvh - 160px);margin:auto;display:block}.OSwWHW_file{flex-direction:column;gap:4px;min-width:0;max-width:100%;display:flex}.OSwWHW_download{border:1px solid color-mix(in srgb, currentColor 16%, transparent);background:color-mix(in srgb, currentColor 3%, transparent);max-width:100%;min-height:30px;color:inherit;font:inherit;cursor:pointer;border-radius:8px;align-items:center;gap:7px;padding:4px 9px;font-size:13px;transition:background .12s,border-color .12s;display:inline-flex}.OSwWHW_download svg{color:var(--dsw-alias-link,#3478f6);flex:none}.OSwWHW_download span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.OSwWHW_download:hover{background:color-mix(in srgb, currentColor 8%, transparent);border-color:color-mix(in srgb, currentColor 25%, transparent)}.OSwWHW_download:focus-visible{outline:2px solid var(--dsw-alias-link,#3478f6);outline-offset:2px}.OSwWHW_download:disabled{opacity:.6;cursor:progress}.OSwWHW_error{color:var(--dsw-alias-label-secondary,#687080);overflow-wrap:anywhere;font-size:12px}@media (prefers-reduced-motion:reduce){.OSwWHW_download{transition:none}}";
+		const tagId$19 = "@kirkchinese/dsh-citeciter/MessageAttachments.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$19) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
@@ -34314,145 +34857,148 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			tag.textContent = css$19;
 			document.head.appendChild(tag);
 		}
-		var CompactBackButton_module_css_default = { "back": "_7a-iNW_back" };
+		var MessageAttachments_module_css_default = {
+			"attachments": "OSwWHW_attachments",
+			"download": "OSwWHW_download",
+			"error": "OSwWHW_error",
+			"file": "OSwWHW_file",
+			"imageButton": "OSwWHW_imageButton",
+			"legacyPreview": "OSwWHW_legacyPreview",
+			"previewImage": "OSwWHW_previewImage"
+		};
 		//#endregion
-		//#region lib/types/client/components/CompactBackButton.js
-		/** Return from the compact Citer page without discarding its Topic or draft. */
-		function CompactBackButton({ onBack }) {
-			return (0, react_jsx_runtime.jsx)("button", {
-				className: CompactBackButton_module_css_default.back,
-				type: "button",
-				onClick: onBack,
-				"aria-label": "返回主对话",
-				children: (0, react_jsx_runtime.jsx)("svg", {
-					viewBox: "0 0 20 20",
-					width: "20",
-					height: "20",
-					fill: "none",
-					"aria-hidden": "true",
-					children: (0, react_jsx_runtime.jsx)("path", {
-						d: "m12 4-6 6 6 6",
-						stroke: "currentColor",
-						strokeWidth: "1.8",
-						strokeLinecap: "round",
-						strokeLinejoin: "round"
-					})
+		//#region lib/types/client/components/MessageFile.js
+		/** Accessible file chip. The download hook owns requests and object URLs. */
+		function MessageFile({ sessionId, attachment, load }) {
+			const { download, busy, error } = useFileDownload(sessionId, attachment.id, attachment.name, load);
+			return (0, react_jsx_runtime.jsxs)("div", {
+				className: MessageAttachments_module_css_default.file,
+				children: [(0, react_jsx_runtime.jsxs)("button", {
+					type: "button",
+					className: MessageAttachments_module_css_default.download,
+					onClick: () => {
+						download();
+					},
+					disabled: busy,
+					"aria-busy": busy,
+					"aria-label": `${busy ? "正在读取" : error === void 0 ? "下载" : "重试下载"}附件 ${attachment.name}`,
+					title: attachment.name,
+					children: [(0, react_jsx_runtime.jsx)(IconDownloadOutlineMedium, { size: 16 }), (0, react_jsx_runtime.jsx)("span", { children: attachment.name })]
+				}), error !== void 0 && (0, react_jsx_runtime.jsxs)("span", {
+					className: MessageAttachments_module_css_default.error,
+					role: "alert",
+					children: ["下载失败，点击重试：", error]
+				})]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/host-image-preview.js
+		const NativeLightbox = _deepseek_ai_dsh_client_ui_primitives.ImageLightbox;
+		/** Preview an existing authorized object URL in the host UI; the caller retains URL ownership. */
+		function HostImagePreview({ src, alt, onClose }) {
+			if (NativeLightbox !== void 0) return (0, react_jsx_runtime.jsx)(NativeLightbox, {
+				src,
+				alt,
+				onClose,
+				labels: {
+					dialog: `图片预览：${alt}`,
+					close: "关闭图片预览"
+				}
+			});
+			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
+				open: true,
+				title: `图片预览：${alt}`,
+				closeLabel: "关闭图片预览",
+				onClose,
+				className: MessageAttachments_module_css_default.legacyPreview,
+				children: (0, react_jsx_runtime.jsx)("img", {
+					className: MessageAttachments_module_css_default.previewImage,
+					src,
+					alt
 				})
 			});
 		}
 		//#endregion
-		//#region \0dsh-css:src\client\components\TopicHeader.module.css.mjs
-		const css$18 = ".wMh9RG_header{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);cursor:grab;user-select:none;touch-action:none;flex:none;align-items:center;gap:8px;min-height:64px;padding:8px 42px 8px 12px;display:flex}.wMh9RG_header:active{cursor:grabbing}.wMh9RG_header[data-compact]{cursor:default;touch-action:auto;min-height:60px;padding:6px 12px 6px 8px}.wMh9RG_heading{flex:1;gap:2px;min-width:0;display:grid}.wMh9RG_heading strong{cursor:text;font-size:14px}.wMh9RG_status{color:var(--dsw-alias-label-tertiary,#858c98);white-space:nowrap;text-overflow:ellipsis;font-size:10px;overflow:hidden}.wMh9RG_grip{color:var(--dsw-alias-label-tertiary,#858c98);flex:none;font-size:20px}";
-		const tagId$18 = "@kirkchinese/dsh-citeciter/TopicHeader.module.css";
+		//#region lib/types/client/components/MessageImage.js
+		/** Own an authorized image URL and its preview for exactly one mounted attachment. */
+		function MessageImage({ sessionId, attachment, load }) {
+			const [url, setUrl] = (0, react.useState)();
+			const [error, setError] = (0, react.useState)(false);
+			const [open, setOpen] = (0, react.useState)(false);
+			const close = (0, react.useCallback)(() => setOpen(false), []);
+			(0, react.useEffect)(() => {
+				let disposed = false;
+				let owned;
+				setUrl(void 0);
+				setError(false);
+				setOpen(false);
+				load(sessionId, attachment.id).then((blob) => {
+					if (disposed) return;
+					owned = URL.createObjectURL(blob);
+					setUrl(owned);
+				}).catch(() => {
+					if (!disposed) setError(true);
+				});
+				return () => {
+					disposed = true;
+					if (owned !== void 0) URL.revokeObjectURL(owned);
+				};
+			}, [
+				sessionId,
+				attachment.id,
+				load
+			]);
+			if (error) return (0, react_jsx_runtime.jsxs)("span", {
+				role: "status",
+				children: ["图片暂不可用：", attachment.name]
+			});
+			if (url === void 0) return (0, react_jsx_runtime.jsx)("span", { children: "加载图片…" });
+			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
+				type: "button",
+				className: MessageAttachments_module_css_default.imageButton,
+				"aria-label": `预览图片 ${attachment.name}`,
+				"aria-haspopup": "dialog",
+				onClick: () => setOpen(true),
+				children: (0, react_jsx_runtime.jsx)("img", {
+					src: url,
+					alt: attachment.name,
+					onError: () => {
+						setError(true);
+						setOpen(false);
+					}
+				})
+			}), open && (0, react_jsx_runtime.jsx)(HostImagePreview, {
+				src: url,
+				alt: attachment.name,
+				onClose: close
+			})] });
+		}
+		//#endregion
+		//#region lib/types/client/components/MessageAttachments.js
+		/** Render durable native attachments with a session-authorized loader and owned object URLs. */
+		function MessageAttachments({ sessionId, attachments, load }) {
+			return (0, react_jsx_runtime.jsx)("div", {
+				className: MessageAttachments_module_css_default.attachments,
+				children: attachments.map((item) => item.kind === "image" ? (0, react_jsx_runtime.jsx)(MessageImage, {
+					sessionId,
+					attachment: item,
+					load
+				}, item.id) : (0, react_jsx_runtime.jsx)(MessageFile, {
+					sessionId,
+					attachment: item,
+					load
+				}, item.id))
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\CiteCiter.module.css.mjs
+		const css$18 = "body:has([role=dialog][aria-modal=true]) ._6a9uUa_dock,body:has([role=dialog][aria-modal=true]) ._6a9uUa_topicLauncher,body:has([role=dialog][aria-modal=true]) ._6a9uUa_selectionPopover{visibility:hidden;pointer-events:none}[data-rightbar-fullscreen] ._6a9uUa_dock,[data-rightbar-fullscreen] ._6a9uUa_topicLauncher,[data-rightbar-fullscreen] ._6a9uUa_selectionPopover{visibility:hidden;pointer-events:none}[data-citeciter-layout=columns]{grid-template-columns:var(--citeciter-host-columns) var(--citeciter-dock-width)!important;transition:none!important}[data-citeciter-layout=columns]>[data-side=rightbar]{translate:calc(-1 * var(--citeciter-dock-width)) 0}[data-citeciter-covered]{visibility:hidden;pointer-events:none}._6a9uUa_popoverTemplates{flex-wrap:wrap;gap:6px;margin-bottom:8px;display:flex}._6a9uUa_popoverTemplates button{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);cursor:pointer;background:0 0;border-radius:999px;padding:3px 8px;font-size:12px}._6a9uUa_selectionPopover{z-index:9999;box-sizing:border-box;width:min(378px,100vw - 24px);color:var(--dsw-alias-label-primary,#20232a);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 96%, #fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);pointer-events:auto;border-radius:14px;padding:10px;position:fixed;box-shadow:0 16px 44px #191f2c33,0 2px 8px #191f2c14}._6a9uUa_popoverQuote{color:var(--dsw-alias-label-secondary,#5c6472);text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:18px;overflow:hidden}._6a9uUa_popoverQuote:before{vertical-align:1px;content:\"\";background:#3478f6;border-radius:999px;width:6px;height:6px;margin-right:7px;display:inline-block}._6a9uUa_popoverComposer{grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:8px;display:grid}._6a9uUa_popoverComposer input{box-sizing:border-box;min-width:0;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);height:36px;font:inherit;border-radius:9px;outline:none;padding:0 11px;font-size:13px}._6a9uUa_popoverComposer button{color:#fff;cursor:pointer;background:linear-gradient(135deg,#3478f6,#245fd1);border:0;border-radius:9px;padding:0 14px;font-weight:650;box-shadow:0 4px 12px #3478f638}._6a9uUa_popoverComposer button:disabled{cursor:default;filter:grayscale(.45);opacity:.52;box-shadow:none}._6a9uUa_popoverComposer input:focus{border-color:#3478f6;box-shadow:0 0 0 3px #3478f621}._6a9uUa_popoverMode{color:var(--dsw-alias-label-tertiary,#858c98);margin-top:8px;font-size:11px}._6a9uUa_popoverMode summary{cursor:pointer;user-select:none}._6a9uUa_popoverMode select{width:100%;height:30px;color:var(--dsw-alias-label-secondary,#535b68);background:var(--dsw-specific-bubble,#f5f7fa);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);border-radius:7px;margin-top:6px;padding:0 7px}._6a9uUa_scenarioPicker{border:0;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0 0;padding:0;display:grid}._6a9uUa_scenarioPicker legend{color:var(--dsw-alias-label-tertiary,#858c98);grid-column:1/-1;margin-bottom:-1px;font-size:11px}._6a9uUa_scenarioPicker button{min-width:0;color:var(--dsw-alias-label-secondary,#58606d);text-align:left;cursor:pointer;background:var(--dsw-specific-bubble,#f5f7fa);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);border-radius:9px;flex-direction:column;gap:2px;padding:8px 9px;display:flex}._6a9uUa_scenarioPicker button[data-active]{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 45%, #3478f6);box-shadow:0 0 0 2px #3478f61a}._6a9uUa_scenarioPicker strong{font-size:12px}._6a9uUa_scenarioPicker span{text-overflow:ellipsis;white-space:nowrap;font-size:10px;overflow:hidden}._6a9uUa_topicLauncher{z-index:200;color:#fff;cursor:pointer;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 90%, #dceaff);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l2,#d9dde5) 65%, #3478f6);pointer-events:auto;border-radius:999px;align-items:center;width:112px;height:112px;padding:5px;display:flex;position:fixed;bottom:76px;right:22px;box-shadow:0 10px 28px #245fd13d}._6a9uUa_topicLauncher img{object-fit:contain;width:100px;height:100px;display:block}._6a9uUa_launcherCount{border:2px solid var(--dsw-alias-bg-base,#fff);background:#245fd1;border-radius:999px;place-items:center;min-width:24px;height:24px;padding:0 5px;font-size:11px;line-height:1;display:grid;position:absolute;top:-4px;right:-4px}._6a9uUa_topicLauncher:hover{transform:translateY(-1px)}._6a9uUa_dock{--citeciter-accent:#3478f6;z-index:1;box-sizing:border-box;width:clamp(360px, var(--citeciter-panel-width), calc(100vw - 24px));min-width:0;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-base,#fff);border-left:1px solid var(--dsw-alias-border-l2,#d9dde5);pointer-events:auto;font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:block;position:absolute;top:0;bottom:0;right:0;overflow:visible;box-shadow:-12px 0 32px #1a1f2c14;container-type:inline-size}._6a9uUa_dock[data-arrangement=page]{box-shadow:none;border-top:1px solid var(--dsw-alias-border-l2,#d9dde5);border-left:0}._6a9uUa_dock[data-arrangement=suspended]{visibility:hidden;pointer-events:none}._6a9uUa_dock._6a9uUa_floating{border:1px solid color-mix(in srgb,var(--dsw-alias-border-l1,#d5dedb) 75%,#fff);background:color-mix(in srgb,var(--dsw-alias-bg-base,#fff) 90%,transparent);backdrop-filter:blur(28px)saturate(150%);z-index:500;border-top-color:#ffffffba;border-radius:22px;width:min(520px,100vw - 32px);height:min(720px,100vh - 100px);animation:.2s cubic-bezier(.2,.8,.2,1) _6a9uUa_citerFloatIn;position:fixed;top:72px;bottom:auto;right:24px;overflow:hidden;box-shadow:inset 0 1px 2px #fff9,0 24px 70px #1c35402e}@keyframes _6a9uUa_citerFloatIn{0%{opacity:0;translate:0 10px;scale:.98}to{opacity:1;translate:0;scale:1}}@media (prefers-reduced-motion:reduce){._6a9uUa_dock._6a9uUa_floating{animation:none}}@media (prefers-contrast:more){._6a9uUa_dock._6a9uUa_floating{background:var(--dsw-alias-bg-base,#fff);backdrop-filter:none}}._6a9uUa_dock[data-arrangement=unsupported]{border-radius:12px;width:min(360px,100% - 24px);height:auto;padding:12px 18px;top:auto;bottom:12px;right:12px}._6a9uUa_dockHeader[data-floating]{cursor:grab;touch-action:none}._6a9uUa_fullscreenNotice{display:none}body:has([data-rightbar-fullscreen]) ._6a9uUa_fullscreenNotice{z-index:501;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:var(--dsw-alias-bg-layer-1,#fff);max-width:calc(100vw - 32px);color:var(--dsw-alias-label-primary,#263d3b);pointer-events:auto;border-radius:12px;padding:10px 14px;font-size:12px;display:block;position:fixed;bottom:16px;left:16px}[data-rightbar-fullscreen] ._6a9uUa_floating{visibility:visible;pointer-events:auto}body:has([role=dialog][aria-modal=true]) ._6a9uUa_floating,body:has([role=dialog][aria-modal=true]) ._6a9uUa_fullscreenNotice{visibility:hidden;pointer-events:none}._6a9uUa_dock[data-arrangement=unsupported] ._6a9uUa_dockBody{display:none}._6a9uUa_layoutNotice{margin:0;font-size:13px;line-height:1.6}._6a9uUa_dock[data-arrangement=page] ._6a9uUa_dockHeader{min-height:44px}._6a9uUa_dock[data-arrangement=page] ._6a9uUa_contextBar{padding-block:5px}._6a9uUa_dock[data-arrangement=page] ._6a9uUa_contextBar blockquote{-webkit-line-clamp:1;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden}._6a9uUa_dockBody{grid-template-columns:minmax(0,1fr);width:100%;min-width:0;height:100%;min-height:0;display:grid;overflow:hidden}._6a9uUa_resizeHandle{z-index:3;cursor:col-resize;touch-action:none;width:10px;position:absolute;top:0;bottom:0;left:-5px}._6a9uUa_resizeHandle:after{content:\"\";background:var(--dsw-alias-border-l2,#d9dde5);border-radius:999px;width:3px;height:42px;transition:background .12s,width .12s;position:absolute;top:50%;left:3px;transform:translateY(-50%)}._6a9uUa_resizeHandle:hover:after,._6a9uUa_resizeHandle:focus-visible:after{background:var(--citeciter-accent);width:4px}._6a9uUa_citationWaterline{z-index:199;pointer-events:none;opacity:0;width:100vw;height:100vh;transition:opacity .16s;position:fixed;inset:0;overflow:visible}._6a9uUa_citationWaterline[data-visible]{opacity:.48}._6a9uUa_citationWaterline path{fill:none;stroke:color-mix(in srgb, var(--citeciter-accent) 72%, #73d9ff);stroke-width:1.5px;stroke-linecap:round;stroke-dasharray:3 7}._6a9uUa_topicRail{background:color-mix(in srgb, var(--dsw-specific-sidebar-fill,#f7f8fa) 94%, #edf5ff);border-left:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex-direction:column;min-width:0;min-height:0;display:flex;overflow:hidden}._6a9uUa_brand{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;align-items:center;gap:9px;min-height:65px;padding:0 13px;display:flex}._6a9uUa_mascotStatus,._6a9uUa_settingsWhale{background:linear-gradient(145deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 90%, #3478f6), color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 72%, #3478f6));border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 64%, #3478f6);width:32px;height:32px;box-shadow:inset 0 1px 0 color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 72%, transparent);border-radius:10px;flex:none;place-items:center;display:grid;overflow:hidden}._6a9uUa_mascotStatus img,._6a9uUa_settingsWhale img{object-fit:contain;width:100%;height:100%}._6a9uUa_mascotStatus{position:relative;overflow:visible}._6a9uUa_mascotStatus img{transition:transform .18s}._6a9uUa_mascotStatus>span{pointer-events:none;position:absolute}._6a9uUa_mascotStatus[data-state=diving] img{transform:translateY(9px)}._6a9uUa_mascotStatus[data-state=diving]>span,._6a9uUa_mascotStatus[data-state=surfaced]>span{border-top:2px solid #44aef4;border-radius:50%;height:6px;bottom:3px;left:1px;right:1px;box-shadow:0 -3px 0 -2px #7fd9ff}._6a9uUa_mascotStatus[data-state=reading]>span{border:2px solid #245fd1;border-radius:50%;width:9px;height:9px;top:4px;right:2px}._6a9uUa_mascotStatus[data-state=reading]>span:after{content:\"\";background:#245fd1;border-radius:2px;width:6px;height:2px;position:absolute;bottom:-3px;right:-5px;transform:rotate(48deg)}._6a9uUa_mascotStatus[data-state=answering]>span{width:15px;height:13px;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);content:\"\";background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid #8eb4ff;border-radius:7px;place-items:center;display:grid;top:-4px;right:-5px}._6a9uUa_mascotStatus[data-state=answering]>span:before{content:\"“\";font-size:12px;line-height:1}._6a9uUa_brand div{flex-direction:column;min-width:0;display:flex}._6a9uUa_brand strong{text-overflow:ellipsis;font-size:14px;overflow:hidden}._6a9uUa_brand>div>span{color:var(--dsw-alias-label-tertiary,#858c98);font-size:10px}._6a9uUa_railCaption,._6a9uUa_railFoot{color:var(--dsw-alias-label-tertiary,#858c98);flex:none;justify-content:space-between;align-items:center;gap:6px;padding:10px 11px 7px;font-size:10px;display:flex}._6a9uUa_railCaption{flex-direction:column;align-items:stretch}._6a9uUa_railActions{justify-content:space-between;align-items:center;gap:5px;display:flex}._6a9uUa_railCaption button{color:var(--dsw-alias-label-secondary,#58606d);cursor:pointer;background:0 0;border:0;border-radius:6px}._6a9uUa_railCaption button:hover,._6a9uUa_closeButton:hover{background:var(--dsw-alias-interactive-bg-hover,#0000000f)}._6a9uUa_topicList{flex-direction:column;flex:1;gap:4px;min-height:0;padding:0 7px;display:flex;overflow-y:auto}._6a9uUa_topicItem{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:1px solid #0000;border-radius:9px;grid-template-columns:7px minmax(0,1fr);align-items:start;gap:7px;padding:9px 8px;display:grid}._6a9uUa_topicItem:hover{background:var(--dsw-alias-interactive-bg-hover,#0000000b)}._6a9uUa_topicItem[data-active]{background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 88%, #eaf3ff);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#dde1e8) 72%, #7ca8ff);box-shadow:0 2px 7px #1c222f0d}._6a9uUa_topicItem[data-archived]{opacity:.58}._6a9uUa_topicStatus{background:#99a1ae;border-radius:999px;width:6px;height:6px;margin-top:5px}._6a9uUa_topicStatus[data-running]{background:var(--citeciter-accent);animation:1.2s ease-in-out infinite _6a9uUa_citeciterPulse;box-shadow:0 0 0 3px #3478f629}@keyframes _6a9uUa_citeciterPulse{50%{opacity:.42}}._6a9uUa_topicCopy{flex-direction:column;gap:3px;min-width:0;display:flex}._6a9uUa_topicCopy strong,._6a9uUa_topicCopy small{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}._6a9uUa_topicCopy strong{font-size:12px;font-weight:590}._6a9uUa_topicCopy strong[data-pending]{color:var(--dsw-alias-label-secondary,#606875);font-style:italic}._6a9uUa_topicCopy small{color:var(--dsw-alias-label-tertiary,#858c98);font-size:10px}._6a9uUa_railEmpty{color:var(--dsw-alias-label-tertiary,#858c98);margin:9px 6px;font-size:11px;line-height:17px}._6a9uUa_railError{color:var(--dsw-alias-state-error-primary,#c93f3f);overflow-wrap:anywhere;margin:9px 6px;font-size:10px;line-height:15px}._6a9uUa_railFoot{border-top:1px solid var(--dsw-alias-border-l1,#e4e7ec);padding-top:8px;padding-bottom:9px}._6a9uUa_learningWorkspace{background:var(--dsw-alias-bg-base,#fff);flex-direction:column;min-width:0;min-height:0;display:flex;overflow:hidden}._6a9uUa_dockHeader{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;grid-template-columns:minmax(0,1fr) minmax(100px,160px);justify-content:space-between;align-items:center;gap:6px 12px;min-height:64px;padding:10px 16px;display:grid}._6a9uUa_compactTopicSelect{min-width:0;max-width:180px;height:30px;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);border-radius:8px;padding:0 8px;display:block}._6a9uUa_compactHeaderActions{grid-column:2;justify-content:flex-end;gap:6px;display:flex}._6a9uUa_compactHeaderActions button{height:30px;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);cursor:pointer;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 86%, #3478f6);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 58%, #3478f6);white-space:nowrap;border-radius:8px;flex:none;padding:0 9px;font-size:11px}._6a9uUa_panelNotice{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 76%, #2c9a68);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 90%, #4dbb83);border-bottom:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 68%, #4dbb83);flex:none;padding:7px 14px;font-size:11px}._6a9uUa_dockHeading{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:2px 7px;min-width:0;display:grid}._6a9uUa_dockHeading strong{text-overflow:ellipsis;white-space:nowrap;font-size:14px;overflow:hidden}._6a9uUa_dockHeading>span:last-child{color:var(--dsw-alias-label-tertiary,#858c98);grid-column:1/-1;font-size:10px}._6a9uUa_modeBadge{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 36%, #3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 84%, #3478f6);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 64%, #3478f6);letter-spacing:.02em;white-space:nowrap;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:700}._6a9uUa_closeButton{z-index:5;color:#3478f6;cursor:pointer;background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:999px;flex:none;place-items:center;width:30px;height:30px;padding:0;display:grid;position:absolute;top:50%;left:6px;transform:translateY(-50%);box-shadow:0 4px 14px #1d222f24}._6a9uUa_emptyState{box-sizing:border-box;text-align:center;flex-direction:column;flex:1;justify-content:center;align-items:center;padding:34px 24px;display:flex}._6a9uUa_emptyWhale{background:radial-gradient(circle at 32% 25%,#fff,#dceaff);border:1px solid #c9dcff;border-radius:22px;place-items:center;width:68px;height:68px;margin-bottom:13px;display:grid;overflow:hidden;box-shadow:0 14px 35px #245fd124}._6a9uUa_emptyWhale img{object-fit:contain;width:100%;height:100%}._6a9uUa_emptyState h2{margin:0;font-size:17px}._6a9uUa_emptyState>p{max-width:430px;color:var(--dsw-alias-label-secondary,#606875);margin:9px 0 0;font-size:12px;line-height:20px}._6a9uUa_contextBar{background:color-mix(in srgb, var(--dsw-specific-bubble,#f6f7f9) 90%, #edf5ff);border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;padding:10px 14px}._6a9uUa_contextBar blockquote{max-height:57px;color:var(--dsw-alias-label-secondary,#59616e);border-left:3px solid var(--citeciter-accent);margin:0;padding-left:9px;font-size:11px;line-height:18px;overflow:auto}._6a9uUa_contextMeta{color:var(--dsw-alias-label-tertiary,#858c98);gap:9px;margin-top:6px;font-size:9px;display:flex}._6a9uUa_contextMeta span:first-child:before{content:\"\";vertical-align:1px;background:#b3bac5;border-radius:999px;width:5px;height:5px;margin-right:4px;display:inline-block}._6a9uUa_contextMeta span[data-ok]:before{background:#27a96b}._6a9uUa_newTopicForm,._6a9uUa_deleteForm{flex-direction:column;gap:12px;width:100%;min-width:0;display:flex}._6a9uUa_newTopicForm textarea,._6a9uUa_deleteForm input{box-sizing:border-box;width:100%;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);font:inherit;border-radius:9px;outline:none;padding:10px 11px}._6a9uUa_newTopicForm textarea{resize:vertical;line-height:20px}._6a9uUa_newTopicForm textarea:focus,._6a9uUa_deleteForm input:focus{border-color:#3478f6;box-shadow:0 0 0 3px #3478f621}._6a9uUa_deleteForm code{overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary,#58606d);background:var(--dsw-specific-bubble,#f5f7fa);user-select:all;border-radius:7px;padding:8px 9px}._6a9uUa_modalError{color:var(--dsw-alias-state-error-primary,#c93f3f);font-size:12px}._6a9uUa_deleteAction{color:var(--dsw-alias-state-error-primary,#c93f3f)!important;border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary,#c93f3f) 50%, transparent)!important}._6a9uUa_nextQuestions button:disabled{cursor:default;opacity:.42}._6a9uUa_transcript{overflow-anchor:none;flex-direction:column;flex:1;gap:14px;min-height:0;padding:17px clamp(12px,4%,28px) 24px;display:flex;position:relative;overflow:hidden auto}._6a9uUa_assistantTurn,._6a9uUa_userTurn,._6a9uUa_errorTurn{overflow-wrap:anywhere;min-width:0;font-size:13px;line-height:21px}._6a9uUa_assistantTurn{border-bottom:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 72%, transparent);padding-bottom:14px}._6a9uUa_userTurn{background:var(--dsw-specific-bubble,#f1f3f7);border-radius:12px 12px 3px;align-self:flex-end;max-width:86%;padding:8px 11px}._6a9uUa_errorTurn,._6a9uUa_panelError{color:var(--dsw-alias-state-error-primary,#c93f3f);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 88%, #f45555);border:1px solid #c93f3f33;border-radius:8px}._6a9uUa_errorTurn{padding:8px 10px}._6a9uUa_errorTurn[data-status=stopped]{color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-specific-bubble,#f5f6f8);border-color:var(--dsw-alias-border-l1,#e4e7ec)}._6a9uUa_errorMeta{color:var(--dsw-alias-label-tertiary,#858c98);flex-wrap:wrap;gap:5px 10px;font-size:9px;display:flex}._6a9uUa_errorTurn details{margin-top:6px}._6a9uUa_errorTurn pre{white-space:pre-wrap;max-height:160px;overflow:auto}._6a9uUa_assistantTurn p,._6a9uUa_userTurn p,._6a9uUa_errorTurn p{margin-top:0;margin-bottom:8px}._6a9uUa_turnRole{color:var(--dsw-alias-label-tertiary,#858c98);margin-bottom:5px;font-size:10px;font-weight:650}._6a9uUa_flowDisclosure{min-width:0;color:var(--dsw-alias-label-secondary,#606875);font-size:12px}._6a9uUa_flowRow,._6a9uUa_flowRowRunning{align-items:center;min-width:0;height:26px;display:flex;position:relative;overflow:hidden}._6a9uUa_flowRowRunning:after{content:\"\";pointer-events:none;background:linear-gradient(90deg,#0000 20%,#ffffff94 48%,#0000 76%);animation:1.7s linear infinite _6a9uUa_citeciterSweep;position:absolute;inset:0;transform:translate(-100%)}@keyframes _6a9uUa_citeciterSweep{to{transform:translate(100%)}}._6a9uUa_flowDot{color:var(--dsw-alias-label-tertiary,#858c98);flex:none;margin:0 6px}._6a9uUa_flowSummary{min-width:0;color:var(--dsw-alias-label-tertiary,#78808e);white-space:nowrap;overflow-x:hidden}._6a9uUa_flowBody{max-height:320px;color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-specific-bubble,#f5f6f8);font:inherit;white-space:pre-wrap;border-radius:7px;margin:5px 0 5px 22px;padding:7px 9px;font-size:11px;line-height:18px;overflow:auto}._6a9uUa_toolPreview{background:var(--dsw-specific-bubble,#f5f6f8);border-radius:7px;gap:5px;max-height:360px;margin:5px 0 5px 22px;padding:8px;display:grid;overflow:auto}._6a9uUa_toolPreview>strong{color:var(--dsw-alias-label-tertiary,#858c98);text-transform:uppercase;font-size:9px}._6a9uUa_toolPreview pre{overflow-wrap:anywhere;white-space:pre-wrap;margin:0;font:10px/17px ui-monospace,SFMono-Regular,Menlo,monospace}._6a9uUa_loadingCard{color:var(--dsw-alias-label-secondary,#606875);background:color-mix(in srgb, var(--dsw-specific-bubble,#f5f6f8) 82%, #3478f6);border-radius:9px;align-self:flex-start;padding:8px 10px;font-size:11px}._6a9uUa_panelError{overflow-wrap:anywhere;margin:0;padding:8px 10px;font-size:11px;line-height:17px}._6a9uUa_nextQuestions{border:0;flex-wrap:wrap;gap:6px;margin-top:10px;padding:0;display:flex}._6a9uUa_nextQuestions legend{width:100%;color:var(--dsw-alias-label-tertiary,#858c98);margin-bottom:6px;font-size:10px}._6a9uUa_nextQuestions button{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 46%, #3478f6);text-align:left;cursor:pointer;background:color-mix(in srgb, var(--dsw-specific-bubble,#f5f6f8) 86%, #3478f6);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 70%, #3478f6);border-radius:999px;padding:6px 9px;font-size:10px}._6a9uUa_questionFrame{background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:14px;flex:none;margin:0 12px 12px;padding:12px;box-shadow:0 6px 20px #1d222f1a}._6a9uUa_questionHeader{color:var(--dsw-alias-label-secondary,#606875);grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:8px;display:grid}._6a9uUa_questionHeader>div{flex-direction:column;gap:2px;min-width:0;display:flex}._6a9uUa_questionHeader span{color:var(--dsw-alias-label-tertiary,#858c98);font-size:9px}._6a9uUa_questionHeader strong{color:var(--dsw-alias-label-primary,#20232a);font-size:12px;line-height:18px}._6a9uUa_questionOptions{gap:6px;margin-top:10px;display:grid}._6a9uUa_questionOptions>button{color:inherit;text-align:left;cursor:pointer;background:var(--dsw-specific-bubble,#f5f6f8);border:1px solid #0000;border-radius:8px;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:6px;padding:8px;display:grid}._6a9uUa_questionOptions>button[data-selected]{background:color-mix(in srgb, var(--dsw-specific-bubble,#f5f6f8) 82%, #3478f6);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 54%, #3478f6)}._6a9uUa_questionOptions>button>span:first-child{width:18px;height:18px;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:5px;place-items:center;font-size:9px;display:grid}._6a9uUa_questionOptions>button>span:last-child{flex-direction:column;min-width:0;display:flex}._6a9uUa_questionOptions strong{font-size:11px}._6a9uUa_questionOptions small{color:var(--dsw-alias-label-tertiary,#858c98);margin-top:2px;font-size:9px;line-height:14px}._6a9uUa_questionCustom{box-sizing:border-box;resize:vertical;width:100%;color:inherit;background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);font:inherit;border-radius:8px;outline:0;margin-top:8px;padding:7px 8px;font-size:10px}._6a9uUa_questionCustom:focus{border-color:#3478f6;box-shadow:0 0 0 3px #3478f61f}._6a9uUa_questionFooter{align-items:center;gap:6px;margin-top:9px;display:flex}._6a9uUa_questionFooter span{flex:1}._6a9uUa_questionFooter button{min-height:28px;color:var(--dsw-alias-label-secondary,#606875);cursor:pointer;background:0 0;border:0;border-radius:7px;padding:0 9px;font-size:10px}._6a9uUa_questionFooter button:last-child{color:#fff;background:#3478f6}._6a9uUa_questionFooter button:disabled{cursor:default;opacity:.45}._6a9uUa_richAnswer{min-width:0}._6a9uUa_richFigure{background:var(--dsw-specific-bubble,#f5f6f8);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:9px;margin:10px 0;overflow:hidden}._6a9uUa_richSvg{width:100%;height:auto;display:block}._6a9uUa_richHtml{border:0;width:100%;min-height:240px;display:block}._6a9uUa_settingsPage{width:min(760px,100%);color:var(--dsw-alias-label-primary,#20232a);flex-direction:column;gap:14px;padding-bottom:32px;display:flex}._6a9uUa_settingsHero{background:linear-gradient(130deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6), var(--dsw-alias-bg-layer-1,#fff) 72%);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 72%, #8eb4ff);border-radius:14px;align-items:center;gap:13px;padding:17px;display:flex}._6a9uUa_settingsWhale{width:42px;height:42px;font-size:21px}._6a9uUa_settingsHero h2,._6a9uUa_settingsHero p,._6a9uUa_settingsGroup h3{margin:0}._6a9uUa_settingsHero h2{font-size:17px}._6a9uUa_settingsHero p{color:var(--dsw-alias-label-secondary,#606875);margin-top:3px;font-size:11px}._6a9uUa_settingsGroup{background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:13px;flex-direction:column;gap:8px;padding:15px;display:flex}._6a9uUa_settingsGroup h3{margin-bottom:3px;font-size:13px}._6a9uUa_settingChoice,._6a9uUa_settingToggle{cursor:pointer;border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:10px;align-items:center;gap:10px;padding:10px;display:flex}._6a9uUa_settingChoice[data-selected]{background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 48%, #3478f6)}._6a9uUa_settingChoice>span,._6a9uUa_settingToggle>span{flex-direction:column;flex:1;gap:2px;min-width:0;display:flex}._6a9uUa_settingChoice strong,._6a9uUa_settingToggle strong,._6a9uUa_widthSetting strong{font-size:12px}._6a9uUa_settingChoice small,._6a9uUa_settingToggle small{color:var(--dsw-alias-label-secondary,#606875);font-size:10px;line-height:16px}._6a9uUa_settingChoice input,._6a9uUa_settingToggle input{accent-color:var(--citeciter-accent,#3478f6)}._6a9uUa_settingToggle>input{width:17px;height:17px}._6a9uUa_settingStack{border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:10px;flex-direction:column;gap:6px;padding:10px;display:flex}._6a9uUa_settingStack strong{font-size:12px}._6a9uUa_settingStack small{color:var(--dsw-alias-label-secondary,#606875);font-size:10px;line-height:16px}._6a9uUa_settingStack input,._6a9uUa_settingStack ._6a9uUa_promptTextarea{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:8px;width:100%;padding:8px;font-family:inherit;font-size:12px}._6a9uUa_promptTextarea{resize:vertical}._6a9uUa_settingsDocumentAction{flex-wrap:wrap;align-items:center;gap:10px;min-width:0;display:flex}._6a9uUa_settingsDocumentButton{min-height:32px;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);font:inherit;border-radius:8px;align-items:center;gap:7px;padding:0 11px;font-size:12px;display:inline-flex}._6a9uUa_settingsDocumentButton:focus-visible{outline:2px solid var(--dsw-alias-state-focus,#356ae6);outline-offset:2px}._6a9uUa_settingsDocumentButton:disabled{cursor:not-allowed;opacity:.55}._6a9uUa_settingsDocumentStatus{min-width:0;color:var(--dsw-alias-label-secondary,#606875);overflow-wrap:anywhere;margin:0;font-size:11px;line-height:16px}._6a9uUa_settingsDocumentStatus[data-status=success]{color:var(--dsw-alias-state-success-primary,#21845b)}._6a9uUa_settingsDocumentStatus[data-status=error]{color:var(--dsw-alias-state-error-primary,#c93f3f)}._6a9uUa_widthSetting{flex-direction:column;gap:8px;padding:5px 2px 9px;display:flex}._6a9uUa_widthSetting>span{justify-content:space-between;display:flex}._6a9uUa_widthSetting output{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);font-size:11px;font-weight:650}._6a9uUa_widthSetting input{accent-color:#3478f6;width:100%}._6a9uUa_dockPreview{height:72px;color:var(--dsw-alias-label-tertiary,#858c98);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:9px;font-size:9px;display:flex;overflow:hidden}._6a9uUa_previewSidebar{background:var(--dsw-specific-sidebar-fill,#f5f6f8);border-right:1px solid var(--dsw-alias-border-l1,#e4e7ec);width:16%}._6a9uUa_previewCoding,._6a9uUa_previewDock{place-items:center;min-width:0;display:grid}._6a9uUa_previewCoding{flex:1}._6a9uUa_previewDock{max-width:55%;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6);border-left:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 58%, #3478f6)}._6a9uUa_settingsSaveStatus{min-height:18px;color:var(--dsw-alias-label-tertiary,#858c98);align-self:flex-end;margin:-7px 4px;font-size:10px}._6a9uUa_settingsSaveStatus[data-status=error]{color:var(--dsw-alias-state-error-primary,#c93f3f)}@media (width<=720px){._6a9uUa_brand{padding:0 8px}._6a9uUa_mascotStatus{display:none}._6a9uUa_topicLauncher{width:78px;height:78px}._6a9uUa_topicLauncher img{width:68px;height:68px}._6a9uUa_closeButton{left:6px}}@container (width<=600px){._6a9uUa_dockHeader{grid-template-columns:minmax(0,1fr) minmax(130px,180px);gap:6px 8px;padding-block:8px;display:grid}._6a9uUa_dockBody{grid-template-columns:minmax(0,1fr)}._6a9uUa_topicRail{display:none}._6a9uUa_compactTopicSelect{display:block}._6a9uUa_compactHeaderActions{grid-column:2;justify-content:flex-end;gap:6px;display:flex}}@media (prefers-reduced-motion:reduce){._6a9uUa_topicStatus[data-running],._6a9uUa_flowRowRunning:after{animation:none}._6a9uUa_topicLauncher:hover{transform:none}}._6a9uUa_dockHeader{cursor:grab;user-select:none}._6a9uUa_dockHeader:active{cursor:grabbing}._6a9uUa_dragGrip{color:var(--dsw-alias-label-tertiary,#89909a);font-size:20px}._6a9uUa_dockTarget{z-index:9999;pointer-events:none;backdrop-filter:blur(12px);background:#548ceb24;border:2px solid #6598f3;border-radius:20px;width:72px;position:fixed;top:48px;bottom:16px;right:8px}._6a9uUa_dockHeading{min-width:0}._6a9uUa_dockHeading strong{cursor:text}._6a9uUa_closeButton{width:26px;height:26px;box-shadow:none;border:0;border-radius:9px;inset:17px 10px auto auto;transform:none}._6a9uUa_closeButton img{width:12px;height:12px}._6a9uUa_dockHeader{padding-right:42px}";
+		const tagId$18 = "@kirkchinese/dsh-citeciter/CiteCiter.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$18) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
 			tag.dataset.pluginCss = tagId$18;
 			tag.textContent = css$18;
-			document.head.appendChild(tag);
-		}
-		var TopicHeader_module_css_default = {
-			"grip": "wMh9RG_grip",
-			"header": "wMh9RG_header",
-			"heading": "wMh9RG_heading",
-			"status": "wMh9RG_status"
-		};
-		//#endregion
-		//#region lib/types/client/components/TopicHeader.js
-		/** Layout-only header: navigation, title and drag behavior are supplied by their independent controllers. */
-		function TopicHeader({ compact, onBack, onDrag, title, status, children }) {
-			return (0, react_jsx_runtime.jsxs)("header", {
-				className: TopicHeader_module_css_default.header,
-				"data-compact": compact || void 0,
-				onPointerDown: compact ? void 0 : onDrag,
-				children: [
-					compact ? (0, react_jsx_runtime.jsx)(CompactBackButton, { onBack }) : (0, react_jsx_runtime.jsx)("span", {
-						className: TopicHeader_module_css_default.grip,
-						"aria-hidden": "true",
-						children: "⠿"
-					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: TopicHeader_module_css_default.heading,
-						children: [title, (0, react_jsx_runtime.jsx)("span", {
-							className: TopicHeader_module_css_default.status,
-							children: status
-						})]
-					}),
-					children
-				]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/draft-references.js
-		/** Build initial references without submitting them. Stable Topic-scoped IDs preserve menu focus during live snapshot refreshes. */
-		function topicDraftReferences(topic, documentTitle) {
-			const address = `dsh://session/${encodeURIComponent(topic.sourceSessionId)}`;
-			const references = [{
-				id: `source:${topic.sessionId}`,
-				kind: "source",
-				label: "来源对话",
-				content: topic.sourceSessionId,
-				address
-			}];
-			if (topic.documentId !== null) references.push({
-				id: `document:${topic.sessionId}:${topic.documentId}`,
-				kind: "source",
-				label: "来源文档",
-				content: documentTitle ?? topic.documentId,
-				address: `dsh://document/${encodeURIComponent(topic.documentId)}`
-			});
-			if (topic.citation !== null) references.push({
-				id: `excerpt:${topic.sessionId}`,
-				kind: "excerpt",
-				label: "引用文段",
-				content: topic.citation.displayText
-			});
-			return references;
-		}
-		/** Display a document filename while retaining the full title/path in its serialized content. Legacy ID-only references keep their generic label. */
-		function draftReferenceName(reference) {
-			if (reference.label !== "来源文档" || reference.address?.endsWith(`/${encodeURIComponent(reference.content)}`)) return reference.label;
-			return reference.content.split(/[\\/]/u).at(-1) || reference.label;
-		}
-		/** Serialize the exact visible attachment collection only at manual submission. */
-		function serializeDraftReferences(question, references) {
-			if (references.length === 0) return question.trim();
-			const attachments = references.map((reference) => `【附件：${reference.label}】\n${reference.address === void 0 ? "" : `来源：${reference.address}\n`}${reference.content}`).join("\n\n");
-			return `${question.trim()}\n\n${attachments}`.trim();
-		}
-		/** Present sent reference blocks as expandable attachments while retaining the exact serialized model input in the Session log. Unrecognized text is preserved. */
-		function parseSentReferences(text) {
-			const matches = [...text.matchAll(/(?:^|\n\n)【附件：(来源对话|来源文档|引用文段|板书引用)】\n/gu)];
-			if (matches.length === 0) return {
-				question: text,
-				references: []
-			};
-			const references = matches.map((match, index) => {
-				const label = match[1];
-				const block = text.slice(match.index + match[0].length, matches[index + 1]?.index ?? text.length).trimEnd();
-				const address = /^来源：(dsh:\/\/(?:session|document)\/[^\n]+)\n/u.exec(block);
-				return {
-					id: `sent-${index}`,
-					kind: label === "板书引用" ? "board" : label === "引用文段" ? "excerpt" : "source",
-					label,
-					content: address === null ? block : block.slice(address[0].length),
-					...address === null ? {} : { address: address[1] }
-				};
-			});
-			return {
-				question: text.slice(0, matches[0].index).trimEnd(),
-				references
-			};
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\CiteCiter.module.css.mjs
-		const css$17 = "body:has([role=dialog][aria-modal=true]) ._6a9uUa_dock,body:has([role=dialog][aria-modal=true]) ._6a9uUa_topicLauncher,body:has([role=dialog][aria-modal=true]) ._6a9uUa_selectionPopover{visibility:hidden;pointer-events:none}[data-rightbar-fullscreen] ._6a9uUa_dock,[data-rightbar-fullscreen] ._6a9uUa_topicLauncher,[data-rightbar-fullscreen] ._6a9uUa_selectionPopover{visibility:hidden;pointer-events:none}[data-citeciter-layout=columns]{grid-template-columns:var(--citeciter-host-columns) var(--citeciter-dock-width)!important;transition:none!important}[data-citeciter-layout=columns]>[data-side=rightbar]{translate:calc(-1 * var(--citeciter-dock-width)) 0}[data-citeciter-covered]{visibility:hidden;pointer-events:none}._6a9uUa_popoverTemplates{flex-wrap:wrap;gap:6px;margin-bottom:8px;display:flex}._6a9uUa_popoverTemplates button{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);cursor:pointer;background:0 0;border-radius:999px;padding:3px 8px;font-size:12px}._6a9uUa_selectionPopover{z-index:9999;box-sizing:border-box;width:min(378px,100vw - 24px);color:var(--dsw-alias-label-primary,#20232a);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 96%, #fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);pointer-events:auto;border-radius:14px;padding:10px;position:fixed;box-shadow:0 16px 44px #191f2c33,0 2px 8px #191f2c14}._6a9uUa_popoverQuote{color:var(--dsw-alias-label-secondary,#5c6472);text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:18px;overflow:hidden}._6a9uUa_popoverQuote:before{vertical-align:1px;content:\"\";background:#3478f6;border-radius:999px;width:6px;height:6px;margin-right:7px;display:inline-block}._6a9uUa_popoverComposer{grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:8px;display:grid}._6a9uUa_popoverComposer input{box-sizing:border-box;min-width:0;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);height:36px;font:inherit;border-radius:9px;outline:none;padding:0 11px;font-size:13px}._6a9uUa_popoverComposer button{color:#fff;cursor:pointer;background:linear-gradient(135deg,#3478f6,#245fd1);border:0;border-radius:9px;padding:0 14px;font-weight:650;box-shadow:0 4px 12px #3478f638}._6a9uUa_popoverComposer button:disabled{cursor:default;filter:grayscale(.45);opacity:.52;box-shadow:none}._6a9uUa_popoverComposer input:focus{border-color:#3478f6;box-shadow:0 0 0 3px #3478f621}._6a9uUa_popoverMode{color:var(--dsw-alias-label-tertiary,#858c98);margin-top:8px;font-size:11px}._6a9uUa_popoverMode summary{cursor:pointer;user-select:none}._6a9uUa_popoverMode select{width:100%;height:30px;color:var(--dsw-alias-label-secondary,#535b68);background:var(--dsw-specific-bubble,#f5f7fa);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);border-radius:7px;margin-top:6px;padding:0 7px}._6a9uUa_scenarioPicker{border:0;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0 0;padding:0;display:grid}._6a9uUa_scenarioPicker legend{color:var(--dsw-alias-label-tertiary,#858c98);grid-column:1/-1;margin-bottom:-1px;font-size:11px}._6a9uUa_scenarioPicker button{min-width:0;color:var(--dsw-alias-label-secondary,#58606d);text-align:left;cursor:pointer;background:var(--dsw-specific-bubble,#f5f7fa);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);border-radius:9px;flex-direction:column;gap:2px;padding:8px 9px;display:flex}._6a9uUa_scenarioPicker button[data-active]{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 45%, #3478f6);box-shadow:0 0 0 2px #3478f61a}._6a9uUa_scenarioPicker strong{font-size:12px}._6a9uUa_scenarioPicker span{text-overflow:ellipsis;white-space:nowrap;font-size:10px;overflow:hidden}._6a9uUa_topicLauncher{z-index:200;color:#fff;cursor:pointer;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 90%, #dceaff);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l2,#d9dde5) 65%, #3478f6);pointer-events:auto;border-radius:999px;align-items:center;width:112px;height:112px;padding:5px;display:flex;position:fixed;bottom:76px;right:22px;box-shadow:0 10px 28px #245fd13d}._6a9uUa_topicLauncher img{object-fit:contain;width:100px;height:100px;display:block}._6a9uUa_launcherCount{border:2px solid var(--dsw-alias-bg-base,#fff);background:#245fd1;border-radius:999px;place-items:center;min-width:24px;height:24px;padding:0 5px;font-size:11px;line-height:1;display:grid;position:absolute;top:-4px;right:-4px}._6a9uUa_topicLauncher:hover{transform:translateY(-1px)}._6a9uUa_dock{--citeciter-accent:#3478f6;z-index:1;box-sizing:border-box;width:clamp(360px, var(--citeciter-panel-width), calc(100vw - 24px));min-width:0;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-base,#fff);border-left:1px solid var(--dsw-alias-border-l2,#d9dde5);pointer-events:auto;font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:block;position:absolute;top:0;bottom:0;right:0;overflow:visible;box-shadow:-12px 0 32px #1a1f2c14;container-type:inline-size}._6a9uUa_dock[data-arrangement=page]{box-shadow:none;border-top:1px solid var(--dsw-alias-border-l2,#d9dde5);border-left:0}._6a9uUa_dock._6a9uUa_floating{border:1px solid color-mix(in srgb,var(--dsw-alias-border-l1,#d5dedb) 75%,#fff);background:color-mix(in srgb,var(--dsw-alias-bg-base,#fff) 90%,transparent);backdrop-filter:blur(28px)saturate(150%);z-index:500;border-top-color:#ffffffba;border-radius:22px;width:min(520px,100vw - 32px);height:min(720px,100vh - 100px);animation:.2s cubic-bezier(.2,.8,.2,1) _6a9uUa_citerFloatIn;position:fixed;top:72px;bottom:auto;right:24px;overflow:hidden;box-shadow:inset 0 1px 2px #fff9,0 24px 70px #1c35402e}@keyframes _6a9uUa_citerFloatIn{0%{opacity:0;translate:0 10px;scale:.98}to{opacity:1;translate:0;scale:1}}@media (prefers-reduced-motion:reduce){._6a9uUa_dock._6a9uUa_floating{animation:none}}@media (prefers-contrast:more){._6a9uUa_dock._6a9uUa_floating{background:var(--dsw-alias-bg-base,#fff);backdrop-filter:none}}._6a9uUa_dock[data-arrangement=unsupported]{border-radius:12px;width:min(360px,100% - 24px);height:auto;padding:12px 18px;top:auto;bottom:12px;right:12px}._6a9uUa_dockHeader[data-floating]{cursor:grab;touch-action:none}._6a9uUa_fullscreenNotice{display:none}body:has([data-rightbar-fullscreen]) ._6a9uUa_fullscreenNotice{z-index:501;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:var(--dsw-alias-bg-layer-1,#fff);max-width:calc(100vw - 32px);color:var(--dsw-alias-label-primary,#263d3b);pointer-events:auto;border-radius:12px;padding:10px 14px;font-size:12px;display:block;position:fixed;bottom:16px;left:16px}[data-rightbar-fullscreen] ._6a9uUa_floating{visibility:visible;pointer-events:auto}body:has([role=dialog][aria-modal=true]) ._6a9uUa_floating,body:has([role=dialog][aria-modal=true]) ._6a9uUa_fullscreenNotice{visibility:hidden;pointer-events:none}._6a9uUa_dock[data-arrangement=unsupported] ._6a9uUa_dockBody{display:none}._6a9uUa_layoutNotice{margin:0;font-size:13px;line-height:1.6}._6a9uUa_dock[data-arrangement=page] ._6a9uUa_dockHeader{min-height:44px}._6a9uUa_dock[data-arrangement=page] ._6a9uUa_contextBar{padding-block:5px}._6a9uUa_dock[data-arrangement=page] ._6a9uUa_contextBar blockquote{-webkit-line-clamp:1;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden}._6a9uUa_dockBody{grid-template-columns:minmax(0,1fr);width:100%;min-width:0;height:100%;min-height:0;display:grid;overflow:hidden}._6a9uUa_resizeHandle{z-index:3;cursor:col-resize;touch-action:none;width:10px;position:absolute;top:0;bottom:0;left:-5px}._6a9uUa_resizeHandle:after{content:\"\";background:var(--dsw-alias-border-l2,#d9dde5);border-radius:999px;width:3px;height:42px;transition:background .12s,width .12s;position:absolute;top:50%;left:3px;transform:translateY(-50%)}._6a9uUa_resizeHandle:hover:after,._6a9uUa_resizeHandle:focus-visible:after{background:var(--citeciter-accent);width:4px}._6a9uUa_citationWaterline{z-index:199;pointer-events:none;opacity:0;width:100vw;height:100vh;transition:opacity .16s;position:fixed;inset:0;overflow:visible}._6a9uUa_citationWaterline[data-visible]{opacity:.48}._6a9uUa_citationWaterline path{fill:none;stroke:color-mix(in srgb, var(--citeciter-accent) 72%, #73d9ff);stroke-width:1.5px;stroke-linecap:round;stroke-dasharray:3 7}._6a9uUa_topicRail{background:color-mix(in srgb, var(--dsw-specific-sidebar-fill,#f7f8fa) 94%, #edf5ff);border-left:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex-direction:column;min-width:0;min-height:0;display:flex;overflow:hidden}._6a9uUa_brand{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;align-items:center;gap:9px;min-height:65px;padding:0 13px;display:flex}._6a9uUa_mascotStatus,._6a9uUa_settingsWhale{background:linear-gradient(145deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 90%, #3478f6), color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 72%, #3478f6));border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 64%, #3478f6);width:32px;height:32px;box-shadow:inset 0 1px 0 color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 72%, transparent);border-radius:10px;flex:none;place-items:center;display:grid;overflow:hidden}._6a9uUa_mascotStatus img,._6a9uUa_settingsWhale img{object-fit:contain;width:100%;height:100%}._6a9uUa_mascotStatus{position:relative;overflow:visible}._6a9uUa_mascotStatus img{transition:transform .18s}._6a9uUa_mascotStatus>span{pointer-events:none;position:absolute}._6a9uUa_mascotStatus[data-state=diving] img{transform:translateY(9px)}._6a9uUa_mascotStatus[data-state=diving]>span,._6a9uUa_mascotStatus[data-state=surfaced]>span{border-top:2px solid #44aef4;border-radius:50%;height:6px;bottom:3px;left:1px;right:1px;box-shadow:0 -3px 0 -2px #7fd9ff}._6a9uUa_mascotStatus[data-state=reading]>span{border:2px solid #245fd1;border-radius:50%;width:9px;height:9px;top:4px;right:2px}._6a9uUa_mascotStatus[data-state=reading]>span:after{content:\"\";background:#245fd1;border-radius:2px;width:6px;height:2px;position:absolute;bottom:-3px;right:-5px;transform:rotate(48deg)}._6a9uUa_mascotStatus[data-state=answering]>span{width:15px;height:13px;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);content:\"\";background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid #8eb4ff;border-radius:7px;place-items:center;display:grid;top:-4px;right:-5px}._6a9uUa_mascotStatus[data-state=answering]>span:before{content:\"“\";font-size:12px;line-height:1}._6a9uUa_brand div{flex-direction:column;min-width:0;display:flex}._6a9uUa_brand strong{text-overflow:ellipsis;font-size:14px;overflow:hidden}._6a9uUa_brand>div>span{color:var(--dsw-alias-label-tertiary,#858c98);font-size:10px}._6a9uUa_railCaption,._6a9uUa_railFoot{color:var(--dsw-alias-label-tertiary,#858c98);flex:none;justify-content:space-between;align-items:center;gap:6px;padding:10px 11px 7px;font-size:10px;display:flex}._6a9uUa_railCaption{flex-direction:column;align-items:stretch}._6a9uUa_railActions{justify-content:space-between;align-items:center;gap:5px;display:flex}._6a9uUa_railCaption button{color:var(--dsw-alias-label-secondary,#58606d);cursor:pointer;background:0 0;border:0;border-radius:6px}._6a9uUa_railCaption button:hover,._6a9uUa_closeButton:hover{background:var(--dsw-alias-interactive-bg-hover,#0000000f)}._6a9uUa_topicList{flex-direction:column;flex:1;gap:4px;min-height:0;padding:0 7px;display:flex;overflow-y:auto}._6a9uUa_topicItem{width:100%;color:inherit;text-align:left;cursor:pointer;background:0 0;border:1px solid #0000;border-radius:9px;grid-template-columns:7px minmax(0,1fr);align-items:start;gap:7px;padding:9px 8px;display:grid}._6a9uUa_topicItem:hover{background:var(--dsw-alias-interactive-bg-hover,#0000000b)}._6a9uUa_topicItem[data-active]{background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 88%, #eaf3ff);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#dde1e8) 72%, #7ca8ff);box-shadow:0 2px 7px #1c222f0d}._6a9uUa_topicItem[data-archived]{opacity:.58}._6a9uUa_topicStatus{background:#99a1ae;border-radius:999px;width:6px;height:6px;margin-top:5px}._6a9uUa_topicStatus[data-running]{background:var(--citeciter-accent);animation:1.2s ease-in-out infinite _6a9uUa_citeciterPulse;box-shadow:0 0 0 3px #3478f629}@keyframes _6a9uUa_citeciterPulse{50%{opacity:.42}}._6a9uUa_topicCopy{flex-direction:column;gap:3px;min-width:0;display:flex}._6a9uUa_topicCopy strong,._6a9uUa_topicCopy small{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}._6a9uUa_topicCopy strong{font-size:12px;font-weight:590}._6a9uUa_topicCopy strong[data-pending]{color:var(--dsw-alias-label-secondary,#606875);font-style:italic}._6a9uUa_topicCopy small{color:var(--dsw-alias-label-tertiary,#858c98);font-size:10px}._6a9uUa_railEmpty{color:var(--dsw-alias-label-tertiary,#858c98);margin:9px 6px;font-size:11px;line-height:17px}._6a9uUa_railError{color:var(--dsw-alias-state-error-primary,#c93f3f);overflow-wrap:anywhere;margin:9px 6px;font-size:10px;line-height:15px}._6a9uUa_railFoot{border-top:1px solid var(--dsw-alias-border-l1,#e4e7ec);padding-top:8px;padding-bottom:9px}._6a9uUa_learningWorkspace{background:var(--dsw-alias-bg-base,#fff);flex-direction:column;min-width:0;min-height:0;display:flex;overflow:hidden}._6a9uUa_dockHeader{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;grid-template-columns:minmax(0,1fr) minmax(100px,160px);justify-content:space-between;align-items:center;gap:6px 12px;min-height:64px;padding:10px 16px;display:grid}._6a9uUa_compactTopicSelect{min-width:0;max-width:180px;height:30px;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);border-radius:8px;padding:0 8px;display:block}._6a9uUa_compactHeaderActions{grid-column:2;justify-content:flex-end;gap:6px;display:flex}._6a9uUa_compactHeaderActions button{height:30px;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);cursor:pointer;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 86%, #3478f6);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 58%, #3478f6);white-space:nowrap;border-radius:8px;flex:none;padding:0 9px;font-size:11px}._6a9uUa_panelNotice{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 76%, #2c9a68);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 90%, #4dbb83);border-bottom:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 68%, #4dbb83);flex:none;padding:7px 14px;font-size:11px}._6a9uUa_dockHeading{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:2px 7px;min-width:0;display:grid}._6a9uUa_dockHeading strong{text-overflow:ellipsis;white-space:nowrap;font-size:14px;overflow:hidden}._6a9uUa_dockHeading>span:last-child{color:var(--dsw-alias-label-tertiary,#858c98);grid-column:1/-1;font-size:10px}._6a9uUa_modeBadge{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 36%, #3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 84%, #3478f6);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 64%, #3478f6);letter-spacing:.02em;white-space:nowrap;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:700}._6a9uUa_closeButton{z-index:5;color:#3478f6;cursor:pointer;background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:999px;flex:none;place-items:center;width:30px;height:30px;padding:0;display:grid;position:absolute;top:50%;left:6px;transform:translateY(-50%);box-shadow:0 4px 14px #1d222f24}._6a9uUa_emptyState{box-sizing:border-box;text-align:center;flex-direction:column;flex:1;justify-content:center;align-items:center;padding:34px 24px;display:flex}._6a9uUa_emptyWhale{background:radial-gradient(circle at 32% 25%,#fff,#dceaff);border:1px solid #c9dcff;border-radius:22px;place-items:center;width:68px;height:68px;margin-bottom:13px;display:grid;overflow:hidden;box-shadow:0 14px 35px #245fd124}._6a9uUa_emptyWhale img{object-fit:contain;width:100%;height:100%}._6a9uUa_emptyState h2{margin:0;font-size:17px}._6a9uUa_emptyState>p{max-width:430px;color:var(--dsw-alias-label-secondary,#606875);margin:9px 0 0;font-size:12px;line-height:20px}._6a9uUa_contextBar{background:color-mix(in srgb, var(--dsw-specific-bubble,#f6f7f9) 90%, #edf5ff);border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;padding:10px 14px}._6a9uUa_contextBar blockquote{max-height:57px;color:var(--dsw-alias-label-secondary,#59616e);border-left:3px solid var(--citeciter-accent);margin:0;padding-left:9px;font-size:11px;line-height:18px;overflow:auto}._6a9uUa_contextMeta{color:var(--dsw-alias-label-tertiary,#858c98);gap:9px;margin-top:6px;font-size:9px;display:flex}._6a9uUa_contextMeta span:first-child:before{content:\"\";vertical-align:1px;background:#b3bac5;border-radius:999px;width:5px;height:5px;margin-right:4px;display:inline-block}._6a9uUa_contextMeta span[data-ok]:before{background:#27a96b}._6a9uUa_newTopicForm,._6a9uUa_deleteForm{flex-direction:column;gap:12px;width:100%;min-width:0;display:flex}._6a9uUa_newTopicForm textarea,._6a9uUa_deleteForm input{box-sizing:border-box;width:100%;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);font:inherit;border-radius:9px;outline:none;padding:10px 11px}._6a9uUa_newTopicForm textarea{resize:vertical;line-height:20px}._6a9uUa_newTopicForm textarea:focus,._6a9uUa_deleteForm input:focus{border-color:#3478f6;box-shadow:0 0 0 3px #3478f621}._6a9uUa_deleteForm code{overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary,#58606d);background:var(--dsw-specific-bubble,#f5f7fa);user-select:all;border-radius:7px;padding:8px 9px}._6a9uUa_modalError{color:var(--dsw-alias-state-error-primary,#c93f3f);font-size:12px}._6a9uUa_deleteAction{color:var(--dsw-alias-state-error-primary,#c93f3f)!important;border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary,#c93f3f) 50%, transparent)!important}._6a9uUa_nextQuestions button:disabled{cursor:default;opacity:.42}._6a9uUa_transcript{overflow-anchor:none;flex-direction:column;flex:1;gap:14px;min-height:0;padding:17px clamp(12px,4%,28px) 24px;display:flex;position:relative;overflow:hidden auto}._6a9uUa_assistantTurn,._6a9uUa_userTurn,._6a9uUa_errorTurn{overflow-wrap:anywhere;min-width:0;font-size:13px;line-height:21px}._6a9uUa_assistantTurn{border-bottom:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 72%, transparent);padding-bottom:14px}._6a9uUa_userTurn{background:var(--dsw-specific-bubble,#f1f3f7);border-radius:12px 12px 3px;align-self:flex-end;max-width:86%;padding:8px 11px}._6a9uUa_errorTurn,._6a9uUa_panelError{color:var(--dsw-alias-state-error-primary,#c93f3f);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 88%, #f45555);border:1px solid #c93f3f33;border-radius:8px}._6a9uUa_errorTurn{padding:8px 10px}._6a9uUa_errorTurn[data-status=stopped]{color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-specific-bubble,#f5f6f8);border-color:var(--dsw-alias-border-l1,#e4e7ec)}._6a9uUa_errorMeta{color:var(--dsw-alias-label-tertiary,#858c98);flex-wrap:wrap;gap:5px 10px;font-size:9px;display:flex}._6a9uUa_errorTurn details{margin-top:6px}._6a9uUa_errorTurn pre{white-space:pre-wrap;max-height:160px;overflow:auto}._6a9uUa_assistantTurn p,._6a9uUa_userTurn p,._6a9uUa_errorTurn p{margin-top:0;margin-bottom:8px}._6a9uUa_turnRole{color:var(--dsw-alias-label-tertiary,#858c98);margin-bottom:5px;font-size:10px;font-weight:650}._6a9uUa_flowDisclosure{min-width:0;color:var(--dsw-alias-label-secondary,#606875);font-size:12px}._6a9uUa_flowRow,._6a9uUa_flowRowRunning{align-items:center;min-width:0;height:26px;display:flex;position:relative;overflow:hidden}._6a9uUa_flowRowRunning:after{content:\"\";pointer-events:none;background:linear-gradient(90deg,#0000 20%,#ffffff94 48%,#0000 76%);animation:1.7s linear infinite _6a9uUa_citeciterSweep;position:absolute;inset:0;transform:translate(-100%)}@keyframes _6a9uUa_citeciterSweep{to{transform:translate(100%)}}._6a9uUa_flowDot{color:var(--dsw-alias-label-tertiary,#858c98);flex:none;margin:0 6px}._6a9uUa_flowSummary{min-width:0;color:var(--dsw-alias-label-tertiary,#78808e);white-space:nowrap;overflow-x:hidden}._6a9uUa_flowBody{max-height:320px;color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-specific-bubble,#f5f6f8);font:inherit;white-space:pre-wrap;border-radius:7px;margin:5px 0 5px 22px;padding:7px 9px;font-size:11px;line-height:18px;overflow:auto}._6a9uUa_toolPreview{background:var(--dsw-specific-bubble,#f5f6f8);border-radius:7px;gap:5px;max-height:360px;margin:5px 0 5px 22px;padding:8px;display:grid;overflow:auto}._6a9uUa_toolPreview>strong{color:var(--dsw-alias-label-tertiary,#858c98);text-transform:uppercase;font-size:9px}._6a9uUa_toolPreview pre{overflow-wrap:anywhere;white-space:pre-wrap;margin:0;font:10px/17px ui-monospace,SFMono-Regular,Menlo,monospace}._6a9uUa_loadingCard{color:var(--dsw-alias-label-secondary,#606875);background:color-mix(in srgb, var(--dsw-specific-bubble,#f5f6f8) 82%, #3478f6);border-radius:9px;align-self:flex-start;padding:8px 10px;font-size:11px}._6a9uUa_panelError{overflow-wrap:anywhere;margin:0;padding:8px 10px;font-size:11px;line-height:17px}._6a9uUa_nextQuestions{border:0;flex-wrap:wrap;gap:6px;margin-top:10px;padding:0;display:flex}._6a9uUa_nextQuestions legend{width:100%;color:var(--dsw-alias-label-tertiary,#858c98);margin-bottom:6px;font-size:10px}._6a9uUa_nextQuestions button{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 46%, #3478f6);text-align:left;cursor:pointer;background:color-mix(in srgb, var(--dsw-specific-bubble,#f5f6f8) 86%, #3478f6);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 70%, #3478f6);border-radius:999px;padding:6px 9px;font-size:10px}._6a9uUa_questionFrame{background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:14px;flex:none;margin:0 12px 12px;padding:12px;box-shadow:0 6px 20px #1d222f1a}._6a9uUa_questionHeader{color:var(--dsw-alias-label-secondary,#606875);grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:8px;display:grid}._6a9uUa_questionHeader>div{flex-direction:column;gap:2px;min-width:0;display:flex}._6a9uUa_questionHeader span{color:var(--dsw-alias-label-tertiary,#858c98);font-size:9px}._6a9uUa_questionHeader strong{color:var(--dsw-alias-label-primary,#20232a);font-size:12px;line-height:18px}._6a9uUa_questionOptions{gap:6px;margin-top:10px;display:grid}._6a9uUa_questionOptions>button{color:inherit;text-align:left;cursor:pointer;background:var(--dsw-specific-bubble,#f5f6f8);border:1px solid #0000;border-radius:8px;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:6px;padding:8px;display:grid}._6a9uUa_questionOptions>button[data-selected]{background:color-mix(in srgb, var(--dsw-specific-bubble,#f5f6f8) 82%, #3478f6);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#dfe3ea) 54%, #3478f6)}._6a9uUa_questionOptions>button>span:first-child{width:18px;height:18px;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:5px;place-items:center;font-size:9px;display:grid}._6a9uUa_questionOptions>button>span:last-child{flex-direction:column;min-width:0;display:flex}._6a9uUa_questionOptions strong{font-size:11px}._6a9uUa_questionOptions small{color:var(--dsw-alias-label-tertiary,#858c98);margin-top:2px;font-size:9px;line-height:14px}._6a9uUa_questionCustom{box-sizing:border-box;resize:vertical;width:100%;color:inherit;background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#dfe3ea);font:inherit;border-radius:8px;outline:0;margin-top:8px;padding:7px 8px;font-size:10px}._6a9uUa_questionCustom:focus{border-color:#3478f6;box-shadow:0 0 0 3px #3478f61f}._6a9uUa_questionFooter{align-items:center;gap:6px;margin-top:9px;display:flex}._6a9uUa_questionFooter span{flex:1}._6a9uUa_questionFooter button{min-height:28px;color:var(--dsw-alias-label-secondary,#606875);cursor:pointer;background:0 0;border:0;border-radius:7px;padding:0 9px;font-size:10px}._6a9uUa_questionFooter button:last-child{color:#fff;background:#3478f6}._6a9uUa_questionFooter button:disabled{cursor:default;opacity:.45}._6a9uUa_richAnswer{min-width:0}._6a9uUa_richFigure{background:var(--dsw-specific-bubble,#f5f6f8);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:9px;margin:10px 0;overflow:hidden}._6a9uUa_richSvg{width:100%;height:auto;display:block}._6a9uUa_richHtml{border:0;width:100%;min-height:240px;display:block}._6a9uUa_settingsPage{width:min(760px,100%);color:var(--dsw-alias-label-primary,#20232a);flex-direction:column;gap:14px;padding-bottom:32px;display:flex}._6a9uUa_settingsHero{background:linear-gradient(130deg, color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6), var(--dsw-alias-bg-layer-1,#fff) 72%);border:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 72%, #8eb4ff);border-radius:14px;align-items:center;gap:13px;padding:17px;display:flex}._6a9uUa_settingsWhale{width:42px;height:42px;font-size:21px}._6a9uUa_settingsHero h2,._6a9uUa_settingsHero p,._6a9uUa_settingsGroup h3{margin:0}._6a9uUa_settingsHero h2{font-size:17px}._6a9uUa_settingsHero p{color:var(--dsw-alias-label-secondary,#606875);margin-top:3px;font-size:11px}._6a9uUa_settingsGroup{background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:13px;flex-direction:column;gap:8px;padding:15px;display:flex}._6a9uUa_settingsGroup h3{margin-bottom:3px;font-size:13px}._6a9uUa_settingChoice,._6a9uUa_settingToggle{cursor:pointer;border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:10px;align-items:center;gap:10px;padding:10px;display:flex}._6a9uUa_settingChoice[data-selected]{background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6);border-color:color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 48%, #3478f6)}._6a9uUa_settingChoice>span,._6a9uUa_settingToggle>span{flex-direction:column;flex:1;gap:2px;min-width:0;display:flex}._6a9uUa_settingChoice strong,._6a9uUa_settingToggle strong,._6a9uUa_widthSetting strong{font-size:12px}._6a9uUa_settingChoice small,._6a9uUa_settingToggle small{color:var(--dsw-alias-label-secondary,#606875);font-size:10px;line-height:16px}._6a9uUa_settingChoice input,._6a9uUa_settingToggle input{accent-color:var(--citeciter-accent,#3478f6)}._6a9uUa_settingToggle>input{width:17px;height:17px}._6a9uUa_settingStack{border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:10px;flex-direction:column;gap:6px;padding:10px;display:flex}._6a9uUa_settingStack strong{font-size:12px}._6a9uUa_settingStack small{color:var(--dsw-alias-label-secondary,#606875);font-size:10px;line-height:16px}._6a9uUa_settingStack input,._6a9uUa_settingStack ._6a9uUa_promptTextarea{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:8px;width:100%;padding:8px;font-family:inherit;font-size:12px}._6a9uUa_promptTextarea{resize:vertical}._6a9uUa_settingsDocumentAction{flex-wrap:wrap;align-items:center;gap:10px;min-width:0;display:flex}._6a9uUa_settingsDocumentButton{min-height:32px;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);font:inherit;border-radius:8px;align-items:center;gap:7px;padding:0 11px;font-size:12px;display:inline-flex}._6a9uUa_settingsDocumentButton:focus-visible{outline:2px solid var(--dsw-alias-state-focus,#356ae6);outline-offset:2px}._6a9uUa_settingsDocumentButton:disabled{cursor:not-allowed;opacity:.55}._6a9uUa_settingsDocumentStatus{min-width:0;color:var(--dsw-alias-label-secondary,#606875);overflow-wrap:anywhere;margin:0;font-size:11px;line-height:16px}._6a9uUa_settingsDocumentStatus[data-status=success]{color:var(--dsw-alias-state-success-primary,#21845b)}._6a9uUa_settingsDocumentStatus[data-status=error]{color:var(--dsw-alias-state-error-primary,#c93f3f)}._6a9uUa_widthSetting{flex-direction:column;gap:8px;padding:5px 2px 9px;display:flex}._6a9uUa_widthSetting>span{justify-content:space-between;display:flex}._6a9uUa_widthSetting output{color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);font-size:11px;font-weight:650}._6a9uUa_widthSetting input{accent-color:#3478f6;width:100%}._6a9uUa_dockPreview{height:72px;color:var(--dsw-alias-label-tertiary,#858c98);background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);border-radius:9px;font-size:9px;display:flex;overflow:hidden}._6a9uUa_previewSidebar{background:var(--dsw-specific-sidebar-fill,#f5f6f8);border-right:1px solid var(--dsw-alias-border-l1,#e4e7ec);width:16%}._6a9uUa_previewCoding,._6a9uUa_previewDock{place-items:center;min-width:0;display:grid}._6a9uUa_previewCoding{flex:1}._6a9uUa_previewDock{max-width:55%;color:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 70%, #3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 82%, #3478f6);border-left:1px solid color-mix(in srgb, var(--dsw-alias-border-l1,#e4e7ec) 58%, #3478f6)}._6a9uUa_settingsSaveStatus{min-height:18px;color:var(--dsw-alias-label-tertiary,#858c98);align-self:flex-end;margin:-7px 4px;font-size:10px}._6a9uUa_settingsSaveStatus[data-status=error]{color:var(--dsw-alias-state-error-primary,#c93f3f)}@media (width<=720px){._6a9uUa_brand{padding:0 8px}._6a9uUa_mascotStatus{display:none}._6a9uUa_topicLauncher{width:78px;height:78px}._6a9uUa_topicLauncher img{width:68px;height:68px}._6a9uUa_closeButton{left:6px}}@container (width<=600px){._6a9uUa_dockHeader{grid-template-columns:minmax(0,1fr) minmax(130px,180px);gap:6px 8px;padding-block:8px;display:grid}._6a9uUa_dockBody{grid-template-columns:minmax(0,1fr)}._6a9uUa_topicRail{display:none}._6a9uUa_compactTopicSelect{display:block}._6a9uUa_compactHeaderActions{grid-column:2;justify-content:flex-end;gap:6px;display:flex}}@media (prefers-reduced-motion:reduce){._6a9uUa_topicStatus[data-running],._6a9uUa_flowRowRunning:after{animation:none}._6a9uUa_topicLauncher:hover{transform:none}}._6a9uUa_dockHeader{cursor:grab;user-select:none}._6a9uUa_dockHeader:active{cursor:grabbing}._6a9uUa_dragGrip{color:var(--dsw-alias-label-tertiary,#89909a);font-size:20px}._6a9uUa_dockTarget{z-index:9999;pointer-events:none;backdrop-filter:blur(12px);background:#548ceb24;border:2px solid #6598f3;border-radius:20px;width:72px;position:fixed;top:48px;bottom:16px;right:8px}._6a9uUa_dockHeading{min-width:0}._6a9uUa_dockHeading strong{cursor:text}._6a9uUa_closeButton{width:26px;height:26px;box-shadow:none;border:0;border-radius:9px;inset:17px 10px auto auto;transform:none}._6a9uUa_closeButton img{width:12px;height:12px}._6a9uUa_dockHeader{padding-right:42px}";
-		const tagId$17 = "@kirkchinese/dsh-citeciter/CiteCiter.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$17) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$17;
-			tag.textContent = css$17;
 			document.head.appendChild(tag);
 		}
 		var CiteCiter_module_css_default = {
@@ -34548,6 +35094,445 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"widthSetting": "_6a9uUa_widthSetting"
 		};
 		//#endregion
+		//#region lib/types/client/components/ToolMessage.js
+		function compactPreview$1(text, limit = 120) {
+			const compact = text.replaceAll(/\s+/g, " ").trim();
+			return compact.length > limit ? compact.slice(0, limit) + "…" : compact;
+		}
+		function jsonObject(text) {
+			try {
+				const value = JSON.parse(text);
+				return typeof value === "object" && value !== null ? value : null;
+			} catch {
+				return null;
+			}
+		}
+		function FlowDisclosure({ icon, title, summary, running = false, children }) {
+			const [open, setOpen] = (0, react.useState)(false);
+			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DisclosureRow, {
+				className: CiteCiter_module_css_default.flowDisclosure,
+				rowClassName: running ? CiteCiter_module_css_default.flowRowRunning : CiteCiter_module_css_default.flowRow,
+				icon,
+				title,
+				open,
+				expandable: true,
+				expandOnRowClick: true,
+				onToggle: () => setOpen(!open),
+				collapsedContent: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("span", {
+					className: CiteCiter_module_css_default.flowDot,
+					children: "·"
+				}), (0, react_jsx_runtime.jsx)("span", {
+					className: CiteCiter_module_css_default.flowSummary,
+					children: summary
+				})] }),
+				children
+			});
+		}
+		/** Show returned files immediately while keeping diagnostic arguments and results collapsible. */
+		function ToolRow({ message, sessionId, load }) {
+			const args = jsonObject(message.arguments);
+			const result = message.result === null ? null : jsonObject(message.result);
+			const summary = message.running ? compactPreview$1(message.arguments) : message.isError ? "调用失败" : compactPreview$1(message.result || ((message.attachments?.length ?? 0) > 0 ? "附件已返回" : "完成"));
+			return (0, react_jsx_runtime.jsxs)("div", {
+				"data-citeciter-message": message.id,
+				children: [(0, react_jsx_runtime.jsx)(FlowDisclosure, {
+					icon: message.name === "ask_user_question" ? (0, react_jsx_runtime.jsx)(IconQuestionOutlineMedium, {}) : (0, react_jsx_runtime.jsx)(IconSparkleMedium, {}),
+					title: message.name,
+					summary,
+					running: message.running,
+					children: (0, react_jsx_runtime.jsxs)("div", {
+						className: CiteCiter_module_css_default.toolPreview,
+						children: [
+							(0, react_jsx_runtime.jsx)("strong", { children: "参数" }),
+							args === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.arguments }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
+								data: args,
+								label: "工具参数",
+								copyable: false,
+								labels: jsonTreeLabels
+							}),
+							message.result !== null && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("strong", { children: message.isError ? "错误" : "结果" }), result === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.result }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
+								data: result,
+								label: "工具结果",
+								copyable: false,
+								labels: jsonTreeLabels
+							})] })
+						]
+					})
+				}), (0, react_jsx_runtime.jsx)(MessageAttachments, {
+					sessionId,
+					attachments: message.attachments ?? [],
+					load
+				})]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/dock-geometry.js
+		/**
+		* Reserve a separate column, or the content area when two readable columns cannot fit.
+		* CSS pixels already account for browser zoom and Windows display scaling.
+		* @param viewport - measured host dimensions and the saved width preference.
+		* @returns panel dimensions within the host, excluding its native caption.
+		*/
+		function resolveDockGeometry(viewport) {
+			const contentHeight = Math.max(0, viewport.height - viewport.caption);
+			const available = viewport.width - viewport.sidebar - viewport.details - 480;
+			if (available >= 360) return {
+				mode: "columns",
+				width: Math.min(available, Math.max(360, viewport.width * viewport.percent / 100)),
+				height: contentHeight,
+				top: viewport.caption
+			};
+			return {
+				mode: viewport.details > 0 && viewport.preferDetails !== false ? "suspended" : "page",
+				width: Math.max(0, viewport.width - viewport.sidebar),
+				height: contentHeight,
+				top: viewport.caption
+			};
+		}
+		//#endregion
+		//#region lib/types/client/host-dock.js
+		/** Isolated, disposable layout adapter for DSH alpha and legacy three-column frames. */
+		/**
+		* Locate the frame owning the public shell.overlay contribution.
+		* @param panel - mounted learning panel.
+		* @returns its immediate frame, or null before mounting.
+		*/
+		function findContainingFrame(panel) {
+			return panel?.closest("[data-shell-overlay]")?.parentElement ?? null;
+		}
+		/**
+		* Reserve host space without rewriting the host's saved columns or hiding details.
+		* Unknown frame structures receive no DOM changes. All owned styles disappear on close.
+		* @param panel - mounted panel reference.
+		* @param open - whether space should be reserved.
+		* @param percent - user's preferred fraction of the content viewport.
+		* @param floating - whether the user detached the panel.
+		* @param activation - increases only on explicit Citer navigation, permitting return from details.
+		* @returns measured panel placement; null when the host frame is unsupported.
+		*/
+		function useHostDock(panel, open, percent, floating = false, activation = 0) {
+			const [geometry, setGeometry] = (0, react.useState)(null);
+			const navigation = (0, react.useRef)({
+				activation: -1,
+				details: 0,
+				preferDetails: true
+			});
+			(0, react.useEffect)(() => {
+				if (!open) return;
+				const frame = findContainingFrame(panel.current);
+				if (frame === null) return;
+				const owner = crypto.randomUUID();
+				const saved = /* @__PURE__ */ new Map();
+				const setTrack = (name, value) => {
+					if (!saved.has(name)) saved.set(name, {
+						value: frame.style.getPropertyValue(name),
+						priority: frame.style.getPropertyPriority(name)
+					});
+					if (frame.style.getPropertyValue(name) !== value) frame.style.setProperty(name, value);
+				};
+				const clear = () => {
+					if (frame.dataset.citeciterDockOwner !== owner) return;
+					delete frame.dataset.citeciterDockOwner;
+					delete frame.dataset.citeciterLayout;
+					for (const [name, prior] of saved) if (prior.value === "") frame.style.removeProperty(name);
+					else frame.style.setProperty(name, prior.value, prior.priority);
+					saved.clear();
+				};
+				const apply = () => {
+					if (frame.dataset.citeciterDockOwner !== void 0 && frame.dataset.citeciterDockOwner !== owner) return;
+					const columns = frame.style.gridTemplateColumns;
+					const tracks = /^(\d+(?:\.\d+)?)px\s+minmax\((?:0|\d+(?:\.\d+)?px),\s*1fr\)\s+(?:minmax\(0(?:px)?,\s*(\d+(?:\.\d+)?)px\)|(\d+(?:\.\d+)?)px)$/u.exec(columns);
+					if (tracks === null || frame.hasAttribute("data-rightbar-fullscreen") || getComputedStyle(frame).display !== "grid") {
+						clear();
+						setGeometry(null);
+						return;
+					}
+					const rect = frame.getBoundingClientRect();
+					const caption = frame.querySelector(":scope > .dshDesktopWindowsCaptionRow, :scope > .dshDesktopMacCaptionRow")?.getBoundingClientRect().height ?? 0;
+					const details = Number(tracks[2] ?? tracks[3]);
+					const priority = navigation.current;
+					if (details !== priority.details) priority.preferDetails = true;
+					if (activation !== priority.activation) priority.preferDetails = false;
+					priority.activation = activation;
+					priority.details = details;
+					const next = resolveDockGeometry({
+						width: rect.width,
+						height: rect.height,
+						sidebar: Number(tracks[1]),
+						details,
+						caption,
+						percent,
+						preferDetails: priority.preferDetails
+					});
+					if (next.mode === "columns" || details === 0) priority.preferDetails = true;
+					if (next.mode === "suspended" || floating && next.mode === "columns") {
+						clear();
+						setGeometry((previous) => previous?.mode === next.mode && previous.width === next.width && previous.height === next.height && previous.top === next.top ? previous : next);
+						return;
+					}
+					setTrack("--citeciter-host-columns", columns);
+					setTrack("--citeciter-dock-width", next.width + "px");
+					setTrack("--citeciter-dock-height", next.height + "px");
+					setTrack("--citeciter-host-rows", caption > 0 ? `${caption}px minmax(0, 1fr)` : "minmax(0, 1fr)");
+					setTrack("--citeciter-sidebar-row-end", caption > 0 ? "3" : "2");
+					frame.dataset.citeciterDockOwner = owner;
+					frame.dataset.citeciterLayout = next.mode;
+					setGeometry((previous) => previous?.mode === next.mode && previous.width === next.width && previous.height === next.height && previous.top === next.top ? previous : next);
+				};
+				apply();
+				const resize = new ResizeObserver(apply);
+				const mutations = new MutationObserver(apply);
+				resize.observe(frame);
+				mutations.observe(frame, {
+					attributes: true,
+					attributeFilter: [
+						"style",
+						"class",
+						"data-rightbar-fullscreen"
+					],
+					childList: true
+				});
+				return () => {
+					resize.disconnect();
+					mutations.disconnect();
+					clear();
+				};
+			}, [
+				open,
+				panel,
+				percent,
+				floating,
+				activation
+			]);
+			return geometry;
+		}
+		//#endregion
+		//#region lib/types/client/compact-navigation.js
+		/** Suspend only covered host panes while Citer occupies the compact content page; restore their focusability on return. */
+		function useCompactNavigation(panel, active) {
+			(0, react.useEffect)(() => {
+				if (!active) return;
+				const frame = findContainingFrame(panel.current);
+				if (frame === null) return;
+				const owned = /* @__PURE__ */ new Map();
+				const cover = () => {
+					const bounds = panel.current?.getBoundingClientRect();
+					if (bounds === void 0) return;
+					for (const element of frame.children) {
+						if (!(element instanceof HTMLElement) || element.hasAttribute("data-shell-overlay") || owned.has(element)) continue;
+						const rect = element.getBoundingClientRect();
+						if (rect.width <= 0 || rect.height <= 0 || rect.right <= bounds.left + 1 || rect.bottom <= bounds.top + 1) continue;
+						if (element.classList.contains("dshDesktopWindowsCaptionRow") || element.classList.contains("dshDesktopMacCaptionRow")) continue;
+						owned.set(element, {
+							inert: element.inert,
+							hidden: element.getAttribute("aria-hidden")
+						});
+						element.inert = true;
+						element.setAttribute("aria-hidden", "true");
+						element.setAttribute("data-citeciter-covered", "");
+					}
+				};
+				cover();
+				const observer = new MutationObserver(cover);
+				observer.observe(frame, { childList: true });
+				return () => {
+					observer.disconnect();
+					for (const [element, previous] of owned) {
+						element.inert = previous.inert;
+						if (previous.hidden === null) element.removeAttribute("aria-hidden");
+						else element.setAttribute("aria-hidden", previous.hidden);
+						element.removeAttribute("data-citeciter-covered");
+					}
+				};
+			}, [panel, active]);
+		}
+		//#endregion
+		//#region lib/types/client/transcript-position.js
+		function capture(node) {
+			const child = [...node.children].find((child) => child instanceof HTMLElement && child.hasAttribute("data-citeciter-message") && child.offsetTop + child.offsetHeight > node.scrollTop + 1);
+			const anchor = child?.getAttribute("data-citeciter-message");
+			return {
+				top: node.scrollTop,
+				follow: node.scrollHeight - node.scrollTop - node.clientHeight < 80,
+				...anchor == null || child === void 0 ? {} : {
+					anchor,
+					offset: (node.scrollTop - child.offsetTop) / Math.max(1, child.offsetHeight)
+				}
+			};
+		}
+		function restore(node, position) {
+			if (position?.follow !== false) {
+				node.scrollTop = node.scrollHeight;
+				return;
+			}
+			const child = [...node.children].find((child) => child instanceof HTMLElement && child.getAttribute("data-citeciter-message") === position.anchor);
+			node.scrollTop = child === void 0 ? position.top : child.offsetTop + (position.offset ?? 0) * child.offsetHeight;
+		}
+		/** Observe the transcript and its messages: a loaded image can change scrollHeight without resizing the scroll container. */
+		function bindTranscript(node, read, write) {
+			let height = 0;
+			let width = 0;
+			let contentHeight = 0;
+			let restoredTop = -1;
+			const changed = () => height !== node.clientHeight || width !== node.clientWidth || contentHeight !== node.scrollHeight;
+			const reconcile = () => {
+				restore(node, read());
+				height = node.clientHeight;
+				width = node.clientWidth;
+				contentHeight = node.scrollHeight;
+				restoredTop = node.scrollTop;
+			};
+			const resize = new ResizeObserver(reconcile);
+			const children = /* @__PURE__ */ new Set();
+			const observeChildren = () => {
+				for (const child of children) if (child.parentElement !== node) {
+					resize.unobserve(child);
+					children.delete(child);
+				}
+				for (const child of node.children) if (!children.has(child)) {
+					children.add(child);
+					resize.observe(child);
+				}
+				reconcile();
+			};
+			const mutations = new MutationObserver(observeChildren);
+			resize.observe(node);
+			mutations.observe(node, { childList: true });
+			observeChildren();
+			return {
+				node,
+				reconcile,
+				scroll() {
+					if (changed()) {
+						reconcile();
+						return;
+					}
+					if (Math.abs(node.scrollTop - restoredTop) < 1) return;
+					write(capture(node));
+					restoredTop = node.scrollTop;
+				},
+				dispose() {
+					resize.disconnect();
+					mutations.disconnect();
+					children.clear();
+				}
+			};
+		}
+		/** Keep each Topic's reading position across portal moves, image loading, view changes and close/reopen. Follow new output only while the reader is near the end. */
+		function useTranscriptPosition(topicId, revision) {
+			const positions = (0, react.useRef)(/* @__PURE__ */ new Map());
+			const binding = (0, react.useRef)(null);
+			const currentTopic = (0, react.useRef)(topicId);
+			currentTopic.current = topicId;
+			const ref = (0, react.useCallback)((node) => {
+				binding.current?.dispose();
+				binding.current = null;
+				if (node !== null) {
+					if (!positions.current.has(topicId)) positions.current.set(topicId, {
+						top: 0,
+						follow: true
+					});
+					binding.current = bindTranscript(node, () => positions.current.get(topicId), (value) => positions.current.set(topicId, value));
+				}
+			}, [topicId]);
+			const onScroll = (0, react.useCallback)((event) => {
+				if (event.currentTarget === binding.current?.node) binding.current.scroll();
+			}, []);
+			(0, react.useLayoutEffect)(() => {
+				binding.current?.reconcile();
+			}, [topicId, revision]);
+			return {
+				ref,
+				onScroll,
+				followLatest: (0, react.useCallback)(() => {
+					positions.current.set(topicId, {
+						top: 0,
+						follow: true
+					});
+					if (currentTopic.current === topicId) binding.current?.reconcile();
+				}, [topicId])
+			};
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\CompactBackButton.module.css.mjs
+		const css$17 = "._7a-iNW_back{width:40px;height:40px;color:var(--dsw-alias-label-primary,#20232a);cursor:pointer;background:0 0;border:0;border-radius:12px;flex:none;justify-content:center;align-items:center;padding:0;display:inline-flex}._7a-iNW_back:hover{background:color-mix(in srgb,var(--dsw-alias-label-primary,#20232a) 7%,transparent)}._7a-iNW_back:focus-visible{outline-offset:2px;outline:2px solid #3478f6}";
+		const tagId$17 = "@kirkchinese/dsh-citeciter/CompactBackButton.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$17) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$17;
+			tag.textContent = css$17;
+			document.head.appendChild(tag);
+		}
+		var CompactBackButton_module_css_default = { "back": "_7a-iNW_back" };
+		//#endregion
+		//#region lib/types/client/components/CompactBackButton.js
+		/** Return from the compact Citer page without discarding its Topic or draft. */
+		function CompactBackButton({ onBack }) {
+			return (0, react_jsx_runtime.jsx)("button", {
+				className: CompactBackButton_module_css_default.back,
+				type: "button",
+				onClick: onBack,
+				"aria-label": "返回主对话",
+				children: (0, react_jsx_runtime.jsx)("svg", {
+					viewBox: "0 0 20 20",
+					width: "20",
+					height: "20",
+					fill: "none",
+					"aria-hidden": "true",
+					children: (0, react_jsx_runtime.jsx)("path", {
+						d: "m12 4-6 6 6 6",
+						stroke: "currentColor",
+						strokeWidth: "1.8",
+						strokeLinecap: "round",
+						strokeLinejoin: "round"
+					})
+				})
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\TopicHeader.module.css.mjs
+		const css$16 = ".wMh9RG_header{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);cursor:grab;user-select:none;touch-action:none;flex:none;align-items:center;gap:8px;min-height:64px;padding:8px 42px 8px 12px;display:flex}.wMh9RG_header:active{cursor:grabbing}.wMh9RG_header[data-compact]{cursor:default;touch-action:auto;min-height:60px;padding:6px 12px 6px 8px}.wMh9RG_heading{flex:1;gap:2px;min-width:0;display:grid}.wMh9RG_heading strong{cursor:text;font-size:14px}.wMh9RG_status{color:var(--dsw-alias-label-tertiary,#858c98);white-space:nowrap;text-overflow:ellipsis;font-size:10px;overflow:hidden}.wMh9RG_grip{color:var(--dsw-alias-label-tertiary,#858c98);flex:none;font-size:20px}";
+		const tagId$16 = "@kirkchinese/dsh-citeciter/TopicHeader.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$16) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$16;
+			tag.textContent = css$16;
+			document.head.appendChild(tag);
+		}
+		var TopicHeader_module_css_default = {
+			"grip": "wMh9RG_grip",
+			"header": "wMh9RG_header",
+			"heading": "wMh9RG_heading",
+			"status": "wMh9RG_status"
+		};
+		//#endregion
+		//#region lib/types/client/components/TopicHeader.js
+		/** Layout-only header: navigation, title and drag behavior are supplied by their independent controllers. */
+		function TopicHeader({ compact, onBack, onDrag, title, status, children }) {
+			return (0, react_jsx_runtime.jsxs)("header", {
+				className: TopicHeader_module_css_default.header,
+				"data-compact": compact || void 0,
+				onPointerDown: compact ? void 0 : onDrag,
+				children: [
+					compact ? (0, react_jsx_runtime.jsx)(CompactBackButton, { onBack }) : (0, react_jsx_runtime.jsx)("span", {
+						className: TopicHeader_module_css_default.grip,
+						"aria-hidden": "true",
+						children: "⠿"
+					}),
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: TopicHeader_module_css_default.heading,
+						children: [title, (0, react_jsx_runtime.jsx)("span", {
+							className: TopicHeader_module_css_default.status,
+							children: status
+						})]
+					}),
+					children
+				]
+			});
+		}
+		//#endregion
 		//#region lib/types/client/components/RichAnswer.js
 		/**
 		* Render model Markdown plus safe SVG and sandboxed HTML fence previews.
@@ -34591,13 +35576,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src\client\components\ReferenceAttachments.module.css.mjs
-		const css$16 = ".batQka_attachments{min-width:0}.batQka_rail{flex-wrap:wrap;gap:5px;padding:0 8px 7px;display:flex}.batQka_rail:empty{display:none}.batQka_chip{border:1px solid color-mix(in srgb, currentColor 14%, transparent);background:color-mix(in srgb, currentColor 3%, transparent);border-radius:8px;align-items:center;max-width:100%;display:flex}.batQka_chip button{color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:6px;padding:4px 7px;font-size:12px}.batQka_chip button:hover{background:color-mix(in srgb, currentColor 9%, transparent)}.batQka_chip button:focus-visible{outline-offset:1px;outline:2px solid #6898f2}.batQka_chip button:last-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.batQka_preview{background:color-mix(in srgb, currentColor 4%, transparent);border-radius:10px;max-height:180px;margin:0 8px 8px;padding:10px;font-size:13px;overflow:auto}.batQka_preview code{overflow-wrap:anywhere;opacity:.65;font-size:11px}";
-		const tagId$16 = "@kirkchinese/dsh-citeciter/ReferenceAttachments.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$16) + "]") === null) {
+		const css$15 = ".batQka_attachments{min-width:0}.batQka_rail{flex-wrap:wrap;gap:5px;padding:0 8px 7px;display:flex}.batQka_rail:empty{display:none}.batQka_chip{border:1px solid color-mix(in srgb, currentColor 14%, transparent);background:color-mix(in srgb, currentColor 3%, transparent);border-radius:8px;align-items:center;max-width:100%;display:flex}.batQka_chip button{color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:6px;padding:4px 7px;font-size:12px}.batQka_chip button:hover{background:color-mix(in srgb, currentColor 9%, transparent)}.batQka_chip button:focus-visible{outline-offset:1px;outline:2px solid #6898f2}.batQka_chip button:last-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.batQka_preview{background:color-mix(in srgb, currentColor 4%, transparent);border-radius:10px;max-height:180px;margin:0 8px 8px;padding:10px;font-size:13px;overflow:auto}.batQka_preview code{overflow-wrap:anywhere;opacity:.65;font-size:11px}";
+		const tagId$15 = "@kirkchinese/dsh-citeciter/ReferenceAttachments.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$15) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$16;
-			tag.textContent = css$16;
+			tag.dataset.pluginCss = tagId$15;
+			tag.textContent = css$15;
 			document.head.appendChild(tag);
 		}
 		var ReferenceAttachments_module_css_default = {
@@ -34661,174 +35646,5622 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			})] });
 		}
 		//#endregion
-		//#region lib/types/client/file-download.js
-		/**
-		* Download one committed attachment on demand through its owning Session.
-		* @param sessionId - the exact Topic that authorizes the attachment read.
-		* @param id - the durable native attachment identity.
-		* @param name - suggested local filename; never used as a source filesystem path.
-		* @param load - native attachment reader, provided by the client controller.
-		* @returns the download action and its visible progress/error state.
-		* Repeated clicks share one request. Identity changes and unmount cancel UI effects
-		* and release the owned object URL without cancelling the host's shared reader.
-		*/
-		function useFileDownload(sessionId, id, name, load) {
-			const requestRef = (0, react.useRef)();
-			const [busy, setBusy] = (0, react.useState)(false);
-			const [error, setError] = (0, react.useState)();
-			(0, react.useEffect)(() => {
-				const request = {
-					active: true,
-					pending: false
+		//#region lib/types/client/draft-controller.js
+		const EMPTY_DRAFT_VIEW = {
+			content: EMPTY_DRAFT,
+			files: [],
+			missing: [],
+			ready: false,
+			saving: false,
+			sending: false,
+			conflict: false,
+			pending: false,
+			error: null
+		};
+		/** Own draft persistence and attachment lifetimes independently of panel mounting and Topic navigation. */
+		function createDraftController(request, native) {
+			const entries = /* @__PURE__ */ new Map();
+			const listeners = /* @__PURE__ */ new Set();
+			let snapshot = {};
+			let disposed = false;
+			const current = (id, entry) => !disposed && entries.get(id) === entry;
+			const emit = (id, entry, patch = {}) => {
+				if (!current(id, entry)) return;
+				entry.view = {
+					...entry.view,
+					...patch,
+					content: entry.state.content,
+					files: entry.state.content.files.flatMap((file) => {
+						const item = entry.files.get(file.id);
+						return item === void 0 ? [] : [item.native];
+					}),
+					missing: entry.state.content.files.filter((file) => !entry.files.has(file.id)),
+					pending: entry.state.pending !== null
 				};
-				requestRef.current = request;
-				setBusy(false);
-				setError(void 0);
-				return () => {
-					request.active = false;
-					if (request.url !== void 0) URL.revokeObjectURL(request.url);
+				snapshot = {
+					...snapshot,
+					[id]: entry.view
 				};
-			}, [
-				sessionId,
-				id,
-				name,
-				load
-			]);
-			const download = async () => {
-				const request = requestRef.current;
-				if (request === void 0 || !request.active || request.pending) return;
-				request.pending = true;
-				setBusy(true);
-				setError(void 0);
-				try {
-					if (request.url === void 0) {
-						const blob = await load(sessionId, id);
-						if (!request.active) return;
-						request.url = URL.createObjectURL(blob);
-					}
-					const link = document.createElement("a");
-					link.href = request.url;
-					link.download = name;
-					link.hidden = true;
-					document.body.append(link);
-					try {
-						link.click();
-					} finally {
-						link.remove();
-					}
-				} catch (reason) {
-					if (request.active) setError(reason instanceof Error ? reason.message : String(reason));
-				} finally {
-					request.pending = false;
-					if (request.active) setBusy(false);
+				if (!disposed) for (const listener of listeners) listener();
+			};
+			const entryOf = (id) => {
+				let entry = entries.get(id);
+				if (entry === void 0) {
+					entry = {
+						state: EMPTY_DRAFT_STATE,
+						files: /* @__PURE__ */ new Map(),
+						generation: 0,
+						saved: 0,
+						view: EMPTY_DRAFT_VIEW
+					};
+					entries.set(id, entry);
 				}
+				return entry;
+			};
+			const fail = (id, entry, error) => emit(id, entry, { error: error instanceof Error ? error.message : String(error) });
+			const ensure = async (id) => {
+				const entry = entryOf(id);
+				if (entry.view.ready) return;
+				if (entry.loading !== void 0) return entry.loading;
+				entry.loading = (async () => {
+					const response = await request({
+						action: "draft-get",
+						topicSessionId: id
+					});
+					if (response.kind !== "draft") throw new Error("草稿响应类型不匹配");
+					if (!current(id, entry)) return;
+					entry.state = response.state;
+					const files = new Map([...entry.state.content.files, ...entry.state.pending?.content.files ?? []].map((file) => [file.id, file]));
+					for (const meta of files.values()) try {
+						const chunks = [];
+						for (let offset = 0; offset < meta.size; offset += DRAFT_CHUNK_BYTES) {
+							const chunk = await request({
+								action: "draft-file-get",
+								topicSessionId: id,
+								fileId: meta.id,
+								offset
+							});
+							if (chunk.kind !== "draft-file") throw new Error("草稿附件响应类型不匹配");
+							const bytes = Uint8Array.from(atob(chunk.data), (char) => char.charCodeAt(0));
+							if (bytes.length !== Math.min(262144, meta.size - offset)) throw new Error("草稿附件读取不完整");
+							chunks.push(bytes);
+						}
+						const file = new File(chunks, meta.name, {
+							type: meta.type,
+							lastModified: meta.lastModified
+						});
+						const [attachment] = await native.add(id, [file]);
+						if (attachment === void 0) throw new Error("DSH 未恢复附件");
+						if (!current(id, entry)) {
+							native.remove(attachment.id);
+							return;
+						}
+						entry.files.set(meta.id, {
+							meta,
+							native: attachment,
+							saved: true
+						});
+					} catch (error) {
+						fail(id, entry, `无法恢复 ${meta.name}：${String(error)}；请移除或重新添加`);
+					}
+					emit(id, entry, { ready: true });
+				})().catch((error) => {
+					fail(id, entry, error);
+					throw error;
+				}).finally(() => {
+					delete entry.loading;
+				});
+				return entry.loading;
+			};
+			const persistFile = async (id, item) => {
+				if (item.saved) return;
+				for (let offset = 0; offset < item.meta.size || offset === 0; offset += DRAFT_CHUNK_BYTES) {
+					const bytes = new Uint8Array(await item.native.file.slice(offset, offset + DRAFT_CHUNK_BYTES).arrayBuffer());
+					let binary = "";
+					for (let start = 0; start < bytes.length; start += 8192) binary += String.fromCharCode(...bytes.subarray(start, start + 8192));
+					await request({
+						action: "draft-file-put",
+						topicSessionId: id,
+						file: item.meta,
+						offset,
+						data: btoa(binary)
+					});
+					if (disposed) throw new Error("Citer 已关闭，未完成草稿保存");
+				}
+				item.saved = true;
+			};
+			const flush = async (id) => {
+				await ensure(id);
+				const entry = entryOf(id);
+				if (entry.timer !== void 0) {
+					clearTimeout(entry.timer);
+					delete entry.timer;
+				}
+				if (entry.saving !== void 0) {
+					await entry.saving;
+					if (entry.saved < entry.generation) return flush(id);
+					return;
+				}
+				if (entry.view.conflict) throw new Error("草稿已在另一窗口更改，请先选择保留哪个版本");
+				entry.saving = (async () => {
+					emit(id, entry, {
+						saving: true,
+						error: null
+					});
+					while (entry.saved < entry.generation) {
+						if (!current(id, entry)) return;
+						for (const item of entry.files.values()) await persistFile(id, item);
+						if (!current(id, entry)) return;
+						const generation = entry.generation;
+						const response = await request({
+							action: "draft-save",
+							topicSessionId: id,
+							state: entry.state
+						});
+						if (response.kind !== "draft") throw new Error("草稿保存响应类型不匹配");
+						if (response.conflict) {
+							emit(id, entry, { conflict: true });
+							throw new Error("草稿已在另一窗口更改；本窗口内容仍保留");
+						}
+						entry.state = {
+							...entry.state,
+							revision: response.state.revision
+						};
+						entry.saved = generation;
+					}
+				})().catch((error) => {
+					fail(id, entry, error);
+					throw error;
+				}).finally(() => {
+					delete entry.saving;
+					emit(id, entry, { saving: false });
+				});
+				return entry.saving;
+			};
+			const changed = (id, entry) => {
+				entry.generation++;
+				emit(id, entry);
+				clearTimeout(entry.timer);
+				entry.timer = setTimeout(() => {
+					flush(id).catch(() => {});
+				}, 150);
+			};
+			const mutate = async (id, change) => {
+				await ensure(id);
+				if (disposed) return;
+				const entry = entryOf(id);
+				change(entry);
+				changed(id, entry);
+			};
+			const reload = async (id) => {
+				const old = entryOf(id);
+				clearTimeout(old.timer);
+				await old.saving?.catch(() => {});
+				for (const item of old.files.values()) native.remove(item.native.id);
+				entries.delete(id);
+				await ensure(id);
 			};
 			return {
-				download,
-				busy,
-				error
+				getSnapshot: () => snapshot,
+				subscribe: (listener) => {
+					listeners.add(listener);
+					return () => {
+						listeners.delete(listener);
+					};
+				},
+				/** Pending receipts are already durable; only unflushed local edits need a navigation warning. */
+				hasUnsavedChanges: () => [...entries.values()].some((entry) => entry.generation !== entry.saved),
+				flushAll: () => Promise.allSettled([...entries.keys()].filter((id) => entryOf(id).view.ready).map(flush)),
+				ensure,
+				flush,
+				setText: (id, text) => mutate(id, (entry) => {
+					entry.state = {
+						...entry.state,
+						content: {
+							...entry.state.content,
+							text
+						}
+					};
+				}),
+				append: (id, text, references) => mutate(id, (entry) => {
+					entry.state = {
+						...entry.state,
+						content: {
+							...entry.state.content,
+							text: [entry.state.content.text, text].filter(Boolean).join("\n\n"),
+							references: [...mergeDraftReferences(entry.state.content.references, references)]
+						}
+					};
+				}),
+				removeReference: (id, referenceId) => mutate(id, (entry) => {
+					entry.state = {
+						...entry.state,
+						content: {
+							...entry.state.content,
+							references: entry.state.content.references.filter((item) => item.id !== referenceId)
+						}
+					};
+				}),
+				addFiles: async (id, files) => {
+					await ensure(id);
+					const entry = entryOf(id);
+					if (entry.state.content.files.length + files.length > 32 || files.some((file) => file.size > 104857600)) throw new Error("草稿最多保留 32 个附件，每个附件不超过 100 MiB");
+					const added = await native.add(id, files);
+					if (!current(id, entry)) {
+						for (const item of added) native.remove(item.id);
+						return;
+					}
+					const metas = added.map((attachment) => {
+						const meta = {
+							id: crypto.randomUUID(),
+							name: attachment.file.name,
+							type: attachment.file.type,
+							size: attachment.file.size,
+							lastModified: attachment.file.lastModified
+						};
+						entry.files.set(meta.id, {
+							meta,
+							native: attachment,
+							saved: false
+						});
+						return meta;
+					});
+					entry.state = {
+						...entry.state,
+						content: {
+							...entry.state.content,
+							files: [...entry.state.content.files, ...metas]
+						}
+					};
+					changed(id, entry);
+				},
+				removeFile: (id, fileId) => mutate(id, (entry) => {
+					const item = [...entry.files.values()].find((item) => item.native.id === fileId || item.meta.id === fileId);
+					if (item !== void 0 && !entry.state.pending?.content.files.some((file) => file.id === item.meta.id)) {
+						native.remove(item.native.id);
+						entry.files.delete(item.meta.id);
+					}
+					entry.state = {
+						...entry.state,
+						content: {
+							...entry.state.content,
+							files: entry.state.content.files.filter((file) => file.id !== (item?.meta.id ?? fileId))
+						}
+					};
+				}),
+				/** Persist the exact outgoing snapshot and identity before native submission begins. */
+				submit: async (id, send, retry = false) => {
+					const entry = entryOf(id);
+					if (!entry.view.ready) await ensure(id);
+					if (!current(id, entry)) return false;
+					if (entry.view.sending) return false;
+					emit(id, entry, { sending: true });
+					try {
+						if (entry.view.missing.length !== 0) throw new Error("请先移除或重新添加无法恢复的附件");
+						if (entry.state.pending !== null && !retry) throw new Error("上次发送状态未确认，请先核对或明确重试上次发送");
+						const content = entry.state.pending?.content ?? entry.state.content;
+						if (content.files.some((file) => !entry.files.has(file.id))) throw new Error("上次发送的附件无法恢复，请先核对发送状态");
+						const outgoingFiles = content.files.map((file) => entry.files.get(file.id).native);
+						const requestId = entry.state.pending?.requestId ?? crypto.randomUUID();
+						entry.state = {
+							...entry.state,
+							pending: {
+								requestId,
+								content
+							}
+						};
+						entry.generation++;
+						await flush(id);
+						if (!current(id, entry)) return false;
+						const sent = await send(content, outgoingFiles, requestId);
+						if (sent) {
+							entry.state = {
+								...entry.state,
+								content: subtractSubmitted(entry.state.content, content),
+								pending: null
+							};
+							for (const file of content.files) entry.files.delete(file.id);
+						} else entry.state = {
+							...entry.state,
+							pending: null
+						};
+						changed(id, entry);
+						await flush(id);
+						return sent;
+					} catch (error) {
+						fail(id, entry, error);
+						return false;
+					} finally {
+						emit(id, entry, { sending: false });
+					}
+				},
+				reload,
+				/** Check a lost send response without replacing edits made while the check is in flight. */
+				reconcile: async (id) => {
+					await flush(id);
+					const entry = entryOf(id);
+					const before = entry.state;
+					const response = await request({
+						action: "draft-get",
+						topicSessionId: id
+					});
+					if (response.kind !== "draft") throw new Error("草稿响应类型不匹配");
+					if (!current(id, entry)) return;
+					if (response.state.revision === entry.state.revision) return;
+					if (entry.state.revision === before.revision && before.pending !== null && response.state.pending === null && response.state.revision === before.revision + 1) {
+						entry.state = {
+							...entry.state,
+							revision: response.state.revision,
+							content: subtractSubmitted(entry.state.content, before.pending.content),
+							pending: null
+						};
+						changed(id, entry);
+						await flush(id);
+					} else {
+						emit(id, entry, { conflict: true });
+						throw new Error("核对期间草稿已被另一窗口更改；本窗口内容仍保留");
+					}
+				},
+				/** Explicit conflict resolution: restore locally retained bytes removed by a peer, then CAS the latest revision. */
+				keepLocal: async (id) => {
+					const entry = entryOf(id);
+					const response = await request({
+						action: "draft-get",
+						topicSessionId: id
+					});
+					if (response.kind !== "draft") throw new Error("草稿响应类型不匹配");
+					if (!current(id, entry)) return;
+					const retained = new Set([...response.state.content.files, ...response.state.pending?.content.files ?? []].map((file) => file.id));
+					for (const item of entry.files.values()) if (!retained.has(item.meta.id)) item.saved = false;
+					entry.state = {
+						...entry.state,
+						revision: response.state.revision
+					};
+					emit(id, entry, { conflict: false });
+					changed(id, entry);
+					try {
+						await flush(id);
+					} catch (error) {
+						emit(id, entry, { conflict: true });
+						throw error;
+					}
+				},
+				forget: (id) => {
+					const entry = entries.get(id);
+					if (entry === void 0) return;
+					clearTimeout(entry.timer);
+					for (const file of entry.files.values()) native.remove(file.native.id);
+					entries.delete(id);
+					const { [id]: _deleted, ...remaining } = snapshot;
+					snapshot = remaining;
+					for (const listener of listeners) listener();
+				},
+				dispose: async () => {
+					await Promise.allSettled([...entries.keys()].filter((id) => entryOf(id).view.ready).map(flush));
+					disposed = true;
+					for (const entry of entries.values()) clearTimeout(entry.timer);
+					listeners.clear();
+				}
 			};
 		}
 		//#endregion
-		//#region \0dsh-css:src\client\components\MessageAttachments.module.css.mjs
-		const css$15 = ".OSwWHW_attachments{flex-wrap:wrap;align-items:start;gap:8px;min-width:0;margin-bottom:8px;display:flex}.OSwWHW_attachments:empty{display:none}.OSwWHW_file{flex-direction:column;gap:4px;min-width:0;max-width:100%;display:flex}.OSwWHW_download{border:1px solid color-mix(in srgb, currentColor 16%, transparent);background:color-mix(in srgb, currentColor 3%, transparent);max-width:100%;min-height:30px;color:inherit;font:inherit;cursor:pointer;border-radius:8px;align-items:center;gap:7px;padding:4px 9px;font-size:13px;transition:background .12s,border-color .12s;display:inline-flex}.OSwWHW_download svg{color:var(--dsw-alias-link,#3478f6);flex:none}.OSwWHW_download span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.OSwWHW_download:hover{background:color-mix(in srgb, currentColor 8%, transparent);border-color:color-mix(in srgb, currentColor 25%, transparent)}.OSwWHW_download:focus-visible{outline:2px solid var(--dsw-alias-link,#3478f6);outline-offset:2px}.OSwWHW_download:disabled{opacity:.6;cursor:progress}.OSwWHW_error{color:var(--dsw-alias-label-secondary,#687080);overflow-wrap:anywhere;font-size:12px}@media (prefers-reduced-motion:reduce){.OSwWHW_download{transition:none}}";
-		const tagId$15 = "@kirkchinese/dsh-citeciter/MessageAttachments.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$15) + "]") === null) {
+		//#region lib/types/client/components/FileAttachments.js
+		/** Native Conversation-owned file drafts. The owning controller handles upload and lifetime. */
+		function FileAttachments({ files, remove, native, sessionId }) {
+			const uploads = (0, react.useSyncExternalStore)(native.uploads.subscribe, native.uploads.getSnapshot);
+			return (0, react_jsx_runtime.jsx)("div", {
+				className: ReferenceAttachments_module_css_default.rail,
+				children: files.map((item) => (0, react_jsx_runtime.jsxs)("span", {
+					className: ReferenceAttachments_module_css_default.chip,
+					title: item.file.name,
+					children: [
+						item.kind === "image" && (0, react_jsx_runtime.jsx)("img", {
+							src: item.previewUrl,
+							width: "28",
+							height: "28",
+							alt: "",
+							style: {
+								objectFit: "cover",
+								borderRadius: 5
+							}
+						}),
+						(0, react_jsx_runtime.jsx)("span", { children: item.file.name }),
+						uploads[item.id]?.status === "uploading" && (0, react_jsx_runtime.jsx)("small", {
+							role: "status",
+							children: "上传中"
+						}),
+						uploads[item.id]?.status === "error" && (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							title: "上传失败，点击重试",
+							onClick: () => native.retry(sessionId, item.id),
+							children: "重试"
+						}),
+						(0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							"aria-label": `移除附件 ${item.file.name}`,
+							onClick: () => remove(item.id),
+							children: "×"
+						})
+					]
+				}, item.id))
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\FileDropHint.module.css.mjs
+		const css$14 = ".T91mMG_hint{z-index:20;pointer-events:none;border:2px solid var(--dsw-alias-link,#3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 88%, transparent);backdrop-filter:blur(8px);color:var(--dsw-alias-label-primary,#20232a);border-radius:18px;flex-direction:column;justify-content:center;align-items:center;gap:8px;padding:24px;display:flex;position:absolute;inset:8px}.T91mMG_hint span{text-overflow:ellipsis;white-space:nowrap;max-width:100%;color:var(--dsw-alias-label-secondary,#606875);font-size:13px;overflow:hidden}.T91mMG_hint[data-disabled]{border-color:var(--dsw-alias-label-secondary,#606875)}";
+		const tagId$14 = "@kirkchinese/dsh-citeciter/FileDropHint.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$14) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$15;
-			tag.textContent = css$15;
+			tag.dataset.pluginCss = tagId$14;
+			tag.textContent = css$14;
 			document.head.appendChild(tag);
 		}
-		var MessageAttachments_module_css_default = {
-			"attachments": "OSwWHW_attachments",
-			"download": "OSwWHW_download",
-			"error": "OSwWHW_error",
-			"file": "OSwWHW_file"
+		var FileDropHint_module_css_default = { "hint": "T91mMG_hint" };
+		//#endregion
+		//#region lib/types/client/components/FileDropHint.js
+		/** Display the receiving Topic without intercepting the drag's pointer target. */
+		function FileDropHint({ enabled, title }) {
+			return (0, react_jsx_runtime.jsxs)("div", {
+				className: FileDropHint_module_css_default.hint,
+				role: "status",
+				"data-citeciter-file-drop": true,
+				"data-disabled": !enabled || void 0,
+				children: [(0, react_jsx_runtime.jsx)("strong", { children: enabled ? "松开，添加到 Citer" : "先选择一个 Topic" }), enabled && title && (0, react_jsx_runtime.jsx)("span", { children: title })]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/file-drop.js
+		/**
+		* Isolate file drags inside one physical panel from document-level drop owners.
+		* @param open - whether the owning panel is mounted and available.
+		* @param enabled - whether a current Topic can receive attachments.
+		* @param onFiles - receive one dropped batch; never submits a model request.
+		* @returns the local invitation state and handlers to spread on the panel root.
+		* Global cancellation listeners exist only while open and are released on cleanup.
+		*/
+		function useFileDrop(open, enabled, onFiles) {
+			const depth = (0, react.useRef)(0);
+			const [active, setActive] = (0, react.useState)(false);
+			const reset = (0, react.useCallback)(() => {
+				depth.current = 0;
+				setActive(false);
+			}, []);
+			(0, react.useEffect)(() => {
+				if (!open) {
+					reset();
+					return;
+				}
+				window.addEventListener("dragend", reset);
+				window.addEventListener("blur", reset);
+				return () => {
+					window.removeEventListener("dragend", reset);
+					window.removeEventListener("blur", reset);
+				};
+			}, [open, reset]);
+			const claim = (event) => {
+				if (!open || !(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return false;
+				if (!event.dataTransfer.types.includes("Files")) return false;
+				event.preventDefault();
+				event.stopPropagation();
+				return true;
+			};
+			return {
+				active,
+				handlers: {
+					onDragEnter: (event) => {
+						if (!claim(event)) return;
+						depth.current += 1;
+						setActive(true);
+					},
+					onDragOver: (event) => {
+						if (!claim(event)) return;
+						event.dataTransfer.dropEffect = enabled ? "copy" : "none";
+						setActive(true);
+					},
+					onDragLeave: (event) => {
+						if (!claim(event)) return;
+						depth.current = Math.max(0, depth.current - 1);
+						if (depth.current === 0) setActive(false);
+					},
+					onDrop: (event) => {
+						if (!claim(event)) return;
+						reset();
+						if (enabled && event.dataTransfer.files.length > 0) onFiles([...event.dataTransfer.files]);
+					}
+				}
+			};
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\NativeQueue.module.css.mjs
+		const css$13 = ".xjF-DW_queue{border-top:1px solid color-mix(in srgb, currentColor 8%, transparent);flex:none;max-height:140px;padding:6px 10px;font-size:12px;overflow:auto}.xjF-DW_row{align-items:center;gap:6px;min-height:32px;display:flex}.xjF-DW_row>span{opacity:.55;font-size:10px}.xjF-DW_row p{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;margin:0;overflow:hidden}.xjF-DW_row button{color:inherit;cursor:pointer;background:0 0;border:0;border-radius:8px;flex:none;width:28px;height:28px}.xjF-DW_row button:hover{background:color-mix(in srgb, currentColor 9%, transparent)}";
+		const tagId$13 = "@kirkchinese/dsh-citeciter/NativeQueue.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$13) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$13;
+			tag.textContent = css$13;
+			document.head.appendChild(tag);
+		}
+		var NativeQueue_module_css_default = {
+			"queue": "xjF-DW_queue",
+			"row": "xjF-DW_row"
 		};
 		//#endregion
-		//#region lib/types/client/components/MessageFile.js
-		/** Accessible file chip. The download hook owns requests and object URLs. */
-		function MessageFile({ sessionId, attachment, load }) {
-			const { download, busy, error } = useFileDownload(sessionId, attachment.id, attachment.name, load);
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: MessageAttachments_module_css_default.file,
-				children: [(0, react_jsx_runtime.jsxs)("button", {
-					type: "button",
-					className: MessageAttachments_module_css_default.download,
-					onClick: () => {
-						download();
-					},
-					disabled: busy,
-					"aria-busy": busy,
-					"aria-label": `${busy ? "正在读取" : error === void 0 ? "下载" : "重试下载"}附件 ${attachment.name}`,
-					title: attachment.name,
-					children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutline16, { size: 16 }), (0, react_jsx_runtime.jsx)("span", { children: attachment.name })]
-				}), error !== void 0 && (0, react_jsx_runtime.jsxs)("span", {
-					className: MessageAttachments_module_css_default.error,
-					role: "alert",
-					children: ["下载失败，点击重试：", error]
+		//#region lib/types/client/components/NativeQueue.js
+		/** Read and mutate the Host's authoritative inbox. Citer never owns a second queue. */
+		function NativeQueue({ sessionId, native }) {
+			const [snapshot, setSnapshot] = (0, react.useState)();
+			const [error, setError] = (0, react.useState)();
+			(0, react.useEffect)(() => {
+				setSnapshot(void 0);
+				setError(void 0);
+				return native.watch(sessionId, setSnapshot);
+			}, [sessionId, native]);
+			const rows = snapshot?.queue.filter((row) => row.placement !== "context") ?? [];
+			const pending = snapshot?.pendingSubmissions ?? [];
+			const readError = snapshot?.openState === "error" ? snapshot.lastAgentError : null;
+			if (rows.length === 0 && pending.length === 0 && error === void 0 && readError === null) return null;
+			return (0, react_jsx_runtime.jsxs)("section", {
+				className: NativeQueue_module_css_default.queue,
+				"aria-label": "DSH 发送队列",
+				children: [
+					error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
+						role: "alert",
+						children: error
+					}),
+					readError !== null && (0, react_jsx_runtime.jsxs)("p", {
+						role: "alert",
+						children: ["无法读取发送状态，正在重连：", readError]
+					}),
+					pending.map((row) => (0, react_jsx_runtime.jsxs)("div", {
+						className: NativeQueue_module_css_default.row,
+						children: [(0, react_jsx_runtime.jsx)("span", { children: "发送中" }), (0, react_jsx_runtime.jsx)("p", { children: row.text || "附件" })]
+					}, row.requestId)),
+					rows.map((row) => (0, react_jsx_runtime.jsxs)("div", {
+						className: NativeQueue_module_css_default.row,
+						children: [
+							(0, react_jsx_runtime.jsx)("span", {
+								title: row.placement === "steering" ? "将在当前回答的下一步处理" : "当前回答完成后处理",
+								children: row.placement === "steering" ? "插话" : "排队"
+							}),
+							(0, react_jsx_runtime.jsx)("p", {
+								title: row.text || "附件",
+								children: row.text || "附件"
+							}),
+							row.placement === "queued" && (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								title: "现在插话",
+								"aria-label": "将此条排队消息改为插话",
+								onClick: () => {
+									native.queue(sessionId, row.id, { kind: "steer" }).catch((error) => setError(String(error)));
+								},
+								children: "↗"
+							}),
+							(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								title: "移出队列",
+								"aria-label": "移除此条待处理消息",
+								onClick: () => {
+									native.queue(sessionId, row.id, { kind: "remove" }).catch((error) => setError(String(error)));
+								},
+								children: "×"
+							})
+						]
+					}, row.id))
+				]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/QuestionCard.js
+		/** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
+		function QuestionCard({ onAnswer, onCancel, pending }) {
+			const [page, setPage] = (0, react.useState)(0);
+			const [busy, setBusy] = (0, react.useState)(false);
+			const [error, setError] = (0, react.useState)();
+			const run = (action) => {
+				if (busy) return;
+				setBusy(true);
+				setError(void 0);
+				action().catch((error) => {
+					setError(String(error));
+					setBusy(false);
+				});
+			};
+			const [drafts, setDrafts] = (0, react.useState)({});
+			const question = pending.questions[page];
+			const complete = (0, react.useMemo)(() => pending.questions.every((item) => {
+				const draft = drafts[item.id];
+				return draft !== void 0 && (draft.selected.length > 0 || draft.custom.trim() !== "");
+			}), [drafts, pending.questions]);
+			if (question === void 0) return null;
+			const draft = drafts[question.id] ?? {
+				selected: [],
+				custom: ""
+			};
+			const update = (next) => setDrafts((current) => ({
+				...current,
+				[question.id]: next
+			}));
+			const choose = (label) => {
+				if (question.multiSelect === true) {
+					update({
+						...draft,
+						selected: draft.selected.includes(label) ? draft.selected.filter((item) => item !== label) : [...draft.selected, label]
+					});
+					return;
+				}
+				update({
+					selected: [label],
+					custom: ""
+				});
+			};
+			const submit = (event) => {
+				event.preventDefault();
+				if (!complete || busy) return;
+				const answer = { answers: pending.questions.map((item) => {
+					const value = drafts[item.id] ?? {
+						selected: [],
+						custom: ""
+					};
+					const custom = value.custom.trim();
+					return {
+						id: item.id,
+						selected: [...value.selected],
+						...custom === "" ? {} : { custom }
+					};
+				}) };
+				run(() => onAnswer(answer));
+			};
+			return (0, react_jsx_runtime.jsxs)("form", {
+				className: CiteCiter_module_css_default.questionFrame,
+				onSubmit: submit,
+				"aria-label": "CiteCiter 提问",
+				children: [
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: CiteCiter_module_css_default.questionHeader,
+						children: [
+							(0, react_jsx_runtime.jsx)(IconQuestionOutlineMedium, {}),
+							(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("span", { children: question.header ?? "CiteCiter 需要你的回答" }), (0, react_jsx_runtime.jsx)("strong", { children: question.question })] }),
+							(0, react_jsx_runtime.jsxs)("span", { children: [
+								page + 1,
+								"/",
+								pending.questions.length
+							] })
+						]
+					}),
+					question.detail !== void 0 && (0, react_jsx_runtime.jsx)(RichAnswer, {
+						text: question.detail,
+						streaming: false
+					}),
+					error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
+						role: "alert",
+						children: error
+					}),
+					(question.options ?? []).length > 0 && (0, react_jsx_runtime.jsx)("div", {
+						className: CiteCiter_module_css_default.questionOptions,
+						children: question.options?.map((option, index) => {
+							const selected = draft.selected.includes(option.label);
+							return (0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								disabled: busy,
+								"data-selected": selected || void 0,
+								onClick: () => choose(option.label),
+								children: [(0, react_jsx_runtime.jsx)("span", { children: question.multiSelect === true ? selected ? "✓" : "□" : index + 1 }), (0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: option.label }), option.description !== void 0 && (0, react_jsx_runtime.jsx)("small", { children: option.description })] })]
+							}, option.label);
+						})
+					}),
+					(0, react_jsx_runtime.jsx)("textarea", {
+						className: CiteCiter_module_css_default.questionCustom,
+						rows: 2,
+						disabled: busy,
+						value: draft.custom,
+						placeholder: (question.options ?? []).length === 0 ? "输入回答…" : "其他（可填写）",
+						"aria-label": "自定义回答",
+						onChange: (event) => update({
+							selected: question.multiSelect === true ? draft.selected : [],
+							custom: event.currentTarget.value
+						})
+					}),
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: CiteCiter_module_css_default.questionFooter,
+						children: [
+							(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								disabled: busy,
+								onClick: () => run(onCancel),
+								children: "取消"
+							}),
+							(0, react_jsx_runtime.jsx)("span", {}),
+							page > 0 && (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								onClick: () => setPage(page - 1),
+								children: "上一个"
+							}),
+							page + 1 < pending.questions.length ? (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								disabled: draft.selected.length === 0 && draft.custom.trim() === "",
+								onClick: () => setPage(page + 1),
+								children: "下一个"
+							}) : (0, react_jsx_runtime.jsx)("button", {
+								type: "submit",
+								disabled: !complete || busy,
+								children: busy ? "提交中…" : "提交回答"
+							})
+						]
+					})
+				]
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\NativeInteraction.module.css.mjs
+		const css$12 = ".FMY-oa_approval,.FMY-oa_questions{border:1px solid var(--dsw-alias-border-l2,#d9dde5);max-height:min(340px,42vh);color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#fff);border-radius:16px;flex:none;margin:8px 12px 0;font-size:13px;overflow:auto}.FMY-oa_body{overflow-wrap:anywhere;padding:12px}.FMY-oa_body p{white-space:pre-wrap;margin:8px 0}.FMY-oa_body pre{white-space:pre-wrap;font-size:12px}.FMY-oa_body summary{cursor:pointer}.FMY-oa_actions{background:var(--dsw-alias-bg-layer-1,#fff);border-top:1px solid var(--dsw-alias-border-l2,#d9dde5);justify-content:flex-end;gap:8px;padding:8px 12px;display:flex;position:sticky;bottom:0}.FMY-oa_actions button{border:1px solid var(--dsw-alias-border-l2,#d9dde5);min-height:36px;color:inherit;cursor:pointer;font:inherit;background:0 0;border-radius:10px;padding:6px 14px}.FMY-oa_actions button:last-child{color:#fff;background:#3478f6;border-color:#3478f6}.FMY-oa_actions button:disabled{opacity:.5;cursor:default}.FMY-oa_actions button:focus-visible{outline-offset:2px;outline:2px solid #3478f6}";
+		const tagId$12 = "@kirkchinese/dsh-citeciter/NativeInteraction.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$12) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$12;
+			tag.textContent = css$12;
+			document.head.appendChild(tag);
+		}
+		var NativeInteraction_module_css_default = {
+			"actions": "FMY-oa_actions",
+			"approval": "FMY-oa_approval",
+			"body": "FMY-oa_body",
+			"questions": "FMY-oa_questions"
+		};
+		//#endregion
+		//#region lib/types/client/components/NativeInteraction.js
+		/** Present the Host's one-shot pending request. Decisions go to its existing waterfall; no second permission authority is created. Remount on pending.key. */
+		function NativeInteraction({ pending, messages }) {
+			const [busy, setBusy] = (0, react.useState)(false);
+			const [error, setError] = (0, react.useState)();
+			if (pending.kind === "question" || pending.kind === "plan-review") return (0, react_jsx_runtime.jsx)("div", {
+				className: NativeInteraction_module_css_default.questions,
+				children: (0, react_jsx_runtime.jsx)(QuestionCard, {
+					pending,
+					onAnswer: (answer) => pending.answer(answer),
+					onCancel: () => pending.cancel()
+				})
+			});
+			if (pending.kind !== "approval") return (0, react_jsx_runtime.jsx)("p", {
+				role: "status",
+				children: "当前工具正在等待宿主交互。可停止后重试。"
+			});
+			const call = messages.find((message) => message.role === "tool" && message.id === pending.callId);
+			const answer = (decision) => {
+				if (busy) return;
+				setBusy(true);
+				setError(void 0);
+				pending.answer(decision).catch((error) => {
+					setError(String(error));
+					setBusy(false);
+				});
+			};
+			return (0, react_jsx_runtime.jsxs)("section", {
+				className: NativeInteraction_module_css_default.approval,
+				"aria-label": "DSH 工具审批",
+				children: [(0, react_jsx_runtime.jsxs)("div", {
+					className: NativeInteraction_module_css_default.body,
+					children: [
+						(0, react_jsx_runtime.jsxs)("strong", { children: ["等待授权 · ", pending.toolName] }),
+						pending.reason !== void 0 && (0, react_jsx_runtime.jsx)("p", { children: pending.reason }),
+						call?.role === "tool" && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: "查看工具参数" }), (0, react_jsx_runtime.jsx)("pre", { children: call.arguments })] }),
+						error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
+							role: "alert",
+							children: error
+						})
+					]
+				}), (0, react_jsx_runtime.jsxs)("div", {
+					className: NativeInteraction_module_css_default.actions,
+					children: [(0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						disabled: busy,
+						onClick: () => answer("rejected"),
+						children: "拒绝"
+					}), (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						disabled: busy,
+						onClick: () => answer("allowed-once"),
+						children: "仅允许这次"
+					})]
 				})]
 			});
 		}
 		//#endregion
-		//#region lib/types/client/components/MessageAttachments.js
-		function MessageImage({ sessionId, attachment, load }) {
-			const [url, setUrl] = (0, react.useState)();
-			const [error, setError] = (0, react.useState)(false);
-			(0, react.useEffect)(() => {
-				let disposed = false;
-				let owned;
-				setUrl(void 0);
-				setError(false);
-				load(sessionId, attachment.id).then((blob) => {
-					if (disposed) return;
-					owned = URL.createObjectURL(blob);
-					setUrl(owned);
-				}).catch(() => {
-					if (!disposed) setError(true);
-				});
-				return () => {
-					disposed = true;
-					if (owned !== void 0) URL.revokeObjectURL(owned);
-				};
-			}, [
-				sessionId,
-				attachment.id,
-				load
-			]);
-			return error ? (0, react_jsx_runtime.jsxs)("span", { children: ["图片暂不可用：", attachment.name] }) : url === void 0 ? (0, react_jsx_runtime.jsx)("span", { children: "加载图片…" }) : (0, react_jsx_runtime.jsx)("a", {
-				href: url,
-				target: "_blank",
-				rel: "noreferrer",
-				title: "打开图片",
-				children: (0, react_jsx_runtime.jsx)("img", {
-					src: url,
-					alt: attachment.name,
-					style: {
-						display: "block",
-						maxWidth: "100%",
-						maxHeight: 320,
-						objectFit: "contain",
-						borderRadius: 12
-					}
+		//#region lib/types/client/topic-presentation.js
+		/**
+		* Decide whether one Topic event belongs in the user-facing transcript.
+		* @param message - candidate projected Topic event.
+		* @param messages - complete ordered Topic transcript used to detect recovery.
+		* @returns whether the event should remain visible.
+		*/
+		function isTopicMessageVisible(message, messages) {
+			if (message.role === "context") return false;
+			if (message.role === "assistant" && message.text.trim() === "" && (message.reasoning ?? "").trim() === "") return false;
+			if (message.role === "tool") return true;
+			if (message.role !== "error") return true;
+			return !messages.some((candidate) => candidate.role === "assistant" && candidate.seq > message.seq && !candidate.streaming && candidate.text.trim() !== "");
+		}
+		//#endregion
+		//#region \0citeciter-png:src\client\assets\citeciter-mascot.png
+		var citeciter_mascot_default = "data:image/png;base64,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";
+		//#endregion
+		//#region lib/types/client/components/OverlayPortal.js
+		/**
+		* Render plugin-owned floating content outside the shell's stacking context.
+		* The public slot still owns its React lifetime; unmounting removes the portal.
+		* Inline content keeps its original ancestry for the isolated dock adapter.
+		*/
+		function OverlayPortal({ children, inline = false }) {
+			return inline ? children : (0, react_dom.createPortal)(children, document.body);
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\ReasoningDisclosure.module.css.mjs
+		const css$11 = ".BJuG7a_disclosure{min-width:0;color:var(--dsw-alias-label-secondary,#606875);margin-bottom:6px;font-size:12px}.BJuG7a_row,.BJuG7a_activeRow{border-radius:7px;min-width:0;min-height:28px}.BJuG7a_row:focus-visible,.BJuG7a_activeRow:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#3978ef);outline-offset:2px}.BJuG7a_activeRow{color:var(--dsw-alias-brand-primary,#3978ef)}.BJuG7a_preview{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--dsw-alias-label-tertiary,#78808e);margin-left:6px;overflow:hidden}.BJuG7a_body{border-left:1px solid var(--dsw-alias-border-l1,#e4e7ec);overflow-wrap:anywhere;min-width:0;margin:4px 0 10px 7px;padding:4px 0 4px 14px;line-height:1.65}.BJuG7a_body pre{max-width:100%;overflow-x:auto}";
+		const tagId$11 = "@kirkchinese/dsh-citeciter/ReasoningDisclosure.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$11) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$11;
+			tag.textContent = css$11;
+			document.head.appendChild(tag);
+		}
+		var ReasoningDisclosure_module_css_default = {
+			"activeRow": "BJuG7a_activeRow",
+			"body": "BJuG7a_body",
+			"disclosure": "BJuG7a_disclosure",
+			"preview": "BJuG7a_preview",
+			"row": "BJuG7a_row"
+		};
+		//#endregion
+		//#region lib/types/client/components/ReasoningDisclosure.js
+		/** Display only reasoning actually returned by the model. Expansion is local UI state; no model call or Session mutation occurs. */
+		function ReasoningDisclosure({ text, active }) {
+			const [open, setOpen] = (0, react.useState)(false);
+			const preview = (0, react.useMemo)(() => text.replaceAll(/\s+/gu, " ").trim().slice(0, 180), [text]);
+			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DisclosureRow, {
+				className: ReasoningDisclosure_module_css_default.disclosure,
+				rowClassName: active ? ReasoningDisclosure_module_css_default.activeRow : ReasoningDisclosure_module_css_default.row,
+				icon: (0, react_jsx_runtime.jsx)(IconThinkOutlineMedium, {}),
+				title: active ? "思考中" : "思考",
+				open,
+				expandable: true,
+				expandOnRowClick: true,
+				onToggle: () => setOpen((value) => !value),
+				collapsedContent: (0, react_jsx_runtime.jsxs)("span", {
+					className: ReasoningDisclosure_module_css_default.preview,
+					children: ["· ", preview]
+				}),
+				children: (0, react_jsx_runtime.jsx)("div", {
+					className: ReasoningDisclosure_module_css_default.body,
+					children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MarkdownText, {
+						text,
+						streaming: active,
+						labels: markdownLabels
+					})
 				})
 			});
 		}
-		/** Render durable native attachments with a session-authorized loader and owned object URLs. */
-		function MessageAttachments({ sessionId, attachments, load }) {
-			return (0, react_jsx_runtime.jsx)("div", {
-				className: MessageAttachments_module_css_default.attachments,
-				children: attachments.map((item) => item.kind === "image" ? (0, react_jsx_runtime.jsx)(MessageImage, {
-					sessionId,
-					attachment: item,
-					load
-				}, item.id) : (0, react_jsx_runtime.jsx)(MessageFile, {
-					sessionId,
-					attachment: item,
-					load
-				}, item.id))
+		//#endregion
+		//#region lib/types/client/panel-drag.js
+		/** Pointer lifecycle survives reparenting between the host slot and the floating portal. */
+		function usePanelDrag(panel, floating, setPresentation) {
+			const [position, setPosition] = (0, react.useState)(null);
+			const [dockTarget, setDockTarget] = (0, react.useState)(false);
+			const cleanup = (0, react.useRef)(null);
+			(0, react.useEffect)(() => () => cleanup.current?.(), []);
+			(0, react.useEffect)(() => {
+				const fit = () => {
+					const box = panel.current?.getBoundingClientRect();
+					if (box === void 0) return;
+					setPosition((current) => current === null ? null : {
+						left: Math.max(8, Math.min(current.left, window.innerWidth - box.width - 8)),
+						top: Math.max(40, Math.min(current.top, window.innerHeight - box.height - 8))
+					});
+				};
+				window.addEventListener("resize", fit);
+				return () => window.removeEventListener("resize", fit);
+			}, [panel]);
+			const start = (event) => {
+				if (event.button !== 0 || event.target.closest("button,input,textarea,select,[data-topic-title]")) return;
+				const rect = panel.current?.getBoundingClientRect();
+				if (rect === void 0) return;
+				const origin = {
+					x: event.clientX,
+					y: event.clientY,
+					left: rect.left,
+					top: rect.top
+				};
+				let moved = false;
+				const move = (next) => {
+					if (next.pointerId !== event.pointerId) return;
+					if (!moved && Math.hypot(next.clientX - origin.x, next.clientY - origin.y) < 8) return;
+					if (!moved) {
+						moved = true;
+						if (!floating) setPresentation("floating");
+					}
+					const box = panel.current?.getBoundingClientRect() ?? rect;
+					setPosition({
+						left: Math.max(8, Math.min(origin.left + next.clientX - origin.x, window.innerWidth - box.width - 8)),
+						top: Math.max(40, Math.min(origin.top + next.clientY - origin.y, window.innerHeight - box.height - 8))
+					});
+					setDockTarget(next.clientX > window.innerWidth - 80);
+					next.preventDefault();
+				};
+				const release = () => {
+					document.removeEventListener("pointermove", move);
+					document.removeEventListener("pointerup", end);
+					document.removeEventListener("pointercancel", cancel);
+					window.removeEventListener("blur", cancel);
+					setDockTarget(false);
+					cleanup.current = null;
+				};
+				const end = (next) => {
+					if (next.pointerId !== event.pointerId) return;
+					if (moved && next.clientX > window.innerWidth - 80) {
+						setPresentation("side");
+						setPosition(null);
+					}
+					release();
+				};
+				const cancel = () => release();
+				cleanup.current?.();
+				cleanup.current = release;
+				document.addEventListener("pointermove", move, { passive: false });
+				document.addEventListener("pointerup", end);
+				document.addEventListener("pointercancel", cancel);
+				window.addEventListener("blur", cancel);
+			};
+			return {
+				position,
+				dockTarget,
+				start
+			};
+		}
+		//#endregion
+		//#region lib/types/client/learning-route.js
+		/** Read the last accepted plan; malformed historical tool arguments do not replace a valid plan. */
+		function learningTodos(messages) {
+			let result = [];
+			for (const message of messages) {
+				if (message.role !== "tool" || message.name !== "todo_write" || message.running || message.isError) continue;
+				try {
+					const input = JSON.parse(message.arguments);
+					if (typeof input !== "object" || input === null || !("todos" in input) || !Array.isArray(input.todos)) continue;
+					const values = input.todos;
+					if (values.every((value) => typeof value === "object" && value !== null && "content" in value && typeof value.content === "string" && "status" in value && [
+						"pending",
+						"in_progress",
+						"completed"
+					].includes(String(value.status)))) result = values;
+				} catch {}
+			}
+			return result;
+		}
+		/** One user-submitted learning request. Planning continues inside its ordinary Agent turn. */
+		function withLearningRoute(question, enabled) {
+			return !enabled ? question : `${question}\n\n【学习路线已开启】请根据问题自动决定讲解方式与阶段，使用宿主 todo_write 建立和更新学习计划。可选择底层逻辑、定性分析、定量分析（板书）、概念关联和总结学习卡片；只保留有助于当前问题的步骤，不机械补齐。上文明确的范围、篇幅、工具限制和卡片数量优先；开启路线不扩大任务，一张卡片就是一张，不按阶段增发。计划由你维护，完成后更新状态，不要要求用户逐个点击阶段。不额外启动模型请求。生成学习卡前先核对与纠错，标明未核实内容。`;
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\LearningRoute.module.css.mjs
+		const css$10 = ".tFIfVW_route{flex:none;margin:0 12px;font-size:12px}.tFIfVW_route label{opacity:.8;cursor:pointer;align-items:center;gap:6px;padding:6px 0;display:inline-flex}.tFIfVW_route input{accent-color:#4e86ef}.tFIfVW_route details{background:color-mix(in srgb, currentColor 4%, transparent);border-radius:12px;padding:8px 10px}.tFIfVW_route summary{cursor:pointer;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.tFIfVW_route ol{margin:8px 0 0;padding:0;list-style:none}.tFIfVW_route li{gap:8px;padding:5px 0;display:flex}.tFIfVW_route li[data-state=completed]{opacity:.5}.tFIfVW_route li[data-state=in_progress]{color:var(--dsw-alias-brand-primary,#3478f6)}";
+		const tagId$10 = "@kirkchinese/dsh-citeciter/LearningRoute.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$10) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$10;
+			tag.textContent = css$10;
+			document.head.appendChild(tag);
+		}
+		var LearningRoute_module_css_default = { "route": "tFIfVW_route" };
+		//#endregion
+		//#region lib/types/client/components/LearningRoute.js
+		/** Optional native todo projection. The user toggles planning; the model owns plan contents. */
+		function LearningRoute({ enabled, messages, onChange }) {
+			const todos = learningTodos(messages);
+			return (0, react_jsx_runtime.jsxs)("div", {
+				className: LearningRoute_module_css_default.route,
+				children: [(0, react_jsx_runtime.jsxs)("label", { children: [(0, react_jsx_runtime.jsx)("input", {
+					type: "checkbox",
+					checked: enabled,
+					onChange: (event) => onChange(event.currentTarget.checked)
+				}), "学习路线"] }), enabled && todos.length > 0 && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsxs)("summary", { children: [
+					todos.filter((item) => item.status === "completed").length,
+					" / ",
+					todos.length,
+					" · ",
+					todos.find((item) => item.status === "in_progress")?.content ?? "学习计划"
+				] }), (0, react_jsx_runtime.jsx)("ol", { children: todos.map((item, index) => (0, react_jsx_runtime.jsxs)("li", {
+					"data-state": item.status,
+					children: [(0, react_jsx_runtime.jsx)("span", {
+						"aria-hidden": "true",
+						children: item.status === "completed" ? "✓" : item.status === "in_progress" ? "◉" : "○"
+					}), item.content]
+				}, index)) })] })]
 			});
+		}
+		//#endregion
+		//#region lib/types/client/components/LearningExample.js
+		/** Render the explicit example kind; even HTML/SVG source stays literal code. */
+		function LearningExample({ example }) {
+			return example.kind === "code" ? (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.CodeBlock, {
+				code: example.content,
+				lang: example.language,
+				streaming: false,
+				...markdownLabels.code
+			}) : (0, react_jsx_runtime.jsx)(RichAnswer, {
+				text: example.content,
+				streaming: false
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\LearningWorkspace.module.css.mjs
+		const css$9 = "._7nVXHW_route{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;padding:12px 16px 10px}._7nVXHW_routeTop,._7nVXHW_cardsHeader,._7nVXHW_cardActions{flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;display:flex}._7nVXHW_eyebrow,._7nVXHW_cardEyebrow{letter-spacing:.08em;color:var(--dsw-alias-label-tertiary,#778178);font-size:12px;font-weight:600}._7nVXHW_stages{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:9px;display:grid}._7nVXHW_stages button{cursor:pointer;color:var(--dsw-alias-label-secondary,#64706a);font:inherit;background:0 0;border:1px solid #0000;border-radius:9px;place-items:center;gap:5px;padding:8px 2px;font-size:12px;display:grid}._7nVXHW_stages button span{opacity:.65;font-size:12px}._7nVXHW_stages button[aria-pressed=true]{color:var(--dsw-alias-label-primary,#234d3d);background:#5baf8b1c;border-color:#3c876a47;font-weight:600}._7nVXHW_hint{color:var(--dsw-alias-label-tertiary,#7c827f);margin:8px 0 0;font-size:12px;line-height:1.6}._7nVXHW_views{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;gap:5px;padding:8px 14px 0;display:flex}._7nVXHW_views button{cursor:pointer;font:inherit;color:var(--dsw-alias-label-secondary,#64706a);background:0 0;border:0;border-bottom:2px solid #0000;align-items:center;gap:7px;padding:9px 12px;font-size:12px;display:flex}._7nVXHW_views button[aria-pressed=true]{color:var(--dsw-alias-label-primary,#234d3d);border-bottom-color:#4c9777;font-weight:600}._7nVXHW_count{background:#768d801f;border-radius:5px;padding:1px 5px;font-size:12px}._7nVXHW_content{flex:1;min-height:0;display:flex;overflow:auto}._7nVXHW_content>*{flex:1;min-width:0}._7nVXHW_cards{color:var(--dsw-alias-label-primary,#29372f);background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 97%, #b7c6a5);padding:20px clamp(14px,4%,26px)}._7nVXHW_cards h2{margin:4px 0 0;font-size:18px;font-weight:600}._7nVXHW_recallToggle{cursor:pointer;align-items:center;gap:6px;font-size:12px;display:flex}._7nVXHW_recallToggle input{accent-color:#447e63}._7nVXHW_muted{color:var(--dsw-alias-label-tertiary,#7c827f);font-size:12px;line-height:1.8}._7nVXHW_card{border:1px solid var(--dsw-alias-border-l1,#dfe6dc);background:var(--dsw-alias-bg-base,#fff);overflow-wrap:anywhere;border-radius:14px;margin:18px 0;padding:20px;font-size:13px;line-height:1.8;box-shadow:0 3px 12px #00000006}._7nVXHW_card h3{margin:8px 0 16px;font-size:17px;line-height:1.5}._7nVXHW_example{border-left:2px solid #91b89e;margin-top:16px;padding-left:12px}._7nVXHW_example strong,._7nVXHW_recallQuestion strong,._7nVXHW_reference strong{color:var(--dsw-alias-label-tertiary,#7c827f);font-size:12px;font-weight:500}._7nVXHW_reference{border-top:1px dashed var(--dsw-alias-border-l1,#dfe6dc);margin-top:16px;padding-top:12px}._7nVXHW_action{font:inherit;color:var(--dsw-alias-label-primary,#325841);border:1px solid var(--dsw-alias-border-l1,#dfe6dc);background:var(--dsw-alias-bg-base,#fff);cursor:pointer;border-radius:8px;padding:7px 11px;font-size:12px;text-decoration:none;display:inline-flex}._7nVXHW_action:hover,._7nVXHW_stages button:hover,._7nVXHW_views button:hover{background:#709b831a}._7nVXHW_empty{text-align:center;border:1px dashed var(--dsw-alias-border-l1,#dfe6dc);border-radius:14px;margin-top:20px;padding:24px 12px}._7nVXHW_empty p{max-width:34em;color:var(--dsw-alias-label-secondary,#69776e);margin:10px auto 18px;font-size:12px;line-height:1.8}._7nVXHW_empty h3{font-size:15px;font-weight:500}._7nVXHW_emptyGlyph{color:#7d9f88;font-size:32px}._7nVXHW_provenance{color:var(--dsw-alias-label-secondary,#69776e);overflow-wrap:anywhere;margin-top:18px;font-size:12px}._7nVXHW_provenance summary{cursor:pointer}._7nVXHW_source summary{cursor:pointer;color:var(--dsw-alias-label-secondary,#69776e);white-space:nowrap;text-overflow:ellipsis;font-size:12px;overflow:hidden}._7nVXHW_source blockquote{margin-top:8px}._7nVXHW_questionDetails>summary{cursor:pointer;opacity:.65;font-size:12px}._7nVXHW_questionDetails p{white-space:pre-wrap;font-size:12px}";
+		const tagId$9 = "@kirkchinese/dsh-citeciter/LearningWorkspace.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$9) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$9;
+			tag.textContent = css$9;
+			document.head.appendChild(tag);
+		}
+		var LearningWorkspace_module_css_default = {
+			"action": "_7nVXHW_action",
+			"card": "_7nVXHW_card",
+			"cardActions": "_7nVXHW_cardActions",
+			"cardEyebrow": "_7nVXHW_cardEyebrow",
+			"cards": "_7nVXHW_cards",
+			"cardsHeader": "_7nVXHW_cardsHeader",
+			"content": "_7nVXHW_content",
+			"count": "_7nVXHW_count",
+			"empty": "_7nVXHW_empty",
+			"emptyGlyph": "_7nVXHW_emptyGlyph",
+			"example": "_7nVXHW_example",
+			"eyebrow": "_7nVXHW_eyebrow",
+			"hint": "_7nVXHW_hint",
+			"muted": "_7nVXHW_muted",
+			"provenance": "_7nVXHW_provenance",
+			"questionDetails": "_7nVXHW_questionDetails",
+			"recallQuestion": "_7nVXHW_recallQuestion",
+			"recallToggle": "_7nVXHW_recallToggle",
+			"reference": "_7nVXHW_reference",
+			"route": "_7nVXHW_route",
+			"routeTop": "_7nVXHW_routeTop",
+			"source": "_7nVXHW_source",
+			"stages": "_7nVXHW_stages",
+			"views": "_7nVXHW_views"
+		};
+		//#endregion
+		//#region lib/types/client/components/LearningCards.js
+		function Card({ card, recall, index }) {
+			const [revealed, setRevealed] = (0, react.useState)(false);
+			const showAnswer = !recall || revealed;
+			return (0, react_jsx_runtime.jsxs)("article", {
+				className: LearningWorkspace_module_css_default.card,
+				children: [
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: LearningWorkspace_module_css_default.cardEyebrow,
+						children: ["学习卡片 · ", String(index + 1).padStart(2, "0")]
+					}),
+					(0, react_jsx_runtime.jsx)("h3", { children: card.title }),
+					recall && (0, react_jsx_runtime.jsxs)("div", {
+						className: LearningWorkspace_module_css_default.recallQuestion,
+						children: [(0, react_jsx_runtime.jsx)("strong", { children: "先试着用自己的话回答" }), (0, react_jsx_runtime.jsx)(RichAnswer, {
+							text: card.question,
+							streaming: false
+						})]
+					}),
+					showAnswer ? (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+						(0, react_jsx_runtime.jsx)(RichAnswer, {
+							text: card.summary,
+							streaming: false
+						}),
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: LearningWorkspace_module_css_default.example,
+							children: [(0, react_jsx_runtime.jsx)("strong", { children: "用一个例子记住" }), (0, react_jsx_runtime.jsx)(LearningExample, { example: card.example })]
+						}),
+						recall && (0, react_jsx_runtime.jsxs)("div", {
+							className: LearningWorkspace_module_css_default.reference,
+							children: [(0, react_jsx_runtime.jsx)("strong", { children: "参考答案" }), (0, react_jsx_runtime.jsx)(RichAnswer, {
+								text: card.answer,
+								streaming: false
+							})]
+						})
+					] }) : (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						className: LearningWorkspace_module_css_default.action,
+						onClick: () => setRevealed(true),
+						children: "展开结论与参考答案"
+					})
+				]
+			});
+		}
+		/** Read the latest durable Topic card set. Recall affects display only and never schedules work. */
+		function LearningCards({ projection, recall, setRecall, disabled, topicTitle, topicId, source, onRevise }) {
+			const markdown = learningCardsMarkdown(projection.cards, topicTitle, topicId, source);
+			return (0, react_jsx_runtime.jsxs)("section", {
+				className: LearningWorkspace_module_css_default.cards,
+				"aria-label": "学习卡片",
+				children: [
+					(0, react_jsx_runtime.jsxs)("header", {
+						className: LearningWorkspace_module_css_default.cardsHeader,
+						children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("span", {
+							className: LearningWorkspace_module_css_default.eyebrow,
+							children: "留下一份理解"
+						}), (0, react_jsx_runtime.jsx)("h2", { children: "总结学习卡片" })] }), (0, react_jsx_runtime.jsxs)("label", {
+							className: LearningWorkspace_module_css_default.recallToggle,
+							children: [(0, react_jsx_runtime.jsx)("input", {
+								type: "checkbox",
+								checked: recall,
+								disabled,
+								onChange: (event) => setRecall(event.currentTarget.checked)
+							}), "主动回忆"]
+						})]
+					}),
+					(0, react_jsx_runtime.jsx)("p", {
+						className: LearningWorkspace_module_css_default.muted,
+						children: recall ? "先自己回答，再展开参考内容。随时可以关闭。" : "直接阅读结论与例子。想自测时，再开启主动回忆。"
+					}),
+					projection.invalid > 0 && (0, react_jsx_runtime.jsxs)("p", {
+						role: "status",
+						children: [
+							"有 ",
+							projection.invalid,
+							" 条卡片记录无法读取，已保留最近可用的一组。"
+						]
+					}),
+					projection.cards.length === 0 ? (0, react_jsx_runtime.jsxs)("div", {
+						className: LearningWorkspace_module_css_default.empty,
+						children: [
+							(0, react_jsx_runtime.jsx)("span", {
+								className: LearningWorkspace_module_css_default.emptyGlyph,
+								"aria-hidden": "true",
+								children: "▤"
+							}),
+							(0, react_jsx_runtime.jsx)("h3", { children: "让理解留下来" }),
+							(0, react_jsx_runtime.jsx)("p", { children: "在输入框请求总结学习卡片并发送。模型会先核对结论，再整理卡片。" }),
+							(0, react_jsx_runtime.jsx)("button", {
+								className: LearningWorkspace_module_css_default.action,
+								type: "button",
+								onClick: onRevise,
+								children: "准备总结"
+							})
+						]
+					}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+						projection.cards.map((card, index) => (0, react_jsx_runtime.jsx)(Card, {
+							card,
+							index,
+							recall
+						}, `${projection.messageId}:${index}:${recall}`)),
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: LearningWorkspace_module_css_default.cardActions,
+							children: [(0, react_jsx_runtime.jsx)("a", {
+								className: LearningWorkspace_module_css_default.action,
+								href: `data:text/markdown;charset=utf-8,${encodeURIComponent(markdown)}`,
+								download: "CiteCiter-learning-cards.md",
+								children: "导出 Markdown"
+							}), (0, react_jsx_runtime.jsx)("button", {
+								className: LearningWorkspace_module_css_default.action,
+								type: "button",
+								onClick: onRevise,
+								children: "补充或修订"
+							})]
+						}),
+						(0, react_jsx_runtime.jsxs)("details", {
+							className: LearningWorkspace_module_css_default.provenance,
+							children: [
+								(0, react_jsx_runtime.jsxs)("summary", { children: ["来自当前 Topic · ", topicTitle] }),
+								(0, react_jsx_runtime.jsx)("p", { children: source }),
+								(0, react_jsx_runtime.jsx)("small", { children: topicId })
+							]
+						}),
+						(0, react_jsx_runtime.jsx)("p", {
+							className: LearningWorkspace_module_css_default.muted,
+							children: "已随 Topic 保存。修订时发送你的要求，生成后展示新的完整一组。"
+						})
+					] })
+				]
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\ChoicePopover.module.css.mjs
+		const css$8 = ".RioYQG_menu{z-index:2147483000;box-sizing:border-box;overscroll-behavior:contain;border:1px solid color-mix(in srgb, var(--dsw-alias-label-primary,#253040) 13%, transparent);width:min(310px,100vw - 16px);color:var(--dsw-alias-label-primary,#253040);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 94%, transparent);backdrop-filter:blur(28px)saturate(140%);border-radius:18px;padding:7px;font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;animation:.13s ease-out RioYQG_appear;position:fixed;overflow:auto;box-shadow:0 12px 40px #0002,inset 0 1px #ffffff70}.RioYQG_menu button{width:100%;color:inherit;text-align:left;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:11px;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;display:flex}.RioYQG_menu button:hover,.RioYQG_menu button:focus-visible{background:color-mix(in srgb, currentColor 7%, transparent);outline:none}.RioYQG_menu button[aria-checked=true]{background:#588bf721}.RioYQG_menu button:disabled{opacity:.45;cursor:default}.RioYQG_menu small{opacity:.6;padding:10px 12px 4px;display:block}.RioYQG_menu button span:last-child{text-overflow:ellipsis;white-space:nowrap;opacity:.68;overflow:hidden}.RioYQG_menu button>span:first-child:not(:last-child){white-space:nowrap;flex-shrink:0}@keyframes RioYQG_appear{0%{opacity:0;transform:translateY(4px)scale(.98)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.RioYQG_menu{animation:none}}";
+		const tagId$8 = "@kirkchinese/dsh-citeciter/ChoicePopover.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$8) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$8;
+			tag.textContent = css$8;
+			document.head.appendChild(tag);
+		}
+		var ChoicePopover_module_css_default = {
+			"appear": "RioYQG_appear",
+			"menu": "RioYQG_menu"
+		};
+		//#endregion
+		//#region lib/types/client/components/ChoicePopover.js
+		/** Anchored menu surface. Owns positioning, focus and dismissal, not selection state. */
+		function ChoicePopover({ anchor, label, onClose, children }) {
+			const surface = (0, react.useRef)(null);
+			const close = (0, react.useRef)(onClose);
+			close.current = onClose;
+			const [position, setPosition] = (0, react.useState)({
+				left: 8,
+				top: 8,
+				maxHeight: 400
+			});
+			(0, react.useLayoutEffect)(() => {
+				const place = () => {
+					const button = anchor.current?.getBoundingClientRect();
+					const menu = surface.current;
+					if (button === void 0 || menu === null) return;
+					const available = Math.max(0, window.innerHeight - 16);
+					const maxHeight = Math.min(available, 420);
+					const height = Math.min(menu.scrollHeight + menu.offsetHeight - menu.clientHeight, maxHeight);
+					const top = button.top >= height + 16 ? button.top - height - 8 : Math.min(button.bottom + 8, window.innerHeight - height - 8);
+					setPosition({
+						left: Math.max(8, Math.min(button.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8)),
+						top: Math.max(8, top),
+						maxHeight
+					});
+				};
+				place();
+				const observer = new ResizeObserver(place);
+				if (surface.current !== null) observer.observe(surface.current);
+				window.addEventListener("resize", place);
+				return () => {
+					observer.disconnect();
+					window.removeEventListener("resize", place);
+				};
+			}, [anchor, children]);
+			(0, react.useLayoutEffect)(() => {
+				const menu = surface.current;
+				if (menu !== null && !menu.contains(document.activeElement)) menu.querySelector("[role^=\"menuitem\"]:not([disabled])")?.focus();
+			}, [children]);
+			(0, react.useEffect)(() => {
+				const dismiss = (event) => {
+					if (event.target instanceof Node && !surface.current?.contains(event.target) && !anchor.current?.contains(event.target)) close.current();
+				};
+				document.addEventListener("pointerdown", dismiss, true);
+				return () => document.removeEventListener("pointerdown", dismiss, true);
+			}, [anchor]);
+			return (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
+				ref: surface,
+				className: ChoicePopover_module_css_default.menu,
+				role: "menu",
+				"aria-label": label,
+				style: position,
+				onKeyDown: (event) => {
+					if (event.key === "Escape") {
+						event.preventDefault();
+						event.stopPropagation();
+						onClose();
+						anchor.current?.focus();
+						return;
+					}
+					if (event.key === "Tab") {
+						onClose();
+						return;
+					}
+					if (![
+						"ArrowDown",
+						"ArrowUp",
+						"Home",
+						"End"
+					].includes(event.key)) return;
+					event.preventDefault();
+					const items = [...event.currentTarget.querySelectorAll("[role^=\"menuitem\"]:not([disabled])")];
+					const index = items.indexOf(document.activeElement);
+					items[event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
+				},
+				children
+			}) });
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\TopicModelControls.module.css.mjs
+		const css$7 = ".hfJzda_controls{flex:1 1 0;min-width:0;margin-left:auto}.hfJzda_controls>.hfJzda_trigger{width:100%;min-width:0;max-width:none}.hfJzda_controls>.hfJzda_trigger>span:first-child{text-align:right;flex:1;min-width:0}.hfJzda_trigger{max-width:240px;color:inherit;cursor:pointer;font:inherit;background:0 0;border:0;border-radius:11px;align-items:center;gap:7px;padding:7px 10px;transition:background .13s;display:flex}.hfJzda_trigger>span:first-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.hfJzda_trigger small{opacity:.55}.hfJzda_trigger:hover,.hfJzda_trigger[aria-expanded=true]{background:color-mix(in srgb, currentColor 7%, transparent)}.hfJzda_trigger:focus-visible{outline-offset:2px;outline:2px solid #6898f2}.hfJzda_trigger[aria-disabled=true]{opacity:.5;cursor:wait}@media (prefers-reduced-motion:reduce){.hfJzda_trigger{transition:none}}";
+		const tagId$7 = "@kirkchinese/dsh-citeciter/TopicModelControls.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$7) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$7;
+			tag.textContent = css$7;
+			document.head.appendChild(tag);
+		}
+		var TopicModelControls_module_css_default = {
+			"controls": "hfJzda_controls",
+			"trigger": "hfJzda_trigger"
+		};
+		//#endregion
+		//#region lib/types/client/components/TopicModelControls.js
+		/** Model and reasoning hierarchy. Route changes are committed by the injected controller. */
+		function TopicModelControls({ providers, route, saving, onModel, onReasoning }) {
+			const [page, setPage] = (0, react.useState)("closed");
+			const anchor = (0, react.useRef)(null);
+			const close = (0, react.useCallback)(() => setPage("closed"), []);
+			const model = providers.find((provider) => provider.id === route.provider)?.models.find((model) => model.id === route.model);
+			const name = model?.name ?? route.model;
+			const effort = model?.reasoningEfforts.find((item) => item.id === route.reasoningEffort)?.name ?? "默认";
+			const finish = (action) => {
+				action();
+				close();
+				anchor.current?.focus();
+			};
+			return (0, react_jsx_runtime.jsxs)("div", {
+				className: TopicModelControls_module_css_default.controls,
+				children: [(0, react_jsx_runtime.jsxs)("button", {
+					ref: anchor,
+					type: "button",
+					className: TopicModelControls_module_css_default.trigger,
+					"aria-disabled": saving,
+					"aria-busy": saving,
+					"aria-label": `模型与思考强度：${name}，${effort}`,
+					"aria-haspopup": "menu",
+					"aria-expanded": page !== "closed",
+					onClick: () => {
+						if (!saving) setPage(page === "closed" ? "root" : "closed");
+					},
+					children: [
+						(0, react_jsx_runtime.jsx)("span", { children: name }),
+						(0, react_jsx_runtime.jsx)("small", { children: effort }),
+						(0, react_jsx_runtime.jsx)("span", {
+							"aria-hidden": "true",
+							children: "⌄"
+						})
+					]
+				}), page !== "closed" && (0, react_jsx_runtime.jsx)(ChoicePopover, {
+					anchor,
+					label: "模型与思考强度",
+					onClose: close,
+					children: page === "root" ? (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsxs)("button", {
+						type: "button",
+						role: "menuitem",
+						onClick: () => setPage("model"),
+						children: [(0, react_jsx_runtime.jsx)("span", { children: "模型" }), (0, react_jsx_runtime.jsxs)("span", { children: [name, " ›"] })]
+					}), (0, react_jsx_runtime.jsxs)("button", {
+						type: "button",
+						role: "menuitem",
+						disabled: !model?.reasoningEfforts.length,
+						onClick: () => setPage("effort"),
+						children: [(0, react_jsx_runtime.jsx)("span", { children: "思考强度" }), (0, react_jsx_runtime.jsxs)("span", { children: [effort, " ›"] })]
+					})] }) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						role: "menuitem",
+						onClick: () => setPage("root"),
+						children: (0, react_jsx_runtime.jsxs)("span", { children: ["‹ ", page === "model" ? "模型" : "思考强度"] })
+					}), page === "model" ? providers.map((provider) => (0, react_jsx_runtime.jsxs)("div", {
+						role: "group",
+						"aria-label": provider.name,
+						children: [(0, react_jsx_runtime.jsx)("small", { children: provider.name }), provider.models.map((item) => (0, react_jsx_runtime.jsxs)("button", {
+							type: "button",
+							role: "menuitemradio",
+							"aria-checked": provider.id === route.provider && item.id === route.model,
+							onClick: () => finish(() => onModel(provider.id, item.id)),
+							children: [(0, react_jsx_runtime.jsx)("span", { children: item.name }), provider.id === route.provider && item.id === route.model && (0, react_jsx_runtime.jsx)("span", {
+								"aria-hidden": "true",
+								children: "✓"
+							})]
+						}, item.id))]
+					}, provider.id)) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						role: "menuitemradio",
+						"aria-checked": route.reasoningEffort === void 0,
+						onClick: () => finish(() => onReasoning(null)),
+						children: "模型默认"
+					}), model?.reasoningEfforts.map((item) => (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						role: "menuitemradio",
+						"aria-checked": item.id === route.reasoningEffort,
+						onClick: () => finish(() => onReasoning(item.id)),
+						children: item.name
+					}, item.id))] })] })
+				})]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/PermissionControl.js
+		const choices = [
+			[
+				"read-only",
+				"只读",
+				"分析与回答；不修改工作区"
+			],
+			[
+				"workspace-write",
+				"工作区内修改",
+				"按 DSH 权限修改当前项目"
+			],
+			[
+				"danger-full-access",
+				"完全权限",
+				"按 DSH 完全权限运行工具"
+			]
+		];
+		/** Explicit permission selection; receives the Host's effective value. */
+		function PermissionControl({ value, onChange }) {
+			const anchor = (0, react.useRef)(null);
+			const [open, setOpen] = (0, react.useState)(false);
+			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsxs)("button", {
+				ref: anchor,
+				type: "button",
+				className: TopicModelControls_module_css_default.trigger,
+				"aria-label": `权限：${choices.find((row) => row[0] === value)?.[1]}`,
+				title: "DSH 权限",
+				"aria-expanded": open,
+				onClick: () => setOpen(!open),
+				children: [(0, react_jsx_runtime.jsxs)("svg", {
+					width: "18",
+					height: "18",
+					viewBox: "0 0 24 24",
+					fill: "none",
+					"aria-hidden": "true",
+					children: [(0, react_jsx_runtime.jsx)("path", {
+						d: "m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z",
+						stroke: "currentColor",
+						strokeWidth: "1.6"
+					}), (0, react_jsx_runtime.jsx)("path", {
+						d: "m8 12 3 3 5-6",
+						stroke: "currentColor",
+						strokeWidth: "1.6"
+					})]
+				}), (0, react_jsx_runtime.jsx)("span", { children: choices.find((row) => row[0] === value)?.[1] })]
+			}), open && (0, react_jsx_runtime.jsx)(ChoicePopover, {
+				anchor,
+				onClose: () => setOpen(false),
+				label: "DSH 权限",
+				children: choices.map(([mode, label, description]) => (0, react_jsx_runtime.jsxs)("button", {
+					type: "button",
+					role: "menuitemradio",
+					"aria-checked": value === mode,
+					title: description,
+					onClick: () => {
+						onChange(mode);
+						setOpen(false);
+					},
+					children: [label, value === mode ? " ✓" : ""]
+				}, mode))
+			})] });
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\TopicComposer.module.css.mjs
+		const css$6 = ".Y-57pa_composer{color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border:1px solid var(--dsw-alias-border-l2-darkmode-thin,var(--dsw-alias-border-l2,#d9dde5));box-shadow:var(--dsw-shadow-lv2,0 5px 18px #1d222f14);border-radius:22px;flex:none;margin:8px 12px 12px;padding:12px 8px 6px}.Y-57pa_composer textarea{box-sizing:border-box;resize:none;width:100%;min-width:0;min-height:50px;max-height:150px;color:inherit;font:inherit;background:0 0;border:0;outline:none;padding:4px 12px 0;font-size:14px;line-height:22px;display:block}.Y-57pa_composer textarea::placeholder{color:var(--dsw-alias-label-tertiary,#858c98)}.Y-57pa_composer:focus-within{box-shadow:0 0 0 3px #3478f621, var(--dsw-shadow-lv2,0 5px 18px #1d222f14);border-color:#3478f6}.Y-57pa_composerActions{align-items:center;gap:6px;min-width:0;margin-top:6px;display:flex}.Y-57pa_sendButton{color:#fff;cursor:pointer;background:#3478f6;border:0;border-radius:50%;flex:none;place-items:center;width:36px;height:36px;padding:0;display:grid}.Y-57pa_sendButton:disabled{opacity:.45;cursor:default}.Y-57pa_sendButton:hover:not(:disabled){background:#245fd1}.Y-57pa_sendButton:focus-visible{outline-offset:3px;outline:2px solid #3478f6}.Y-57pa_composer[data-folded]{padding-top:6px}.Y-57pa_composer[data-folded] textarea{display:none}.Y-57pa_expandButton{color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:8px;padding:6px 8px;font-size:12px}.Y-57pa_expandButton:hover{background:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 6%, transparent)}.Y-57pa_expandButton:focus-visible{outline-offset:2px;outline:2px solid #3478f6}.Y-57pa_attachButton{width:32px;height:32px;color:inherit;cursor:pointer;background:0 0;border:0;border-radius:50%;flex:none;place-items:center;font-size:22px;display:grid}.Y-57pa_attachButton:hover{background:color-mix(in srgb, currentColor 7%, transparent)}.Y-57pa_attachButton:focus-visible{outline-offset:2px;outline:2px solid #6898f2}.Y-57pa_composer{container-type:inline-size}.Y-57pa_composerActions>button[aria-label^=权限]{white-space:nowrap;flex:none;max-width:140px}@container (width<=430px){.Y-57pa_composerActions>button[aria-label^=权限]>span{display:none}.Y-57pa_composerActions>button[aria-label^=权限]{padding:6px}}";
+		const tagId$6 = "@kirkchinese/dsh-citeciter/TopicComposer.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$6) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$6;
+			tag.textContent = css$6;
+			document.head.appendChild(tag);
+		}
+		var TopicComposer_module_css_default = {
+			"attachButton": "Y-57pa_attachButton",
+			"composer": "Y-57pa_composer",
+			"composerActions": "Y-57pa_composerActions",
+			"expandButton": "Y-57pa_expandButton",
+			"sendButton": "Y-57pa_sendButton"
+		};
+		//#endregion
+		//#region lib/types/client/components/TopicComposer.js
+		/**
+		* Render the Topic draft and its submission controls without accessing services.
+		* @param props - controlled draft, model route, request state and user-action callbacks.
+		* @returns one form; model changes and sending remain owned by the Topic controller.
+		*/
+		function TopicComposer({ question, placeholder, route, providers, phase, canSend, routeSaving, folded, inputRef, onExpand, onQuestion, onSubmit, onStop, onModel, onReasoning, attachments, permission, onPermission, onFiles, delivery, onDelivery }) {
+			const fileInput = (0, react.useRef)(null);
+			const running = phase === "running";
+			const stopping = phase === "stopping";
+			return (0, react_jsx_runtime.jsxs)("form", {
+				className: TopicComposer_module_css_default.composer,
+				"data-folded": folded || void 0,
+				onSubmit,
+				children: [
+					(0, react_jsx_runtime.jsx)("input", {
+						hidden: true,
+						ref: fileInput,
+						type: "file",
+						multiple: true,
+						onChange: (event) => {
+							onFiles([...event.currentTarget.files ?? []]);
+							event.currentTarget.value = "";
+						}
+					}),
+					attachments,
+					folded && (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						className: TopicComposer_module_css_default.expandButton,
+						onClick: onExpand,
+						children: question.trim() === "" ? "补充问题" : "编辑草稿"
+					}),
+					(0, react_jsx_runtime.jsx)("textarea", {
+						hidden: folded,
+						ref: inputRef,
+						rows: 2,
+						maxLength: 11e3,
+						"aria-label": "继续向 CiteCiter 提问",
+						value: question,
+						disabled: route === void 0,
+						onChange: (event) => onQuestion(event.currentTarget.value),
+						placeholder,
+						onPaste: (event) => {
+							if (event.clipboardData.files.length === 0) return;
+							onFiles([...event.clipboardData.files]);
+							if (event.clipboardData.getData("text/plain") === "") event.preventDefault();
+						},
+						onKeyDown: (event) => {
+							if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
+								event.preventDefault();
+								if (running && (event.ctrlKey || event.metaKey)) onSubmit(event, delivery === "queue" ? "steer" : "queue");
+								else event.currentTarget.form?.requestSubmit();
+							}
+						}
+					}),
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: TopicComposer_module_css_default.composerActions,
+						children: [
+							(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: TopicComposer_module_css_default.attachButton,
+								"aria-label": "添加图片或文件",
+								title: "添加图片或文件",
+								disabled: route === void 0,
+								onClick: () => fileInput.current?.click(),
+								children: "+"
+							}),
+							(0, react_jsx_runtime.jsx)(PermissionControl, {
+								value: permission,
+								onChange: onPermission
+							}),
+							route !== void 0 && (0, react_jsx_runtime.jsx)(TopicModelControls, {
+								providers,
+								route,
+								saving: routeSaving,
+								onModel,
+								onReasoning
+							}),
+							(running || stopping) && (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: TopicComposer_module_css_default.attachButton,
+								"aria-label": "停止回答",
+								title: "停止回答",
+								disabled: stopping,
+								onClick: onStop,
+								children: (0, react_jsx_runtime.jsx)(IconStopFillMedium, { size: 16 })
+							}),
+							running && (0, react_jsx_runtime.jsx)("button", {
+								className: TopicComposer_module_css_default.attachButton,
+								type: "button",
+								title: delivery === "queue" ? "当前：排队发送；点击切换为插话" : "当前：插话；点击切换为排队",
+								"aria-label": delivery === "queue" ? "排队发送" : "插话发送",
+								onClick: () => onDelivery(delivery === "queue" ? "steer" : "queue"),
+								children: delivery === "queue" ? "☷" : "↗"
+							}),
+							(0, react_jsx_runtime.jsx)("button", {
+								className: TopicComposer_module_css_default.sendButton,
+								type: "submit",
+								disabled: stopping || !canSend || routeSaving,
+								title: running ? `Enter：${delivery === "queue" ? "排队" : "插话"}；Ctrl + Enter：${delivery === "queue" ? "插话" : "排队"}；Shift + Enter：换行` : "发送 · Enter（Shift + Enter 换行）",
+								"aria-label": "发送",
+								children: (0, react_jsx_runtime.jsx)("svg", {
+									width: "20",
+									height: "20",
+									viewBox: "0 0 24 24",
+									fill: "none",
+									"aria-hidden": "true",
+									children: (0, react_jsx_runtime.jsx)("path", {
+										d: "M12 20V4m-7 7 7-7 7 7",
+										stroke: "currentColor",
+										strokeWidth: "2",
+										strokeLinecap: "round",
+										strokeLinejoin: "round"
+									})
+								})
+							})
+						]
+					})
+				]
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\TopicSettingsDialog.module.css.mjs
+		const css$5 = ".vejJ0W_settings{color:var(--dsw-alias-label-primary,#20232a);gap:20px;display:grid}.vejJ0W_settings form{align-items:end;gap:10px;display:flex}.vejJ0W_settings label{flex:1;gap:8px;min-width:0;font-size:13px;display:grid}.vejJ0W_settings input{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#dfe3ea);width:100%;height:38px;color:inherit;background:var(--dsw-alias-bg-base,#fff);font:inherit;border-radius:10px;padding:8px 10px}.vejJ0W_settings button{border:1px solid var(--dsw-alias-border-l1,#dfe3ea);min-height:38px;color:inherit;cursor:pointer;font:inherit;background:0 0;border-radius:10px;justify-content:center;align-items:center;gap:6px;padding:8px 12px;font-size:13px;display:inline-flex}.vejJ0W_settings button:hover{background:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 6%, transparent)}.vejJ0W_settings button:disabled{opacity:.5;cursor:default}.vejJ0W_settings :focus-visible{outline-offset:2px;outline:2px solid #3478f6}.vejJ0W_actions{border-top:1px solid var(--dsw-alias-border-l1,#dfe3ea);justify-content:space-between;gap:10px;padding-top:16px;display:flex}.vejJ0W_settings .vejJ0W_danger,.vejJ0W_error{color:var(--dsw-alias-state-error-primary,#c93f3f)}.vejJ0W_error{overflow-wrap:anywhere;margin:0;font-size:13px}.vejJ0W_hint{color:var(--dsw-alias-label-secondary,#606875);margin:0;font-size:12px}";
+		const tagId$5 = "@kirkchinese/dsh-citeciter/TopicSettingsDialog.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$5) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$5;
+			tag.textContent = css$5;
+			document.head.appendChild(tag);
+		}
+		var TopicSettingsDialog_module_css_default = {
+			"actions": "vejJ0W_actions",
+			"danger": "vejJ0W_danger",
+			"error": "vejJ0W_error",
+			"hint": "vejJ0W_hint",
+			"settings": "vejJ0W_settings"
+		};
+		//#endregion
+		//#region lib/types/client/components/TopicSettingsDialog.js
+		/**
+		* Render infrequent Topic management separately from the learning composer.
+		* @param props - current identity, operation status and management callbacks.
+		* @returns a controlled dialog; deletion is enabled only for legacy private logs or verified Citer-owned source storage.
+		*/
+		function TopicSettingsDialog({ open, topic, archiving, deleting, error, onClose, onArchive, onDelete }) {
+			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
+				open: open && topic !== void 0,
+				onClose,
+				closeLabel: "关闭",
+				title: "Topic 设置",
+				children: topic !== void 0 && (0, react_jsx_runtime.jsxs)("div", {
+					className: TopicSettingsDialog_module_css_default.settings,
+					children: [
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: TopicSettingsDialog_module_css_default.actions,
+							children: [(0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								"aria-label": topic.archived ? "恢复当前 Topic" : "归档当前 Topic",
+								disabled: archiving,
+								onClick: () => {
+									onArchive(!topic.archived).then((saved) => {
+										if (saved) onClose();
+									});
+								},
+								children: [(0, react_jsx_runtime.jsx)(IconArchiveOutlineMedium, { size: 16 }), archiving ? "处理中…" : topic.archived ? "恢复" : "归档"]
+							}), (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: TopicSettingsDialog_module_css_default.danger,
+								disabled: deleting || topic.hosted === true && topic.storage !== "source",
+								onClick: onDelete,
+								title: topic.hosted === true && topic.storage !== "source" ? "重启 DSH 后迁移至 Citer 自有目录" : void 0,
+								children: "永久删除"
+							})]
+						}),
+						topic.hosted === true && topic.storage !== "source" && (0, react_jsx_runtime.jsx)("p", {
+							className: TopicSettingsDialog_module_css_default.hint,
+							children: "此 Topic 尚未迁移，目前可归档与恢复。"
+						}),
+						error !== null && (0, react_jsx_runtime.jsx)("p", {
+							role: "alert",
+							className: TopicSettingsDialog_module_css_default.error,
+							children: error
+						})
+					]
+				})
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\TopicNavigation.module.css.mjs
+		const css$4 = ".ZTN4xq_title{white-space:nowrap;text-overflow:ellipsis;cursor:text;font-weight:600;display:block;overflow:hidden}.ZTN4xq_title:focus-visible{border-radius:4px;outline:2px solid #6898f2}.ZTN4xq_rename{width:100%;min-width:60px;color:inherit;font:inherit;background:0 0;border:1px solid #6898f2;border-radius:7px;padding:5px 7px}.ZTN4xq_navigation{flex:none}.ZTN4xq_actions{gap:3px;display:flex}.ZTN4xq_actions button,.ZTN4xq_search button{width:32px;height:32px;color:inherit;cursor:pointer;background:0 0;border:0;border-radius:10px;place-items:center;transition:background .12s;display:grid}.ZTN4xq_actions button:hover,.ZTN4xq_actions button[aria-expanded=true],.ZTN4xq_search button:hover{background:color-mix(in srgb, currentColor 8%, transparent)}.ZTN4xq_actions button:focus-visible,.ZTN4xq_search button:focus-visible{outline:2px solid #6898f2}.ZTN4xq_actions button:disabled{opacity:.35;cursor:default}.ZTN4xq_actions svg{fill:none;stroke:currentColor;stroke-width:1.7px;stroke-linecap:round;width:18px;height:18px}.ZTN4xq_list{z-index:50;border:1px solid color-mix(in srgb, currentColor 12%, transparent);background:var(--dsw-alias-bg-layer-1,#fff);border-radius:16px;padding:10px;animation:.14s ease-out ZTN4xq_show;position:absolute;inset:60px 10px auto;box-shadow:0 12px 38px #0002}.ZTN4xq_search{align-items:center;gap:6px;margin-bottom:8px;display:flex}.ZTN4xq_search input{width:100%;min-width:0;color:inherit;background:color-mix(in srgb, currentColor 5%, transparent);font:inherit;border:0;border-radius:9px;padding:9px}.ZTN4xq_rows{max-height:min(55vh,440px);overflow:auto}.ZTN4xq_row{width:100%;color:inherit;text-align:left;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:10px;align-items:center;gap:10px;padding:10px;display:flex}.ZTN4xq_row:hover,.ZTN4xq_row[aria-current]{background:#6898f221}.ZTN4xq_rowText{gap:4px;min-width:0;display:grid}.ZTN4xq_rowText strong{text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500;overflow:hidden}.ZTN4xq_rowText small{opacity:.55;font-size:11px}.ZTN4xq_dot{opacity:.25;background:currentColor;border-radius:50%;width:5px;height:5px}.ZTN4xq_dot[data-running]{opacity:1;background:#4e86ef}@keyframes ZTN4xq_show{0%{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.ZTN4xq_list{animation:none}.ZTN4xq_actions button{transition:none}}";
+		const tagId$4 = "@kirkchinese/dsh-citeciter/TopicNavigation.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$4) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$4;
+			tag.textContent = css$4;
+			document.head.appendChild(tag);
+		}
+		var TopicNavigation_module_css_default = {
+			"actions": "ZTN4xq_actions",
+			"dot": "ZTN4xq_dot",
+			"list": "ZTN4xq_list",
+			"navigation": "ZTN4xq_navigation",
+			"rename": "ZTN4xq_rename",
+			"row": "ZTN4xq_row",
+			"rows": "ZTN4xq_rows",
+			"rowText": "ZTN4xq_rowText",
+			"search": "ZTN4xq_search",
+			"show": "ZTN4xq_show",
+			"title": "ZTN4xq_title"
+		};
+		//#endregion
+		//#region lib/types/client/components/TopicActions.js
+		/** Workspace actions remain reachable without a floating launcher over the composer. Callbacks own their dialogs and services. */
+		function TopicActions({ hasTopic, onSettings, onReader }) {
+			const [open, setOpen] = (0, react.useState)(false);
+			const anchor = (0, react.useRef)(null);
+			const close = (0, react.useCallback)(() => setOpen(false), []);
+			const choose = (action) => {
+				close();
+				anchor.current?.focus();
+				action();
+			};
+			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
+				ref: anchor,
+				type: "button",
+				title: "Topic 操作",
+				"aria-label": "Topic 操作",
+				"aria-haspopup": "menu",
+				"aria-expanded": open,
+				onClick: () => setOpen((value) => !value),
+				children: (0, react_jsx_runtime.jsx)("svg", {
+					viewBox: "0 0 20 20",
+					"aria-hidden": "true",
+					children: (0, react_jsx_runtime.jsx)("path", { d: "M4 10h.1M10 10h.1M16 10h.1" })
+				})
+			}), open && (0, react_jsx_runtime.jsxs)(ChoicePopover, {
+				anchor,
+				label: "Topic 操作",
+				onClose: close,
+				children: [(0, react_jsx_runtime.jsx)("button", {
+					type: "button",
+					role: "menuitem",
+					onClick: () => choose(onReader),
+					children: "文档阅读"
+				}), (0, react_jsx_runtime.jsx)("button", {
+					type: "button",
+					role: "menuitem",
+					disabled: !hasTopic,
+					onClick: () => choose(onSettings),
+					children: "Topic 设置"
+				})]
+			})] });
+		}
+		//#endregion
+		//#region lib/types/client/components/TopicNavigation.js
+		/** Session-list navigation with search. Receives domain rows and callbacks, without service discovery. */
+		function TopicNavigation({ topics, activeId, archived, onOpen, onNew, onArchiveView, onSettings, onReader }) {
+			const [open, setOpen] = (0, react.useState)(false);
+			const [query, setQuery] = (0, react.useState)("");
+			const ref = (0, react.useRef)(null);
+			(0, react.useEffect)(() => {
+				if (!open) return;
+				const outside = (event) => {
+					if (event.target instanceof Node && !ref.current?.contains(event.target)) setOpen(false);
+				};
+				document.addEventListener("pointerdown", outside);
+				return () => document.removeEventListener("pointerdown", outside);
+			}, [open]);
+			const rows = topics.filter((topic) => topic.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+			return (0, react_jsx_runtime.jsxs)("div", {
+				ref,
+				className: TopicNavigation_module_css_default.navigation,
+				children: [(0, react_jsx_runtime.jsxs)("div", {
+					className: TopicNavigation_module_css_default.actions,
+					children: [
+						(0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							title: "Topic 列表",
+							"aria-label": "Topic 列表",
+							"aria-expanded": open,
+							onClick: () => setOpen(!open),
+							children: (0, react_jsx_runtime.jsx)("svg", {
+								viewBox: "0 0 20 20",
+								"aria-hidden": "true",
+								children: (0, react_jsx_runtime.jsx)("path", { d: "M6 5h11M6 10h11M6 15h11M2 5h.1M2 10h.1M2 15h.1" })
+							})
+						}),
+						(0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							title: "新建 Topic",
+							"aria-label": "新建 Topic",
+							onClick: () => {
+								setOpen(false);
+								onNew();
+							},
+							children: (0, react_jsx_runtime.jsx)("svg", {
+								viewBox: "0 0 20 20",
+								"aria-hidden": "true",
+								children: (0, react_jsx_runtime.jsx)("path", { d: "M10 3v14M3 10h14" })
+							})
+						}),
+						(0, react_jsx_runtime.jsx)(TopicActions, {
+							hasTopic: activeId !== void 0,
+							onSettings,
+							onReader
+						})
+					]
+				}), open && (0, react_jsx_runtime.jsxs)("section", {
+					className: TopicNavigation_module_css_default.list,
+					"aria-label": "Topic 会话列表",
+					onKeyDown: (event) => {
+						if (event.key === "Escape") setOpen(false);
+					},
+					children: [(0, react_jsx_runtime.jsxs)("div", {
+						className: TopicNavigation_module_css_default.search,
+						children: [(0, react_jsx_runtime.jsx)("input", {
+							autoFocus: true,
+							placeholder: "搜索 Topic",
+							"aria-label": "搜索 Topic",
+							value: query,
+							onChange: (event) => setQuery(event.currentTarget.value)
+						}), (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							title: archived ? "活动 Topic" : "归档 Topic",
+							"aria-label": archived ? "活动 Topic" : "归档 Topic",
+							"aria-pressed": archived,
+							onClick: () => onArchiveView(!archived),
+							children: "▣"
+						})]
+					}), (0, react_jsx_runtime.jsxs)("div", {
+						className: TopicNavigation_module_css_default.rows,
+						children: [rows.length === 0 && (0, react_jsx_runtime.jsx)("p", { children: query ? "没有匹配的 Topic" : "暂无 Topic" }), rows.map((topic) => (0, react_jsx_runtime.jsxs)("button", {
+							className: TopicNavigation_module_css_default.row,
+							type: "button",
+							"aria-current": activeId === topic.sessionId ? "page" : void 0,
+							onClick: () => {
+								onOpen(topic.sessionId);
+								setOpen(false);
+							},
+							children: [(0, react_jsx_runtime.jsx)("span", {
+								className: TopicNavigation_module_css_default.dot,
+								"data-running": topic.running || void 0
+							}), (0, react_jsx_runtime.jsxs)("span", {
+								className: TopicNavigation_module_css_default.rowText,
+								children: [(0, react_jsx_runtime.jsx)("strong", { children: topic.title }), (0, react_jsx_runtime.jsx)("small", { children: new Date(topic.updatedAt).toLocaleString(void 0, {
+									month: "short",
+									day: "numeric",
+									hour: "2-digit",
+									minute: "2-digit"
+								}) })]
+							})]
+						}, topic.sessionId))]
+					})]
+				})]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/TopicTitle.js
+		/** Inline rename committed by Enter or blur, cancelled by Escape. Double-click and F2 start editing. */
+		function TopicTitle({ id, title, onRename }) {
+			const [editing, setEditing] = (0, react.useState)(false);
+			const [value, setValue] = (0, react.useState)(title);
+			const [error, setError] = (0, react.useState)(false);
+			const saving = (0, react.useRef)(false);
+			const cancelled = (0, react.useRef)(false);
+			(0, react.useEffect)(() => {
+				setEditing(false);
+				setValue(title);
+				setError(false);
+			}, [id]);
+			const start = () => {
+				cancelled.current = false;
+				setValue(title);
+				setError(false);
+				setEditing(true);
+			};
+			const save = async () => {
+				if (saving.current || cancelled.current) return;
+				if (!value.trim() || value.trim() === title) {
+					setEditing(false);
+					return;
+				}
+				saving.current = true;
+				try {
+					if (await onRename(value.trim())) setEditing(false);
+					else setError(true);
+				} finally {
+					saving.current = false;
+				}
+			};
+			return editing ? (0, react_jsx_runtime.jsx)("input", {
+				className: TopicNavigation_module_css_default.rename,
+				"aria-label": "Topic 名称",
+				"aria-invalid": error,
+				title: error ? "保存失败，可重试或按 Escape 取消" : void 0,
+				autoFocus: true,
+				value,
+				maxLength: 120,
+				onFocus: (event) => event.currentTarget.select(),
+				onChange: (event) => setValue(event.currentTarget.value),
+				onBlur: () => {
+					save();
+				},
+				onKeyDown: (event) => {
+					if (event.key === "Escape") {
+						cancelled.current = true;
+						setEditing(false);
+						event.stopPropagation();
+					}
+					if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+						event.preventDefault();
+						save();
+					}
+				}
+			}) : (0, react_jsx_runtime.jsx)("strong", {
+				"data-topic-title": true,
+				className: TopicNavigation_module_css_default.title,
+				tabIndex: 0,
+				title: "双击重命名 · F2",
+				onDoubleClick: start,
+				onKeyDown: (event) => {
+					if (event.key === "F2") {
+						event.preventDefault();
+						start();
+					}
+				},
+				children: title
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/CitePanel.js
+		const PHASE_LABEL = {
+			idle: "新建或选择 Topic",
+			creating: "正在准备 Topic…",
+			ready: "可以继续追问",
+			running: "CiteCiter 正在回答…",
+			stopping: "正在停止…",
+			stopped: "已停止，可继续",
+			error: "需要处理"
+		};
+		function compactPreview(text, limit = 120) {
+			const compact = text.replaceAll(/\s+/g, " ").trim();
+			return compact.length > limit ? compact.slice(0, limit) + "…" : compact;
+		}
+		function friendlyFailure(text) {
+			if (text.includes("Citation source has no model route")) return "当前主会话还没有可复用的模型。请先在主对话发送一条消息，再创建 Topic。";
+			return text.replaceAll(/https?:\/\/[^\s)]+/gu, "模型服务地址");
+		}
+		function ErrorTurn({ message }) {
+			const summary = friendlyFailure(message.text);
+			return (0, react_jsx_runtime.jsxs)("article", {
+				className: CiteCiter_module_css_default.errorTurn,
+				"data-citeciter-message": message.id,
+				"data-status": message.status,
+				role: message.status === "failed" ? "alert" : void 0,
+				children: [
+					(0, react_jsx_runtime.jsx)("div", {
+						className: CiteCiter_module_css_default.turnRole,
+						children: message.status === "stopped" ? "已停止" : "请求失败"
+					}),
+					(0, react_jsx_runtime.jsx)("p", { children: summary }),
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: CiteCiter_module_css_default.errorMeta,
+						children: [
+							(0, react_jsx_runtime.jsxs)("span", { children: [
+								"第 ",
+								message.attempt,
+								" 次请求"
+							] }),
+							(0, react_jsx_runtime.jsx)("span", { children: message.bodyRetained ? "已保留已生成正文" : "未产生可保留正文" }),
+							(0, react_jsx_runtime.jsx)("span", { children: message.status === "stopped" ? "可继续追问" : "可修改问题后重试" })
+						]
+					}),
+					summary !== message.text && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: "技术详情" }), (0, react_jsx_runtime.jsx)("pre", { children: message.text })] })
+				]
+			});
+		}
+		function AssistantTurn({ message, disabled, onQuestion, reportParseError }) {
+			const parsed = (0, react.useMemo)(() => parseNextQuestions(message.text, message.streaming), [message.streaming, message.text]);
+			(0, react.useEffect)(() => {
+				if (!message.streaming && parsed.invalid) reportParseError(message.id);
+			}, [
+				message.id,
+				message.streaming,
+				parsed.invalid,
+				reportParseError
+			]);
+			return (0, react_jsx_runtime.jsxs)("article", {
+				className: CiteCiter_module_css_default.assistantTurn,
+				"data-citeciter-message": message.renderKey ?? message.id,
+				children: [
+					(0, react_jsx_runtime.jsx)("div", {
+						className: CiteCiter_module_css_default.turnRole,
+						children: "CiteCiter"
+					}),
+					message.reasoning !== null && message.reasoning.trim() !== "" && (0, react_jsx_runtime.jsx)(ReasoningDisclosure, {
+						text: message.reasoning,
+						active: message.streaming && message.text === ""
+					}),
+					parsed.text !== "" && (0, react_jsx_runtime.jsx)(RichAnswer, {
+						text: parsed.text,
+						streaming: message.streaming
+					}),
+					!message.streaming && parsed.questions.length === 3 && (0, react_jsx_runtime.jsxs)("fieldset", {
+						className: CiteCiter_module_css_default.nextQuestions,
+						children: [(0, react_jsx_runtime.jsx)("legend", { children: "接下来可能想问" }), parsed.questions.map((question) => (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							disabled,
+							onClick: () => onQuestion(question),
+							children: question
+						}, question))]
+					})
+				]
+			});
+		}
+		/**
+		* Render the independent Topic workspace on the right edge of the shell.
+		* @param props - shared panel bus, Topic controller, and host callbacks.
+		* @returns the responsive Topic dock and its dialogs, or null while closed.
+		*/
+		function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, bus, companion, closePanel, openReader, reportParseError }) {
+			const overlay = useOverlay((value) => value);
+			const snapshot = useCompanion((value) => value);
+			const pendingInteraction = useInteractions((value) => snapshot.active?.topic.hosted === true ? value.get(snapshot.active.topic.sessionId) : void 0);
+			const draftKey = snapshot.active?.topic.sessionId ?? snapshot.sourceSessionId ?? "new";
+			const draft = useDrafts((value) => value[draftKey] ?? EMPTY_DRAFT_VIEW);
+			const question = draft.content.text;
+			const runDraft = (operation) => {
+				operation.catch((error) => setAttachmentError(String(error)));
+			};
+			const setQuestion = (value) => runDraft(drafts.setText(draftKey, typeof value === "string" ? value : value(question)));
+			const defaultDelivery = useSubmission((value) => value);
+			const [deliveryOverride, setDeliveryOverride] = (0, react.useState)(null);
+			const delivery = deliveryOverride !== null && deliveryOverride.key === draftKey && deliveryOverride.base === defaultDelivery ? deliveryOverride.mode : defaultDelivery;
+			const setDelivery = (mode) => setDeliveryOverride({
+				key: draftKey,
+				base: defaultDelivery,
+				mode
+			});
+			const [attachmentError, setAttachmentError] = (0, react.useState)(null);
+			const consumedSeeds = (0, react.useRef)(/* @__PURE__ */ new Set());
+			const [views, setViews] = (0, react.useState)({});
+			const view = views[draftKey] ?? "explain";
+			const setView = (next) => setViews((current) => ({
+				...current,
+				[draftKey]: next
+			}));
+			const cards = (0, react.useMemo)(() => projectLearningCards(snapshot.active?.messages ?? []), [snapshot.active?.messages]);
+			const [topicSettingsOpen, setTopicSettingsOpen] = (0, react.useState)(false);
+			const [deleteTarget, setDeleteTarget] = (0, react.useState)(null);
+			const [deleteConfirmation, setDeleteConfirmation] = (0, react.useState)("");
+			const [deleteError, setDeleteError] = (0, react.useState)(null);
+			const [widthPercent, setWidthPercent] = (0, react.useState)(snapshot.settings.panelWidthPercent);
+			const dockWidthPercent = widthPercent;
+			const resizeOrigin = (0, react.useRef)(null);
+			const panelRef = (0, react.useRef)(null);
+			const composerRef = (0, react.useRef)(null);
+			const transcript = useTranscriptPosition(draftKey, snapshot.active?.messages);
+			const modalReturnFocusRef = (0, react.useRef)(null);
+			const open = overlay.panelOpen;
+			const active = snapshot.active;
+			const addFiles = (batch) => {
+				if (active === null) return;
+				const key = active.topic.sessionId;
+				drafts.addFiles(key, batch).then(() => {
+					setAttachmentError(null);
+				}).catch((error) => setAttachmentError(String(error)));
+			};
+			const canDropFiles = active !== null && active.topic.modelConfig !== void 0;
+			const fileDrop = useFileDrop(open, canDropFiles, addFiles);
+			const canAsk = active?.topic.modelSelectionRequired !== true && (snapshot.phase === "ready" || snapshot.phase === "stopped" || snapshot.phase === "error" || snapshot.phase === "running");
+			const dock = useHostDock(panelRef, open, widthPercent, overlay.presentation === "floating", overlay.activation);
+			const compact = dock?.mode === "page";
+			const suspended = dock?.mode === "suspended";
+			const floating = overlay.presentation === "floating" && !compact && !suspended;
+			useCompactNavigation(panelRef, open && compact);
+			const drag = usePanelDrag(panelRef, floating, bus.setPresentation);
+			const floatPosition = drag.position;
+			const docked = !floating && dock?.mode === "columns";
+			const composerFolded = false;
+			(0, react.useEffect)(() => open ? companion.retainVisible() : void 0, [companion, open]);
+			(0, react.useEffect)(() => {
+				if (active !== null) drafts.ensure(active.topic.sessionId).catch(() => {});
+			}, [drafts, active?.topic.sessionId]);
+			(0, react.useEffect)(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent]);
+			(0, react.useEffect)(() => {
+				setTopicSettingsOpen(false);
+			}, [active?.topic.sessionId]);
+			(0, react.useEffect)(() => {
+				setDeleteTarget(null);
+				setDeleteConfirmation("");
+				setDeleteError(null);
+			}, [snapshot.sourceSessionId]);
+			(0, react.useEffect)(() => {
+				if (deleteTarget !== null && deleteTarget.sessionId !== active?.topic.sessionId) {
+					setDeleteTarget(null);
+					setDeleteConfirmation("");
+				}
+			}, [active?.topic.sessionId, deleteTarget]);
+			(0, react.useEffect)(() => {
+				const citation = overlay.boardCitation;
+				if (citation === null || active?.topic.sessionId !== citation.topicSessionId) return;
+				drafts.append(citation.topicSessionId, "", [{
+					id: `board-${citation.id}`,
+					kind: "board",
+					label: "板书引用",
+					content: citation.prompt
+				}]).then(() => {
+					setViews((current) => ({
+						...current,
+						[citation.topicSessionId]: "explain"
+					}));
+					bus.clearBoardCitation(citation.id);
+					requestAnimationFrame(() => composerRef.current?.focus());
+				}).catch((error) => setAttachmentError(String(error)));
+			}, [
+				active?.topic.sessionId,
+				bus,
+				overlay.boardCitation,
+				drafts
+			]);
+			(0, react.useEffect)(() => {
+				for (const seed of snapshot.composeSeeds) {
+					if (active?.topic.sessionId !== seed.sessionId || consumedSeeds.current.has(seed.id)) continue;
+					consumedSeeds.current.add(seed.id);
+					drafts.append(seed.sessionId, seed.question, seed.references).then(() => {
+						companion.consumeComposeSeed(seed.id);
+						requestAnimationFrame(() => composerRef.current?.focus());
+					}).catch((error) => {
+						consumedSeeds.current.delete(seed.id);
+						setAttachmentError(String(error));
+					});
+				}
+			}, [
+				snapshot.composeSeeds,
+				active?.topic.sessionId,
+				companion,
+				drafts
+			]);
+			const modalTitle = deleteTarget !== null ? "永久删除 Topic" : topicSettingsOpen ? "Topic 设置" : null;
+			(0, react.useEffect)(() => {
+				if (modalTitle === null) return;
+				const dialog = [...document.querySelectorAll("[role=\"dialog\"]")].find((element) => element.getAttribute("aria-label") === modalTitle);
+				if (dialog === void 0) return;
+				const appRoot = document.getElementById("root");
+				const rootWasInert = appRoot?.hasAttribute("inert") ?? false;
+				const rootAriaHidden = appRoot?.getAttribute("aria-hidden") ?? null;
+				appRoot?.setAttribute("inert", "");
+				appRoot?.setAttribute("aria-hidden", "true");
+				const focusable = () => [...dialog.querySelectorAll("button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])")].filter((element) => element.offsetParent !== null);
+				const frame = requestAnimationFrame(() => {
+					if (!dialog.contains(document.activeElement)) focusable()[0]?.focus();
+				});
+				const trapFocus = (event) => {
+					if (event.key !== "Tab") return;
+					const candidates = focusable();
+					const first = candidates[0];
+					const last = candidates.at(-1);
+					if (first === void 0 || last === void 0) return;
+					if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+						event.preventDefault();
+						last.focus();
+					} else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+						event.preventDefault();
+						first.focus();
+					}
+				};
+				dialog.addEventListener("keydown", trapFocus);
+				const returnFocus = modalReturnFocusRef.current;
+				return () => {
+					cancelAnimationFrame(frame);
+					dialog.removeEventListener("keydown", trapFocus);
+					if (appRoot !== null) {
+						appRoot.toggleAttribute("inert", rootWasInert);
+						if (rootAriaHidden === null) appRoot.removeAttribute("aria-hidden");
+						else appRoot.setAttribute("aria-hidden", rootAriaHidden);
+					}
+					requestAnimationFrame(() => {
+						if (returnFocus?.isConnected === true) returnFocus.focus();
+						else panelRef.current?.querySelector("button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled])")?.focus();
+					});
+				};
+			}, [modalTitle]);
+			const visibleMessages = active?.messages.filter((message) => isTopicMessageVisible(message, active.messages)) ?? [];
+			if (!open) return null;
+			const submit = (event, mode = delivery, retry = false) => {
+				event.preventDefault();
+				if (!canAsk || !draft.ready || draft.sending || snapshot.modelRouteSaving || snapshot.reasoningEffortSaving) return;
+				const value = question.trim();
+				if (!retry && value === "" && draft.content.references.length === 0 && draft.content.files.length === 0) return;
+				runDraft(drafts.submit(draftKey, (content, files, requestId) => companion.ask(withLearningRoute(serializeDraftReferences(content.text, content.references), snapshot.settings.learningRoute ?? false), files.map((file) => file.id), mode, requestId, draftKey), retry).then((sent) => {
+					if (sent) transcript.followLatest();
+				}));
+			};
+			const openNewTopic = () => {
+				companion.createFree("", "qa");
+			};
+			const confirmDelete = async () => {
+				if (deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting) return;
+				setDeleteError(null);
+				if (await companion.deleteTopic(deleteConfirmation) === false) setDeleteError("Topic 未删除，请重试。");
+				else drafts.forget(deleteConfirmation);
+			};
+			const updateWidth = (next) => {
+				const value = Math.max(28, Math.min(55, Math.round(next)));
+				setWidthPercent(value);
+				companion.setSetting("panelWidthPercent", value);
+			};
+			const startResize = (event) => {
+				event.preventDefault();
+				event.currentTarget.setPointerCapture(event.pointerId);
+				resizeOrigin.current = {
+					x: event.clientX,
+					width: widthPercent,
+					frameWidth: findContainingFrame(panelRef.current)?.getBoundingClientRect().width ?? window.innerWidth
+				};
+			};
+			const moveResize = (event) => {
+				const origin = resizeOrigin.current;
+				if (origin === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+				setWidthPercent(Math.max(28, Math.min(55, Math.round(origin.width + (origin.x - event.clientX) / origin.frameWidth * 100))));
+			};
+			const endResize = (event) => {
+				const origin = resizeOrigin.current;
+				if (origin === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+				resizeOrigin.current = null;
+				event.currentTarget.releasePointerCapture(event.pointerId);
+				updateWidth(origin.width + (origin.x - event.clientX) / origin.frameWidth * 100);
+			};
+			const resizeKey = (event) => {
+				if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+				event.preventDefault();
+				updateWidth(widthPercent + (event.key === "ArrowLeft" ? 1 : -1));
+			};
+			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+				suspended && (0, react_jsx_runtime.jsx)("button", {
+					className: CiteCiter_module_css_default.topicLauncher,
+					type: "button",
+					onClick: () => bus.setPanelOpen(true),
+					"aria-label": "返回 CiteCiter",
+					title: "CiteCiter 已暂时收起，点击返回",
+					children: (0, react_jsx_runtime.jsx)("img", {
+						src: "data:image/png;base64,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",
+						alt: "",
+						"aria-hidden": "true"
+					})
+				}),
+				drag.dockTarget && (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
+					className: CiteCiter_module_css_default.dockTarget,
+					"aria-label": "松开以停靠"
+				}) }),
+				(0, react_jsx_runtime.jsx)(OverlayPortal, {
+					inline: !floating,
+					children: (0, react_jsx_runtime.jsxs)("aside", {
+						ref: panelRef,
+						className: `${CiteCiter_module_css_default.dock} ${floating ? CiteCiter_module_css_default.floating : ""}`,
+						style: {
+							width: floating ? void 0 : dock?.width,
+							height: floating ? void 0 : dock?.height,
+							top: floating ? void 0 : dock?.top,
+							...floating && floatPosition !== null ? {
+								left: floatPosition.left,
+								top: floatPosition.top,
+								right: "auto"
+							} : {},
+							"--citeciter-panel-width": `${dockWidthPercent}vw`
+						},
+						"data-citeciter-panel": true,
+						...fileDrop.handlers,
+						"data-arrangement": floating ? "floating" : dock?.mode ?? "unsupported",
+						"aria-hidden": suspended || void 0,
+						"aria-label": "CiteCiter 学习伴侣",
+						children: [
+							fileDrop.active && (0, react_jsx_runtime.jsx)(FileDropHint, {
+								enabled: canDropFiles,
+								title: active?.topic.title
+							}),
+							docked && !floating && (0, react_jsx_runtime.jsx)("div", {
+								className: CiteCiter_module_css_default.resizeHandle,
+								role: "separator",
+								"aria-label": "调整 CiteCiter 宽度",
+								"aria-orientation": "vertical",
+								"aria-valuemin": 28,
+								"aria-valuemax": 55,
+								"aria-valuenow": widthPercent,
+								tabIndex: 0,
+								onPointerDown: startResize,
+								onPointerMove: moveResize,
+								onPointerUp: endResize,
+								onPointerCancel: () => {
+									resizeOrigin.current = null;
+								},
+								onKeyDown: resizeKey
+							}),
+							!compact && (0, react_jsx_runtime.jsx)("button", {
+								className: CiteCiter_module_css_default.closeButton,
+								type: "button",
+								onClick: closePanel,
+								"aria-label": "关闭 CiteCiter",
+								children: (0, react_jsx_runtime.jsx)("img", {
+									src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSI+CiAgPHBhdGggZD0iTTExIDcuNSAxOS41IDE2IDExIDI0LjUiIHN0cm9rZT0iIzM0NzhmNiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==",
+									alt: ""
+								})
+							}),
+							!floating && dock === null && (0, react_jsx_runtime.jsx)("p", {
+								className: CiteCiter_module_css_default.layoutNotice,
+								role: "status",
+								children: "当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。"
+							}),
+							(0, react_jsx_runtime.jsx)("div", {
+								className: CiteCiter_module_css_default.dockBody,
+								children: (0, react_jsx_runtime.jsxs)("section", {
+									className: CiteCiter_module_css_default.learningWorkspace,
+									children: [
+										(0, react_jsx_runtime.jsx)(TopicHeader, {
+											compact,
+											onBack: closePanel,
+											onDrag: drag.start,
+											status: PHASE_LABEL[snapshot.phase],
+											title: active === null ? (0, react_jsx_runtime.jsx)("strong", { children: "Citer" }) : (0, react_jsx_runtime.jsx)(TopicTitle, {
+												id: active.topic.sessionId,
+												title: active.topic.title,
+												onRename: companion.rename
+											}),
+											children: (0, react_jsx_runtime.jsx)(TopicNavigation, {
+												topics: snapshot.topics,
+												activeId: active?.topic.sessionId,
+												archived: snapshot.includeArchived,
+												onOpen: (id) => {
+													companion.openTopic(id);
+												},
+												onNew: openNewTopic,
+												onArchiveView: companion.setIncludeArchived,
+												onReader: openReader,
+												onSettings: () => {
+													modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+													setTopicSettingsOpen(true);
+												}
+											})
+										}),
+										snapshot.topicsStatus === "error" && (0, react_jsx_runtime.jsxs)("p", {
+											className: CiteCiter_module_css_default.panelError,
+											role: "alert",
+											children: ["Topic 读取失败：", snapshot.topicsError]
+										}),
+										snapshot.notice !== null && (0, react_jsx_runtime.jsx)("div", {
+											className: CiteCiter_module_css_default.panelNotice,
+											role: "status",
+											children: snapshot.notice
+										}),
+										active === null && snapshot.draftQuote === null ? (0, react_jsx_runtime.jsxs)("div", {
+											className: CiteCiter_module_css_default.emptyState,
+											children: [
+												(0, react_jsx_runtime.jsx)("div", {
+													className: CiteCiter_module_css_default.emptyWhale,
+													"aria-hidden": "true",
+													children: (0, react_jsx_runtime.jsx)("img", {
+														src: citeciter_mascot_default,
+														alt: ""
+													})
+												}),
+												(0, react_jsx_runtime.jsx)("h2", { children: "把没懂的地方，慢慢讲明白" }),
+												(0, react_jsx_runtime.jsx)("p", { children: "新建一个学习 Topic，或选中主对话中的文字，从问题本身开始。" }),
+												(0, react_jsx_runtime.jsx)("button", {
+													className: LearningWorkspace_module_css_default.action,
+													type: "button",
+													onClick: openNewTopic,
+													children: "开始学习"
+												}),
+												snapshot.phase === "creating" && (0, react_jsx_runtime.jsx)("div", {
+													className: CiteCiter_module_css_default.loadingCard,
+													children: PHASE_LABEL.creating
+												}),
+												snapshot.error !== null && (0, react_jsx_runtime.jsx)("p", {
+													className: CiteCiter_module_css_default.panelError,
+													role: "alert",
+													children: friendlyFailure(snapshot.error)
+												})
+											]
+										}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+											(0, react_jsx_runtime.jsxs)("details", {
+												className: `${CiteCiter_module_css_default.contextBar} ${LearningWorkspace_module_css_default.source}`,
+												children: [
+													(0, react_jsx_runtime.jsx)("summary", { children: active?.topic.citation == null ? "自由讨论 · 查看上下文" : `引用来源 · ${compactPreview(active.topic.citation.displayText, 70)}` }),
+													(0, react_jsx_runtime.jsx)("blockquote", { children: active?.topic.citation === null ? "无引用 · 自由讨论" : "“" + (active?.topic.citation?.displayText ?? snapshot.draftQuote) + "”" }),
+													active !== null && (0, react_jsx_runtime.jsxs)("div", {
+														className: CiteCiter_module_css_default.contextMeta,
+														children: [(0, react_jsx_runtime.jsx)("span", {
+															"data-ok": active.topic.sourceAvailable || void 0,
+															children: active.topic.sourceAvailable ? "来源在线" : "来源不可用"
+														}), (0, react_jsx_runtime.jsx)("span", { children: active.topic.observedThroughSeq === null ? "等待按需读取来源" : "来源已同步" })]
+													})
+												]
+											}),
+											(0, react_jsx_runtime.jsx)(LearningRoute, {
+												enabled: snapshot.settings.learningRoute ?? false,
+												messages: active?.messages ?? [],
+												onChange: (value) => {
+													companion.setSetting("learningRoute", value);
+												}
+											}),
+											(0, react_jsx_runtime.jsxs)("div", {
+												className: LearningWorkspace_module_css_default.views,
+												"aria-label": "学习内容视图",
+												children: [(0, react_jsx_runtime.jsx)("button", {
+													type: "button",
+													"aria-pressed": view === "explain",
+													onClick: () => setView("explain"),
+													children: "讲解"
+												}), (0, react_jsx_runtime.jsxs)("button", {
+													type: "button",
+													"aria-pressed": view === "cards",
+													onClick: () => setView("cards"),
+													children: ["学习卡", (0, react_jsx_runtime.jsx)("span", {
+														className: LearningWorkspace_module_css_default.count,
+														children: cards.cards.length
+													})]
+												})]
+											}),
+											view === "explain" && (0, react_jsx_runtime.jsxs)("div", {
+												ref: transcript.ref,
+												className: CiteCiter_module_css_default.transcript,
+												"aria-live": "polite",
+												onScroll: transcript.onScroll,
+												children: [
+													visibleMessages.map((message) => {
+														if (message.role === "tool") return (0, react_jsx_runtime.jsx)(ToolRow, {
+															message,
+															sessionId: active.topic.sessionId,
+															load: nativeComposer.attachment
+														}, message.id);
+														if (message.role === "user") return (0, react_jsx_runtime.jsxs)("article", {
+															className: CiteCiter_module_css_default.userTurn,
+															"data-citeciter-message": message.id,
+															"aria-label": "用户消息",
+															children: [(0, react_jsx_runtime.jsx)(MessageAttachments, {
+																sessionId: active.topic.sessionId,
+																attachments: message.attachments ?? [],
+																load: nativeComposer.attachment
+															}), message.text.startsWith("【学习阶段：") ? (0, react_jsx_runtime.jsxs)("details", {
+																className: LearningWorkspace_module_css_default.questionDetails,
+																children: [(0, react_jsx_runtime.jsxs)("summary", { children: [message.text.split("\n")[0], message.text.includes("\n\n我的问题：") ? ` · ${message.text.split("\n\n我的问题：").slice(1).join("\n\n我的问题：")}` : ""] }), (0, react_jsx_runtime.jsx)("p", { children: message.text })]
+															}) : (0, react_jsx_runtime.jsx)(UserMessageBody, { text: message.text })]
+														}, message.id);
+														if (message.role === "error") return (0, react_jsx_runtime.jsx)(ErrorTurn, { message }, message.id);
+														if (message.role === "context") return null;
+														return (0, react_jsx_runtime.jsx)(AssistantTurn, {
+															message,
+															disabled: !canAsk,
+															onQuestion: (value) => {
+																setQuestion((current) => current.trim() === "" ? value : `${current}\n${value}`);
+																requestAnimationFrame(() => composerRef.current?.focus());
+															},
+															reportParseError
+														}, message.renderKey ?? message.id);
+													}),
+													snapshot.phase === "creating" && (0, react_jsx_runtime.jsx)("div", {
+														className: CiteCiter_module_css_default.loadingCard,
+														children: PHASE_LABEL.creating
+													}),
+													snapshot.error !== null && (0, react_jsx_runtime.jsx)("p", {
+														className: CiteCiter_module_css_default.panelError,
+														"data-citeciter-error": true,
+														role: "alert",
+														children: friendlyFailure(snapshot.error)
+													})
+												]
+											}),
+											view === "cards" && active !== null && (0, react_jsx_runtime.jsx)("div", {
+												className: LearningWorkspace_module_css_default.content,
+												children: (0, react_jsx_runtime.jsx)(LearningCards, {
+													projection: cards,
+													recall: snapshot.settings.activeRecall ?? false,
+													setRecall: (value) => {
+														companion.setSetting("activeRecall", value);
+													},
+													disabled: snapshot.settingsSaveStatus === "saving",
+													topicTitle: active.topic.title,
+													topicId: active.topic.sessionId,
+													source: active.topic.citation?.displayText ?? "无引用 · 自由讨论",
+													onRevise: () => {
+														setQuestion("请先核对本 Topic 的结论，纠正错误并标明未核实内容，再生成总结学习卡片。");
+														setView("explain");
+														requestAnimationFrame(() => composerRef.current?.focus());
+													}
+												}, active.topic.sessionId)
+											}),
+											view !== "explain" && snapshot.error !== null && (0, react_jsx_runtime.jsx)("p", {
+												className: CiteCiter_module_css_default.panelError,
+												role: "alert",
+												children: friendlyFailure(snapshot.error)
+											}),
+											active?.topic.hosted === true && (0, react_jsx_runtime.jsx)(NativeQueue, {
+												sessionId: active.topic.sessionId,
+												native: nativeComposer
+											}),
+											pendingInteraction !== void 0 && (0, react_jsx_runtime.jsx)(NativeInteraction, {
+												pending: pendingInteraction,
+												messages: active?.messages ?? []
+											}, pendingInteraction.key),
+											active?.pendingQuestion !== null && active?.pendingQuestion !== void 0 ? (0, react_jsx_runtime.jsx)(QuestionCard, {
+												pending: active.pendingQuestion,
+												onAnswer: (answer) => companion.answerQuestion(active.pendingQuestion.key, answer),
+												onCancel: () => companion.cancelQuestion(active.pendingQuestion.key)
+											}, active.pendingQuestion.key) : (0, react_jsx_runtime.jsx)(TopicComposer, {
+												permission: active?.topic.permission ?? "read-only",
+												onPermission: (mode) => {
+													companion.setPermission(mode);
+												},
+												delivery,
+												onDelivery: setDelivery,
+												onFiles: addFiles,
+												question,
+												route: draft.ready ? active?.topic.modelConfig : void 0,
+												providers: snapshot.providers,
+												phase: snapshot.phase,
+												canSend: canAsk && draft.ready && !draft.sending && !draft.pending && !draft.conflict && active !== null && (question.trim() !== "" || draft.content.references.length > 0 || draft.content.files.length > 0),
+												routeSaving: snapshot.modelRouteSaving || snapshot.reasoningEffortSaving,
+												folded: composerFolded,
+												inputRef: composerRef,
+												onQuestion: setQuestion,
+												onSubmit: submit,
+												placeholder: "输入问题 · Enter 发送，Shift + Enter 换行",
+												attachments: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+													active?.topic.modelSelectionRequired === true && (0, react_jsx_runtime.jsx)("p", {
+														role: "status",
+														children: "来源模型已不可用。草稿已保留，请选择可用模型后发送。"
+													}),
+													(attachmentError || draft.error) && (0, react_jsx_runtime.jsx)("p", {
+														role: "alert",
+														children: attachmentError || draft.error
+													}),
+													draft.saving && (0, react_jsx_runtime.jsx)("span", {
+														role: "status",
+														children: "保存草稿…"
+													}),
+													draft.conflict && (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("button", {
+														type: "button",
+														onClick: () => runDraft(drafts.keepLocal(draftKey)),
+														children: "保留本窗口草稿"
+													}), (0, react_jsx_runtime.jsx)("button", {
+														type: "button",
+														onClick: () => runDraft(drafts.reload(draftKey)),
+														children: "载入已保存草稿"
+													})] }),
+													draft.pending && !draft.sending && (0, react_jsx_runtime.jsxs)("p", {
+														role: "status",
+														children: [
+															"上次发送状态待核对。",
+															(0, react_jsx_runtime.jsx)("button", {
+																type: "button",
+																onClick: () => runDraft(drafts.reconcile(draftKey)),
+																children: "核对发送状态"
+															}),
+															(0, react_jsx_runtime.jsx)("button", {
+																type: "button",
+																onClick: (event) => submit(event, delivery, true),
+																children: "重试上次发送"
+															})
+														]
+													}),
+													!draft.ready && draft.error && (0, react_jsx_runtime.jsx)("button", {
+														type: "button",
+														onClick: () => runDraft(drafts.ensure(draftKey)),
+														children: "重新读取草稿"
+													}),
+													draft.missing.map((file) => (0, react_jsx_runtime.jsxs)("button", {
+														type: "button",
+														onClick: () => runDraft(drafts.removeFile(draftKey, file.id)),
+														children: ["移除失效附件：", file.name]
+													}, file.id)),
+													(0, react_jsx_runtime.jsx)(FileAttachments, {
+														native: nativeComposer,
+														sessionId: draftKey,
+														files: draft.files,
+														remove: (id) => runDraft(drafts.removeFile(draftKey, id))
+													}),
+													(0, react_jsx_runtime.jsx)(ReferenceAttachments, {
+														references: draft.content.references,
+														onRemove: (id) => runDraft(drafts.removeReference(draftKey, id))
+													})
+												] }),
+												onExpand: () => {
+													requestAnimationFrame(() => composerRef.current?.focus());
+												},
+												onStop: () => {
+													companion.stop();
+												},
+												onModel: (provider, model) => {
+													companion.setModelRoute(provider, model);
+												},
+												onReasoning: (effort) => {
+													companion.setReasoningEffort(effort);
+												}
+											})
+										] })
+									]
+								})
+							})
+						]
+					})
+				}),
+				!floating && (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsxs)("div", {
+					className: CiteCiter_module_css_default.fullscreenNotice,
+					role: "status",
+					children: ["学习栏已打开。退出文件全屏查看，或 ", (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						onClick: () => bus.setPresentation("floating"),
+						children: "悬浮查看"
+					})]
+				}) }),
+				(0, react_jsx_runtime.jsx)(TopicSettingsDialog, {
+					open: topicSettingsOpen,
+					topic: active?.topic,
+					archiving: snapshot.archiving,
+					deleting: snapshot.deleting,
+					error: snapshot.error === null ? null : friendlyFailure(snapshot.error),
+					onClose: () => setTopicSettingsOpen(false),
+					onArchive: companion.archive,
+					onDelete: () => {
+						if (active === null) return;
+						setTopicSettingsOpen(false);
+						setDeleteTarget({
+							sessionId: active.topic.sessionId,
+							title: active.topic.title
+						});
+						setDeleteConfirmation("");
+						setDeleteError(null);
+					}
+				}),
+				(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
+					open: deleteTarget !== null,
+					onClose: () => {
+						if (!snapshot.deleting) setDeleteTarget(null);
+					},
+					closeLabel: "关闭",
+					title: "永久删除 Topic",
+					...deleteTarget === null ? {} : { description: `这会永久删除“${deleteTarget.title}”。请输入完整 Topic Session ID 确认。` },
+					footer: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+						variant: "outline",
+						disabled: snapshot.deleting,
+						onClick: () => setDeleteTarget(null),
+						children: "取消"
+					}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+						variant: "outline",
+						className: CiteCiter_module_css_default.deleteAction,
+						disabled: deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting,
+						onClick: () => {
+							confirmDelete();
+						},
+						children: snapshot.deleting ? "删除中…" : "永久删除"
+					})] }),
+					children: deleteTarget !== null && (0, react_jsx_runtime.jsxs)("div", {
+						className: CiteCiter_module_css_default.deleteForm,
+						children: [
+							(0, react_jsx_runtime.jsx)("code", { children: deleteTarget.sessionId }),
+							(0, react_jsx_runtime.jsx)("input", {
+								autoFocus: true,
+								value: deleteConfirmation,
+								disabled: snapshot.deleting,
+								"aria-label": "输入 Topic Session ID 以确认永久删除",
+								placeholder: "粘贴上方 Session ID",
+								onChange: (event) => setDeleteConfirmation(event.currentTarget.value)
+							}),
+							deleteError !== null && (0, react_jsx_runtime.jsx)("div", {
+								className: CiteCiter_module_css_default.modalError,
+								role: "alert",
+								children: friendlyFailure(snapshot.error ?? deleteError)
+							})
+						]
+					})
+				})
+			] });
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\ActionWheel.module.css.mjs
+		const css$3 = ".uyZH7q_wheel{width:360px;height:360px;transform:translate(-50%,-50%) scale(var(--wheel-scale,1));z-index:10020;pointer-events:auto;color:var(--dsw-alias-label-primary,#263d3b);filter:drop-shadow(0 12px 26px #132f3328);user-select:none;outline:none;font:13px/1.35 system-ui,sans-serif;animation:.22s cubic-bezier(.2,.8,.2,1) uyZH7q_wheelIn;position:fixed}.uyZH7q_wheel:before{content:\"\";backdrop-filter:blur(28px)saturate(160%);background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 72%,transparent);border:1px solid #ffffffb3;border-radius:50%;position:absolute;inset:1px;box-shadow:inset 0 1px 3px #ffffffc0,inset 0 -1px 12px #638c9a18}.uyZH7q_ring{pointer-events:none;width:100%;height:100%;position:absolute;inset:0}.uyZH7q_ring path{fill:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fcfdfc) 38%,transparent);stroke:color-mix(in srgb,var(--dsw-alias-border-l1,#d6dfdc) 65%,transparent);stroke-width:1.5px;transition:fill .12s,stroke .12s}.uyZH7q_ring path[data-active]{fill:#d8eee5;stroke:#3b8874;stroke-width:2px}.uyZH7q_ring path[data-empty]{fill:var(--dsw-alias-bg-base,#f1f4f3)}.uyZH7q_slot{width:92px;color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;flex-direction:column;align-items:center;gap:3px;padding:4px 0;display:flex;position:absolute;transform:translate(-50%,-50%)}.uyZH7q_slot strong{white-space:nowrap;text-overflow:ellipsis;max-width:90px;font-size:13px;overflow:hidden}.uyZH7q_slot small{color:var(--dsw-alias-label-secondary,#60706c);font-size:10px}.uyZH7q_slot[data-active]{color:#143e33}.uyZH7q_slot[data-active] small{color:#3b675b}.uyZH7q_slot[aria-disabled=true]{opacity:.5;cursor:default}.uyZH7q_slot:focus-visible{border-radius:8px;outline:2px solid #3b8874}.uyZH7q_slotNumber{opacity:.55;font-size:10px}.uyZH7q_center{background:var(--dsw-alias-bg-layer-1,#fff);width:80px;height:80px;color:inherit;cursor:pointer;border:0;border-radius:50%;flex-direction:column;justify-content:center;align-items:center;gap:4px;display:flex;position:absolute;top:140px;left:140px}.uyZH7q_center small{opacity:.5}.uyZH7q_caption{text-align:center;background:var(--dsw-alias-bg-layer-1,#fff);box-sizing:border-box;border-radius:9px;width:360px;padding:6px 4px;font-size:12px;position:absolute;top:366px;left:0}.uyZH7q_prompt{z-index:10021;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:var(--dsw-alias-bg-layer-1,#fff);width:min(420px,100vw - 24px);color:var(--dsw-alias-label-primary,#263d3b);pointer-events:auto;border-radius:16px;padding:16px;font:13px/1.5 system-ui,sans-serif;position:fixed;box-shadow:0 16px 50px #132f3333}.uyZH7q_prompt header,.uyZH7q_prompt footer{justify-content:space-between;align-items:center;gap:12px;display:flex}.uyZH7q_prompt header button{color:inherit;cursor:pointer;background:0 0;border:0;font-size:20px}.uyZH7q_prompt blockquote{background:var(--dsw-alias-bg-base,#f2f6f4);white-space:pre-wrap;border-left:3px solid #3b8874;max-height:70px;margin:12px 0;padding:8px 12px;font-size:12px;overflow:auto}.uyZH7q_prompt textarea,.uyZH7q_field select,.uyZH7q_settings input,.uyZH7q_settings textarea,.uyZH7q_settings select{box-sizing:border-box;width:100%;font:inherit;color:inherit;border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:var(--dsw-alias-bg-base,#fff);border-radius:8px;padding:8px}.uyZH7q_prompt textarea{resize:vertical;max-height:180px}.uyZH7q_field{gap:5px;margin:12px 0;font-size:12px;display:grid}.uyZH7q_prompt footer{margin-top:12px;font-size:12px}.uyZH7q_prompt footer button,.uyZH7q_save{color:#fff;cursor:pointer;background:#317969;border:0;border-radius:8px;padding:8px 16px}.uyZH7q_prompt button:disabled,.uyZH7q_save:disabled{opacity:.5;cursor:default}.uyZH7q_error{color:#b34535}.uyZH7q_prompt{--prompt-top:clamp(48px,var(--prompt-y),calc(100vh - 370px));left:clamp(12px,var(--prompt-x),calc(100vw - 432px));top:var(--prompt-top);max-height:calc(100vh - var(--prompt-top) - 16px);background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);backdrop-filter:blur(26px)saturate(155%);border-top-color:#ffffffc9;animation:.18s ease-out uyZH7q_promptIn;overflow:auto;box-shadow:inset 0 1px 2px #ffffff80,0 18px 50px #132f332b}@keyframes uyZH7q_wheelIn{0%{opacity:0;transform:translate(-50%,-50%) scale(calc(var(--wheel-scale,1) * .92))}to{opacity:1;transform:translate(-50%,-50%) scale(var(--wheel-scale,1))}}@keyframes uyZH7q_promptIn{0%{opacity:0;translate:0 6px}to{opacity:1;translate:0}}.uyZH7q_settings{gap:12px;font:13px/1.5 system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:grid}.uyZH7q_settings p{color:var(--dsw-alias-label-secondary,#60706c);margin:0}.uyZH7q_settings details{border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:color-mix(in srgb,var(--dsw-alias-bg-base,#fff) 40%,transparent);border-radius:14px;padding:12px 14px}.uyZH7q_settings summary{cursor:pointer;padding:2px 0;font-weight:550}.uyZH7q_settings label{gap:5px;margin-top:10px;display:grid}.uyZH7q_settings .uyZH7q_toggle{align-items:center;gap:8px;display:flex}.uyZH7q_settings .uyZH7q_toggle input{width:auto}.uyZH7q_slotActions{flex-wrap:wrap;gap:6px;margin-top:10px;display:flex}.uyZH7q_settings button{border:1px solid var(--dsw-alias-border-l1,#d6dfdc);color:inherit;font:inherit;cursor:pointer;background:0 0;border-radius:9px;padding:7px 12px;transition:background .14s,border-color .14s}.uyZH7q_settings button:hover{background:color-mix(in srgb,var(--dsw-alias-label-primary,#263d3b) 6%,transparent)}.uyZH7q_settings .uyZH7q_save{color:#fff;background:#317969;border-color:#0000}.uyZH7q_settings .uyZH7q_save:hover{background:#286a5c}.uyZH7q_settings :focus-visible{outline-offset:3px;outline:2px solid #4b9b87}.uyZH7q_settings input,.uyZH7q_settings textarea,.uyZH7q_settings select{border-radius:10px}body:has([role=dialog][aria-modal=true]) .uyZH7q_wheel,body:has([role=dialog][aria-modal=true]) .uyZH7q_prompt{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.uyZH7q_wheel,.uyZH7q_prompt,.uyZH7q_wheel *,.uyZH7q_settings button{transition:none;animation:none}}@media (prefers-contrast:more){.uyZH7q_wheel:before,.uyZH7q_prompt{background:var(--dsw-alias-bg-layer-1,#fff);backdrop-filter:none}}";
+		const tagId$3 = "@kirkchinese/dsh-citeciter/ActionWheel.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$3) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$3;
+			tag.textContent = css$3;
+			document.head.appendChild(tag);
+		}
+		var ActionWheel_module_css_default = {
+			"caption": "uyZH7q_caption",
+			"center": "uyZH7q_center",
+			"error": "uyZH7q_error",
+			"field": "uyZH7q_field",
+			"prompt": "uyZH7q_prompt",
+			"promptIn": "uyZH7q_promptIn",
+			"ring": "uyZH7q_ring",
+			"save": "uyZH7q_save",
+			"settings": "uyZH7q_settings",
+			"slot": "uyZH7q_slot",
+			"slotActions": "uyZH7q_slotActions",
+			"slotNumber": "uyZH7q_slotNumber",
+			"toggle": "uyZH7q_toggle",
+			"wheel": "uyZH7q_wheel",
+			"wheelIn": "uyZH7q_wheelIn"
+		};
+		//#endregion
+		//#region lib/types/client/components/ModelChoice.js
+		/** Model identities are encoded together, so provider-local model IDs never collide. */
+		function ModelChoice({ providers, value, onChange, disabled = false, label = "处理模型" }) {
+			const encoded = value === void 0 ? "" : JSON.stringify([value.provider, value.model]);
+			const known = providers.some((provider) => provider.id === value?.provider && provider.models.some((model) => model.id === value.model));
+			return (0, react_jsx_runtime.jsxs)("label", {
+				className: ActionWheel_module_css_default.field,
+				children: [label, (0, react_jsx_runtime.jsxs)("select", {
+					"aria-label": label,
+					disabled,
+					value: encoded,
+					onChange: (event) => {
+						if (event.currentTarget.value === "") onChange(void 0);
+						else {
+							const [provider, model] = JSON.parse(event.currentTarget.value);
+							onChange({
+								provider,
+								model
+							});
+						}
+					},
+					children: [
+						(0, react_jsx_runtime.jsx)("option", {
+							value: "",
+							children: "跟随来源会话模型"
+						}),
+						value !== void 0 && !known && (0, react_jsx_runtime.jsxs)("option", {
+							value: encoded,
+							children: [
+								value.provider,
+								" / ",
+								value.model,
+								"（暂不可用）"
+							]
+						}),
+						providers.map((provider) => (0, react_jsx_runtime.jsx)("optgroup", {
+							label: provider.name,
+							children: provider.models.map((model) => (0, react_jsx_runtime.jsx)("option", {
+								value: JSON.stringify([provider.id, model.id]),
+								children: model.name
+							}, model.id))
+						}, provider.id))
+					]
+				})]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/WheelSettings.js
+		/** Edit eight stable slots as one validated settings transaction. */
+		function WheelSettings({ snapshot, companion }) {
+			const [slots, setSlots] = (0, react.useState)(() => [...snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS]);
+			const [error, setError] = (0, react.useState)(null);
+			const savedSlots = snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS;
+			const savedRevision = JSON.stringify(savedSlots);
+			const previousRevision = (0, react.useRef)(savedRevision);
+			(0, react.useEffect)(() => {
+				if (previousRevision.current === savedRevision) return;
+				previousRevision.current = savedRevision;
+				setSlots([...savedSlots]);
+			}, [savedSlots, savedRevision]);
+			const change = (index, patch) => setSlots((current) => current.map((slot, i) => i === index ? {
+				...slot ?? {
+					label: "自定义",
+					prompt: "",
+					ask: true,
+					scenario: "qa",
+					presentation: "side",
+					target: "new"
+				},
+				...patch
+			} : slot));
+			const swap = (index, offset) => setSlots((current) => {
+				const next = [...current];
+				const to = (index + offset + 8) % 8;
+				[next[index], next[to]] = [next[to], next[index]];
+				return next;
+			});
+			return (0, react_jsx_runtime.jsxs)("section", {
+				className: ActionWheel_module_css_default.settings,
+				children: [
+					(0, react_jsx_runtime.jsx)("h3", { children: "选文轮盘" }),
+					(0, react_jsx_runtime.jsx)("p", { children: "选中文字后按住触发键，移向动作，松开后准备草稿。中心、空槽和 Esc 取消；右键短按可改为点击选择，Shift + 右键保留原生菜单。" }),
+					(0, react_jsx_runtime.jsxs)("label", { children: ["按住触发键", (0, react_jsx_runtime.jsxs)("select", {
+						"aria-label": "轮盘触发键",
+						value: snapshot.settings.wheelTrigger ?? "right-button",
+						onChange: (event) => void companion.setSetting("wheelTrigger", event.currentTarget.value),
+						children: [
+							(0, react_jsx_runtime.jsx)("option", {
+								value: "right-button",
+								children: "鼠标右键（默认）"
+							}),
+							(0, react_jsx_runtime.jsx)("option", {
+								value: "Alt",
+								children: "Alt / Option"
+							}),
+							(0, react_jsx_runtime.jsx)("option", {
+								value: "Control",
+								children: "Control"
+							}),
+							(0, react_jsx_runtime.jsx)("option", {
+								value: "Shift",
+								children: "Shift"
+							}),
+							(0, react_jsx_runtime.jsx)("option", {
+								value: "Meta",
+								children: "Meta / Command"
+							})
+						]
+					})] }),
+					(0, react_jsx_runtime.jsx)(ModelChoice, {
+						label: "Citer 默认模型",
+						providers: snapshot.providers,
+						value: snapshot.settings.defaultCiterModel ?? void 0,
+						onChange: (value) => void companion.setSetting("defaultCiterModel", value ?? null)
+					}),
+					(0, react_jsx_runtime.jsx)("p", { children: "自由提问加入当前 Topic，其他内置动作默认新建。加入时保留草稿、模型与权限；新建时使用默认模型，未指定则跟随来源。所有动作均在 Citer 输入框编辑并手动发送。八槽从正上方顺时针排列。" }),
+					slots.map((slot, index) => (0, react_jsx_runtime.jsxs)("details", { children: [
+						(0, react_jsx_runtime.jsxs)("summary", { children: [
+							index + 1,
+							" · ",
+							slot?.label ?? "空槽",
+							slot === null ? "" : slot.ask ? " · 需输入" : " · 预设问题"
+						] }),
+						slot === null ? (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => change(index, {}),
+							children: "添加自定义模式"
+						}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+							(0, react_jsx_runtime.jsxs)("label", { children: ["名称", (0, react_jsx_runtime.jsx)("input", {
+								"aria-label": `槽位 ${index + 1} 名称`,
+								maxLength: 20,
+								value: slot.label,
+								onChange: (event) => change(index, { label: event.currentTarget.value })
+							})] }),
+							(0, react_jsx_runtime.jsxs)("label", { children: ["提示词", (0, react_jsx_runtime.jsx)("textarea", {
+								"aria-label": `槽位 ${index + 1} 提示词`,
+								rows: 3,
+								maxLength: 4e3,
+								value: slot.prompt,
+								onChange: (event) => change(index, { prompt: event.currentTarget.value })
+							})] }),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: ActionWheel_module_css_default.toggle,
+								children: [(0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: slot.ask,
+									onChange: (event) => change(index, { ask: event.currentTarget.checked })
+								}), "先输入问题并选择模型"]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", { children: ["引用目标", (0, react_jsx_runtime.jsxs)("select", {
+								"aria-label": `槽位 ${index + 1} 引用目标`,
+								value: actionTarget(slot),
+								onChange: (event) => change(index, { target: event.currentTarget.value }),
+								children: [(0, react_jsx_runtime.jsx)("option", {
+									value: "current",
+									children: "加入当前 Topic"
+								}), (0, react_jsx_runtime.jsx)("option", {
+									value: "new",
+									children: "新建 Topic"
+								})]
+							})] }),
+							(0, react_jsx_runtime.jsxs)("label", { children: ["内容方式", (0, react_jsx_runtime.jsxs)("select", {
+								value: slot.scenario,
+								onChange: (event) => change(index, { scenario: event.currentTarget.value }),
+								children: [(0, react_jsx_runtime.jsx)("option", {
+									value: "qa",
+									children: "直接问答"
+								}), (0, react_jsx_runtime.jsx)("option", {
+									value: "present",
+									children: "学习讲解与板书"
+								})]
+							})] }),
+							(0, react_jsx_runtime.jsxs)("label", { children: ["默认打开位置", (0, react_jsx_runtime.jsxs)("select", {
+								value: slot.presentation,
+								onChange: (event) => change(index, { presentation: event.currentTarget.value }),
+								children: [(0, react_jsx_runtime.jsx)("option", {
+									value: "side",
+									children: "侧边（窄窗口独立页面）"
+								}), (0, react_jsx_runtime.jsx)("option", {
+									value: "floating",
+									children: "悬浮"
+								})]
+							})] })
+						] }),
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: ActionWheel_module_css_default.slotActions,
+							children: [
+								(0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									onClick: () => swap(index, -1),
+									children: "逆时针移动"
+								}),
+								(0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									onClick: () => swap(index, 1),
+									children: "顺时针移动"
+								}),
+								(0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									onClick: () => setSlots((current) => current.map((item, i) => i === index ? null : item)),
+									children: "清空"
+								})
+							]
+						})
+					] }, index)),
+					error !== null && (0, react_jsx_runtime.jsx)("p", {
+						role: "alert",
+						className: ActionWheel_module_css_default.error,
+						children: error
+					}),
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: ActionWheel_module_css_default.slotActions,
+						children: [(0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => {
+								setSlots([...DEFAULT_WHEEL_SLOTS]);
+								setError(null);
+							},
+							children: "恢复默认草稿"
+						}), (0, react_jsx_runtime.jsx)("button", {
+							className: ActionWheel_module_css_default.save,
+							type: "button",
+							disabled: snapshot.settingsSaveStatus === "saving",
+							onClick: () => {
+								const result = wheelSlotsSchema.safeParse(slots);
+								if (!result.success) {
+									setError("请填写模式名称；无需补充问题的模式必须有提示词。");
+									return;
+								}
+								setError(null);
+								companion.setSetting("wheelSlots", result.data);
+							},
+							children: "保存八个槽位"
+						})]
+					})
+				]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/CiteCiterSettings.js
+		/** Native DSH settings page for CiteCiter-owned preferences. */
+		function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }) {
+			const snapshot = useCompanion((value) => value);
+			const documentSnapshot = useDocument((value) => value);
+			const updateSnapshot = useUpdate((value) => value);
+			const settings = snapshot.settings;
+			(0, react.useEffect)(() => companion.retainVisible(), [companion]);
+			const [widthDraft, setWidthDraft] = (0, react.useState)(settings.panelWidthPercent);
+			const committedWidth = (0, react.useRef)(settings.panelWidthPercent);
+			(0, react.useEffect)(() => {
+				settingsDocument.load();
+			}, [settingsDocument]);
+			(0, react.useEffect)(() => {
+				committedWidth.current = settings.panelWidthPercent;
+				setWidthDraft(settings.panelWidthPercent);
+			}, [settings.panelWidthPercent]);
+			const commitWidth = (value) => {
+				if (value === committedWidth.current) return;
+				committedWidth.current = value;
+				companion.setSetting("panelWidthPercent", value);
+			};
+			return (0, react_jsx_runtime.jsxs)("div", {
+				className: CiteCiter_module_css_default.settingsPage,
+				children: [
+					(0, react_jsx_runtime.jsxs)("header", {
+						className: CiteCiter_module_css_default.settingsHero,
+						children: [(0, react_jsx_runtime.jsx)("span", {
+							className: CiteCiter_module_css_default.settingsWhale,
+							"aria-hidden": "true",
+							children: (0, react_jsx_runtime.jsx)("img", {
+								src: citeciter_mascot_default,
+								alt: ""
+							})
+						}), (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h2", { children: "CiteCiter" }), (0, react_jsx_runtime.jsx)("p", { children: "保留 DSH 的编程主界面，把学习讨论放在右侧独立工作区。" })] })]
+					}),
+					snapshot.settingsSaveMessage !== null && (0, react_jsx_runtime.jsx)("p", {
+						className: CiteCiter_module_css_default.settingsSaveStatus,
+						"data-status": snapshot.settingsSaveStatus,
+						role: snapshot.settingsSaveStatus === "error" ? "alert" : "status",
+						children: snapshot.settingsSaveMessage
+					}),
+					(0, react_jsx_runtime.jsx)(WheelSettings, {
+						snapshot,
+						companion
+					}),
+					(0, react_jsx_runtime.jsxs)("section", {
+						className: CiteCiter_module_css_default.settingsGroup,
+						children: [
+							(0, react_jsx_runtime.jsx)("h3", { children: "权限与来源" }),
+							(0, react_jsx_runtime.jsxs)("div", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "新 Topic 默认权限" }), (0, react_jsx_runtime.jsx)("small", { children: "使用 DSH 权限；此设置只影响新 Topic。" })] }), (0, react_jsx_runtime.jsx)(PermissionControl, {
+									value: settings.defaultPermission ?? "read-only",
+									onChange: (mode) => {
+										companion.setSetting("defaultPermission", mode);
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "包含来源 reasoning" }), (0, react_jsx_runtime.jsx)("small", { children: "关闭后 read_source_session 不向 CiteCiter 返回主 Agent 的思考正文。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: settings.includeSourceReasoning,
+									onChange: (event) => {
+										companion.setSetting("includeSourceReasoning", event.currentTarget.checked);
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "旧 Topic：允许调查来源工作区" }), (0, react_jsx_runtime.jsx)("small", { children: "此开关仅控制旧 Topic 的只读文件工具。新 Topic 使用完整 DSH 工具，权限由输入框中的模式控制。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: settings.allowSourceFiles,
+									onChange: (event) => {
+										companion.setSetting("allowSourceFiles", event.currentTarget.checked);
+									}
+								})]
+							})
+						]
+					}),
+					(0, react_jsx_runtime.jsxs)("section", {
+						className: CiteCiter_module_css_default.settingsGroup,
+						children: [
+							(0, react_jsx_runtime.jsx)("h3", { children: "提示词与快捷键" }),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "主动回忆（可选）" }), (0, react_jsx_runtime.jsx)("small", { children: "默认关闭，直接阅读学习卡片；开启后先显示自测问题，点击才展开结论和答案。不安排复习任务。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: settings.activeRecall ?? false,
+									onChange: (event) => {
+										companion.setSetting("activeRecall", event.currentTarget.checked);
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingStack,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "自定义导师提示词" }), (0, react_jsx_runtime.jsx)("small", { children: "补充教学偏好；留空使用内置提示词。原生 Topic 从下次发送起生效；旧 Topic 恢复后生效。" })] }), (0, react_jsx_runtime.jsx)("textarea", {
+									className: CiteCiter_module_css_default.promptTextarea,
+									value: settings.tutorPrompt ?? "",
+									maxLength: 4e3,
+									rows: 4,
+									placeholder: "留空 = 使用内置导师提示词",
+									onChange: (event) => {
+										companion.setSetting("tutorPrompt", event.currentTarget.value === "" ? void 0 : event.currentTarget.value);
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "首答附追问建议" }), (0, react_jsx_runtime.jsx)("small", { children: "在首个回答末尾生成三个追问候选；关闭后回答保持纯净。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: settings.followupQuestions ?? true,
+									onChange: (event) => {
+										companion.setSetting("followupQuestions", event.currentTarget.checked);
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "黑板动画" }), (0, react_jsx_runtime.jsx)("small", { children: "关闭后 animate 只保留最终状态，不再播放淡入、滑入、脉冲或高亮动画。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: settings.boardAnimations ?? true,
+									onChange: (event) => {
+										companion.setSetting("boardAnimations", event.currentTarget.checked);
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingStack,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "打开学习栏快捷键" }), (0, react_jsx_runtime.jsx)("small", { children: "格式如 Control+Shift+C；留空禁用。输入框和编辑器内的按键不会被拦截。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "text",
+									value: settings.shortcutOpenPanel ?? "",
+									maxLength: 40,
+									placeholder: "Control+Shift+C",
+									onChange: (event) => {
+										companion.setSetting("shortcutOpenPanel", event.currentTarget.value === "" ? void 0 : event.currentTarget.value);
+									}
+								})]
+							})
+						]
+					}),
+					(0, react_jsx_runtime.jsxs)("section", {
+						className: CiteCiter_module_css_default.settingsGroup,
+						children: [
+							(0, react_jsx_runtime.jsx)("h3", { children: "版本更新" }),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "版本更新提醒" }), (0, react_jsx_runtime.jsx)("small", { children: updateSnapshot.preferencePersistence === "browser" ? "远程 Web 只在当前浏览器保存此选择；开启后会重新检查可用版本。" : "在 DSH 设置中保存；关闭后可随时回到这里恢复。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: updateSnapshot.notificationsEnabled,
+									disabled: !updateSnapshot.preferenceReady || updateSnapshot.preferenceStatus === "saving",
+									"aria-busy": updateSnapshot.preferenceStatus === "saving",
+									onChange: (event) => {
+										updateController.setNotificationsEnabled(event.currentTarget.checked);
+									}
+								})]
+							}),
+							updateSnapshot.preferenceMessage !== null && (0, react_jsx_runtime.jsx)("p", {
+								className: CiteCiter_module_css_default.settingsSaveStatus,
+								"data-status": updateSnapshot.preferenceStatus,
+								role: updateSnapshot.preferenceStatus === "error" ? "alert" : "status",
+								children: updateSnapshot.preferenceMessage
+							})
+						]
+					}),
+					(0, react_jsx_runtime.jsxs)("section", {
+						className: CiteCiter_module_css_default.settingsGroup,
+						children: [(0, react_jsx_runtime.jsx)("h3", { children: "配置文件" }), (0, react_jsx_runtime.jsxs)("div", {
+							className: CiteCiter_module_css_default.settingsDocumentAction,
+							children: [(0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								className: CiteCiter_module_css_default.settingsDocumentButton,
+								"data-status": documentSnapshot.status,
+								disabled: [
+									"loading",
+									"missing",
+									"unavailable"
+								].includes(documentSnapshot.status) || documentSnapshot.opening,
+								"aria-busy": documentSnapshot.opening || documentSnapshot.status === "loading",
+								onClick: () => {
+									settingsDocument.open();
+								},
+								children: [(0, react_jsx_runtime.jsx)(IconSettingsOutlineMedium, { size: 14 }), documentSnapshot.opening ? "正在打开…" : documentSnapshot.status === "loading" ? "正在检查…" : documentSnapshot.status === "unavailable" ? "宿主不支持打开" : documentSnapshot.status === "missing" ? "配置文件不存在" : documentSnapshot.status === "error" ? "重试打开配置文件" : "打开配置文件"]
+							}), (documentSnapshot.error !== null || documentSnapshot.message !== null) && (0, react_jsx_runtime.jsx)("p", {
+								className: CiteCiter_module_css_default.settingsDocumentStatus,
+								"data-status": documentSnapshot.error === null ? "success" : "error",
+								role: documentSnapshot.error === null ? "status" : "alert",
+								children: documentSnapshot.error ?? documentSnapshot.message
+							})]
+						})]
+					}),
+					(0, react_jsx_runtime.jsxs)("section", {
+						className: CiteCiter_module_css_default.settingsGroup,
+						children: [
+							(0, react_jsx_runtime.jsx)("h3", { children: "学习栏" }),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.widthSetting,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "默认宽度" }), (0, react_jsx_runtime.jsxs)("output", { children: [widthDraft, "%"] })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "range",
+									min: 28,
+									max: 55,
+									step: 1,
+									value: widthDraft,
+									onChange: (event) => setWidthDraft(Number(event.currentTarget.value)),
+									onPointerUp: (event) => commitWidth(Number(event.currentTarget.value)),
+									onBlur: (event) => commitWidth(Number(event.currentTarget.value)),
+									onKeyUp: (event) => {
+										if ([
+											"ArrowLeft",
+											"ArrowRight",
+											"Home",
+											"End"
+										].includes(event.key)) commitWidth(Number(event.currentTarget.value));
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("label", {
+								className: CiteCiter_module_css_default.settingToggle,
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "重新打开上次 Topic" }), (0, react_jsx_runtime.jsx)("small", { children: "刷新或重新进入来源 Session 时，自动展开学习栏并恢复最近讨论。" })] }), (0, react_jsx_runtime.jsx)("input", {
+									type: "checkbox",
+									checked: settings.reopenLastTopic,
+									onChange: (event) => {
+										companion.setSetting("reopenLastTopic", event.currentTarget.checked);
+									}
+								})]
+							}),
+							(0, react_jsx_runtime.jsxs)("div", {
+								className: CiteCiter_module_css_default.dockPreview,
+								"aria-label": "学习栏宽度预览",
+								children: [
+									(0, react_jsx_runtime.jsx)("span", { className: CiteCiter_module_css_default.previewSidebar }),
+									(0, react_jsx_runtime.jsx)("span", {
+										className: CiteCiter_module_css_default.previewCoding,
+										children: "DSH 编程对话"
+									}),
+									(0, react_jsx_runtime.jsx)("span", {
+										className: CiteCiter_module_css_default.previewDock,
+										style: { width: widthDraft + "%" },
+										children: "CiteCiter"
+									})
+								]
+							})
+						]
+					})
+				]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/reader-selection.js
+		/** Reader textarea selection facts resolved from the user-owned textarea value. */
+		const READER_CONTEXT_CHARS = 240;
+		/**
+		* Resolve the current textarea selection into a verifiable document claim.
+		* @param textarea - read-only document textarea holding the complete loaded page.
+		* @returns trimmed quote with surrounding context, or null for a collapsed/empty selection.
+		*/
+		function readTextareaSelection(textarea) {
+			const value = textarea.value;
+			const start = textarea.selectionStart;
+			const end = textarea.selectionEnd;
+			if (start === end) return null;
+			const raw = value.slice(start, end);
+			const leading = raw.length - raw.trimStart().length;
+			const trailing = raw.length - raw.trimEnd().length;
+			const text = raw.trim();
+			if (text === "") return null;
+			const startOffset = start + leading;
+			const endOffset = end - trailing;
+			return {
+				displayText: text,
+				prefixText: value.slice(Math.max(0, startOffset - READER_CONTEXT_CHARS), startOffset),
+				suffixText: value.slice(endOffset, endOffset + READER_CONTEXT_CHARS)
+			};
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\DocumentReader.module.css.mjs
+		const css$2 = ".kD5sxW_root{z-index:9000;pointer-events:auto;font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;position:fixed;bottom:16px;left:50%;transform:translate(-50%)}.kD5sxW_trigger{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);background:var(--dsw-alias-bg-layer-2,#fff);width:44px;height:44px;color:var(--dsw-alias-label-primary,#20232a);cursor:pointer;border-radius:50%;font-size:20px;box-shadow:0 2px 10px #0000001f}.kD5sxW_panel{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d8dbe2);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 94%, transparent);backdrop-filter:blur(24px)saturate(140%);width:min(520px,100vw - 32px);height:min(640px,100vh - 32px);color:var(--dsw-alias-label-primary,#20232a);border-radius:22px;flex-direction:column;gap:8px;padding:16px;display:flex;box-shadow:0 8px 28px #00000029}.kD5sxW_header{justify-content:space-between;align-items:center;display:flex}.kD5sxW_header h2{margin:0;font-size:15px}.kD5sxW_header button{cursor:pointer;color:inherit;background:0 0;border:0;border-radius:50%;width:32px;height:32px;font-size:18px}.kD5sxW_error{color:var(--dsw-alias-danger,#c42b2b);margin:0;font-size:12px}.kD5sxW_import{flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;display:inline-flex}body:has([role=dialog][aria-modal=true]) .kD5sxW_root{visibility:hidden;pointer-events:none}.kD5sxW_import input{min-width:0;max-width:100%}.kD5sxW_pagination{justify-content:space-between;align-items:center;gap:8px;font-size:12px;display:flex}.kD5sxW_pagination button{cursor:pointer;width:32px;height:32px;color:inherit;background:color-mix(in srgb, currentColor 6%, transparent);border:0;border-radius:50%;padding:0;font-size:22px;line-height:1}.kD5sxW_pagination button:disabled{cursor:default;opacity:.5}.kD5sxW_import button{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);color:inherit;cursor:pointer;background:0 0;border-radius:10px;padding:7px 10px}.kD5sxW_panel button,.kD5sxW_panel input{font-family:inherit;transition:background .16s,box-shadow .16s}.kD5sxW_panel button:focus-visible,.kD5sxW_panel input:focus-visible,.kD5sxW_content:focus-visible{outline-offset:2px;outline:2px solid #3478f6}.kD5sxW_panel button:hover:not(:disabled){box-shadow:0 0 0 2px color-mix(in srgb, currentColor 8%, transparent)}@media (prefers-reduced-motion:reduce){.kD5sxW_panel button,.kD5sxW_panel input{transition:none}}.kD5sxW_documents{flex-direction:column;gap:4px;max-height:120px;margin:0;padding:0;list-style:none;display:flex;overflow:auto}.kD5sxW_documents button{cursor:pointer;text-align:left;width:100%;color:inherit;overflow-wrap:anywhere;background:0 0;border:1px solid #0000;border-radius:6px;flex-direction:column;align-items:flex-start;padding:6px 8px;display:flex}.kD5sxW_documents button:hover,.kD5sxW_documents button.kD5sxW_activeDocument{border-color:var(--dsw-alias-border-l1,#d8dbe2);background:var(--dsw-alias-bg-layer-2,#f4f6fa)}.kD5sxW_documents span{opacity:.7;font-size:11px}.kD5sxW_documents .kD5sxW_empty{opacity:.7;padding:6px 8px;font-size:12px}.kD5sxW_content{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d8dbe2);resize:none;background:var(--dsw-alias-bg-layer-2,#fbfcfe);width:100%;min-height:60px;color:var(--dsw-alias-label-primary,#20232a);white-space:pre-wrap;border-radius:8px;flex:1;padding:8px;font-family:inherit;font-size:13px;line-height:1.6}.kD5sxW_ask{gap:8px;display:flex}.kD5sxW_ask input{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);min-width:0;color:inherit;background:var(--dsw-alias-bg-layer-2,#fbfcfe);border-radius:8px;flex:1;padding:8px}.kD5sxW_ask button{background:var(--dsw-alias-accent,#2f6fed);color:#fff;cursor:pointer;border:0;border-radius:8px;padding:8px 14px}.kD5sxW_ask button:disabled{opacity:.5;cursor:not-allowed}";
+		const tagId$2 = "@kirkchinese/dsh-citeciter/DocumentReader.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$2) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$2;
+			tag.textContent = css$2;
+			document.head.appendChild(tag);
+		}
+		var DocumentReader_module_css_default = {
+			"activeDocument": "kD5sxW_activeDocument",
+			"ask": "kD5sxW_ask",
+			"content": "kD5sxW_content",
+			"documents": "kD5sxW_documents",
+			"empty": "kD5sxW_empty",
+			"error": "kD5sxW_error",
+			"header": "kD5sxW_header",
+			"import": "kD5sxW_import",
+			"pagination": "kD5sxW_pagination",
+			"panel": "kD5sxW_panel",
+			"root": "kD5sxW_root",
+			"trigger": "kD5sxW_trigger"
+		};
+		//#endregion
+		//#region lib/types/client/components/DocumentReader.js
+		/** Reader shell-overlay entry: compact trigger plus the document library panel. */
+		function DocumentReader({ reader, useReader, useOverlay, registerSurface, sourceSessionId }) {
+			const snapshot = useReader((value) => value);
+			const panelOpen = useOverlay((value) => value.panelOpen);
+			const textareaRef = (0, react.useRef)(null);
+			const importRef = (0, react.useRef)(null);
+			(0, react.useEffect)(() => {
+				const element = textareaRef.current;
+				const active = snapshot.active;
+				if (element === null || active === null || snapshot.loading) return;
+				return registerSurface(element, () => {
+					const selected = readTextareaSelection(element);
+					const source = sourceSessionId();
+					return selected === null || source === null ? null : {
+						kind: "document",
+						sourceSessionId: source,
+						title: active.title,
+						documentId: active.documentId,
+						...selected
+					};
+				});
+			}, [
+				registerSurface,
+				sourceSessionId,
+				snapshot.active,
+				snapshot.open,
+				snapshot.loading
+			]);
+			const syncSelection = () => {
+				const textarea = textareaRef.current;
+				reader.setSelection(textarea === null ? null : readTextareaSelection(textarea));
+			};
+			const onImport = async (event) => {
+				const input = event.currentTarget;
+				const file = input.files?.[0];
+				if (file === void 0) return;
+				await reader.importLocalFile(file);
+				input.value = "";
+			};
+			const onCreate = (event) => {
+				event.preventDefault();
+				reader.createTopic();
+			};
+			return (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
+				className: DocumentReader_module_css_default.root,
+				children: !snapshot.open ? !panelOpen && (0, react_jsx_runtime.jsx)("button", {
+					type: "button",
+					className: DocumentReader_module_css_default.trigger,
+					onClick: () => reader.setOpen(true),
+					title: "打开 CiteCiter 读书",
+					children: "📖"
+				}) : (0, react_jsx_runtime.jsxs)("section", {
+					className: DocumentReader_module_css_default.panel,
+					"data-citeciter-reader": true,
+					children: [
+						(0, react_jsx_runtime.jsxs)("header", {
+							className: DocumentReader_module_css_default.header,
+							children: [(0, react_jsx_runtime.jsx)("h2", { children: "文档阅读" }), (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								onClick: () => reader.setOpen(false),
+								"aria-label": "关闭读书面板",
+								children: "×"
+							})]
+						}),
+						snapshot.error !== null ? (0, react_jsx_runtime.jsx)("p", {
+							className: DocumentReader_module_css_default.error,
+							children: snapshot.error
+						}) : null,
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: DocumentReader_module_css_default.import,
+							children: [(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								disabled: snapshot.importing,
+								onClick: () => importRef.current?.click(),
+								"aria-label": "导入文本 / Markdown",
+								children: snapshot.importing ? "导入中…" : "+ 导入文档"
+							}), (0, react_jsx_runtime.jsx)("input", {
+								ref: importRef,
+								type: "file",
+								hidden: true,
+								disabled: snapshot.importing,
+								accept: ".txt,.md,.markdown,text/plain,text/markdown",
+								onChange: (event) => void onImport(event)
+							})]
+						}),
+						(0, react_jsx_runtime.jsxs)("ul", {
+							className: DocumentReader_module_css_default.documents,
+							children: [snapshot.documents.map((document) => (0, react_jsx_runtime.jsx)("li", { children: (0, react_jsx_runtime.jsxs)("button", {
+								type: "button",
+								onClick: () => void reader.openDocument(document.documentId),
+								className: snapshot.active?.documentId === document.documentId ? DocumentReader_module_css_default.activeDocument : void 0,
+								children: [document.title, (0, react_jsx_runtime.jsxs)("span", { children: [
+									document.format,
+									" · ",
+									document.size,
+									" B"
+								] })]
+							}) }, document.documentId)), snapshot.documentsStatus === "ready" && snapshot.documents.length === 0 ? (0, react_jsx_runtime.jsx)("li", {
+								className: DocumentReader_module_css_default.empty,
+								children: "还没有文档"
+							}) : null]
+						}),
+						(0, react_jsx_runtime.jsx)("textarea", {
+							"aria-label": "文档正文",
+							"aria-busy": snapshot.loading,
+							ref: textareaRef,
+							className: DocumentReader_module_css_default.content,
+							readOnly: true,
+							value: snapshot.active?.content ?? "",
+							placeholder: "选择文档开始阅读",
+							onSelect: snapshot.loading ? void 0 : syncSelection,
+							onMouseUp: snapshot.loading ? void 0 : syncSelection,
+							onKeyUp: snapshot.loading ? void 0 : syncSelection
+						}),
+						snapshot.active !== null ? (0, react_jsx_runtime.jsxs)("nav", {
+							className: DocumentReader_module_css_default.pagination,
+							"aria-label": "文档分页",
+							children: [
+								(0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									"aria-label": "上一页",
+									disabled: snapshot.loading || snapshot.active.page === 0,
+									onClick: () => void reader.openPage(snapshot.active.page - 1),
+									children: "‹"
+								}),
+								(0, react_jsx_runtime.jsx)("span", {
+									role: "status",
+									children: snapshot.loading ? "加载中…" : `第 ${snapshot.active.page + 1} / ${snapshot.active.pageCount} 页`
+								}),
+								(0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									"aria-label": "下一页",
+									disabled: snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount,
+									onClick: () => void reader.openPage(snapshot.active.page + 1),
+									children: "›"
+								})
+							]
+						}) : null,
+						(0, react_jsx_runtime.jsxs)("form", {
+							className: DocumentReader_module_css_default.ask,
+							onSubmit: onCreate,
+							children: [(0, react_jsx_runtime.jsx)("input", {
+								value: snapshot.question,
+								maxLength: 12e3,
+								onChange: (event) => reader.setQuestion(event.target.value),
+								placeholder: "就选中内容问 CiteCiter…",
+								"aria-label": "读书面板的问题"
+							}), (0, react_jsx_runtime.jsx)("button", {
+								type: "submit",
+								disabled: snapshot.creating || snapshot.loading || snapshot.selection === null || snapshot.question.trim() === "",
+								children: snapshot.creating ? "创建中…" : "准备草稿"
+							})]
+						})
+					]
+				})
+			}) });
+		}
+		//#endregion
+		//#region lib/types/client/action-controller.js
+		const actionSourceSession = (source) => source.kind === "conversation" ? source.selection.sourceSessionId : source.sourceSessionId;
+		const actionSourceQuote = (source) => source.kind === "conversation" ? source.selection.displayText : source.displayText;
+		/** Direction around the actual displayed centre; no action inside the dead zone or outside the wheel. */
+		function wheelSector(dx, dy) {
+			const radius = Math.hypot(dx, dy);
+			if (radius < 42 || radius > 180) return null;
+			return Math.floor((Math.atan2(dy, dx) + Math.PI / 2 + Math.PI * 2 + Math.PI / 8) % (Math.PI * 2) / (Math.PI / 4));
+		}
+		/** Prepare a draft through the action's destination policy; the Topic composer owns input and submission. */
+		function createActionController(execute, defaultModel = () => void 0) {
+			const store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({
+				wheel: null,
+				pending: null,
+				submitting: false,
+				error: null,
+				model: void 0
+			});
+			let disposed = false;
+			let generation = 0;
+			const update = (fn) => {
+				if (!disposed) store.update(fn);
+			};
+			const cancel = () => {
+				generation++;
+				update((d) => {
+					d.wheel = null;
+					d.pending = null;
+					d.error = null;
+				});
+			};
+			const submit = async () => {
+				const snapshot = store.getSnapshot();
+				if (disposed || snapshot.submitting || snapshot.pending === null) return;
+				const { source, action } = snapshot.pending;
+				const question = actionQuestion(action, "");
+				const ticket = generation;
+				update((d) => {
+					d.submitting = true;
+					d.error = null;
+				});
+				try {
+					await execute(source, action, question, snapshot.model);
+					if (ticket === generation) update((d) => {
+						d.pending = null;
+					});
+				} catch (error) {
+					if (ticket === generation) update((d) => {
+						d.error = error instanceof Error ? error.message : String(error);
+					});
+				} finally {
+					update((d) => {
+						d.submitting = false;
+					});
+				}
+			};
+			const choose = (index) => {
+				const { wheel, submitting } = store.getSnapshot();
+				if (disposed || submitting || wheel === null) return;
+				const action = index === null ? null : wheel.slots[index];
+				if (action == null) {
+					cancel();
+					return;
+				}
+				update((d) => {
+					d.wheel = null;
+					d.pending = {
+						source: wheel.source,
+						action,
+						x: wheel.x,
+						y: wheel.y
+					};
+					d.error = null;
+				});
+				submit();
+			};
+			return {
+				getSnapshot: store.getSnapshot,
+				subscribe: store.subscribe,
+				open(source, x, y, slots, held) {
+					if (disposed || store.getSnapshot().submitting || store.getSnapshot().pending !== null) return;
+					generation++;
+					const scale = Math.min(1, (window.innerWidth - 16) / 360, (window.innerHeight - 16) / 400);
+					const horizontal = 180 * scale + 8, above = 180 * scale + 8, below = 220 * scale + 8;
+					update((d) => {
+						d.pending = null;
+						d.error = null;
+						d.model = defaultModel();
+						d.wheel = {
+							source,
+							x: Math.max(horizontal, Math.min(x, window.innerWidth - horizontal)),
+							y: Math.max(above, Math.min(y, window.innerHeight - below)),
+							slots,
+							active: null,
+							held,
+							scale
+						};
+					});
+				},
+				move(x, y) {
+					const wheel = store.getSnapshot().wheel;
+					if (wheel === null) return;
+					const active = wheelSector((x - wheel.x) / wheel.scale, (y - wheel.y) / wheel.scale);
+					if (active !== wheel.active) update((d) => {
+						d.wheel = {
+							...wheel,
+							active
+						};
+					});
+				},
+				focus(index) {
+					const wheel = store.getSnapshot().wheel;
+					if (wheel !== null) update((d) => {
+						d.wheel = {
+							...wheel,
+							active: index
+						};
+					});
+				},
+				release(quick) {
+					const wheel = store.getSnapshot().wheel;
+					if (wheel === null) return;
+					if (quick && wheel.active === null) update((d) => {
+						d.wheel = {
+							...wheel,
+							held: false
+						};
+					});
+					else choose(wheel.active);
+				},
+				/** Focus loss cancels only the transient gesture; the Topic composer retains its draft. */
+				dismissWheel() {
+					update((d) => {
+						d.wheel = null;
+					});
+				},
+				choose,
+				cancel,
+				submit,
+				async dispose() {
+					cancel();
+					disposed = true;
+				}
+			};
+		}
+		//#endregion
+		//#region lib/types/client/selection-references.js
+		/** Capture an actual selected passage and its address; never reconstruct a citation from Topic metadata. */
+		function selectionReferences(source, documentId) {
+			const quote = actionSourceQuote(source);
+			if (quote.trim() === "") throw new Error("请先选中要引用的内容");
+			const sourceId = actionSourceSession(source);
+			const address = `dsh://session/${encodeURIComponent(sourceId)}`;
+			const references = [{
+				id: address,
+				kind: "source",
+				label: "来源对话",
+				content: sourceId,
+				address
+			}];
+			let quoteAddress = address;
+			if (source.kind === "document") {
+				if (documentId === void 0) throw new Error("文档快照尚未保存，请重新选择");
+				quoteAddress = `dsh://document/${encodeURIComponent(documentId)}`;
+				references.push({
+					id: quoteAddress,
+					kind: "source",
+					label: "来源文档",
+					content: source.title,
+					address: quoteAddress
+				});
+			}
+			const anchor = source.kind === "conversation" ? source.selection.anchorKey : documentId;
+			references.push({
+				id: JSON.stringify([
+					"selection",
+					quoteAddress,
+					anchor,
+					quote
+				]),
+				kind: "excerpt",
+				label: "引用文段",
+				content: source.kind === "document" ? `文档：${source.title}\n\n${quote}` : quote
+			});
+			return references;
+		}
+		//#endregion
+		//#region lib/types/client/action-executor.js
+		/** Bind explicit Topic and document services. No UI, global listeners or Cordis discovery. */
+		function createActionExecutor(companion, reader, open) {
+			const imports = /* @__PURE__ */ new WeakMap();
+			return async (source, action, question, modelRoute) => {
+				const sourceId = actionSourceSession(source);
+				const assertSource = () => {
+					if (companion.getSnapshot().sourceSessionId !== sourceId) throw new Error("来源会话已切换，请返回原文件或重新选文");
+				};
+				assertSource();
+				open(action.presentation);
+				const target = actionTarget(action) === "current" ? await companion.resolveDraftTopic(sourceId) : null;
+				assertSource();
+				if (source.kind === "conversation") {
+					if (target !== null) companion.appendSelection(sourceId, target, question, selectionReferences(source));
+					else {
+						await companion.create(source.selection, question, void 0, action.scenario, modelRoute);
+						if (companion.getSnapshot().phase === "error") throw new Error(companion.getSnapshot().error ?? "创建失败");
+					}
+					assertSource();
+					return;
+				}
+				let documentId = source.documentId ?? imports.get(source);
+				if (documentId === void 0) {
+					if (source.content === void 0) throw new Error("文件快照不可用，请重新选择");
+					const imported = await reader.importFile(source.title.slice(0, 200), source.content);
+					if (imported === null) throw new Error(reader.getSnapshot().error ?? "无法保存文件快照");
+					documentId = imported.documentId;
+					imports.set(source, documentId);
+				}
+				assertSource();
+				if (target !== null) companion.appendSelection(sourceId, target, question, selectionReferences(source, documentId));
+				else await companion.createFromDocument({
+					documentId,
+					displayText: source.displayText,
+					prefixText: source.prefixText,
+					suffixText: source.suffixText
+				}, question, sourceId, modelRoute);
+				assertSource();
+				reader.setOpen(false);
+			};
+		}
+		//#endregion
+		//#region lib/types/client/wheel-gesture.js
+		/** Owned reading surfaces provide captures without probing other plugins' private DOM. */
+		function createSelectionSurfaces() {
+			const readers = /* @__PURE__ */ new Map();
+			return {
+				register(element, read) {
+					readers.set(element, read);
+					return () => {
+						readers.delete(element);
+					};
+				},
+				read(target) {
+					for (const [element, read] of readers) if (target instanceof Node && element.contains(target)) return read();
+					return null;
+				}
+			};
+		}
+		/** Install hold/move/release gestures; returns a disposer removing every global listener. */
+		function installWheelGesture(controller, read, preferences) {
+			let held = null;
+			let suppressContextUntil = 0;
+			let pointer = {
+				x: 0,
+				y: 0,
+				target: null
+			};
+			const blocked = (target) => target instanceof Element && target.closest("[data-citeciter-menu], [role=\"dialog\"][aria-modal=\"true\"]") !== null;
+			const capture = (event, key) => {
+				if (blocked(event.target) || controller.getSnapshot().pending !== null) return;
+				const source = read(event);
+				if (source === null) return;
+				event.preventDefault();
+				held = {
+					key,
+					time: Date.now()
+				};
+				controller.open(source, event.clientX, event.clientY, preferences().wheelSlots ?? DEFAULT_WHEEL_SLOTS, true);
+			};
+			const down = (event) => {
+				if (event.button === 2 && (preferences().wheelTrigger ?? "right-button") === "right-button" && !event.shiftKey) capture(event, "right-button");
+				else if (!blocked(event.target) && event.button === 0) controller.dismissWheel();
+			};
+			const move = (event) => {
+				pointer = {
+					x: event.clientX,
+					y: event.clientY,
+					target: event.target
+				};
+				if (held !== null) controller.move(event.clientX, event.clientY);
+			};
+			const release = (key) => {
+				if (held?.key !== key) return;
+				const quick = Date.now() - held.time < 220;
+				held = null;
+				suppressContextUntil = Date.now() + 800;
+				controller.release(quick);
+			};
+			const up = (event) => {
+				if (event.button === 2) release("right-button");
+			};
+			const menu = (event) => {
+				if (held !== null || Date.now() < suppressContextUntil) {
+					event.preventDefault();
+					return;
+				}
+				if ((preferences().wheelTrigger ?? "right-button") !== "right-button" || event.shiftKey || blocked(event.target)) return;
+				const source = read(event);
+				if (source === null) return;
+				event.preventDefault();
+				controller.open(source, event.clientX, event.clientY, preferences().wheelSlots ?? DEFAULT_WHEEL_SLOTS, false);
+			};
+			const keydown = (event) => {
+				if (event.key === "Escape") {
+					held = null;
+					controller.cancel();
+					return;
+				}
+				if (held !== null && held.key !== "right-button" && event.key !== held.key) {
+					held = null;
+					controller.cancel();
+					return;
+				}
+				if (event.repeat || event.isComposing || held !== null) return;
+				if (event.key !== preferences().wheelTrigger) return;
+				if (event.target instanceof Element && event.target.closest("input, textarea:not([readonly]), [contenteditable=\"true\"]")) return;
+				const synthetic = {
+					target: document.elementFromPoint(pointer.x, pointer.y) ?? pointer.target,
+					clientX: pointer.x,
+					clientY: pointer.y,
+					preventDefault: () => event.preventDefault()
+				};
+				capture(synthetic, event.key);
+			};
+			const keyup = (event) => release(event.key);
+			const cancelGesture = () => {
+				held = null;
+				controller.dismissWheel();
+			};
+			document.addEventListener("pointerdown", down);
+			document.addEventListener("pointermove", move);
+			document.addEventListener("pointerup", up);
+			document.addEventListener("contextmenu", menu);
+			document.addEventListener("keydown", keydown);
+			document.addEventListener("keyup", keyup);
+			document.addEventListener("pointercancel", cancelGesture);
+			window.addEventListener("blur", cancelGesture);
+			window.addEventListener("resize", cancelGesture);
+			return () => {
+				held = null;
+				controller.cancel();
+				document.removeEventListener("pointerdown", down);
+				document.removeEventListener("pointermove", move);
+				document.removeEventListener("pointerup", up);
+				document.removeEventListener("contextmenu", menu);
+				document.removeEventListener("keydown", keydown);
+				document.removeEventListener("keyup", keyup);
+				document.removeEventListener("pointercancel", cancelGesture);
+				window.removeEventListener("blur", cancelGesture);
+				window.removeEventListener("resize", cancelGesture);
+			};
+		}
+		//#endregion
+		//#region lib/types/client/components/ActionWheel.js
+		/** Public wheel and creation-error retry. Questions and models are edited only in the Topic composer. */
+		function ActionWheel({ useActions, actions, companion }) {
+			const state = useActions((value) => value);
+			const menu = (0, react.useRef)(null);
+			const wheel = state.wheel;
+			const active = wheel?.active == null ? null : wheel.slots[wheel.active];
+			const pending = state.pending;
+			const visible = wheel !== null || pending !== null;
+			(0, react.useEffect)(() => visible ? companion.retainVisible() : void 0, [companion, visible]);
+			(0, react.useEffect)(() => {
+				if (wheel !== null && !wheel.held) menu.current?.focus();
+			}, [wheel?.held]);
+			return (0, react_jsx_runtime.jsxs)(OverlayPortal, { children: [wheel !== null && (0, react_jsx_runtime.jsxs)("div", {
+				className: ActionWheel_module_css_default.wheel,
+				style: {
+					left: wheel.x,
+					top: wheel.y,
+					"--wheel-scale": wheel.scale
+				},
+				"data-citeciter-menu": true,
+				"data-citeciter-wheel": true,
+				ref: menu,
+				tabIndex: -1,
+				role: "menu",
+				"aria-label": "CiteCiter 选文动作",
+				onKeyDown: (event) => {
+					if (event.key === "Escape") actions.cancel();
+					else if (/^[1-8]$/u.test(event.key)) {
+						event.preventDefault();
+						actions.choose(Number(event.key) - 1);
+					} else if (event.key === "Enter" || event.key === " ") {
+						event.preventDefault();
+						actions.choose(wheel.active);
+					} else if (event.key.startsWith("Arrow")) {
+						event.preventDefault();
+						actions.focus(((wheel.active ?? 0) + (["ArrowLeft", "ArrowUp"].includes(event.key) ? 7 : 1)) % 8);
+					}
+				},
+				children: [
+					(0, react_jsx_runtime.jsx)("svg", {
+						viewBox: "-180 -180 360 360",
+						"aria-hidden": "true",
+						className: ActionWheel_module_css_default.ring,
+						children: wheel.slots.map((slot, index) => {
+							const a = (index * 45 - 112.5) * Math.PI / 180, b = a + Math.PI / 4;
+							const p = (r, angle) => `${r * Math.cos(angle)} ${r * Math.sin(angle)}`;
+							return (0, react_jsx_runtime.jsx)("path", {
+								"data-active": wheel.active === index && slot !== null || void 0,
+								"data-empty": slot === null || void 0,
+								d: `M ${p(43, a)} L ${p(178, a)} A 178 178 0 0 1 ${p(178, b)} L ${p(43, b)} A 43 43 0 0 0 ${p(43, a)}`
+							}, index);
+						})
+					}),
+					wheel.slots.map((slot, index) => {
+						const angle = (index * 45 - 90) * Math.PI / 180;
+						return (0, react_jsx_runtime.jsxs)("button", {
+							className: ActionWheel_module_css_default.slot,
+							type: "button",
+							role: "menuitem",
+							"aria-disabled": slot === null,
+							"data-active": wheel.active === index || void 0,
+							style: {
+								left: 180 + Math.cos(angle) * 114,
+								top: 180 + Math.sin(angle) * 114
+							},
+							onMouseEnter: () => {
+								if (!wheel.held) actions.focus(index);
+							},
+							onFocus: () => actions.focus(index),
+							onClick: () => actions.choose(index),
+							title: slot?.prompt,
+							children: [
+								(0, react_jsx_runtime.jsx)("span", {
+									className: ActionWheel_module_css_default.slotNumber,
+									children: index + 1
+								}),
+								(0, react_jsx_runtime.jsx)("strong", { children: slot?.label ?? "空槽" }),
+								(0, react_jsx_runtime.jsx)("small", { children: slot === null ? "在设置中添加" : `${actionTarget(slot) === "current" ? "加入 Topic" : "新建 Topic"}${slot.ask ? " · 输入问题" : ""}` })
+							]
+						}, index);
+					}),
+					(0, react_jsx_runtime.jsxs)("button", {
+						type: "button",
+						className: ActionWheel_module_css_default.center,
+						onClick: actions.cancel,
+						"aria-label": "取消轮盘",
+						children: ["取消", (0, react_jsx_runtime.jsx)("small", { children: "Esc" })]
+					}),
+					(0, react_jsx_runtime.jsx)("div", {
+						className: ActionWheel_module_css_default.caption,
+						role: "status",
+						children: active == null ? "移向动作 · 回到中心取消" : `${active.label} · ${active.ask ? "在 Citer 中输入并发送" : "松开后准备草稿"}`
+					})
+				]
+			}), pending !== null && state.error !== null && (0, react_jsx_runtime.jsxs)("form", {
+				className: ActionWheel_module_css_default.prompt,
+				"data-citeciter-menu": true,
+				role: "dialog",
+				"aria-label": `${pending.action.label}：创建失败`,
+				style: {
+					"--prompt-x": `${pending.x - 210}px`,
+					"--prompt-y": `${pending.y - 100}px`
+				},
+				onSubmit: (event) => {
+					event.preventDefault();
+					actions.submit();
+				},
+				children: [
+					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsx)("strong", { children: pending.action.label }), (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						onClick: actions.cancel,
+						"aria-label": "关闭提问",
+						children: "×"
+					})] }),
+					(0, react_jsx_runtime.jsx)("blockquote", { children: actionSourceQuote(pending.source).slice(0, 180) }),
+					state.error !== null && (0, react_jsx_runtime.jsx)("p", {
+						role: "alert",
+						className: ActionWheel_module_css_default.error,
+						children: state.error
+					}),
+					(0, react_jsx_runtime.jsxs)("footer", { children: [(0, react_jsx_runtime.jsx)("span", { children: "引用已保留" }), (0, react_jsx_runtime.jsx)("button", {
+						type: "submit",
+						disabled: state.submitting,
+						children: "重试"
+					})] })
+				]
+			})] });
+		}
+		//#endregion
+		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-util-works_1bd82a3b0ba5dddf9476367bee2e8182/node_modules/@deepseek-ai/dsh-util-workspace-path/lib/index.js
+		/**
+		* The `dsh-resource://file/…` address grammar: how a file is named across the
+		* Sidebar and the resource model, built and parsed without touching a
+		* filesystem.
+		* @module
+		*/
+		/** The scheme and type every file address opens with. */
+		const FILE_ADDRESS_PREFIX = "dsh-resource://file/";
+		/** Whether a decoded first path segment is a Windows drive (`C:`). */
+		function isDriveSegment(segment) {
+			return segment !== void 0 && /^[A-Za-z]:$/.test(segment);
+		}
+		/**
+		* Read a file address back into its parts without resolving `.` or `..`.
+		* Query and fragment suffixes are ignored; encoded path segments are decoded.
+		* @param address - a candidate address.
+		* @returns the parts, or `undefined` when the string is not a `dsh-resource://file/` URI in a known scope with a path, or a segment is not validly encoded.
+		*/
+		function parseFileAddress(address) {
+			try {
+				if (!address.startsWith(FILE_ADDRESS_PREFIX)) return void 0;
+				const end = address.search(/[?#]/);
+				const [scope, ...rest] = address.slice(20, end === -1 ? void 0 : end).split("/");
+				if (scope === "session") {
+					const [id, ...segments] = rest;
+					if (id === void 0 || id === "" || segments.length === 0) return void 0;
+					return {
+						scope,
+						sessionId: decodeURIComponent(id),
+						path: segments.map(decodeURIComponent).join("/")
+					};
+				}
+				if (scope === "absolute") {
+					const unc = rest[0] === "" && rest.length > 1;
+					const segments = (unc ? rest.slice(1) : rest).map(decodeURIComponent);
+					if (segments.length === 0 || segments[0] === "") return void 0;
+					if (unc) return {
+						scope,
+						path: `//${segments.join("/")}`
+					};
+					return {
+						scope,
+						path: isDriveSegment(segments[0]) ? segments.join("/") : `/${segments.join("/")}`
+					};
+				}
+				return;
+			} catch {
+				return;
+			}
+		}
+		//#endregion
+		//#region lib/types/client/native-document.js
+		/** Decode a complete Host-owned preview buffer. Reject binary, partial and oversized imports. */
+		function decodeNativeText(content) {
+			if (content.kind !== "text" && content.kind !== "bytes") throw new Error("此预览没有文本数据，请切换到文本文件的学习查看方式");
+			if (content.kind === "text" && !content.eof) throw new Error("请等待原生预览读取完整文件后再学习");
+			if (content.kind === "bytes" && content.data.byteLength > 8388608) throw new Error("学习文本超过 8 MiB 上限");
+			const text = content.kind === "text" ? content.text : new TextDecoder("utf-8", { fatal: true }).decode(content.data);
+			if (text.includes("\0")) throw new Error("学习查看方式只支持 UTF-8 文本");
+			if (text.length > 2e6) throw new Error("学习文本不能超过 2,000,000 个字符");
+			return text;
+		}
+		/** Capture the file address's own Session and immutable text, never the later active tab. */
+		function nativeDocumentSource(address, content, selection) {
+			const file = parseFileAddress(address);
+			if (file?.scope !== "session") throw new Error("文件地址没有来源会话");
+			return {
+				kind: "document",
+				sourceSessionId: SessionId(file.sessionId),
+				title: file.path,
+				content,
+				...selection
+			};
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\NativeLearningDocument.module.css.mjs
+		const css$1 = ".WrwnuW_document{height:100%;min-height:0;color:var(--dsw-alias-label-primary,#263d3b);flex-direction:column;font:13px/1.5 system-ui,sans-serif;display:flex}.WrwnuW_document header{background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 76%,transparent);backdrop-filter:blur(18px)saturate(140%);border-bottom:1px solid var(--dsw-alias-border-l1,#d6dfdc);justify-content:space-between;align-items:center;gap:8px;padding:12px;display:flex}.WrwnuW_document small{color:var(--dsw-alias-label-secondary,#60706c);font-size:11px;display:block}.WrwnuW_document button{white-space:nowrap;color:#245c4f;cursor:pointer;background:#d9eee4;border:1px solid #43877466;border-radius:10px;padding:7px 10px}.WrwnuW_document p{margin:8px 12px;font-size:12px}.WrwnuW_document nav{justify-content:center;align-items:center;gap:16px;padding:8px;display:flex}.WrwnuW_document [role=alert]{color:#b34535}.WrwnuW_document textarea{resize:none;box-sizing:border-box;width:100%;min-height:120px;color:inherit;tab-size:4;background:0 0;border:0;outline:none;flex:1;padding:14px;font:13px/1.7 ui-monospace,Consolas,monospace}";
+		const tagId$1 = "@kirkchinese/dsh-citeciter/NativeLearningDocument.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$1) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$1;
+			tag.textContent = css$1;
+			document.head.appendChild(tag);
+		}
+		var NativeLearningDocument_module_css_default = { "document": "WrwnuW_document" };
+		/** Split UTF-8 text without breaking code points; concatenation exactly reproduces the input. */
+		function documentPages(content) {
+			const pages = [];
+			let start = 0, offset = 0, bytes = 0;
+			for (const character of content) {
+				const code = character.codePointAt(0);
+				const size = code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
+				if (bytes + size > 512e3) {
+					pages.push(content.slice(start, offset));
+					start = offset;
+					bytes = 0;
+				}
+				offset += character.length;
+				bytes += size;
+			}
+			pages.push(content.slice(start));
+			return pages;
+		}
+		//#endregion
+		//#region lib/types/client/components/NativeLearningDocument.js
+		/** Alternate native document renderer. DSH owns loading, reload and file navigation. */
+		function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface, openActions }) {
+			const field = (0, react.useRef)(null);
+			const [error, setError] = (0, react.useState)(null);
+			const [page, setPage] = (0, react.useState)(0);
+			const decoded = (0, react.useMemo)(() => {
+				try {
+					return {
+						text: decodeNativeText(content),
+						error: null
+					};
+				} catch (error) {
+					return {
+						text: "",
+						error: error instanceof Error ? error.message : String(error)
+					};
+				}
+			}, [content]);
+			const pages = (0, react.useMemo)(() => documentPages(decoded.text), [decoded.text]);
+			const currentPage = Math.min(page, pages.length - 1);
+			const read = () => {
+				const selected = field.current === null ? null : readTextareaSelection(field.current);
+				if (selected === null || decoded.error !== null) return null;
+				try {
+					return nativeDocumentSource(resourceAddress, decoded.text, selected);
+				} catch (error) {
+					setError(error instanceof Error ? error.message : String(error));
+					return null;
+				}
+			};
+			(0, react.useEffect)(() => {
+				const element = field.current;
+				if (element === null) return;
+				return registerSurface(element, read);
+			}, [
+				registerSurface,
+				resourceAddress,
+				decoded.text,
+				currentPage
+			]);
+			(0, react.useEffect)(() => {
+				setError(null);
+				setPage(0);
+			}, [content, resourceAddress]);
+			(0, react.useEffect)(() => {
+				field.current?.setSelectionRange(0, 0);
+				if (field.current !== null) field.current.scrollTop = 0;
+			}, [currentPage, decoded.text]);
+			return (0, react_jsx_runtime.jsxs)("section", {
+				className: NativeLearningDocument_module_css_default.document,
+				children: [
+					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "CiteCiter 学习" }), (0, react_jsx_runtime.jsx)("small", { children: "选文 → 按住触发键 → 移向动作 → 松开" })] }), (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						onClick: (event) => {
+							try {
+								const source = read();
+								if (source === null) {
+									setError("请先在正文中选中文字");
+									return;
+								}
+								setError(null);
+								const rect = event.currentTarget.getBoundingClientRect();
+								openActions(source, rect.left, rect.bottom);
+							} catch (error) {
+								setError(String(error));
+							}
+						},
+						children: "选文动作"
+					})] }),
+					(0, react_jsx_runtime.jsx)("p", { children: "使用原生文件与刷新功能；开始学习时保存全文快照。Markdown 和代码以源文本显示。" }),
+					(decoded.error ?? error) !== null && (0, react_jsx_runtime.jsx)("p", {
+						role: "alert",
+						children: decoded.error ?? error
+					}),
+					pages.length > 1 && (0, react_jsx_runtime.jsxs)("nav", {
+						"aria-label": "学习文档分页",
+						children: [
+							(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								disabled: currentPage === 0,
+								onClick: () => setPage(currentPage - 1),
+								children: "上一页"
+							}),
+							(0, react_jsx_runtime.jsxs)("span", { children: [
+								currentPage + 1,
+								" / ",
+								pages.length
+							] }),
+							(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								disabled: currentPage === pages.length - 1,
+								onClick: () => setPage(currentPage + 1),
+								children: "下一页"
+							})
+						]
+					}),
+					(0, react_jsx_runtime.jsx)("textarea", {
+						ref: (element) => {
+							field.current = element;
+							scrollportRef(element);
+						},
+						readOnly: true,
+						"aria-label": "原生文件学习正文",
+						value: pages[currentPage] ?? "",
+						wrap: wrap ? "soft" : "off",
+						spellCheck: false
+					})
+				]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/components/CiteLauncher.js
+		/** Independent entry back to the current learning workspace; owns no selection state. */
+		function CiteLauncher({ useCompanion, useOverlay, openPanel }) {
+			const snapshot = useCompanion((value) => value);
+			const open = useOverlay((value) => value.panelOpen);
+			if (snapshot.sourceSessionId === null || open) return null;
+			return (0, react_jsx_runtime.jsxs)("button", {
+				className: CiteCiter_module_css_default.topicLauncher,
+				type: "button",
+				onClick: openPanel,
+				"aria-label": snapshot.topics.length === 0 ? "打开 CiteCiter" : `打开 CiteCiter，共 ${snapshot.topics.length} 个讨论`,
+				title: "打开 CiteCiter",
+				children: [(0, react_jsx_runtime.jsx)("img", {
+					src: citeciter_mascot_default,
+					alt: "",
+					"aria-hidden": "true"
+				}), snapshot.topics.length > 0 && (0, react_jsx_runtime.jsx)("span", {
+					className: CiteCiter_module_css_default.launcherCount,
+					children: snapshot.topics.length
+				})]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/update-controller.js
+		const CHECK_INTERVAL_MS = 864e5;
+		const BROWSER_DISABLED_KEY = "citeciter:update-notifications-disabled";
+		const DEFERRED_KEY_PREFIX = "citeciter:update-deferred:";
+		/** Initial root-scoped update-notice state. */
+		const INITIAL_UPDATE_SNAPSHOT = Object.freeze({
+			available: null,
+			checking: false,
+			copyStatus: "idle",
+			copyMessage: null,
+			notificationsEnabled: true,
+			preferenceReady: false,
+			preferencePersistence: "host",
+			preferenceStatus: "idle",
+			preferenceMessage: null
+		});
+		const UNAVAILABLE_STORAGE = Object.freeze({
+			getItem: (_key) => null,
+			setItem: (_key, _value) => void 0,
+			removeItem: (_key) => void 0
+		});
+		function readBrowserStorage(read) {
+			try {
+				return read();
+			} catch {
+				return UNAVAILABLE_STORAGE;
+			}
+		}
+		/** @returns browser services without letting denied storage or clipboard getters break plugin mount. */
+		function createUpdateBrowserEnvironment() {
+			let clipboard;
+			try {
+				clipboard = typeof navigator === "undefined" ? void 0 : navigator.clipboard;
+			} catch {
+				clipboard = void 0;
+			}
+			return {
+				document,
+				sessionStorage: readBrowserStorage(() => sessionStorage),
+				localStorage: readBrowserStorage(() => localStorage),
+				clipboard,
+				now: Date.now
+			};
+		}
+		function updateCommand(version, profile = "web") {
+			if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(profile)) throw new Error("Invalid DSH profile name");
+			return `dsh plugin --profile ${profile} add @kirkchinese/dsh-citeciter@${version}`;
+		}
+		function deferredKey(version) {
+			return DEFERRED_KEY_PREFIX + version;
+		}
+		function storageHas(storage, key) {
+			try {
+				return storage.getItem(key) === "1";
+			} catch {
+				return false;
+			}
+		}
+		function writeBrowserPreference(storage, enabled) {
+			try {
+				if (enabled) storage.removeItem(BROWSER_DISABLED_KEY);
+				else storage.setItem(BROWSER_DISABLED_KEY, "1");
+				return storage.getItem(BROWSER_DISABLED_KEY) === "1" !== enabled;
+			} catch {
+				return false;
+			}
+		}
+		function isAbortError(error) {
+			return error instanceof DOMException && error.name === "AbortError";
+		}
+		/**
+		* Own update discovery, deferral, copy feedback, and preference persistence.
+		* @param settings - existing CiteCiter settings namespace scope.
+		* @param checkUpdate - validated Host version check; it never installs software.
+		* @param store - root-scoped observable state owned by the client runtime.
+		* @param environment - browser APIs, injectable for deterministic tests.
+		* @param reportCheckError - diagnostic sink for silent automatic-check failures.
+		* @returns the root-scoped update controller.
+		*/
+		function createUpdateController(settings, checkUpdate, store, environment = createUpdateBrowserEnvironment(), reportCheckError = () => void 0) {
+			let disposed = false;
+			let started = false;
+			let lastCheckAt = null;
+			let activeCheck = null;
+			let checkOperation = null;
+			let copyOperation = null;
+			let preferenceOperation = null;
+			const operations = /* @__PURE__ */ new Set();
+			const memoryDeferred = /* @__PURE__ */ new Set();
+			const track = (operation) => {
+				let tracked;
+				tracked = operation.finally(() => operations.delete(tracked));
+				operations.add(tracked);
+				return tracked;
+			};
+			const readPreference = () => {
+				const snapshot = settings.getSnapshot();
+				const browser = snapshot.mode === "memory";
+				return {
+					ready: browser || snapshot.status !== "loading",
+					enabled: browser ? !storageHas(environment.localStorage, BROWSER_DISABLED_KEY) : snapshot.value?.updateNotifications !== false,
+					persistence: browser ? "browser" : "host"
+				};
+			};
+			const publishPreference = () => {
+				const preference = readPreference();
+				store.update((state) => {
+					state.notificationsEnabled = preference.enabled;
+					state.preferenceReady = preference.ready;
+					state.preferencePersistence = preference.persistence;
+					if (!preference.enabled) {
+						state.available = null;
+						state.copyStatus = "idle";
+						state.copyMessage = null;
+					}
+				});
+				if (!preference.enabled) activeCheck?.abort();
+				return preference;
+			};
+			const report = (error) => {
+				try {
+					reportCheckError(error);
+				} catch {}
+			};
+			const runCheck = async (force = false) => {
+				if (disposed || checkOperation !== null) return checkOperation ?? Promise.resolve();
+				const preference = publishPreference();
+				if (!preference.ready || !preference.enabled) return;
+				const now = environment.now();
+				if (!force && lastCheckAt !== null && now - lastCheckAt < CHECK_INTERVAL_MS) return;
+				lastCheckAt = now;
+				const abort = new AbortController();
+				activeCheck = abort;
+				store.update((state) => {
+					state.checking = true;
+				});
+				const operation = (async () => {
+					try {
+						const available = await checkUpdate(abort.signal);
+						if (disposed || abort.signal.aborted || activeCheck !== abort || !readPreference().enabled) return;
+						const deferred = available !== null && (memoryDeferred.has(available.latestVersion) || storageHas(environment.sessionStorage, deferredKey(available.latestVersion)));
+						store.update((state) => {
+							state.available = deferred ? null : available;
+							state.copyStatus = "idle";
+							state.copyMessage = null;
+						});
+					} catch (error) {
+						if (!disposed && !abort.signal.aborted && !isAbortError(error)) report(error);
+					} finally {
+						if (activeCheck === abort) activeCheck = null;
+						if (!disposed) store.update((state) => {
+							state.checking = false;
+						});
+					}
+				})();
+				checkOperation = track(operation).finally(() => {
+					checkOperation = null;
+				});
+				return checkOperation;
+			};
+			const onSettingsChange = () => {
+				const previous = store.getSnapshot();
+				const preference = publishPreference();
+				if (!started || !preference.ready || !preference.enabled) return;
+				if (!previous.preferenceReady || !previous.notificationsEnabled) runCheck(true);
+			};
+			const unsubscribeSettings = settings.subscribe(onSettingsChange);
+			publishPreference();
+			const onVisibilityChange = () => {
+				if (environment.document.visibilityState === "visible") runCheck();
+			};
+			return {
+				getSnapshot: store.getSnapshot,
+				subscribe: store.subscribe,
+				start: async () => {
+					if (disposed || started) return;
+					started = true;
+					environment.document.addEventListener("visibilitychange", onVisibilityChange);
+					await runCheck();
+				},
+				copyUpdateCommand: async () => {
+					const available = store.getSnapshot().available;
+					if (disposed || available === null || copyOperation !== null) return copyOperation ?? Promise.resolve();
+					store.update((state) => {
+						state.copyStatus = "copying";
+						state.copyMessage = "正在复制更新命令…";
+					});
+					const operation = (async () => {
+						try {
+							if (environment.clipboard === void 0) throw new Error("clipboard unavailable");
+							await environment.clipboard.writeText(updateCommand(available.latestVersion, available.profile));
+							if (!disposed) store.update((state) => {
+								state.copyStatus = "copied";
+								state.copyMessage = "更新命令已复制。运行后请重启当前 DSH。";
+							});
+						} catch {
+							if (!disposed) store.update((state) => {
+								state.copyStatus = "error";
+								state.copyMessage = "无法自动复制，请手动复制下方命令。运行后请重启当前 DSH。";
+							});
+						}
+					})();
+					copyOperation = track(operation).finally(() => {
+						copyOperation = null;
+					});
+					return copyOperation;
+				},
+				defer: () => {
+					const available = store.getSnapshot().available;
+					if (disposed || available === null) return;
+					memoryDeferred.add(available.latestVersion);
+					try {
+						environment.sessionStorage.setItem(deferredKey(available.latestVersion), "1");
+					} catch {}
+					store.update((state) => {
+						state.available = null;
+						state.copyStatus = "idle";
+						state.copyMessage = null;
+					});
+				},
+				setNotificationsEnabled: async (enabled) => {
+					if (disposed || preferenceOperation !== null) return preferenceOperation ?? false;
+					store.update((state) => {
+						state.preferenceStatus = "saving";
+						state.preferenceMessage = enabled ? "正在开启更新提醒…" : "正在关闭更新提醒…";
+					});
+					const operation = (async () => {
+						const persistence = readPreference().persistence;
+						let saved = false;
+						try {
+							if (persistence === "browser") saved = writeBrowserPreference(environment.localStorage, enabled);
+							else {
+								await settings.set("updateNotifications", enabled);
+								saved = settings.getSnapshot().value?.updateNotifications === enabled;
+							}
+						} catch {
+							saved = false;
+						}
+						if (disposed) return false;
+						publishPreference();
+						if (!saved) {
+							store.update((state) => {
+								state.preferenceStatus = "error";
+								state.preferenceMessage = persistence === "browser" ? "浏览器阻止了本地存储，无法保存更新提醒设置。" : "无法保存更新提醒设置，请重试。";
+							});
+							return false;
+						}
+						store.update((state) => {
+							state.preferenceStatus = "saved";
+							state.preferenceMessage = enabled ? "已开启版本更新提醒" : "已关闭版本更新提醒";
+							if (!enabled) state.available = null;
+						});
+						if (enabled) runCheck(true);
+						return true;
+					})();
+					preferenceOperation = track(operation).finally(() => {
+						preferenceOperation = null;
+					});
+					return preferenceOperation;
+				},
+				dispose: async () => {
+					if (disposed) return;
+					disposed = true;
+					activeCheck?.abort();
+					activeCheck = null;
+					unsubscribeSettings();
+					if (started) environment.document.removeEventListener("visibilitychange", onVisibilityChange);
+					started = false;
+					while (operations.size > 0) await Promise.allSettled([...operations]);
+				}
+			};
+		}
+		/** @param version - validated latest package version. @param profile - active Desktop profile, or Web default. @returns the command shown and copied by the notice. */
+		function citeCiterUpdateCommand(version, profile = "web") {
+			return updateCommand(version, profile);
+		}
+		//#endregion
+		//#region \0dsh-css:src\client\components\UpdateNotice.module.css.mjs
+		const css = ".Ftywza_notice{z-index:210;top:max(16px, calc(env(safe-area-inset-top) + 12px));right:max(16px, calc(env(safe-area-inset-right) + 12px));box-sizing:border-box;width:min(384px,100vw - 32px);max-height:calc(100dvh - 32px);color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-2,#fff);border:1px solid var(--dsw-alias-border-inverted,#d9dde5);box-shadow:var(--dsw-shadow-lv3,0 14px 36px #1a1f2c2e);pointer-events:auto;border-radius:22px;flex-direction:column;gap:14px;padding:20px;animation:.16s ease-out Ftywza_update-notice-in;display:flex;position:absolute;overflow:auto}.Ftywza_announcement{clip:rect(0 0 0 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.Ftywza_heading{align-items:center;gap:12px;display:flex}.Ftywza_heading h2,.Ftywza_heading p,.Ftywza_description,.Ftywza_feedback{margin:0}.Ftywza_heading h2{font-size:16px;font-weight:600;line-height:24px}.Ftywza_badge{width:38px;height:38px;color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,#3478f6);border-radius:12px;flex:none;place-items:center;font-size:20px;font-weight:600;display:grid}.Ftywza_version{color:var(--dsw-alias-label-secondary,#606875);white-space:nowrap;align-items:center;gap:6px;font-size:12px;line-height:18px;display:flex}.Ftywza_version strong{color:var(--dsw-alias-state-success-primary,#16875d);font-weight:600}.Ftywza_description{color:var(--dsw-alias-label-secondary,#606875);font-size:13px;line-height:20px}.Ftywza_command{overflow-wrap:anywhere;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#f7f8fa);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);font-family:var(--dsw-font-family-mono,ui-monospace, monospace);user-select:text;border-radius:10px;padding:10px 12px;font-size:11px;line-height:18px;display:block}.Ftywza_feedback{color:var(--dsw-alias-state-success-primary,#16875d);font-size:12px;line-height:18px}.Ftywza_feedback[data-status=copying]{color:var(--dsw-alias-label-secondary,#606875)}.Ftywza_feedback[data-status=error]{color:var(--dsw-alias-state-error-primary,#c93f3f)}.Ftywza_actions{grid-template-columns:auto auto auto;justify-content:end;gap:8px;display:grid}.Ftywza_action{white-space:nowrap;min-height:40px}.Ftywza_action:focus-visible{outline:2px solid var(--dsw-alias-state-focus,#3478f6);outline-offset:2px}@keyframes Ftywza_update-notice-in{0%{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}@media (width<=480px){.Ftywza_notice{top:max(12px, calc(env(safe-area-inset-top) + 12px));right:max(12px, calc(env(safe-area-inset-right) + 12px));left:max(12px, calc(env(safe-area-inset-left) + 12px));border-radius:18px;width:auto;max-height:calc(100dvh - 24px);padding:18px}.Ftywza_actions{grid-template-columns:minmax(0,1fr) minmax(0,1fr);justify-content:stretch}.Ftywza_updateAction{grid-column:1/-1}.Ftywza_action{width:100%;min-height:44px}}@media (width<=360px){.Ftywza_actions{grid-template-columns:minmax(0,1fr)}.Ftywza_updateAction{grid-column:auto}}@media (prefers-reduced-motion:reduce){.Ftywza_notice{animation:none}}";
+		const tagId = "@kirkchinese/dsh-citeciter/UpdateNotice.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId;
+			tag.textContent = css;
+			document.head.appendChild(tag);
+		}
+		var UpdateNotice_module_css_default = {
+			"action": "Ftywza_action",
+			"actions": "Ftywza_actions",
+			"announcement": "Ftywza_announcement",
+			"badge": "Ftywza_badge",
+			"command": "Ftywza_command",
+			"description": "Ftywza_description",
+			"feedback": "Ftywza_feedback",
+			"heading": "Ftywza_heading",
+			"notice": "Ftywza_notice",
+			"update-notice-in": "Ftywza_update-notice-in",
+			"updateAction": "Ftywza_updateAction",
+			"version": "Ftywza_version"
+		};
+		//#endregion
+		//#region lib/types/client/components/UpdateNotice.js
+		/**
+		* Render the non-modal Web update notice in the frame-wide overlay.
+		* @param props - root-scoped update actions and observable state.
+		* @returns the available-version card, or no surface while current or suppressed.
+		*/
+		function UpdateNotice({ useUpdate, updateController }) {
+			const snapshot = useUpdate((value) => value);
+			const titleId = (0, react.useId)();
+			const descriptionId = (0, react.useId)();
+			const previousFocus = (0, react.useRef)(null);
+			const available = snapshot.available;
+			(0, react.useEffect)(() => {
+				if (available === null) return;
+				const active = document.activeElement;
+				if (active instanceof HTMLElement && active.closest("[data-citeciter-update-notice]") === null) previousFocus.current = active;
+			}, [available]);
+			if (available === null) return null;
+			const busy = snapshot.copyStatus === "copying" || snapshot.preferenceStatus === "saving";
+			const restoreFocus = () => {
+				const target = previousFocus.current;
+				requestAnimationFrame(() => {
+					if (target?.isConnected === true) target.focus();
+				});
+			};
+			const rememberFocus = () => {
+				const active = document.activeElement;
+				if (active instanceof HTMLElement && active.closest("[data-citeciter-update-notice]") === null) previousFocus.current = active;
+			};
+			const disableNotifications = async () => {
+				if (await updateController.setNotificationsEnabled(false)) restoreFocus();
+			};
+			return (0, react_jsx_runtime.jsxs)("section", {
+				className: UpdateNotice_module_css_default.notice,
+				"data-citeciter-update-notice": true,
+				role: "region",
+				"aria-labelledby": titleId,
+				"aria-describedby": descriptionId,
+				"aria-busy": busy,
+				onPointerDownCapture: rememberFocus,
+				onFocusCapture: rememberFocus,
+				children: [
+					(0, react_jsx_runtime.jsxs)("p", {
+						className: UpdateNotice_module_css_default.announcement,
+						role: "status",
+						"aria-live": "polite",
+						children: ["CiteCiter 有新版本 ", available.latestVersion]
+					}),
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: UpdateNotice_module_css_default.heading,
+						children: [(0, react_jsx_runtime.jsx)("span", {
+							className: UpdateNotice_module_css_default.badge,
+							"aria-hidden": "true",
+							children: "↑"
+						}), (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h2", {
+							id: titleId,
+							children: "CiteCiter 有新版本"
+						}), (0, react_jsx_runtime.jsxs)("p", {
+							className: UpdateNotice_module_css_default.version,
+							children: [
+								(0, react_jsx_runtime.jsxs)("span", { children: ["v", available.currentVersion] }),
+								(0, react_jsx_runtime.jsx)("span", {
+									"aria-hidden": "true",
+									children: "→"
+								}),
+								(0, react_jsx_runtime.jsxs)("strong", { children: ["v", available.latestVersion] })
+							]
+						})] })]
+					}),
+					(0, react_jsx_runtime.jsx)("p", {
+						id: descriptionId,
+						className: UpdateNotice_module_css_default.description,
+						children: "“更新”复制安装命令。执行前请核对目标 Profile 与新版 DSH 要求，完成后重启当前 DSH。"
+					}),
+					(0, react_jsx_runtime.jsx)("code", {
+						className: UpdateNotice_module_css_default.command,
+						children: citeCiterUpdateCommand(available.latestVersion, available.profile)
+					}),
+					snapshot.copyMessage !== null && (0, react_jsx_runtime.jsx)("p", {
+						className: UpdateNotice_module_css_default.feedback,
+						"data-status": snapshot.copyStatus,
+						role: snapshot.copyStatus === "error" ? "alert" : "status",
+						children: snapshot.copyMessage
+					}),
+					snapshot.preferenceStatus === "error" && snapshot.preferenceMessage !== null && (0, react_jsx_runtime.jsx)("p", {
+						className: UpdateNotice_module_css_default.feedback,
+						"data-status": "error",
+						role: "alert",
+						children: snapshot.preferenceMessage
+					}),
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: UpdateNotice_module_css_default.actions,
+						children: [
+							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "primary",
+								className: `${UpdateNotice_module_css_default.action} ${UpdateNotice_module_css_default.updateAction}`,
+								"aria-label": "更新",
+								disabled: busy,
+								onClick: () => {
+									updateController.copyUpdateCommand();
+								},
+								children: "更新"
+							}),
+							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "outline",
+								className: UpdateNotice_module_css_default.action,
+								"aria-label": "下次一定",
+								disabled: busy,
+								onClick: () => {
+									updateController.defer();
+									restoreFocus();
+								},
+								children: "下次一定"
+							}),
+							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "ghost",
+								className: UpdateNotice_module_css_default.action,
+								"aria-label": "不再提示",
+								disabled: busy,
+								onClick: () => {
+									disableNotifications();
+								},
+								children: "不再提示"
+							})
+						]
+					})
+				]
+			});
+		}
+		//#endregion
+		//#region lib/types/client/conversation-dom.js
+		/** Centralized best-effort adapters for DSH conversation and Read Frog DOM markers. */
+		const DSH_FLOW_SELECTOR = "[data-chat-flow-kind]";
+		const DSH_ASSISTANT_ANCHOR_SELECTOR = "[data-chat-flow-kind=\"assistant-step\"][data-chat-anchor-key]";
+		const DSH_REASONING_SELECTOR = "[data-variant=\"think\"]";
+		const DSH_REASONING_HEADER_SELECTOR = "[data-disclosure-row]";
+		const DSH_GENERATED_CONTENT_SELECTOR = "button, .katex, [data-footnotes], sup";
+		const DSH_CODE_BLOCK_SELECTOR = ".md-code-block";
+		const READ_FROG_TRANSLATION_SELECTOR = "[data-read-frog-translation-mode]";
+		const READ_FROG_PARAGRAPH_SELECTOR = "[data-read-frog-paragraph]";
+		function elementForNode(node) {
+			return node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+		}
+		function parseFlow(element) {
+			if (element === null) return null;
+			return {
+				element,
+				kind: element.dataset.chatFlowKind ?? "",
+				anchorKey: element.dataset.chatAnchorKey ?? null
+			};
+		}
+		function parseAssistantAnchor(element) {
+			const flow = parseFlow(element);
+			if (flow === null || flow.kind !== "assistant-step" || flow.anchorKey === null || flow.anchorKey === "") return null;
+			return {
+				element: flow.element,
+				anchorKey: flow.anchorKey
+			};
+		}
+		/**
+		* Parse the nearest DSH conversation flow containing a DOM node.
+		*
+		* @param node - rendered conversation node to inspect.
+		* @returns parsed flow metadata, or null outside a known DSH flow.
+		*/
+		function dshConversationFlow(node) {
+			return parseFlow(elementForNode(node)?.closest(DSH_FLOW_SELECTOR) ?? null);
+		}
+		/**
+		* Parse the assistant anchor that owns a context-menu event target.
+		*
+		* @param target - browser event target to inspect.
+		* @returns validated assistant metadata, or null outside an anchored assistant flow.
+		*/
+		function dshAssistantAnchorForTarget(target) {
+			if (!(target instanceof Element)) return null;
+			return parseAssistantAnchor(target.closest(DSH_ASSISTANT_ANCHOR_SELECTOR));
+		}
+		/**
+		* Return assistant anchors intersected by a DOM range in document order.
+		*
+		* @param range - current rendered selection range.
+		* @returns validated assistant anchors touched by the range.
+		*/
+		function dshIntersectedAssistantAnchors(range) {
+			const anchors = [];
+			for (const element of document.querySelectorAll(DSH_ASSISTANT_ANCHOR_SELECTOR)) {
+				if (!range.intersectsNode(element)) continue;
+				const anchor = parseAssistantAnchor(element);
+				if (anchor !== null) anchors.push(anchor);
+			}
+			return anchors;
+		}
+		/**
+		* Detect generated controls and collapsed code chrome.
+		*
+		* @param range - current rendered selection range.
+		* @param flow - assistant flow containing the range.
+		* @returns whether the range touches content that CiteCiter must ignore.
+		*/
+		function dshRangeTouchesExcludedContent(range, flow) {
+			for (const generated of flow.querySelectorAll(DSH_GENERATED_CONTENT_SELECTOR)) if (range.intersectsNode(generated)) return true;
+			for (const endpoint of [range.startContainer, range.endContainer]) {
+				const element = elementForNode(endpoint);
+				if (element?.closest(DSH_CODE_BLOCK_SELECTOR) !== null && element?.closest("pre") === null) return true;
+			}
+			return false;
+		}
+		/**
+		* Detect a selection endpoint inside a generated reasoning disclosure row.
+		*
+		* @param range - current rendered selection range.
+		* @param flow - assistant flow containing the range.
+		* @returns whether a collapsed or expanded reasoning header anchors the selection.
+		*/
+		function dshRangeHasReasoningHeaderEndpoint(range, flow) {
+			for (const endpoint of [range.startContainer, range.endContainer]) {
+				const header = elementForNode(endpoint)?.closest(DSH_REASONING_HEADER_SELECTOR);
+				if (header !== null && header !== void 0 && flow.contains(header) && header.closest(DSH_REASONING_SELECTOR) !== null) return true;
+			}
+			return false;
+		}
+		/**
+		* Determine whether a node is generated UI rather than committed citable text.
+		*
+		* @param node - rendered node to classify.
+		* @returns whether the node must stay out of the citable projection.
+		*/
+		function isNonCitableProjection(node) {
+			if (node.nodeType !== Node.ELEMENT_NODE) return false;
+			const element = node;
+			return element.matches(READ_FROG_TRANSLATION_SELECTOR) || element.matches(DSH_REASONING_HEADER_SELECTOR) && element.closest(DSH_REASONING_SELECTOR) !== null;
+		}
+		/**
+		* Determine whether a node owns one DSH reasoning block.
+		*
+		* @param node - rendered node to classify.
+		* @returns whether the node is a reasoning root.
+		*/
+		function isDshReasoningContent(node) {
+			return node.nodeType === Node.ELEMENT_NODE && node.matches(DSH_REASONING_SELECTOR);
+		}
+		/**
+		* Resolve a selection wholly inside one Read Frog translation to its source paragraph.
+		*
+		* @param range - current rendered selection range.
+		* @param assistant - assistant flow containing the translated projection.
+		* @returns translation mapping state and source paragraph when available.
+		*/
+		function readFrogSelection(range, assistant) {
+			const translatedStart = elementForNode(range.startContainer)?.closest(READ_FROG_TRANSLATION_SELECTOR);
+			const translatedEnd = elementForNode(range.endContainer)?.closest(READ_FROG_TRANSLATION_SELECTOR);
+			if (translatedStart === null || translatedStart === void 0) return translatedEnd === null || translatedEnd === void 0 ? { kind: "none" } : { kind: "invalid" };
+			if (translatedEnd === null || translatedEnd === void 0 || translatedStart !== translatedEnd) return { kind: "invalid" };
+			const sourceParagraph = translatedStart.parentElement?.closest(READ_FROG_PARAGRAPH_SELECTOR);
+			if (sourceParagraph === null || sourceParagraph === void 0 || !assistant.contains(sourceParagraph)) return { kind: "invalid" };
+			return {
+				kind: "translation",
+				sourceParagraph
+			};
+		}
+		//#endregion
+		//#region lib/types/client/entry-ids.js
+		/** Stable identities for CiteCiter client entry points. */
+		const ASSISTANT_ENTRY_ID = "citeciter.entry.assistant";
+		const TOOL_ENTRY_ID = "citeciter.entry.tool";
+		//#endregion
+		//#region lib/types/evidence-text.js
+		/** Shared tool-evidence text projections used by Host validation and Client claims. */
+		/**
+		* Join the text blocks of one tool result into its citable projection.
+		* @param blocks - model-facing tool-result content blocks.
+		* @returns concatenated text blocks.
+		*/
+		function projectToolResultText(blocks) {
+			let text = "";
+			for (const block of blocks) {
+				if (block === null || typeof block !== "object") continue;
+				const candidate = block;
+				if (candidate.type === "text" && typeof candidate.text === "string") text += candidate.text;
+			}
+			return text;
+		}
+		/**
+		* Project one diff payload from a tool-result presentation meta.
+		* @param meta - opaque tool-result meta carrying an optional `diffs` array.
+		* @returns deterministic whole-card diff text, or null when no valid diff exists.
+		*/
+		function projectDiffMeta(meta) {
+			if (meta === null || typeof meta !== "object") return null;
+			const candidate = meta;
+			if (!Array.isArray(candidate.diffs) || candidate.diffs.length === 0) return null;
+			const sections = [];
+			for (const entry of candidate.diffs) {
+				if (entry === null || typeof entry !== "object") return null;
+				const diff = entry;
+				if (typeof diff.path !== "string" || diff.path === "" || typeof diff.newText !== "string") return null;
+				if (diff.oldText !== null && typeof diff.oldText !== "string") return null;
+				sections.push(`--- ${diff.path} (old) ---\n${diff.oldText ?? ""}\n+++ ${diff.path} (new) ---\n${diff.newText}`);
+			}
+			return sections.join("\n\n");
+		}
+		/**
+		* Resolve the citable whole-card projection for one tool result.
+		* @param projection - declared evidence projection kind.
+		* @param content - model-facing tool-result content blocks.
+		* @param meta - opaque presentation meta (diff payload for the diff projection).
+		* @returns projection text, or null when the payload cannot satisfy the kind.
+		*/
+		function projectToolEvidence(projection, content, meta) {
+			if (projection === "diff") return projectDiffMeta(meta);
+			return projectToolResultText(content);
+		}
+		//#endregion
+		//#region lib/types/client/selection.js
+		const RANGE_CONTEXT_CHARS = 240;
+		function committedText(root, target) {
+			let text = "";
+			let targetStart;
+			let targetEnd;
+			const visit = (node) => {
+				if (isNonCitableProjection(node)) return;
+				const start = text.length;
+				if (node === target) targetStart = text.length;
+				if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
+				else for (const child of node.childNodes) visit(child);
+				if (node === target) targetEnd = text.length;
+				if (isDshReasoningContent(node) && text.length > start) text += "\n\n";
+			};
+			visit(root);
+			return {
+				text,
+				targetStart,
+				targetEnd
+			};
+		}
+		function committedTextBefore(root, boundary, offset) {
+			let text = "";
+			let found = false;
+			const visit = (node) => {
+				if (found || isNonCitableProjection(node)) return;
+				if (node === boundary) {
+					if (node.nodeType === Node.TEXT_NODE) text += (node.textContent ?? "").slice(0, offset);
+					else for (let index = 0; index < offset; index++) {
+						const child = node.childNodes[index];
+						if (child !== void 0) visit(child);
+					}
+					found = true;
+					return;
+				}
+				const start = text.length;
+				if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
+				else for (const child of node.childNodes) {
+					visit(child);
+					if (found) return;
+				}
+				if (isDshReasoningContent(node) && text.length > start) text += "\n\n";
+			};
+			visit(root);
+			return found ? text : null;
+		}
+		/**
+		* Resolve the current DOM selection into a CiteSelection.
+		*
+		* A Range inside one assistant flow keeps exact visible offsets. A cross-flow
+		* Range binds to its final intersected assistant model call while preserving
+		* the complete visible quote for the learning UI.
+		*
+		* @param event - context-menu event whose pointer position anchors the menu.
+		* @param sourceSessionId - current session identity captured with the DOM range.
+		* @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
+		* @returns validated selection metadata, or null when CiteCiter should ignore it.
+		*/
+		function readSelection(event, sourceSessionId, committedAssistantText) {
+			const eventAnchor = dshAssistantAnchorForTarget(event.target);
+			if (eventAnchor === null) return null;
+			const selection = window.getSelection();
+			if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return null;
+			const range = selection.getRangeAt(0);
+			const startFlow = dshConversationFlow(range.startContainer);
+			const endFlow = dshConversationFlow(range.endContainer);
+			if (startFlow === null || endFlow === null) return null;
+			if (endFlow.element !== startFlow.element) {
+				const anchor = dshIntersectedAssistantAnchors(range).at(-1);
+				const displayText = range.toString().trim();
+				if (anchor === void 0 || anchor.element !== eventAnchor.element || displayText === "") return null;
+				const projected = committedText(anchor.element).text;
+				const sourceHintText = projected.trim();
+				if (sourceHintText === "") return null;
+				const startOffset = projected.length - projected.trimStart().length;
+				const endOffset = projected.length - (projected.length - projected.trimEnd().length);
+				return {
+					entryId: ASSISTANT_ENTRY_ID,
+					sourceSessionId,
+					displayText,
+					sourceHintText,
+					kind: "assistant-step",
+					anchorKey: anchor.anchorKey,
+					startOffset,
+					endOffset,
+					prefixText: "",
+					suffixText: "",
+					x: event.clientX,
+					y: event.clientY
+				};
+			}
+			if (startFlow.element !== eventAnchor.element || dshRangeTouchesExcludedContent(range, startFlow.element)) return null;
+			if (dshRangeHasReasoningHeaderEndpoint(range, startFlow.element)) {
+				const displayText = range.toString().trim();
+				if (displayText === "" || committedAssistantText === void 0 || committedAssistantText === "") return null;
+				return {
+					entryId: ASSISTANT_ENTRY_ID,
+					sourceSessionId,
+					displayText,
+					sourceHintText: committedAssistantText,
+					kind: "assistant-step",
+					anchorKey: eventAnchor.anchorKey,
+					startOffset: 0,
+					endOffset: committedAssistantText.length,
+					prefixText: "",
+					suffixText: "",
+					x: event.clientX,
+					y: event.clientY
+				};
+			}
+			const translated = readFrogSelection(range, startFlow.element);
+			if (translated.kind === "invalid") return null;
+			let text;
+			let flowText;
+			let startOffset;
+			let endOffset;
+			let sourceHintText;
+			if (translated.kind === "translation") {
+				const projected = committedText(startFlow.element, translated.sourceParagraph);
+				if (projected.targetStart === void 0 || projected.targetEnd === void 0) return null;
+				const rawSourceHint = projected.text.slice(projected.targetStart, projected.targetEnd);
+				const sourceLeading = rawSourceHint.length - rawSourceHint.trimStart().length;
+				const sourceTrailing = rawSourceHint.length - rawSourceHint.trimEnd().length;
+				text = range.toString().trim();
+				flowText = projected.text;
+				startOffset = projected.targetStart + sourceLeading;
+				endOffset = projected.targetEnd - sourceTrailing;
+				sourceHintText = rawSourceHint.trim();
+			} else {
+				const beforeStart = committedTextBefore(startFlow.element, range.startContainer, range.startOffset);
+				const beforeEnd = committedTextBefore(startFlow.element, range.endContainer, range.endOffset);
+				if (beforeStart === null || beforeEnd === null || beforeEnd.length < beforeStart.length) return null;
+				const rawText = beforeEnd.slice(beforeStart.length);
+				const leadingWhitespace = rawText.length - rawText.trimStart().length;
+				const trailingWhitespace = rawText.length - rawText.trimEnd().length;
+				text = rawText.trim();
+				flowText = committedText(startFlow.element).text;
+				startOffset = beforeStart.length + leadingWhitespace;
+				endOffset = beforeEnd.length - trailingWhitespace;
+			}
+			if (text === "") return null;
+			if (startOffset < 0 || endOffset < startOffset || endOffset > flowText.length) return null;
+			return {
+				entryId: ASSISTANT_ENTRY_ID,
+				sourceSessionId,
+				displayText: text,
+				...sourceHintText === void 0 ? {} : { sourceHintText },
+				kind: "assistant-step",
+				anchorKey: eventAnchor.anchorKey,
+				startOffset,
+				endOffset,
+				prefixText: flowText.slice(Math.max(0, startOffset - RANGE_CONTEXT_CHARS), startOffset),
+				suffixText: flowText.slice(endOffset, endOffset + RANGE_CONTEXT_CHARS),
+				x: event.clientX,
+				y: event.clientY
+			};
+		}
+		/**
+		* Claim a context menu only after resolving a valid DSH assistant selection.
+		*
+		* @param event - context-menu event to validate and optionally cancel.
+		* @param sourceSessionId - current source session captured with the selection.
+		* @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
+		* @returns validated selection metadata, or null while leaving the native menu untouched.
+		*/
+		function claimSelectionContextMenu(event, sourceSessionId, committedAssistantText) {
+			const selection = readSelection(event, sourceSessionId, committedAssistantText);
+			if (selection === null) return null;
+			event.preventDefault();
+			return selection;
+		}
+		//#endregion
+		//#region lib/types/client/entries.js
+		/** Create an ordered client entry registry. */
+		function createCiteCiterEntryRegistry() {
+			const entries = [];
+			return {
+				register(entry) {
+					entries.push(entry);
+					return () => {
+						const index = entries.indexOf(entry);
+						if (index !== -1) entries.splice(index, 1);
+					};
+				},
+				list: () => [...entries],
+				claim(event, context) {
+					for (const entry of entries) {
+						const selection = entry.claim(event, context);
+						if (selection !== null) return {
+							entry,
+							selection
+						};
+					}
+					return null;
+				}
+			};
+		}
+		/**
+		* Built-in assistant answer entry: resolves a selection inside a committed
+		* `assistant-step` flow, including collapsed reasoning disclosure rows.
+		* @returns the entry contribution; register it on the shared registry.
+		*/
+		function createAssistantEntry() {
+			return {
+				id: ASSISTANT_ENTRY_ID,
+				claim(event, { readChat, sourceSessionId }) {
+					const anchor = dshAssistantAnchorForTarget(event.target);
+					if (anchor === null) return null;
+					const node = readChat(sourceSessionId)?.nodes.get(anchor.anchorKey);
+					return claimSelectionContextMenu(event, sourceSessionId, (node?.kind === "assistant-step" ? readAssistantAnswer(node.data) : null)?.text);
+				}
+			};
+		}
+		/** Classify the projection a tool-card pointer event asks for. */
+		function toolProjectionForTarget(target) {
+			if (target.closest("[data-terminal]") !== null) return "terminal";
+			if (target.closest("[data-diff]") !== null) return "diff";
+			return "result-text";
+		}
+		/**
+		* Built-in tool evidence entry: claims a whole-card tool result from its
+		* `call:<callId>` row and the enclosing `tool-call` chat flow. Terminal and
+		* diff cards select their dedicated projections; everything else is
+		* `result-text`.
+		* @returns the entry contribution; register it after the assistant entry.
+		*/
+		function createToolEvidenceEntry() {
+			return {
+				id: TOOL_ENTRY_ID,
+				claim(event, { readChat, sourceSessionId }) {
+					const target = event.target;
+					if (target === null || typeof target !== "object" || typeof target.closest !== "function") return null;
+					const closest = target.closest.bind(target);
+					const callRow = closest("[data-chat-call-id]");
+					if (callRow === null) return null;
+					const flowElement = closest("[data-chat-flow-kind]");
+					if (flowElement === null || flowElement.dataset.chatFlowKind !== "tool-call") return null;
+					const anchorKey = flowElement.dataset.chatAnchorKey;
+					if (anchorKey === void 0 || anchorKey === "") return null;
+					const node = readChat(sourceSessionId)?.nodes.get(anchorKey);
+					if (node === void 0 || node.kind !== "tool-call") return null;
+					const root = node.data.root;
+					if (root === null || typeof root !== "object") return null;
+					const settled = root;
+					const callId = callRow.dataset.chatCallId;
+					if (settled.kind !== "tool-result" || callId === void 0 || callId === "" || settled.callId !== callId) return null;
+					const projection = toolProjectionForTarget(target);
+					const text = projectToolEvidence(projection, settled.content ?? [], settled.meta);
+					if (text === null || text.trim() === "") return null;
+					event.preventDefault();
+					return {
+						entryId: TOOL_ENTRY_ID,
+						kind: "tool-result",
+						sourceSessionId,
+						callId,
+						projection,
+						displayText: text.trim(),
+						anchorKey,
+						x: event.clientX,
+						y: event.clientY
+					};
+				}
+			};
+		}
+		//#endregion
+		//#region lib/types/client/hotkeys.js
+		/** CiteCiter-owned accelerator parsing and listener installation. */
+		const MODIFIER_KEYS = /* @__PURE__ */ new Set([
+			"Control",
+			"Alt",
+			"Shift",
+			"Meta"
+		]);
+		/**
+		* Parse a `Modifier+Modifier+Key` accelerator string.
+		* @param accelerator - user-configured accelerator, e.g. `Control+Shift+C`.
+		* @returns normalized modifiers and the final key, or null when malformed.
+		*/
+		function parseAccelerator(accelerator) {
+			const parts = accelerator.split("+").map((part) => part.trim()).filter((part) => part !== "");
+			if (parts.length < 2) return null;
+			const key = parts.pop();
+			if (key === void 0 || key.length === 0) return null;
+			const modifiers = /* @__PURE__ */ new Set();
+			for (const part of parts) {
+				if (!MODIFIER_KEYS.has(part)) return null;
+				modifiers.add(part);
+			}
+			if (modifiers.size === 0) return null;
+			return {
+				modifiers,
+				key
+			};
+		}
+		/** Whether the event target is an editable surface that must keep every key. */
+		function targetIsEditable(target) {
+			if (target === null || typeof target !== "object") return false;
+			const element = target;
+			if (typeof element.closest !== "function") return false;
+			return element.closest("input, textarea, [contenteditable=\"true\"]") !== null;
+		}
+		/**
+		* Install a window-level keydown listener that reads the accelerator fresh on
+		* every keypress, so settings changes apply without re-registering.
+		* @param accelerator - current accelerator getter; an empty value disables the binding.
+		* @param handler - invoked once for each matching, non-editable, non-IME keypress.
+		* @returns disposer removing the listener.
+		*/
+		function installDynamicAccelerator(accelerator, handler) {
+			const onKeyDown = (event) => {
+				const configured = accelerator();
+				if (configured === void 0 || configured === "") return;
+				const parsed = parseAccelerator(configured);
+				if (parsed === null) return;
+				if (event.isComposing || event.keyCode === 229) return;
+				if (targetIsEditable(event.target)) return;
+				if (event.ctrlKey !== parsed.modifiers.has("Control")) return;
+				if (event.altKey !== parsed.modifiers.has("Alt")) return;
+				if (event.shiftKey !== parsed.modifiers.has("Shift")) return;
+				if (event.metaKey !== parsed.modifiers.has("Meta")) return;
+				if (event.key.toLocaleLowerCase() !== parsed.key.toLocaleLowerCase()) return;
+				event.preventDefault();
+				handler();
+			};
+			window.addEventListener("keydown", onKeyDown);
+			return () => window.removeEventListener("keydown", onKeyDown);
+		}
+		//#endregion
+		//#region lib/types/client/reader-controller.js
+		/** Reader panel controller: document library browsing, import, selection, and Topic creation. */
+		/** Initial Reader snapshot. */
+		function createInitialReaderSnapshot() {
+			return {
+				open: false,
+				documents: [],
+				documentsStatus: "idle",
+				active: null,
+				selection: null,
+				question: "",
+				creating: false,
+				importing: false,
+				loading: false,
+				error: null
+			};
+		}
+		function remoteValue(result) {
+			if (!result.ok) throw new Error(result.error.message);
+			return result.value;
+		}
+		function formatFromName(name) {
+			return /\.(md|markdown)$/iu.test(name) ? "markdown" : "text";
+		}
+		/** Bind the Reader store to the CiteCiter Remote and the companion Topic creator. */
+		function createReaderController(request, companion, store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(createInitialReaderSnapshot())) {
+			let disposed = false;
+			const lifecycle = new AbortController();
+			const operations = /* @__PURE__ */ new Set();
+			let documentGeneration = 0;
+			let refreshGeneration = 0;
+			const update = (mutator) => {
+				if (!disposed) store.update(mutator);
+			};
+			const fail = (error) => {
+				if (disposed) return;
+				update((draft) => {
+					draft.error = error instanceof Error ? error.message : String(error);
+					draft.creating = false;
+				});
+			};
+			const call = (command) => {
+				const operation = (async () => {
+					lifecycle.signal.throwIfAborted();
+					const result = await request(command, lifecycle.signal);
+					lifecycle.signal.throwIfAborted();
+					return remoteValue(result);
+				})().finally(() => operations.delete(operation));
+				operations.add(operation);
+				return operation;
+			};
+			const refresh = async () => {
+				if (disposed) return;
+				const generation = ++refreshGeneration;
+				update((draft) => {
+					draft.documentsStatus = "loading";
+					draft.error = null;
+				});
+				try {
+					const response = await call({ action: "documents" });
+					if (generation !== refreshGeneration) return;
+					if (response.kind !== "documents") throw new Error("CiteCiter 返回了错误的文档列表响应");
+					update((draft) => {
+						draft.documents = response.documents;
+						draft.documentsStatus = "ready";
+					});
+				} catch (error) {
+					if (!disposed && generation === refreshGeneration) update((draft) => {
+						draft.documentsStatus = "error";
+						draft.error = error instanceof Error ? error.message : String(error);
+					});
+				}
+			};
+			const setOpen = (open) => {
+				if (disposed || store.getSnapshot().open === open) return;
+				update((draft) => {
+					draft.open = open;
+					draft.error = null;
+				});
+				if (open) refresh();
+			};
+			const importFile = async (name, content) => {
+				if (disposed) return null;
+				try {
+					const title = name.trim() === "" ? "未命名文档" : name.trim();
+					const response = await call({
+						action: "document-import",
+						title,
+						format: formatFromName(name),
+						content
+					});
+					if (response.kind !== "document") throw new Error("CiteCiter 返回了错误的文档导入响应");
+					await refresh();
+					return response.document;
+				} catch (error) {
+					fail(error);
+					return null;
+				}
+			};
+			const loadPage = async (documentId, page, resetQuestion) => {
+				if (disposed) return;
+				const generation = ++documentGeneration;
+				update((draft) => {
+					if (resetQuestion) draft.active = null;
+					draft.selection = null;
+					if (resetQuestion) draft.question = "";
+					draft.error = null;
+					draft.loading = true;
+				});
+				try {
+					const response = await call({
+						action: "document-get",
+						documentId,
+						page
+					});
+					if (generation !== documentGeneration) return;
+					if (response.kind !== "document-content") throw new Error("CiteCiter 返回了错误的文档内容响应");
+					update((draft) => {
+						draft.active = response.document;
+					});
+				} catch (error) {
+					if (generation === documentGeneration) fail(error);
+				} finally {
+					if (generation === documentGeneration) update((draft) => {
+						draft.loading = false;
+					});
+				}
+			};
+			const openDocument = (documentId) => loadPage(documentId, 0, true);
+			const openPage = async (page) => {
+				const { active, loading } = store.getSnapshot();
+				if (active === null || loading || page < 0 || page >= active.pageCount) return;
+				await loadPage(active.documentId, page, false);
+			};
+			const importLocalFile = async (file) => {
+				if (disposed || store.getSnapshot().importing) return;
+				update((draft) => {
+					draft.importing = true;
+					draft.error = null;
+				});
+				try {
+					if (file.size > 8388608) throw new Error("文件过大；请导入不超过 2,000,000 个字符的文本");
+					const content = await file.text();
+					if (disposed) return;
+					if (content.length > 2e6) throw new Error("文档不能超过 2,000,000 个字符");
+					const imported = await importFile(file.name, content);
+					if (imported !== null) await openDocument(imported.documentId);
+				} catch (error) {
+					fail(error);
+				} finally {
+					update((draft) => {
+						draft.importing = false;
+					});
+				}
+			};
+			const createTopic = async () => {
+				if (disposed) return;
+				const snapshot = store.getSnapshot();
+				if (snapshot.creating || snapshot.loading) return;
+				const generation = documentGeneration;
+				const selection = snapshot.selection;
+				const question = snapshot.question.trim();
+				if (snapshot.active === null || selection === null) {
+					fail(/* @__PURE__ */ new Error("请先在文档中选择一段内容"));
+					return;
+				}
+				if (question === "") {
+					fail(/* @__PURE__ */ new Error("请输入要问 CiteCiter 的问题"));
+					return;
+				}
+				update((draft) => {
+					draft.creating = true;
+					draft.error = null;
+				});
+				try {
+					await companion.createFromDocument({
+						documentId: snapshot.active.documentId,
+						displayText: selection.displayText,
+						prefixText: selection.prefixText,
+						suffixText: selection.suffixText
+					}, question);
+					update((draft) => {
+						draft.creating = false;
+						if (generation === documentGeneration && draft.question === snapshot.question) {
+							draft.open = false;
+							draft.selection = null;
+							draft.question = "";
+						}
+					});
+				} catch (error) {
+					fail(error);
+				}
+			};
+			return {
+				getSnapshot: store.getSnapshot,
+				subscribe: store.subscribe,
+				setOpen,
+				refresh,
+				importFile,
+				importLocalFile,
+				openDocument,
+				openPage,
+				setSelection: (selection) => {
+					if (disposed) return;
+					update((draft) => {
+						draft.selection = selection;
+					});
+				},
+				setQuestion: (question) => {
+					if (disposed) return;
+					update((draft) => {
+						draft.question = question;
+					});
+				},
+				createTopic,
+				dispose: async () => {
+					if (disposed) return;
+					disposed = true;
+					lifecycle.abort(new DOMException("CiteCiter is shutting down", "AbortError"));
+					while (operations.size > 0) await Promise.allSettled([...operations]);
+				}
+			};
+		}
+		//#endregion
+		//#region lib/types/client/settings-document.js
+		const INITIAL = Object.freeze({
+			status: "idle",
+			opening: false,
+			error: null,
+			message: null
+		});
+		function memoryStore(initial) {
+			let state = initial;
+			const listeners = /* @__PURE__ */ new Set();
+			return {
+				getSnapshot: () => state,
+				subscribe: (listener) => {
+					listeners.add(listener);
+					return () => listeners.delete(listener);
+				},
+				update: (mutator) => {
+					const next = { ...state };
+					mutator(next);
+					state = next;
+					for (const listener of [...listeners]) listener();
+				},
+				set: (next) => {
+					state = next;
+					for (const listener of [...listeners]) listener();
+				}
+			};
+		}
+		/**
+		* Create the browser owner for the Host settings-document action.
+		* @param describe - mirrored Host settings-document availability.
+		* @param openDocument - Host operation that opens the authoritative file.
+		* @returns observable loading, availability, and action state.
+		*/
+		function createSettingsDocumentController(describe, openDocument) {
+			const store = memoryStore(INITIAL);
+			let unsubscribe = null;
+			let opening = null;
+			let disposed = false;
+			const operations = /* @__PURE__ */ new Set();
+			const track = (operation) => {
+				let tracked;
+				tracked = operation.finally(() => operations.delete(tracked));
+				operations.add(tracked);
+				return tracked;
+			};
+			const derive = () => {
+				const mirrored = describe.getSnapshot();
+				if (mirrored.view === void 0) {
+					store.update((state) => {
+						state.status = mirrored.status === "loading" ? "loading" : mirrored.status === "unavailable" ? "unavailable" : mirrored.error === null ? "idle" : "error";
+						state.error = mirrored.status === "unavailable" ? mirrored.error ?? "当前宿主不支持打开配置文件" : mirrored.error;
+						state.message = null;
+					});
+					return;
+				}
+				const hasDocument = mirrored.view.hasDocument;
+				store.update((state) => {
+					state.status = hasDocument ? "ready" : "missing";
+					state.error = hasDocument ? mirrored.error : "配置文件不存在";
+					state.message = null;
+				});
+			};
+			const load = async () => {
+				if (disposed) return;
+				unsubscribe ??= describe.subscribe(derive);
+				store.update((state) => {
+					state.status = "loading";
+					state.error = null;
+					state.message = null;
+				});
+				try {
+					await track(describe.ensure());
+					if (!disposed) derive();
+				} catch (error) {
+					if (!disposed) store.update((state) => {
+						state.status = "error";
+						state.error = error instanceof Error ? error.message : String(error);
+					});
+				}
+			};
+			return {
+				getSnapshot: store.getSnapshot,
+				subscribe: store.subscribe,
+				load,
+				open: async () => {
+					if (store.getSnapshot().status === "idle" || store.getSnapshot().status === "error") await load();
+					if (disposed || store.getSnapshot().status !== "ready" || store.getSnapshot().opening) return;
+					const abort = new AbortController();
+					opening = abort;
+					store.update((state) => {
+						state.opening = true;
+						state.error = null;
+						state.message = null;
+					});
+					try {
+						await track(openDocument(abort.signal));
+						if (!disposed) store.update((state) => {
+							state.opening = false;
+							state.message = "已打开配置文件";
+						});
+					} catch (error) {
+						if (!disposed) store.update((state) => {
+							state.opening = false;
+							state.error = error instanceof Error ? error.message : String(error);
+						});
+					} finally {
+						if (opening === abort) opening = null;
+					}
+				},
+				dispose: async () => {
+					if (disposed) return;
+					disposed = true;
+					opening?.abort();
+					opening = null;
+					unsubscribe?.();
+					unsubscribe = null;
+					while (operations.size > 0) await Promise.allSettled([...operations]);
+				}
+			};
+		}
+		//#endregion
+		//#region lib/types/client/types.js
+		/** Observable panel presentation and board-citation requests; gestures have their own controller. */
+		var CiteBus = class {
+			reportListenerError;
+			snapshot = {
+				panelOpen: false,
+				activation: 0,
+				presentation: "side",
+				boardCitation: null
+			};
+			listeners = /* @__PURE__ */ new Set();
+			nextCitationId = 1;
+			/** @param reportListenerError - contains one failed browser subscriber. */
+			constructor(reportListenerError) {
+				this.reportListenerError = reportListenerError;
+			}
+			/** @returns stable overlay snapshot. */
+			getSnapshot = () => this.snapshot;
+			/** @param listener - observer. @returns disposer. */
+			subscribe = (listener) => {
+				this.listeners.add(listener);
+				return () => {
+					this.listeners.delete(listener);
+				};
+			};
+			/** Open or close the independent companion dock. */
+			setPanelOpen(panelOpen) {
+				if (!panelOpen && !this.snapshot.panelOpen) return;
+				this.snapshot = {
+					...this.snapshot,
+					panelOpen,
+					activation: this.snapshot.activation + (panelOpen ? 1 : 0)
+				};
+				this.notify();
+			}
+			/** Change only the current workspace presentation, keeping its Topic and drafts. */
+			setPresentation(presentation) {
+				if (this.snapshot.presentation === presentation) return;
+				this.snapshot = {
+					...this.snapshot,
+					presentation
+				};
+				this.notify();
+			}
+			/**
+			* Queue one user-requested board reference for the matching Topic composer.
+			* @param topicSessionId - Topic that owns the referenced board.
+			* @param prompt - composer text derived from the selected board element.
+			*/
+			requestBoardCitation(topicSessionId, prompt) {
+				this.snapshot = {
+					...this.snapshot,
+					boardCitation: {
+						id: this.nextCitationId++,
+						topicSessionId,
+						prompt
+					}
+				};
+				this.notify();
+			}
+			/**
+			* Clear the citation only when the matching consumer handled it.
+			* @param id - monotonically assigned citation request identity.
+			*/
+			clearBoardCitation(id) {
+				if (this.snapshot.boardCitation?.id !== id) return;
+				this.snapshot = {
+					...this.snapshot,
+					boardCitation: null
+				};
+				this.notify();
+			}
+			notify() {
+				for (const listener of [...this.listeners]) try {
+					listener();
+				} catch (error) {
+					this.reportListenerError(error);
+				}
+			}
+		};
+		//#endregion
+		//#region lib/types/client/host-ui-adapter.js
+		/** Call only public preference services. The selected service owns binding teardown. */
+		function hostSettings(ctx) {
+			const modern = ctx.get("configForms");
+			if (modern !== void 0) return modern;
+			const legacy = ctx.get("settingsScope");
+			if (legacy === void 0) throw new Error("当前 DSH 未提供 Citer 所需的设置接口");
+			return {
+				get: (namespace) => legacy.bind({ namespace }),
+				describe: () => legacy.describe()
+			};
+		}
+		/** Normalize the renamed UI status source without creating another approval authority. */
+		function hostInteractions(ctx) {
+			const service = ctx.uiSession;
+			if (service.pendingInteractions !== void 0) return service.pendingInteractions;
+			const source = service.sessionStatus;
+			if (source === void 0) throw new Error("当前 DSH 未提供 Citer 所需的审批展示接口");
+			let previous;
+			let current = /* @__PURE__ */ new Map();
+			return {
+				subscribe: (listener) => source.subscribe(listener),
+				getSnapshot: () => {
+					const next = source.getSnapshot();
+					if (next !== previous) {
+						previous = next;
+						current = new Map([...next].flatMap(([id, value]) => value.pendingInteraction === void 0 ? [] : [[id, value.pendingInteraction]]));
+					}
+					return current;
+				}
+			};
+		}
+		//#endregion
+		//#region lib/types/client/submission-preference.js
+		/** Read the conversation-owned busy-Enter preference through the public settings mirror. The bound scope is disposed with ctx; this adapter never writes Host settings. */
+		function bindSubmissionPreference(ctx) {
+			const scope = hostSettings(ctx).get("ui-conversation");
+			return {
+				getSnapshot: () => scope.getSnapshot().value?.busyEnter ?? "queue",
+				subscribe: (listener) => scope.subscribe(listener)
+			};
+		}
+		//#endregion
+		//#region lib/types/client/view-actions.js
+		/**
+		* Remove lifecycle and subscription methods from a plain controller's view props.
+		* @param controller - Client-owned controller with arrow-function callbacks.
+		* @returns callbacks separate from the observable supplied to inject.hooks.
+		*/
+		function viewActions(controller) {
+			const { getSnapshot, subscribe, dispose, ...actions } = controller;
+			return actions;
+		}
+		//#endregion
+		//#region lib/types/client/board-capture-controller.js
+		/**
+		* Poll only model-requested board renders, independently of navigation or visible Topics.
+		* @param request - authenticated root-scoped Citer transport; no Session activation is needed.
+		* @param report - report transport failures once until connectivity recovers.
+		* @returns render store and stable reply callback; dispose aborts RPCs and removes the poll timer.
+		*/
+		function createBoardCaptureController(request, report) {
+			const store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({ jobs: [] });
+			const abort = new AbortController();
+			const completed = /* @__PURE__ */ new Set();
+			let timer;
+			let reported = false;
+			const poll = async () => {
+				try {
+					const response = await request({ action: "board-capture-pending" }, abort.signal);
+					if (abort.signal.aborted) return;
+					if (response.kind !== "board-captures") throw new Error("Unexpected board capture response");
+					reported = false;
+					const live = new Set(response.jobs.map((job) => job.id));
+					for (const id of completed) if (!live.has(id)) completed.delete(id);
+					const jobs = response.jobs.filter((job) => !completed.has(job.id));
+					if (jobs.map((job) => job.id).join() !== store.getSnapshot().jobs.map((job) => job.id).join()) store.update((draft) => {
+						draft.jobs = jobs;
+					});
+				} catch (error) {
+					if (!abort.signal.aborted && !reported) {
+						reported = true;
+						report(error);
+					}
+				} finally {
+					if (!abort.signal.aborted) timer = setTimeout(() => {
+						poll();
+					}, 750);
+				}
+			};
+			const reply = async (sessionId, id, png, error) => {
+				try {
+					await request({
+						action: "board-capture",
+						topicSessionId: sessionId,
+						id,
+						...png === void 0 ? {} : { png },
+						...error === void 0 ? {} : { error: error.slice(0, 500) }
+					}, abort.signal);
+					completed.add(id);
+					if (!abort.signal.aborted) store.update((draft) => {
+						draft.jobs = draft.jobs.filter((job) => job.id !== id);
+					});
+				} catch (failure) {
+					if (!abort.signal.aborted) report(failure);
+				}
+			};
+			poll();
+			return {
+				getSnapshot: store.getSnapshot,
+				subscribe: store.subscribe,
+				reply,
+				dispose: () => {
+					abort.abort();
+					clearTimeout(timer);
+					store.update((draft) => {
+						draft.jobs = [];
+					});
+				}
+			};
 		}
 		//#endregion
 		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/util.js
@@ -36911,5539 +43344,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		//#endregion
-		//#region lib/types/client/components/FileAttachments.js
-		/** Native Conversation-owned file drafts. The owning controller handles upload and lifetime. */
-		function FileAttachments({ files, remove, native, sessionId }) {
-			const uploads = (0, react.useSyncExternalStore)(native.uploads.subscribe, native.uploads.getSnapshot);
-			return (0, react_jsx_runtime.jsx)("div", {
-				className: ReferenceAttachments_module_css_default.rail,
-				children: files.map((item) => (0, react_jsx_runtime.jsxs)("span", {
-					className: ReferenceAttachments_module_css_default.chip,
-					title: item.file.name,
-					children: [
-						item.kind === "image" && (0, react_jsx_runtime.jsx)("img", {
-							src: item.previewUrl,
-							width: "28",
-							height: "28",
-							alt: "",
-							style: {
-								objectFit: "cover",
-								borderRadius: 5
-							}
-						}),
-						(0, react_jsx_runtime.jsx)("span", { children: item.file.name }),
-						uploads[item.id]?.status === "uploading" && (0, react_jsx_runtime.jsx)("small", {
-							role: "status",
-							children: "上传中"
-						}),
-						uploads[item.id]?.status === "error" && (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							title: "上传失败，点击重试",
-							onClick: () => native.retry(sessionId, item.id),
-							children: "重试"
-						}),
-						(0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							"aria-label": `移除附件 ${item.file.name}`,
-							onClick: () => remove(item.id),
-							children: "×"
-						})
-					]
-				}, item.id))
-			});
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\FileDropHint.module.css.mjs
-		const css$14 = ".T91mMG_hint{z-index:20;pointer-events:none;border:2px solid var(--dsw-alias-link,#3478f6);background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 88%, transparent);backdrop-filter:blur(8px);color:var(--dsw-alias-label-primary,#20232a);border-radius:18px;flex-direction:column;justify-content:center;align-items:center;gap:8px;padding:24px;display:flex;position:absolute;inset:8px}.T91mMG_hint span{text-overflow:ellipsis;white-space:nowrap;max-width:100%;color:var(--dsw-alias-label-secondary,#606875);font-size:13px;overflow:hidden}.T91mMG_hint[data-disabled]{border-color:var(--dsw-alias-label-secondary,#606875)}";
-		const tagId$14 = "@kirkchinese/dsh-citeciter/FileDropHint.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$14) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$14;
-			tag.textContent = css$14;
-			document.head.appendChild(tag);
-		}
-		var FileDropHint_module_css_default = { "hint": "T91mMG_hint" };
-		//#endregion
-		//#region lib/types/client/components/FileDropHint.js
-		/** Display the receiving Topic without intercepting the drag's pointer target. */
-		function FileDropHint({ enabled, title }) {
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: FileDropHint_module_css_default.hint,
-				role: "status",
-				"data-citeciter-file-drop": true,
-				"data-disabled": !enabled || void 0,
-				children: [(0, react_jsx_runtime.jsx)("strong", { children: enabled ? "松开，添加到 Citer" : "先选择一个 Topic" }), enabled && title && (0, react_jsx_runtime.jsx)("span", { children: title })]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/file-drop.js
-		/**
-		* Isolate file drags inside one physical panel from document-level drop owners.
-		* @param open - whether the owning panel is mounted and available.
-		* @param enabled - whether a current Topic can receive attachments.
-		* @param onFiles - receive one dropped batch; never submits a model request.
-		* @returns the local invitation state and handlers to spread on the panel root.
-		* Global cancellation listeners exist only while open and are released on cleanup.
-		*/
-		function useFileDrop(open, enabled, onFiles) {
-			const depth = (0, react.useRef)(0);
-			const [active, setActive] = (0, react.useState)(false);
-			const reset = (0, react.useCallback)(() => {
-				depth.current = 0;
-				setActive(false);
-			}, []);
-			(0, react.useEffect)(() => {
-				if (!open) {
-					reset();
-					return;
-				}
-				window.addEventListener("dragend", reset);
-				window.addEventListener("blur", reset);
-				return () => {
-					window.removeEventListener("dragend", reset);
-					window.removeEventListener("blur", reset);
-				};
-			}, [open, reset]);
-			const claim = (event) => {
-				if (!open || !(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return false;
-				if (!event.dataTransfer.types.includes("Files")) return false;
-				event.preventDefault();
-				event.stopPropagation();
-				return true;
-			};
-			return {
-				active,
-				handlers: {
-					onDragEnter: (event) => {
-						if (!claim(event)) return;
-						depth.current += 1;
-						setActive(true);
-					},
-					onDragOver: (event) => {
-						if (!claim(event)) return;
-						event.dataTransfer.dropEffect = enabled ? "copy" : "none";
-						setActive(true);
-					},
-					onDragLeave: (event) => {
-						if (!claim(event)) return;
-						depth.current = Math.max(0, depth.current - 1);
-						if (depth.current === 0) setActive(false);
-					},
-					onDrop: (event) => {
-						if (!claim(event)) return;
-						reset();
-						if (enabled && event.dataTransfer.files.length > 0) onFiles([...event.dataTransfer.files]);
-					}
-				}
-			};
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\NativeQueue.module.css.mjs
-		const css$13 = ".xjF-DW_queue{border-top:1px solid color-mix(in srgb, currentColor 8%, transparent);flex:none;max-height:140px;padding:6px 10px;font-size:12px;overflow:auto}.xjF-DW_row{align-items:center;gap:6px;min-height:32px;display:flex}.xjF-DW_row>span{opacity:.55;font-size:10px}.xjF-DW_row p{text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;margin:0;overflow:hidden}.xjF-DW_row button{color:inherit;cursor:pointer;background:0 0;border:0;border-radius:8px;flex:none;width:28px;height:28px}.xjF-DW_row button:hover{background:color-mix(in srgb, currentColor 9%, transparent)}";
-		const tagId$13 = "@kirkchinese/dsh-citeciter/NativeQueue.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$13) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$13;
-			tag.textContent = css$13;
-			document.head.appendChild(tag);
-		}
-		var NativeQueue_module_css_default = {
-			"queue": "xjF-DW_queue",
-			"row": "xjF-DW_row"
-		};
-		//#endregion
-		//#region lib/types/client/components/NativeQueue.js
-		/** Read and mutate the Host's authoritative inbox. Citer never owns a second queue. */
-		function NativeQueue({ sessionId, native }) {
-			const [snapshot, setSnapshot] = (0, react.useState)();
-			const [error, setError] = (0, react.useState)();
-			(0, react.useEffect)(() => {
-				setSnapshot(void 0);
-				setError(void 0);
-				return native.watch(sessionId, setSnapshot);
-			}, [sessionId, native]);
-			const rows = snapshot?.queue.filter((row) => row.placement !== "context") ?? [];
-			const pending = snapshot?.pendingSubmissions ?? [];
-			const readError = snapshot?.openState === "error" ? snapshot.lastAgentError : null;
-			if (rows.length === 0 && pending.length === 0 && error === void 0 && readError === null) return null;
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: NativeQueue_module_css_default.queue,
-				"aria-label": "DSH 发送队列",
-				children: [
-					error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
-						role: "alert",
-						children: error
-					}),
-					readError !== null && (0, react_jsx_runtime.jsxs)("p", {
-						role: "alert",
-						children: ["无法读取发送状态，正在重连：", readError]
-					}),
-					pending.map((row) => (0, react_jsx_runtime.jsxs)("div", {
-						className: NativeQueue_module_css_default.row,
-						children: [(0, react_jsx_runtime.jsx)("span", { children: "发送中" }), (0, react_jsx_runtime.jsx)("p", { children: row.text || "附件" })]
-					}, row.requestId)),
-					rows.map((row) => (0, react_jsx_runtime.jsxs)("div", {
-						className: NativeQueue_module_css_default.row,
-						children: [
-							(0, react_jsx_runtime.jsx)("span", {
-								title: row.placement === "steering" ? "将在当前回答的下一步处理" : "当前回答完成后处理",
-								children: row.placement === "steering" ? "插话" : "排队"
-							}),
-							(0, react_jsx_runtime.jsx)("p", {
-								title: row.text ?? row.preview,
-								children: row.text ?? row.preview
-							}),
-							row.placement === "queued" && (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								title: "现在插话",
-								"aria-label": "将此条排队消息改为插话",
-								onClick: () => {
-									native.queue(sessionId, row.id, { kind: "steer" }).catch((error) => setError(String(error)));
-								},
-								children: "↗"
-							}),
-							(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								title: "移出队列",
-								"aria-label": "移除此条待处理消息",
-								onClick: () => {
-									native.queue(sessionId, row.id, { kind: "remove" }).catch((error) => setError(String(error)));
-								},
-								children: "×"
-							})
-						]
-					}, row.id))
-				]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/components/QuestionCard.js
-		/** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
-		function QuestionCard({ onAnswer, onCancel, pending }) {
-			const [page, setPage] = (0, react.useState)(0);
-			const [busy, setBusy] = (0, react.useState)(false);
-			const [error, setError] = (0, react.useState)();
-			const run = (action) => {
-				if (busy) return;
-				setBusy(true);
-				setError(void 0);
-				action().catch((error) => {
-					setError(String(error));
-					setBusy(false);
-				});
-			};
-			const [drafts, setDrafts] = (0, react.useState)({});
-			const question = pending.questions[page];
-			const complete = (0, react.useMemo)(() => pending.questions.every((item) => {
-				const draft = drafts[item.id];
-				return draft !== void 0 && (draft.selected.length > 0 || draft.custom.trim() !== "");
-			}), [drafts, pending.questions]);
-			if (question === void 0) return null;
-			const draft = drafts[question.id] ?? {
-				selected: [],
-				custom: ""
-			};
-			const update = (next) => setDrafts((current) => ({
-				...current,
-				[question.id]: next
-			}));
-			const choose = (label) => {
-				if (question.multiSelect === true) {
-					update({
-						...draft,
-						selected: draft.selected.includes(label) ? draft.selected.filter((item) => item !== label) : [...draft.selected, label]
-					});
-					return;
-				}
-				update({
-					selected: [label],
-					custom: ""
-				});
-			};
-			const submit = (event) => {
-				event.preventDefault();
-				if (!complete || busy) return;
-				const answer = { answers: pending.questions.map((item) => {
-					const value = drafts[item.id] ?? {
-						selected: [],
-						custom: ""
-					};
-					const custom = value.custom.trim();
-					return {
-						id: item.id,
-						selected: [...value.selected],
-						...custom === "" ? {} : { custom }
-					};
-				}) };
-				run(() => onAnswer(answer));
-			};
-			return (0, react_jsx_runtime.jsxs)("form", {
-				className: CiteCiter_module_css_default.questionFrame,
-				onSubmit: submit,
-				"aria-label": "CiteCiter 提问",
-				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: CiteCiter_module_css_default.questionHeader,
-						children: [
-							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconQuestionOutline14, {}),
-							(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("span", { children: question.header ?? "CiteCiter 需要你的回答" }), (0, react_jsx_runtime.jsx)("strong", { children: question.question })] }),
-							(0, react_jsx_runtime.jsxs)("span", { children: [
-								page + 1,
-								"/",
-								pending.questions.length
-							] })
-						]
-					}),
-					question.detail !== void 0 && (0, react_jsx_runtime.jsx)(RichAnswer, {
-						text: question.detail,
-						streaming: false
-					}),
-					error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
-						role: "alert",
-						children: error
-					}),
-					(question.options ?? []).length > 0 && (0, react_jsx_runtime.jsx)("div", {
-						className: CiteCiter_module_css_default.questionOptions,
-						children: question.options?.map((option, index) => {
-							const selected = draft.selected.includes(option.label);
-							return (0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								disabled: busy,
-								"data-selected": selected || void 0,
-								onClick: () => choose(option.label),
-								children: [(0, react_jsx_runtime.jsx)("span", { children: question.multiSelect === true ? selected ? "✓" : "□" : index + 1 }), (0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: option.label }), option.description !== void 0 && (0, react_jsx_runtime.jsx)("small", { children: option.description })] })]
-							}, option.label);
-						})
-					}),
-					(0, react_jsx_runtime.jsx)("textarea", {
-						className: CiteCiter_module_css_default.questionCustom,
-						rows: 2,
-						disabled: busy,
-						value: draft.custom,
-						placeholder: (question.options ?? []).length === 0 ? "输入回答…" : "其他（可填写）",
-						"aria-label": "自定义回答",
-						onChange: (event) => update({
-							selected: question.multiSelect === true ? draft.selected : [],
-							custom: event.currentTarget.value
-						})
-					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: CiteCiter_module_css_default.questionFooter,
-						children: [
-							(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: busy,
-								onClick: () => run(onCancel),
-								children: "取消"
-							}),
-							(0, react_jsx_runtime.jsx)("span", {}),
-							page > 0 && (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								onClick: () => setPage(page - 1),
-								children: "上一个"
-							}),
-							page + 1 < pending.questions.length ? (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: draft.selected.length === 0 && draft.custom.trim() === "",
-								onClick: () => setPage(page + 1),
-								children: "下一个"
-							}) : (0, react_jsx_runtime.jsx)("button", {
-								type: "submit",
-								disabled: !complete || busy,
-								children: busy ? "提交中…" : "提交回答"
-							})
-						]
-					})
-				]
-			});
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\NativeInteraction.module.css.mjs
-		const css$12 = ".FMY-oa_approval,.FMY-oa_questions{border:1px solid var(--dsw-alias-border-l2,#d9dde5);max-height:min(340px,42vh);color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#fff);border-radius:16px;flex:none;margin:8px 12px 0;font-size:13px;overflow:auto}.FMY-oa_body{overflow-wrap:anywhere;padding:12px}.FMY-oa_body p{white-space:pre-wrap;margin:8px 0}.FMY-oa_body pre{white-space:pre-wrap;font-size:12px}.FMY-oa_body summary{cursor:pointer}.FMY-oa_actions{background:var(--dsw-alias-bg-layer-1,#fff);border-top:1px solid var(--dsw-alias-border-l2,#d9dde5);justify-content:flex-end;gap:8px;padding:8px 12px;display:flex;position:sticky;bottom:0}.FMY-oa_actions button{border:1px solid var(--dsw-alias-border-l2,#d9dde5);min-height:36px;color:inherit;cursor:pointer;font:inherit;background:0 0;border-radius:10px;padding:6px 14px}.FMY-oa_actions button:last-child{color:#fff;background:#3478f6;border-color:#3478f6}.FMY-oa_actions button:disabled{opacity:.5;cursor:default}.FMY-oa_actions button:focus-visible{outline-offset:2px;outline:2px solid #3478f6}";
-		const tagId$12 = "@kirkchinese/dsh-citeciter/NativeInteraction.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$12) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$12;
-			tag.textContent = css$12;
-			document.head.appendChild(tag);
-		}
-		var NativeInteraction_module_css_default = {
-			"actions": "FMY-oa_actions",
-			"approval": "FMY-oa_approval",
-			"body": "FMY-oa_body",
-			"questions": "FMY-oa_questions"
-		};
-		//#endregion
-		//#region lib/types/client/components/NativeInteraction.js
-		/** Present the Host's one-shot pending request. Decisions go to its existing waterfall; no second permission authority is created. Remount on pending.key. */
-		function NativeInteraction({ pending, messages }) {
-			const [busy, setBusy] = (0, react.useState)(false);
-			const [error, setError] = (0, react.useState)();
-			if (pending.kind === "question" || pending.kind === "plan-review") return (0, react_jsx_runtime.jsx)("div", {
-				className: NativeInteraction_module_css_default.questions,
-				children: (0, react_jsx_runtime.jsx)(QuestionCard, {
-					pending,
-					onAnswer: (answer) => pending.answer(answer),
-					onCancel: () => pending.cancel()
-				})
-			});
-			if (pending.kind !== "approval") return (0, react_jsx_runtime.jsx)("p", {
-				role: "status",
-				children: "当前工具正在等待宿主交互。可停止后重试。"
-			});
-			const call = messages.find((message) => message.role === "tool" && message.id === pending.callId);
-			const answer = (decision) => {
-				if (busy) return;
-				setBusy(true);
-				setError(void 0);
-				pending.answer(decision).catch((error) => {
-					setError(String(error));
-					setBusy(false);
-				});
-			};
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: NativeInteraction_module_css_default.approval,
-				"aria-label": "DSH 工具审批",
-				children: [(0, react_jsx_runtime.jsxs)("div", {
-					className: NativeInteraction_module_css_default.body,
-					children: [
-						(0, react_jsx_runtime.jsxs)("strong", { children: ["等待授权 · ", pending.toolName] }),
-						pending.reason !== void 0 && (0, react_jsx_runtime.jsx)("p", { children: pending.reason }),
-						call?.role === "tool" && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: "查看工具参数" }), (0, react_jsx_runtime.jsx)("pre", { children: call.arguments })] }),
-						error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
-							role: "alert",
-							children: error
-						})
-					]
-				}), (0, react_jsx_runtime.jsxs)("div", {
-					className: NativeInteraction_module_css_default.actions,
-					children: [(0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						disabled: busy,
-						onClick: () => answer("rejected"),
-						children: "拒绝"
-					}), (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						disabled: busy,
-						onClick: () => answer("allowed-once"),
-						children: "仅允许这次"
-					})]
-				})]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/topic-presentation.js
-		const INTERNAL_TOOLS = /* @__PURE__ */ new Set(["read_source_session", "blackboard_apply"]);
-		/**
-		* Decide whether one Topic event belongs in the user-facing transcript.
-		* @param message - candidate projected Topic event.
-		* @param messages - complete ordered Topic transcript used to detect recovery.
-		* @returns whether the event should remain visible.
-		*/
-		function isTopicMessageVisible(message, messages) {
-			if (message.role === "context") return false;
-			if (message.role === "assistant" && message.text.trim() === "" && (message.reasoning ?? "").trim() === "") return false;
-			if (message.role === "tool") {
-				if (!message.isError && INTERNAL_TOOLS.has(message.name)) return false;
-				if (!message.isError) return true;
-				return !messages.some((candidate) => candidate.role === "tool" && candidate.seq > message.seq && candidate.name === message.name && !candidate.running && !candidate.isError);
-			}
-			if (message.role !== "error") return true;
-			return !messages.some((candidate) => candidate.role === "assistant" && candidate.seq > message.seq && !candidate.streaming && candidate.text.trim() !== "");
-		}
-		//#endregion
-		//#region \0citeciter-png:src\client\assets\citeciter-mascot.png
-		var citeciter_mascot_default = "data:image/png;base64,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";
-		//#endregion
-		//#region lib/types/client/components/OverlayPortal.js
-		/**
-		* Render plugin-owned floating content outside the shell's stacking context.
-		* The public slot still owns its React lifetime; unmounting removes the portal.
-		* Inline content keeps its original ancestry for the isolated dock adapter.
-		*/
-		function OverlayPortal({ children, inline = false }) {
-			return inline ? children : (0, react_dom.createPortal)(children, document.body);
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\ReasoningDisclosure.module.css.mjs
-		const css$11 = ".BJuG7a_disclosure{min-width:0;color:var(--dsw-alias-label-secondary,#606875);margin-bottom:6px;font-size:12px}.BJuG7a_row,.BJuG7a_activeRow{border-radius:7px;min-width:0;min-height:28px}.BJuG7a_row:focus-visible,.BJuG7a_activeRow:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#3978ef);outline-offset:2px}.BJuG7a_activeRow{color:var(--dsw-alias-brand-primary,#3978ef)}.BJuG7a_preview{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--dsw-alias-label-tertiary,#78808e);margin-left:6px;overflow:hidden}.BJuG7a_body{border-left:1px solid var(--dsw-alias-border-l1,#e4e7ec);overflow-wrap:anywhere;min-width:0;margin:4px 0 10px 7px;padding:4px 0 4px 14px;line-height:1.65}.BJuG7a_body pre{max-width:100%;overflow-x:auto}";
-		const tagId$11 = "@kirkchinese/dsh-citeciter/ReasoningDisclosure.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$11) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$11;
-			tag.textContent = css$11;
-			document.head.appendChild(tag);
-		}
-		var ReasoningDisclosure_module_css_default = {
-			"activeRow": "BJuG7a_activeRow",
-			"body": "BJuG7a_body",
-			"disclosure": "BJuG7a_disclosure",
-			"preview": "BJuG7a_preview",
-			"row": "BJuG7a_row"
-		};
-		//#endregion
-		//#region lib/types/client/components/ReasoningDisclosure.js
-		/** Display only reasoning actually returned by the model. Expansion is local UI state; no model call or Session mutation occurs. */
-		function ReasoningDisclosure({ text, active }) {
-			const [open, setOpen] = (0, react.useState)(false);
-			const preview = (0, react.useMemo)(() => text.replaceAll(/\s+/gu, " ").trim().slice(0, 180), [text]);
-			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DisclosureRow, {
-				className: ReasoningDisclosure_module_css_default.disclosure,
-				rowClassName: active ? ReasoningDisclosure_module_css_default.activeRow : ReasoningDisclosure_module_css_default.row,
-				icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconThinkOutline14, {}),
-				title: active ? "思考中" : "思考",
-				open,
-				expandable: true,
-				expandOnRowClick: true,
-				onToggle: () => setOpen((value) => !value),
-				collapsedContent: (0, react_jsx_runtime.jsxs)("span", {
-					className: ReasoningDisclosure_module_css_default.preview,
-					children: ["· ", preview]
-				}),
-				children: (0, react_jsx_runtime.jsx)("div", {
-					className: ReasoningDisclosure_module_css_default.body,
-					children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MarkdownText, {
-						text,
-						streaming: active,
-						labels: markdownLabels
-					})
-				})
-			});
-		}
-		//#endregion
-		//#region lib/types/client/panel-drag.js
-		/** Pointer lifecycle survives reparenting between the host slot and the floating portal. */
-		function usePanelDrag(panel, floating, setPresentation) {
-			const [position, setPosition] = (0, react.useState)(null);
-			const [dockTarget, setDockTarget] = (0, react.useState)(false);
-			const cleanup = (0, react.useRef)(null);
-			(0, react.useEffect)(() => () => cleanup.current?.(), []);
-			(0, react.useEffect)(() => {
-				const fit = () => {
-					const box = panel.current?.getBoundingClientRect();
-					if (box === void 0) return;
-					setPosition((current) => current === null ? null : {
-						left: Math.max(8, Math.min(current.left, window.innerWidth - box.width - 8)),
-						top: Math.max(40, Math.min(current.top, window.innerHeight - box.height - 8))
-					});
-				};
-				window.addEventListener("resize", fit);
-				return () => window.removeEventListener("resize", fit);
-			}, [panel]);
-			const start = (event) => {
-				if (event.button !== 0 || event.target.closest("button,input,textarea,select,[data-topic-title]")) return;
-				const rect = panel.current?.getBoundingClientRect();
-				if (rect === void 0) return;
-				const origin = {
-					x: event.clientX,
-					y: event.clientY,
-					left: rect.left,
-					top: rect.top
-				};
-				let moved = false;
-				const move = (next) => {
-					if (next.pointerId !== event.pointerId) return;
-					if (!moved && Math.hypot(next.clientX - origin.x, next.clientY - origin.y) < 8) return;
-					if (!moved) {
-						moved = true;
-						if (!floating) setPresentation("floating");
-					}
-					const box = panel.current?.getBoundingClientRect() ?? rect;
-					setPosition({
-						left: Math.max(8, Math.min(origin.left + next.clientX - origin.x, window.innerWidth - box.width - 8)),
-						top: Math.max(40, Math.min(origin.top + next.clientY - origin.y, window.innerHeight - box.height - 8))
-					});
-					setDockTarget(next.clientX > window.innerWidth - 80);
-					next.preventDefault();
-				};
-				const release = () => {
-					document.removeEventListener("pointermove", move);
-					document.removeEventListener("pointerup", end);
-					document.removeEventListener("pointercancel", cancel);
-					window.removeEventListener("blur", cancel);
-					setDockTarget(false);
-					cleanup.current = null;
-				};
-				const end = (next) => {
-					if (next.pointerId !== event.pointerId) return;
-					if (moved && next.clientX > window.innerWidth - 80) {
-						setPresentation("side");
-						setPosition(null);
-					}
-					release();
-				};
-				const cancel = () => release();
-				cleanup.current?.();
-				cleanup.current = release;
-				document.addEventListener("pointermove", move, { passive: false });
-				document.addEventListener("pointerup", end);
-				document.addEventListener("pointercancel", cancel);
-				window.addEventListener("blur", cancel);
-			};
-			return {
-				position,
-				dockTarget,
-				start
-			};
-		}
-		//#endregion
-		//#region lib/types/client/learning-route.js
-		/** Read the last accepted plan; malformed historical tool arguments do not replace a valid plan. */
-		function learningTodos(messages) {
-			let result = [];
-			for (const message of messages) {
-				if (message.role !== "tool" || message.name !== "todo_write" || message.running || message.isError) continue;
-				try {
-					const input = JSON.parse(message.arguments);
-					if (typeof input !== "object" || input === null || !("todos" in input) || !Array.isArray(input.todos)) continue;
-					const values = input.todos;
-					if (values.every((value) => typeof value === "object" && value !== null && "content" in value && typeof value.content === "string" && "status" in value && [
-						"pending",
-						"in_progress",
-						"completed"
-					].includes(String(value.status)))) result = values;
-				} catch {}
-			}
-			return result;
-		}
-		/** One user-submitted learning request. Planning continues inside its ordinary Agent turn. */
-		function withLearningRoute(question, enabled) {
-			return !enabled ? question : `${question}\n\n【学习路线已开启】请根据问题自动决定讲解方式与阶段，使用宿主 todo_write 建立和更新学习计划。可选择底层逻辑、定性分析、定量分析（板书）、概念关联和总结学习卡片；按内容取舍，不机械补齐。计划由你维护，完成后更新状态，不要要求用户逐个点击阶段。不额外启动模型请求。生成学习卡前先核对与纠错，标明未核实内容。`;
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\LearningRoute.module.css.mjs
-		const css$10 = ".tFIfVW_route{flex:none;margin:0 12px;font-size:12px}.tFIfVW_route label{opacity:.8;cursor:pointer;align-items:center;gap:6px;padding:6px 0;display:inline-flex}.tFIfVW_route input{accent-color:#4e86ef}.tFIfVW_route details{background:color-mix(in srgb, currentColor 4%, transparent);border-radius:12px;padding:8px 10px}.tFIfVW_route summary{cursor:pointer;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.tFIfVW_route ol{margin:8px 0 0;padding:0;list-style:none}.tFIfVW_route li{gap:8px;padding:5px 0;display:flex}.tFIfVW_route li[data-state=completed]{opacity:.5}.tFIfVW_route li[data-state=in_progress]{color:var(--dsw-alias-brand-primary,#3478f6)}";
-		const tagId$10 = "@kirkchinese/dsh-citeciter/LearningRoute.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$10) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$10;
-			tag.textContent = css$10;
-			document.head.appendChild(tag);
-		}
-		var LearningRoute_module_css_default = { "route": "tFIfVW_route" };
-		//#endregion
-		//#region lib/types/client/components/LearningRoute.js
-		/** Optional native todo projection. The user toggles planning; the model owns plan contents. */
-		function LearningRoute({ enabled, messages, onChange }) {
-			const todos = learningTodos(messages);
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: LearningRoute_module_css_default.route,
-				children: [(0, react_jsx_runtime.jsxs)("label", { children: [(0, react_jsx_runtime.jsx)("input", {
-					type: "checkbox",
-					checked: enabled,
-					onChange: (event) => onChange(event.currentTarget.checked)
-				}), "学习路线"] }), enabled && todos.length > 0 && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsxs)("summary", { children: [
-					todos.filter((item) => item.status === "completed").length,
-					" / ",
-					todos.length,
-					" · ",
-					todos.find((item) => item.status === "in_progress")?.content ?? "学习计划"
-				] }), (0, react_jsx_runtime.jsx)("ol", { children: todos.map((item, index) => (0, react_jsx_runtime.jsxs)("li", {
-					"data-state": item.status,
-					children: [(0, react_jsx_runtime.jsx)("span", {
-						"aria-hidden": "true",
-						children: item.status === "completed" ? "✓" : item.status === "in_progress" ? "◉" : "○"
-					}), item.content]
-				}, index)) })] })]
-			});
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\LearningWorkspace.module.css.mjs
-		const css$9 = "._7nVXHW_route{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;padding:12px 16px 10px}._7nVXHW_routeTop,._7nVXHW_cardsHeader,._7nVXHW_cardActions{flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;display:flex}._7nVXHW_eyebrow,._7nVXHW_cardEyebrow{letter-spacing:.08em;color:var(--dsw-alias-label-tertiary,#778178);font-size:12px;font-weight:600}._7nVXHW_stages{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:9px;display:grid}._7nVXHW_stages button{cursor:pointer;color:var(--dsw-alias-label-secondary,#64706a);font:inherit;background:0 0;border:1px solid #0000;border-radius:9px;place-items:center;gap:5px;padding:8px 2px;font-size:12px;display:grid}._7nVXHW_stages button span{opacity:.65;font-size:12px}._7nVXHW_stages button[aria-pressed=true]{color:var(--dsw-alias-label-primary,#234d3d);background:#5baf8b1c;border-color:#3c876a47;font-weight:600}._7nVXHW_hint{color:var(--dsw-alias-label-tertiary,#7c827f);margin:8px 0 0;font-size:12px;line-height:1.6}._7nVXHW_views{border-bottom:1px solid var(--dsw-alias-border-l1,#e4e7ec);flex:none;gap:5px;padding:8px 14px 0;display:flex}._7nVXHW_views button{cursor:pointer;font:inherit;color:var(--dsw-alias-label-secondary,#64706a);background:0 0;border:0;border-bottom:2px solid #0000;align-items:center;gap:7px;padding:9px 12px;font-size:12px;display:flex}._7nVXHW_views button[aria-pressed=true]{color:var(--dsw-alias-label-primary,#234d3d);border-bottom-color:#4c9777;font-weight:600}._7nVXHW_count{background:#768d801f;border-radius:5px;padding:1px 5px;font-size:12px}._7nVXHW_content{flex:1;min-height:0;display:flex;overflow:auto}._7nVXHW_content>*{flex:1;min-width:0}._7nVXHW_cards{color:var(--dsw-alias-label-primary,#29372f);background:color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 97%, #b7c6a5);padding:20px clamp(14px,4%,26px)}._7nVXHW_cards h2{margin:4px 0 0;font-size:18px;font-weight:600}._7nVXHW_recallToggle{cursor:pointer;align-items:center;gap:6px;font-size:12px;display:flex}._7nVXHW_recallToggle input{accent-color:#447e63}._7nVXHW_muted{color:var(--dsw-alias-label-tertiary,#7c827f);font-size:12px;line-height:1.8}._7nVXHW_card{border:1px solid var(--dsw-alias-border-l1,#dfe6dc);background:var(--dsw-alias-bg-base,#fff);overflow-wrap:anywhere;border-radius:14px;margin:18px 0;padding:20px;font-size:13px;line-height:1.8;box-shadow:0 3px 12px #00000006}._7nVXHW_card h3{margin:8px 0 16px;font-size:17px;line-height:1.5}._7nVXHW_example{border-left:2px solid #91b89e;margin-top:16px;padding-left:12px}._7nVXHW_example strong,._7nVXHW_recallQuestion strong,._7nVXHW_reference strong{color:var(--dsw-alias-label-tertiary,#7c827f);font-size:12px;font-weight:500}._7nVXHW_reference{border-top:1px dashed var(--dsw-alias-border-l1,#dfe6dc);margin-top:16px;padding-top:12px}._7nVXHW_action{font:inherit;color:var(--dsw-alias-label-primary,#325841);border:1px solid var(--dsw-alias-border-l1,#dfe6dc);background:var(--dsw-alias-bg-base,#fff);cursor:pointer;border-radius:8px;padding:7px 11px;font-size:12px;text-decoration:none;display:inline-flex}._7nVXHW_action:hover,._7nVXHW_stages button:hover,._7nVXHW_views button:hover{background:#709b831a}._7nVXHW_empty{text-align:center;border:1px dashed var(--dsw-alias-border-l1,#dfe6dc);border-radius:14px;margin-top:20px;padding:24px 12px}._7nVXHW_empty p{max-width:34em;color:var(--dsw-alias-label-secondary,#69776e);margin:10px auto 18px;font-size:12px;line-height:1.8}._7nVXHW_empty h3{font-size:15px;font-weight:500}._7nVXHW_emptyGlyph{color:#7d9f88;font-size:32px}._7nVXHW_provenance{color:var(--dsw-alias-label-secondary,#69776e);overflow-wrap:anywhere;margin-top:18px;font-size:12px}._7nVXHW_provenance summary{cursor:pointer}._7nVXHW_source summary{cursor:pointer;color:var(--dsw-alias-label-secondary,#69776e);white-space:nowrap;text-overflow:ellipsis;font-size:12px;overflow:hidden}._7nVXHW_source blockquote{margin-top:8px}._7nVXHW_questionDetails>summary{cursor:pointer;opacity:.65;font-size:12px}._7nVXHW_questionDetails p{white-space:pre-wrap;font-size:12px}";
-		const tagId$9 = "@kirkchinese/dsh-citeciter/LearningWorkspace.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$9) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$9;
-			tag.textContent = css$9;
-			document.head.appendChild(tag);
-		}
-		var LearningWorkspace_module_css_default = {
-			"action": "_7nVXHW_action",
-			"card": "_7nVXHW_card",
-			"cardActions": "_7nVXHW_cardActions",
-			"cardEyebrow": "_7nVXHW_cardEyebrow",
-			"cards": "_7nVXHW_cards",
-			"cardsHeader": "_7nVXHW_cardsHeader",
-			"content": "_7nVXHW_content",
-			"count": "_7nVXHW_count",
-			"empty": "_7nVXHW_empty",
-			"emptyGlyph": "_7nVXHW_emptyGlyph",
-			"example": "_7nVXHW_example",
-			"eyebrow": "_7nVXHW_eyebrow",
-			"hint": "_7nVXHW_hint",
-			"muted": "_7nVXHW_muted",
-			"provenance": "_7nVXHW_provenance",
-			"questionDetails": "_7nVXHW_questionDetails",
-			"recallQuestion": "_7nVXHW_recallQuestion",
-			"recallToggle": "_7nVXHW_recallToggle",
-			"reference": "_7nVXHW_reference",
-			"route": "_7nVXHW_route",
-			"routeTop": "_7nVXHW_routeTop",
-			"source": "_7nVXHW_source",
-			"stages": "_7nVXHW_stages",
-			"views": "_7nVXHW_views"
-		};
-		//#endregion
-		//#region lib/types/client/components/LearningCards.js
-		function Card({ card, recall, index }) {
-			const [revealed, setRevealed] = (0, react.useState)(false);
-			const showAnswer = !recall || revealed;
-			return (0, react_jsx_runtime.jsxs)("article", {
-				className: LearningWorkspace_module_css_default.card,
-				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: LearningWorkspace_module_css_default.cardEyebrow,
-						children: ["学习卡片 · ", String(index + 1).padStart(2, "0")]
-					}),
-					(0, react_jsx_runtime.jsx)("h3", { children: card.title }),
-					recall && (0, react_jsx_runtime.jsxs)("div", {
-						className: LearningWorkspace_module_css_default.recallQuestion,
-						children: [(0, react_jsx_runtime.jsx)("strong", { children: "先试着用自己的话回答" }), (0, react_jsx_runtime.jsx)(RichAnswer, {
-							text: card.question,
-							streaming: false
-						})]
-					}),
-					showAnswer ? (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-						(0, react_jsx_runtime.jsx)(RichAnswer, {
-							text: card.summary,
-							streaming: false
-						}),
-						(0, react_jsx_runtime.jsxs)("div", {
-							className: LearningWorkspace_module_css_default.example,
-							children: [(0, react_jsx_runtime.jsx)("strong", { children: "用一个例子记住" }), (0, react_jsx_runtime.jsx)(RichAnswer, {
-								text: card.example,
-								streaming: false
-							})]
-						}),
-						recall && (0, react_jsx_runtime.jsxs)("div", {
-							className: LearningWorkspace_module_css_default.reference,
-							children: [(0, react_jsx_runtime.jsx)("strong", { children: "参考答案" }), (0, react_jsx_runtime.jsx)(RichAnswer, {
-								text: card.answer,
-								streaming: false
-							})]
-						})
-					] }) : (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						className: LearningWorkspace_module_css_default.action,
-						onClick: () => setRevealed(true),
-						children: "展开结论与参考答案"
-					})
-				]
-			});
-		}
-		/** Read the latest durable Topic card set. Recall affects display only and never schedules work. */
-		function LearningCards({ projection, recall, setRecall, disabled, topicTitle, topicId, source, onRevise }) {
-			const markdown = learningCardsMarkdown(projection.cards, topicTitle, topicId, source);
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: LearningWorkspace_module_css_default.cards,
-				"aria-label": "学习卡片",
-				children: [
-					(0, react_jsx_runtime.jsxs)("header", {
-						className: LearningWorkspace_module_css_default.cardsHeader,
-						children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("span", {
-							className: LearningWorkspace_module_css_default.eyebrow,
-							children: "留下一份理解"
-						}), (0, react_jsx_runtime.jsx)("h2", { children: "总结学习卡片" })] }), (0, react_jsx_runtime.jsxs)("label", {
-							className: LearningWorkspace_module_css_default.recallToggle,
-							children: [(0, react_jsx_runtime.jsx)("input", {
-								type: "checkbox",
-								checked: recall,
-								disabled,
-								onChange: (event) => setRecall(event.currentTarget.checked)
-							}), "主动回忆"]
-						})]
-					}),
-					(0, react_jsx_runtime.jsx)("p", {
-						className: LearningWorkspace_module_css_default.muted,
-						children: recall ? "先自己回答，再展开参考内容。随时可以关闭。" : "直接阅读结论与例子。想自测时，再开启主动回忆。"
-					}),
-					projection.invalid > 0 && (0, react_jsx_runtime.jsxs)("p", {
-						role: "status",
-						children: [
-							"有 ",
-							projection.invalid,
-							" 条卡片记录无法读取，已保留最近可用的一组。"
-						]
-					}),
-					projection.cards.length === 0 ? (0, react_jsx_runtime.jsxs)("div", {
-						className: LearningWorkspace_module_css_default.empty,
-						children: [
-							(0, react_jsx_runtime.jsx)("span", {
-								className: LearningWorkspace_module_css_default.emptyGlyph,
-								"aria-hidden": "true",
-								children: "▤"
-							}),
-							(0, react_jsx_runtime.jsx)("h3", { children: "让理解留下来" }),
-							(0, react_jsx_runtime.jsx)("p", { children: "在输入框请求总结学习卡片并发送。模型会先核对结论，再整理卡片。" }),
-							(0, react_jsx_runtime.jsx)("button", {
-								className: LearningWorkspace_module_css_default.action,
-								type: "button",
-								onClick: onRevise,
-								children: "准备总结"
-							})
-						]
-					}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-						projection.cards.map((card, index) => (0, react_jsx_runtime.jsx)(Card, {
-							card,
-							index,
-							recall
-						}, `${projection.messageId}:${index}:${recall}`)),
-						(0, react_jsx_runtime.jsxs)("div", {
-							className: LearningWorkspace_module_css_default.cardActions,
-							children: [(0, react_jsx_runtime.jsx)("a", {
-								className: LearningWorkspace_module_css_default.action,
-								href: `data:text/markdown;charset=utf-8,${encodeURIComponent(markdown)}`,
-								download: "CiteCiter-learning-cards.md",
-								children: "导出 Markdown"
-							}), (0, react_jsx_runtime.jsx)("button", {
-								className: LearningWorkspace_module_css_default.action,
-								type: "button",
-								onClick: onRevise,
-								children: "补充或修订"
-							})]
-						}),
-						(0, react_jsx_runtime.jsxs)("details", {
-							className: LearningWorkspace_module_css_default.provenance,
-							children: [
-								(0, react_jsx_runtime.jsxs)("summary", { children: ["来自当前 Topic · ", topicTitle] }),
-								(0, react_jsx_runtime.jsx)("p", { children: source }),
-								(0, react_jsx_runtime.jsx)("small", { children: topicId })
-							]
-						}),
-						(0, react_jsx_runtime.jsx)("p", {
-							className: LearningWorkspace_module_css_default.muted,
-							children: "已随 Topic 保存。修订时发送你的要求，生成后展示新的完整一组。"
-						})
-					] })
-				]
-			});
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\ChoicePopover.module.css.mjs
-		const css$8 = ".RioYQG_menu{z-index:2147483000;border:1px solid color-mix(in srgb, var(--dsw-alias-label-primary,#253040) 13%, transparent);width:min(310px,100vw - 16px);color:var(--dsw-alias-label-primary,#253040);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 94%, transparent);backdrop-filter:blur(28px)saturate(140%);border-radius:18px;padding:7px;font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;animation:.13s ease-out RioYQG_appear;position:fixed;overflow:auto;box-shadow:0 12px 40px #0002,inset 0 1px #ffffff70}.RioYQG_menu button{width:100%;color:inherit;text-align:left;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:11px;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;display:flex}.RioYQG_menu button:hover,.RioYQG_menu button:focus-visible{background:color-mix(in srgb, currentColor 7%, transparent);outline:none}.RioYQG_menu button[aria-checked=true]{background:#588bf721}.RioYQG_menu button:disabled{opacity:.45;cursor:default}.RioYQG_menu small{opacity:.6;padding:10px 12px 4px;display:block}.RioYQG_menu button span:last-child{text-overflow:ellipsis;white-space:nowrap;opacity:.68;overflow:hidden}.RioYQG_menu button>span:first-child:not(:last-child){white-space:nowrap;flex-shrink:0}@keyframes RioYQG_appear{0%{opacity:0;transform:translateY(4px)scale(.98)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.RioYQG_menu{animation:none}}";
-		const tagId$8 = "@kirkchinese/dsh-citeciter/ChoicePopover.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$8) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$8;
-			tag.textContent = css$8;
-			document.head.appendChild(tag);
-		}
-		var ChoicePopover_module_css_default = {
-			"appear": "RioYQG_appear",
-			"menu": "RioYQG_menu"
-		};
-		//#endregion
-		//#region lib/types/client/components/ChoicePopover.js
-		/** Anchored menu surface. Owns positioning, focus and dismissal, not selection state. */
-		function ChoicePopover({ anchor, label, onClose, children }) {
-			const surface = (0, react.useRef)(null);
-			const close = (0, react.useRef)(onClose);
-			close.current = onClose;
-			const [position, setPosition] = (0, react.useState)({
-				left: 8,
-				top: 8,
-				maxHeight: 400
-			});
-			(0, react.useLayoutEffect)(() => {
-				const place = () => {
-					const button = anchor.current?.getBoundingClientRect();
-					const menu = surface.current;
-					if (button === void 0 || menu === null) return;
-					const available = Math.max(100, window.innerHeight - 16);
-					const height = Math.min(menu.scrollHeight, available, 420);
-					const top = button.top >= height + 16 ? button.top - height - 8 : Math.min(button.bottom + 8, window.innerHeight - height - 8);
-					setPosition({
-						left: Math.max(8, Math.min(button.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8)),
-						top: Math.max(8, top),
-						maxHeight: available
-					});
-				};
-				place();
-				const observer = new ResizeObserver(place);
-				if (surface.current !== null) observer.observe(surface.current);
-				window.addEventListener("resize", place);
-				return () => {
-					observer.disconnect();
-					window.removeEventListener("resize", place);
-				};
-			}, [anchor]);
-			(0, react.useEffect)(() => {
-				const dismiss = (event) => {
-					if (event.target instanceof Node && !surface.current?.contains(event.target) && !anchor.current?.contains(event.target)) close.current();
-				};
-				document.addEventListener("pointerdown", dismiss, true);
-				surface.current?.querySelector("[role^=\"menuitem\"]")?.focus();
-				return () => document.removeEventListener("pointerdown", dismiss, true);
-			}, [anchor]);
-			return (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
-				ref: surface,
-				className: ChoicePopover_module_css_default.menu,
-				role: "menu",
-				"aria-label": label,
-				style: position,
-				onKeyDown: (event) => {
-					if (event.key === "Escape") {
-						event.preventDefault();
-						event.stopPropagation();
-						onClose();
-						anchor.current?.focus();
-						return;
-					}
-					if (event.key === "Tab") {
-						onClose();
-						return;
-					}
-					if (![
-						"ArrowDown",
-						"ArrowUp",
-						"Home",
-						"End"
-					].includes(event.key)) return;
-					event.preventDefault();
-					const items = [...event.currentTarget.querySelectorAll("[role^=\"menuitem\"]:not([disabled])")];
-					const index = items.indexOf(document.activeElement);
-					items[event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
-				},
-				children
-			}) });
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\TopicModelControls.module.css.mjs
-		const css$7 = ".hfJzda_controls{flex:1 1 0;min-width:0;margin-left:auto}.hfJzda_controls>.hfJzda_trigger{width:100%;min-width:0;max-width:none}.hfJzda_controls>.hfJzda_trigger>span:first-child{text-align:right;flex:1;min-width:0}.hfJzda_trigger{max-width:240px;color:inherit;cursor:pointer;font:inherit;background:0 0;border:0;border-radius:11px;align-items:center;gap:7px;padding:7px 10px;transition:background .13s;display:flex}.hfJzda_trigger>span:first-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.hfJzda_trigger small{opacity:.55}.hfJzda_trigger:hover,.hfJzda_trigger[aria-expanded=true]{background:color-mix(in srgb, currentColor 7%, transparent)}.hfJzda_trigger:focus-visible{outline-offset:2px;outline:2px solid #6898f2}.hfJzda_trigger:disabled{opacity:.5;cursor:wait}@media (prefers-reduced-motion:reduce){.hfJzda_trigger{transition:none}}";
-		const tagId$7 = "@kirkchinese/dsh-citeciter/TopicModelControls.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$7) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$7;
-			tag.textContent = css$7;
-			document.head.appendChild(tag);
-		}
-		var TopicModelControls_module_css_default = {
-			"controls": "hfJzda_controls",
-			"trigger": "hfJzda_trigger"
-		};
-		//#endregion
-		//#region lib/types/client/components/TopicModelControls.js
-		/** Model and reasoning hierarchy. Route changes are committed by the injected controller. */
-		function TopicModelControls({ providers, route, saving, onModel, onReasoning }) {
-			const [page, setPage] = (0, react.useState)("closed");
-			const anchor = (0, react.useRef)(null);
-			const close = (0, react.useCallback)(() => setPage("closed"), []);
-			const model = providers.find((provider) => provider.id === route.provider)?.models.find((model) => model.id === route.model);
-			const name = model?.name ?? route.model;
-			const effort = model?.reasoningEfforts.find((item) => item.id === route.reasoningEffort)?.name ?? "默认";
-			const finish = (action) => {
-				action();
-				close();
-				anchor.current?.focus();
-			};
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: TopicModelControls_module_css_default.controls,
-				children: [(0, react_jsx_runtime.jsxs)("button", {
-					ref: anchor,
-					type: "button",
-					className: TopicModelControls_module_css_default.trigger,
-					disabled: saving,
-					"aria-label": `模型与思考强度：${name}，${effort}`,
-					"aria-haspopup": "menu",
-					"aria-expanded": page !== "closed",
-					onClick: () => setPage(page === "closed" ? "root" : "closed"),
-					children: [
-						(0, react_jsx_runtime.jsx)("span", { children: name }),
-						(0, react_jsx_runtime.jsx)("small", { children: effort }),
-						(0, react_jsx_runtime.jsx)("span", {
-							"aria-hidden": "true",
-							children: "⌄"
-						})
-					]
-				}), page !== "closed" && (0, react_jsx_runtime.jsx)(ChoicePopover, {
-					anchor,
-					label: "模型与思考强度",
-					onClose: close,
-					children: page === "root" ? (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsxs)("button", {
-						type: "button",
-						role: "menuitem",
-						onClick: () => setPage("model"),
-						children: [(0, react_jsx_runtime.jsx)("span", { children: "模型" }), (0, react_jsx_runtime.jsxs)("span", { children: [name, " ›"] })]
-					}), (0, react_jsx_runtime.jsxs)("button", {
-						type: "button",
-						role: "menuitem",
-						disabled: !model?.reasoningEfforts.length,
-						onClick: () => setPage("effort"),
-						children: [(0, react_jsx_runtime.jsx)("span", { children: "思考强度" }), (0, react_jsx_runtime.jsxs)("span", { children: [effort, " ›"] })]
-					})] }) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						role: "menuitem",
-						onClick: () => setPage("root"),
-						children: (0, react_jsx_runtime.jsxs)("span", { children: ["‹ ", page === "model" ? "模型" : "思考强度"] })
-					}), page === "model" ? providers.map((provider) => (0, react_jsx_runtime.jsxs)("div", {
-						role: "group",
-						"aria-label": provider.name,
-						children: [(0, react_jsx_runtime.jsx)("small", { children: provider.name }), provider.models.map((item) => (0, react_jsx_runtime.jsxs)("button", {
-							type: "button",
-							role: "menuitemradio",
-							"aria-checked": provider.id === route.provider && item.id === route.model,
-							onClick: () => finish(() => onModel(provider.id, item.id)),
-							children: [(0, react_jsx_runtime.jsx)("span", { children: item.name }), provider.id === route.provider && item.id === route.model && (0, react_jsx_runtime.jsx)("span", {
-								"aria-hidden": "true",
-								children: "✓"
-							})]
-						}, item.id))]
-					}, provider.id)) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						role: "menuitemradio",
-						"aria-checked": route.reasoningEffort === void 0,
-						onClick: () => finish(() => onReasoning(null)),
-						children: "模型默认"
-					}), model?.reasoningEfforts.map((item) => (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						role: "menuitemradio",
-						"aria-checked": item.id === route.reasoningEffort,
-						onClick: () => finish(() => onReasoning(item.id)),
-						children: item.name
-					}, item.id))] })] })
-				})]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/components/PermissionControl.js
-		const choices = [
-			[
-				"read-only",
-				"只读",
-				"分析与回答；不修改工作区"
-			],
-			[
-				"workspace-write",
-				"工作区内修改",
-				"按 DSH 权限修改当前项目"
-			],
-			[
-				"danger-full-access",
-				"完全权限",
-				"按 DSH 完全权限运行工具"
-			]
-		];
-		/** Explicit permission selection; receives the Host's effective value. */
-		function PermissionControl({ value, onChange }) {
-			const anchor = (0, react.useRef)(null);
-			const [open, setOpen] = (0, react.useState)(false);
-			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsxs)("button", {
-				ref: anchor,
-				type: "button",
-				className: TopicModelControls_module_css_default.trigger,
-				"aria-label": `权限：${choices.find((row) => row[0] === value)?.[1]}`,
-				title: "DSH 权限",
-				"aria-expanded": open,
-				onClick: () => setOpen(!open),
-				children: [(0, react_jsx_runtime.jsxs)("svg", {
-					width: "18",
-					height: "18",
-					viewBox: "0 0 24 24",
-					fill: "none",
-					"aria-hidden": "true",
-					children: [(0, react_jsx_runtime.jsx)("path", {
-						d: "m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z",
-						stroke: "currentColor",
-						strokeWidth: "1.6"
-					}), (0, react_jsx_runtime.jsx)("path", {
-						d: "m8 12 3 3 5-6",
-						stroke: "currentColor",
-						strokeWidth: "1.6"
-					})]
-				}), (0, react_jsx_runtime.jsx)("span", { children: choices.find((row) => row[0] === value)?.[1] })]
-			}), open && (0, react_jsx_runtime.jsx)(ChoicePopover, {
-				anchor,
-				onClose: () => setOpen(false),
-				label: "DSH 权限",
-				children: choices.map(([mode, label, description]) => (0, react_jsx_runtime.jsxs)("button", {
-					type: "button",
-					role: "menuitemradio",
-					"aria-checked": value === mode,
-					title: description,
-					onClick: () => {
-						onChange(mode);
-						setOpen(false);
-					},
-					children: [label, value === mode ? " ✓" : ""]
-				}, mode))
-			})] });
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\TopicComposer.module.css.mjs
-		const css$6 = ".Y-57pa_composer{color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border:1px solid var(--dsw-alias-border-l2-darkmode-thin,var(--dsw-alias-border-l2,#d9dde5));box-shadow:var(--dsw-shadow-lv2,0 5px 18px #1d222f14);border-radius:22px;flex:none;margin:8px 12px 12px;padding:12px 8px 6px}.Y-57pa_composer textarea{box-sizing:border-box;resize:none;width:100%;min-width:0;min-height:50px;max-height:150px;color:inherit;font:inherit;background:0 0;border:0;outline:none;padding:4px 12px 0;font-size:14px;line-height:22px;display:block}.Y-57pa_composer textarea::placeholder{color:var(--dsw-alias-label-tertiary,#858c98)}.Y-57pa_composer:focus-within{box-shadow:0 0 0 3px #3478f621, var(--dsw-shadow-lv2,0 5px 18px #1d222f14);border-color:#3478f6}.Y-57pa_composerActions{align-items:center;gap:6px;min-width:0;margin-top:6px;display:flex}.Y-57pa_sendButton{color:#fff;cursor:pointer;background:#3478f6;border:0;border-radius:50%;flex:none;place-items:center;width:36px;height:36px;padding:0;display:grid}.Y-57pa_sendButton:disabled{opacity:.45;cursor:default}.Y-57pa_sendButton:hover:not(:disabled){background:#245fd1}.Y-57pa_sendButton:focus-visible{outline-offset:3px;outline:2px solid #3478f6}.Y-57pa_composer[data-folded]{padding-top:6px}.Y-57pa_composer[data-folded] textarea{display:none}.Y-57pa_expandButton{color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:8px;padding:6px 8px;font-size:12px}.Y-57pa_expandButton:hover{background:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 6%, transparent)}.Y-57pa_expandButton:focus-visible{outline-offset:2px;outline:2px solid #3478f6}.Y-57pa_attachButton{width:32px;height:32px;color:inherit;cursor:pointer;background:0 0;border:0;border-radius:50%;flex:none;place-items:center;font-size:22px;display:grid}.Y-57pa_attachButton:hover{background:color-mix(in srgb, currentColor 7%, transparent)}.Y-57pa_attachButton:focus-visible{outline-offset:2px;outline:2px solid #6898f2}.Y-57pa_composer{container-type:inline-size}.Y-57pa_composerActions>button[aria-label^=权限]{white-space:nowrap;flex:none;max-width:140px}@container (width<=430px){.Y-57pa_composerActions>button[aria-label^=权限]>span{display:none}.Y-57pa_composerActions>button[aria-label^=权限]{padding:6px}}";
-		const tagId$6 = "@kirkchinese/dsh-citeciter/TopicComposer.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$6) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$6;
-			tag.textContent = css$6;
-			document.head.appendChild(tag);
-		}
-		var TopicComposer_module_css_default = {
-			"attachButton": "Y-57pa_attachButton",
-			"composer": "Y-57pa_composer",
-			"composerActions": "Y-57pa_composerActions",
-			"expandButton": "Y-57pa_expandButton",
-			"sendButton": "Y-57pa_sendButton"
-		};
-		//#endregion
-		//#region lib/types/client/components/TopicComposer.js
-		/**
-		* Render the Topic draft and its submission controls without accessing services.
-		* @param props - controlled draft, model route, request state and user-action callbacks.
-		* @returns one form; model changes and sending remain owned by the Topic controller.
-		*/
-		function TopicComposer({ question, placeholder, route, providers, phase, canSend, routeSaving, folded, inputRef, onExpand, onQuestion, onSubmit, onStop, onModel, onReasoning, attachments, permission, onPermission, onFiles, delivery, onDelivery, sources, onReference }) {
-			const fileInput = (0, react.useRef)(null);
-			const attachButton = (0, react.useRef)(null);
-			const [attachOpen, setAttachOpen] = (0, react.useState)(false);
-			const running = phase === "running";
-			const stopping = phase === "stopping";
-			return (0, react_jsx_runtime.jsxs)("form", {
-				className: TopicComposer_module_css_default.composer,
-				"data-folded": folded || void 0,
-				onSubmit,
-				children: [
-					(0, react_jsx_runtime.jsx)("input", {
-						hidden: true,
-						ref: fileInput,
-						type: "file",
-						multiple: true,
-						onChange: (event) => {
-							onFiles([...event.currentTarget.files ?? []]);
-							event.currentTarget.value = "";
-						}
-					}),
-					attachments,
-					folded && (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						className: TopicComposer_module_css_default.expandButton,
-						onClick: onExpand,
-						children: question.trim() === "" ? "补充问题" : "编辑草稿"
-					}),
-					(0, react_jsx_runtime.jsx)("textarea", {
-						hidden: folded,
-						ref: inputRef,
-						rows: 2,
-						maxLength: 11e3,
-						"aria-label": "继续向 CiteCiter 提问",
-						value: question,
-						disabled: route === void 0,
-						onChange: (event) => onQuestion(event.currentTarget.value),
-						placeholder,
-						onPaste: (event) => {
-							if (event.clipboardData.files.length === 0) return;
-							onFiles([...event.clipboardData.files]);
-							if (event.clipboardData.getData("text/plain") === "") event.preventDefault();
-						},
-						onKeyDown: (event) => {
-							if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
-								event.preventDefault();
-								if (running && (event.ctrlKey || event.metaKey)) onSubmit(event, delivery === "queue" ? "steer" : "queue");
-								else event.currentTarget.form?.requestSubmit();
-							}
-						}
-					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: TopicComposer_module_css_default.composerActions,
-						children: [
-							(0, react_jsx_runtime.jsx)("button", {
-								ref: attachButton,
-								type: "button",
-								className: TopicComposer_module_css_default.attachButton,
-								"aria-label": "添加附件",
-								title: "添加文件或来源引用",
-								disabled: route === void 0,
-								"aria-expanded": attachOpen,
-								onClick: () => setAttachOpen(!attachOpen),
-								children: "+"
-							}),
-							attachOpen && (0, react_jsx_runtime.jsxs)(ChoicePopover, {
-								anchor: attachButton,
-								label: "添加引用或文件",
-								onClose: () => setAttachOpen(false),
-								children: [(0, react_jsx_runtime.jsxs)("button", {
-									type: "button",
-									role: "menuitem",
-									onClick: () => {
-										setAttachOpen(false);
-										fileInput.current?.click();
-									},
-									children: ["图片或文件 ", (0, react_jsx_runtime.jsx)("span", { children: "↗" })]
-								}), sources.map((reference) => (0, react_jsx_runtime.jsxs)("button", {
-									type: "button",
-									role: "menuitem",
-									onClick: () => {
-										setAttachOpen(false);
-										onReference(reference);
-									},
-									children: [reference.label, (0, react_jsx_runtime.jsx)("span", { children: "＋" })]
-								}, reference.id))]
-							}),
-							(0, react_jsx_runtime.jsx)(PermissionControl, {
-								value: permission,
-								onChange: onPermission
-							}),
-							route !== void 0 && (0, react_jsx_runtime.jsx)(TopicModelControls, {
-								providers,
-								route,
-								saving: routeSaving,
-								onModel,
-								onReasoning
-							}),
-							(running || stopping) && (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								className: TopicComposer_module_css_default.attachButton,
-								"aria-label": "停止回答",
-								title: "停止回答",
-								disabled: stopping,
-								onClick: onStop,
-								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconStopFill16, { size: 16 })
-							}),
-							running && (0, react_jsx_runtime.jsx)("button", {
-								className: TopicComposer_module_css_default.attachButton,
-								type: "button",
-								title: delivery === "queue" ? "当前：排队发送；点击切换为插话" : "当前：插话；点击切换为排队",
-								"aria-label": delivery === "queue" ? "排队发送" : "插话发送",
-								onClick: () => onDelivery(delivery === "queue" ? "steer" : "queue"),
-								children: delivery === "queue" ? "☷" : "↗"
-							}),
-							(0, react_jsx_runtime.jsx)("button", {
-								className: TopicComposer_module_css_default.sendButton,
-								type: "submit",
-								disabled: stopping || !canSend || routeSaving,
-								title: running ? `Enter：${delivery === "queue" ? "排队" : "插话"}；Ctrl + Enter：${delivery === "queue" ? "插话" : "排队"}；Shift + Enter：换行` : "发送 · Enter（Shift + Enter 换行）",
-								"aria-label": "发送",
-								children: (0, react_jsx_runtime.jsx)("svg", {
-									width: "20",
-									height: "20",
-									viewBox: "0 0 24 24",
-									fill: "none",
-									"aria-hidden": "true",
-									children: (0, react_jsx_runtime.jsx)("path", {
-										d: "M12 20V4m-7 7 7-7 7 7",
-										stroke: "currentColor",
-										strokeWidth: "2",
-										strokeLinecap: "round",
-										strokeLinejoin: "round"
-									})
-								})
-							})
-						]
-					})
-				]
-			});
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\TopicSettingsDialog.module.css.mjs
-		const css$5 = ".vejJ0W_settings{color:var(--dsw-alias-label-primary,#20232a);gap:20px;display:grid}.vejJ0W_settings form{align-items:end;gap:10px;display:flex}.vejJ0W_settings label{flex:1;gap:8px;min-width:0;font-size:13px;display:grid}.vejJ0W_settings input{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#dfe3ea);width:100%;height:38px;color:inherit;background:var(--dsw-alias-bg-base,#fff);font:inherit;border-radius:10px;padding:8px 10px}.vejJ0W_settings button{border:1px solid var(--dsw-alias-border-l1,#dfe3ea);min-height:38px;color:inherit;cursor:pointer;font:inherit;background:0 0;border-radius:10px;justify-content:center;align-items:center;gap:6px;padding:8px 12px;font-size:13px;display:inline-flex}.vejJ0W_settings button:hover{background:color-mix(in srgb, var(--dsw-alias-label-primary,#20232a) 6%, transparent)}.vejJ0W_settings button:disabled{opacity:.5;cursor:default}.vejJ0W_settings :focus-visible{outline-offset:2px;outline:2px solid #3478f6}.vejJ0W_actions{border-top:1px solid var(--dsw-alias-border-l1,#dfe3ea);justify-content:space-between;gap:10px;padding-top:16px;display:flex}.vejJ0W_settings .vejJ0W_danger,.vejJ0W_error{color:var(--dsw-alias-state-error-primary,#c93f3f)}.vejJ0W_error{overflow-wrap:anywhere;margin:0;font-size:13px}.vejJ0W_hint{color:var(--dsw-alias-label-secondary,#606875);margin:0;font-size:12px}";
-		const tagId$5 = "@kirkchinese/dsh-citeciter/TopicSettingsDialog.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$5) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$5;
-			tag.textContent = css$5;
-			document.head.appendChild(tag);
-		}
-		var TopicSettingsDialog_module_css_default = {
-			"actions": "vejJ0W_actions",
-			"danger": "vejJ0W_danger",
-			"error": "vejJ0W_error",
-			"hint": "vejJ0W_hint",
-			"settings": "vejJ0W_settings"
-		};
-		//#endregion
-		//#region lib/types/client/components/TopicSettingsDialog.js
-		/**
-		* Render infrequent Topic management separately from the learning composer.
-		* @param props - current identity, operation status and management callbacks.
-		* @returns a controlled dialog; deletion is enabled only for legacy private logs or verified Citer-owned source storage.
-		*/
-		function TopicSettingsDialog({ open, topic, archiving, deleting, error, onClose, onArchive, onDelete }) {
-			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
-				open: open && topic !== void 0,
-				onClose,
-				closeLabel: "关闭",
-				title: "Topic 设置",
-				children: topic !== void 0 && (0, react_jsx_runtime.jsxs)("div", {
-					className: TopicSettingsDialog_module_css_default.settings,
-					children: [
-						(0, react_jsx_runtime.jsxs)("div", {
-							className: TopicSettingsDialog_module_css_default.actions,
-							children: [(0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								"aria-label": topic.archived ? "恢复当前 Topic" : "归档当前 Topic",
-								disabled: archiving,
-								onClick: () => {
-									onArchive(!topic.archived).then((saved) => {
-										if (saved) onClose();
-									});
-								},
-								children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutline20, { size: 16 }), archiving ? "处理中…" : topic.archived ? "恢复" : "归档"]
-							}), (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								className: TopicSettingsDialog_module_css_default.danger,
-								disabled: deleting || topic.hosted === true && topic.storage !== "source",
-								onClick: onDelete,
-								title: topic.hosted === true && topic.storage !== "source" ? "重启 DSH 后迁移至 Citer 自有目录" : void 0,
-								children: "永久删除"
-							})]
-						}),
-						topic.hosted === true && topic.storage !== "source" && (0, react_jsx_runtime.jsx)("p", {
-							className: TopicSettingsDialog_module_css_default.hint,
-							children: "此 Topic 尚未迁移，目前可归档与恢复。"
-						}),
-						error !== null && (0, react_jsx_runtime.jsx)("p", {
-							role: "alert",
-							className: TopicSettingsDialog_module_css_default.error,
-							children: error
-						})
-					]
-				})
-			});
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\TopicNavigation.module.css.mjs
-		const css$4 = ".ZTN4xq_title{white-space:nowrap;text-overflow:ellipsis;cursor:text;font-weight:600;display:block;overflow:hidden}.ZTN4xq_title:focus-visible{border-radius:4px;outline:2px solid #6898f2}.ZTN4xq_rename{width:100%;min-width:60px;color:inherit;font:inherit;background:0 0;border:1px solid #6898f2;border-radius:7px;padding:5px 7px}.ZTN4xq_navigation{flex:none}.ZTN4xq_actions{gap:3px;display:flex}.ZTN4xq_actions button,.ZTN4xq_search button{width:32px;height:32px;color:inherit;cursor:pointer;background:0 0;border:0;border-radius:10px;place-items:center;transition:background .12s;display:grid}.ZTN4xq_actions button:hover,.ZTN4xq_actions button[aria-expanded=true],.ZTN4xq_search button:hover{background:color-mix(in srgb, currentColor 8%, transparent)}.ZTN4xq_actions button:focus-visible,.ZTN4xq_search button:focus-visible{outline:2px solid #6898f2}.ZTN4xq_actions button:disabled{opacity:.35;cursor:default}.ZTN4xq_actions svg{fill:none;stroke:currentColor;stroke-width:1.7px;stroke-linecap:round;width:18px;height:18px}.ZTN4xq_list{z-index:50;border:1px solid color-mix(in srgb, currentColor 12%, transparent);background:var(--dsw-alias-bg-layer-1,#fff);border-radius:16px;padding:10px;animation:.14s ease-out ZTN4xq_show;position:absolute;inset:60px 10px auto;box-shadow:0 12px 38px #0002}.ZTN4xq_search{align-items:center;gap:6px;margin-bottom:8px;display:flex}.ZTN4xq_search input{width:100%;min-width:0;color:inherit;background:color-mix(in srgb, currentColor 5%, transparent);font:inherit;border:0;border-radius:9px;padding:9px}.ZTN4xq_rows{max-height:min(55vh,440px);overflow:auto}.ZTN4xq_row{width:100%;color:inherit;text-align:left;font:inherit;cursor:pointer;background:0 0;border:0;border-radius:10px;align-items:center;gap:10px;padding:10px;display:flex}.ZTN4xq_row:hover,.ZTN4xq_row[aria-current]{background:#6898f221}.ZTN4xq_rowText{gap:4px;min-width:0;display:grid}.ZTN4xq_rowText strong{text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500;overflow:hidden}.ZTN4xq_rowText small{opacity:.55;font-size:11px}.ZTN4xq_dot{opacity:.25;background:currentColor;border-radius:50%;width:5px;height:5px}.ZTN4xq_dot[data-running]{opacity:1;background:#4e86ef}@keyframes ZTN4xq_show{0%{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.ZTN4xq_list{animation:none}.ZTN4xq_actions button{transition:none}}";
-		const tagId$4 = "@kirkchinese/dsh-citeciter/TopicNavigation.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$4) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$4;
-			tag.textContent = css$4;
-			document.head.appendChild(tag);
-		}
-		var TopicNavigation_module_css_default = {
-			"actions": "ZTN4xq_actions",
-			"dot": "ZTN4xq_dot",
-			"list": "ZTN4xq_list",
-			"navigation": "ZTN4xq_navigation",
-			"rename": "ZTN4xq_rename",
-			"row": "ZTN4xq_row",
-			"rows": "ZTN4xq_rows",
-			"rowText": "ZTN4xq_rowText",
-			"search": "ZTN4xq_search",
-			"show": "ZTN4xq_show",
-			"title": "ZTN4xq_title"
-		};
-		//#endregion
-		//#region lib/types/client/components/TopicActions.js
-		/** Workspace actions remain reachable without a floating launcher over the composer. Callbacks own their dialogs and services. */
-		function TopicActions({ hasTopic, onSettings, onReader }) {
-			const [open, setOpen] = (0, react.useState)(false);
-			const anchor = (0, react.useRef)(null);
-			const close = (0, react.useCallback)(() => setOpen(false), []);
-			const choose = (action) => {
-				close();
-				anchor.current?.focus();
-				action();
-			};
-			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
-				ref: anchor,
-				type: "button",
-				title: "Topic 操作",
-				"aria-label": "Topic 操作",
-				"aria-haspopup": "menu",
-				"aria-expanded": open,
-				onClick: () => setOpen((value) => !value),
-				children: (0, react_jsx_runtime.jsx)("svg", {
-					viewBox: "0 0 20 20",
-					"aria-hidden": "true",
-					children: (0, react_jsx_runtime.jsx)("path", { d: "M4 10h.1M10 10h.1M16 10h.1" })
-				})
-			}), open && (0, react_jsx_runtime.jsxs)(ChoicePopover, {
-				anchor,
-				label: "Topic 操作",
-				onClose: close,
-				children: [(0, react_jsx_runtime.jsx)("button", {
-					type: "button",
-					role: "menuitem",
-					onClick: () => choose(onReader),
-					children: "文档阅读"
-				}), (0, react_jsx_runtime.jsx)("button", {
-					type: "button",
-					role: "menuitem",
-					disabled: !hasTopic,
-					onClick: () => choose(onSettings),
-					children: "Topic 设置"
-				})]
-			})] });
-		}
-		//#endregion
-		//#region lib/types/client/components/TopicNavigation.js
-		/** Session-list navigation with search. Receives domain rows and callbacks, without service discovery. */
-		function TopicNavigation({ topics, activeId, archived, onOpen, onNew, onArchiveView, onSettings, onReader }) {
-			const [open, setOpen] = (0, react.useState)(false);
-			const [query, setQuery] = (0, react.useState)("");
-			const ref = (0, react.useRef)(null);
-			(0, react.useEffect)(() => {
-				if (!open) return;
-				const outside = (event) => {
-					if (event.target instanceof Node && !ref.current?.contains(event.target)) setOpen(false);
-				};
-				document.addEventListener("pointerdown", outside);
-				return () => document.removeEventListener("pointerdown", outside);
-			}, [open]);
-			const rows = topics.filter((topic) => topic.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-			return (0, react_jsx_runtime.jsxs)("div", {
-				ref,
-				className: TopicNavigation_module_css_default.navigation,
-				children: [(0, react_jsx_runtime.jsxs)("div", {
-					className: TopicNavigation_module_css_default.actions,
-					children: [
-						(0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							title: "Topic 列表",
-							"aria-label": "Topic 列表",
-							"aria-expanded": open,
-							onClick: () => setOpen(!open),
-							children: (0, react_jsx_runtime.jsx)("svg", {
-								viewBox: "0 0 20 20",
-								"aria-hidden": "true",
-								children: (0, react_jsx_runtime.jsx)("path", { d: "M6 5h11M6 10h11M6 15h11M2 5h.1M2 10h.1M2 15h.1" })
-							})
-						}),
-						(0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							title: "新建 Topic",
-							"aria-label": "新建 Topic",
-							onClick: () => {
-								setOpen(false);
-								onNew();
-							},
-							children: (0, react_jsx_runtime.jsx)("svg", {
-								viewBox: "0 0 20 20",
-								"aria-hidden": "true",
-								children: (0, react_jsx_runtime.jsx)("path", { d: "M10 3v14M3 10h14" })
-							})
-						}),
-						(0, react_jsx_runtime.jsx)(TopicActions, {
-							hasTopic: activeId !== void 0,
-							onSettings,
-							onReader
-						})
-					]
-				}), open && (0, react_jsx_runtime.jsxs)("section", {
-					className: TopicNavigation_module_css_default.list,
-					"aria-label": "Topic 会话列表",
-					onKeyDown: (event) => {
-						if (event.key === "Escape") setOpen(false);
-					},
-					children: [(0, react_jsx_runtime.jsxs)("div", {
-						className: TopicNavigation_module_css_default.search,
-						children: [(0, react_jsx_runtime.jsx)("input", {
-							autoFocus: true,
-							placeholder: "搜索 Topic",
-							"aria-label": "搜索 Topic",
-							value: query,
-							onChange: (event) => setQuery(event.currentTarget.value)
-						}), (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							title: archived ? "活动 Topic" : "归档 Topic",
-							"aria-label": archived ? "活动 Topic" : "归档 Topic",
-							"aria-pressed": archived,
-							onClick: () => onArchiveView(!archived),
-							children: "▣"
-						})]
-					}), (0, react_jsx_runtime.jsxs)("div", {
-						className: TopicNavigation_module_css_default.rows,
-						children: [rows.length === 0 && (0, react_jsx_runtime.jsx)("p", { children: query ? "没有匹配的 Topic" : "暂无 Topic" }), rows.map((topic) => (0, react_jsx_runtime.jsxs)("button", {
-							className: TopicNavigation_module_css_default.row,
-							type: "button",
-							"aria-current": activeId === topic.sessionId ? "page" : void 0,
-							onClick: () => {
-								onOpen(topic.sessionId);
-								setOpen(false);
-							},
-							children: [(0, react_jsx_runtime.jsx)("span", {
-								className: TopicNavigation_module_css_default.dot,
-								"data-running": topic.running || void 0
-							}), (0, react_jsx_runtime.jsxs)("span", {
-								className: TopicNavigation_module_css_default.rowText,
-								children: [(0, react_jsx_runtime.jsx)("strong", { children: topic.title }), (0, react_jsx_runtime.jsx)("small", { children: new Date(topic.updatedAt).toLocaleString(void 0, {
-									month: "short",
-									day: "numeric",
-									hour: "2-digit",
-									minute: "2-digit"
-								}) })]
-							})]
-						}, topic.sessionId))]
-					})]
-				})]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/components/TopicTitle.js
-		/** Inline rename committed by Enter or blur, cancelled by Escape. Double-click and F2 start editing. */
-		function TopicTitle({ id, title, onRename }) {
-			const [editing, setEditing] = (0, react.useState)(false);
-			const [value, setValue] = (0, react.useState)(title);
-			const [error, setError] = (0, react.useState)(false);
-			const saving = (0, react.useRef)(false);
-			const cancelled = (0, react.useRef)(false);
-			(0, react.useEffect)(() => {
-				setEditing(false);
-				setValue(title);
-				setError(false);
-			}, [id]);
-			const start = () => {
-				cancelled.current = false;
-				setValue(title);
-				setError(false);
-				setEditing(true);
-			};
-			const save = async () => {
-				if (saving.current || cancelled.current) return;
-				if (!value.trim() || value.trim() === title) {
-					setEditing(false);
-					return;
-				}
-				saving.current = true;
-				try {
-					if (await onRename(value.trim())) setEditing(false);
-					else setError(true);
-				} finally {
-					saving.current = false;
-				}
-			};
-			return editing ? (0, react_jsx_runtime.jsx)("input", {
-				className: TopicNavigation_module_css_default.rename,
-				"aria-label": "Topic 名称",
-				"aria-invalid": error,
-				title: error ? "保存失败，可重试或按 Escape 取消" : void 0,
-				autoFocus: true,
-				value,
-				maxLength: 120,
-				onFocus: (event) => event.currentTarget.select(),
-				onChange: (event) => setValue(event.currentTarget.value),
-				onBlur: () => {
-					save();
-				},
-				onKeyDown: (event) => {
-					if (event.key === "Escape") {
-						cancelled.current = true;
-						setEditing(false);
-						event.stopPropagation();
-					}
-					if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-						event.preventDefault();
-						save();
-					}
-				}
-			}) : (0, react_jsx_runtime.jsx)("strong", {
-				"data-topic-title": true,
-				className: TopicNavigation_module_css_default.title,
-				tabIndex: 0,
-				title: "双击重命名 · F2",
-				onDoubleClick: start,
-				onKeyDown: (event) => {
-					if (event.key === "F2") {
-						event.preventDefault();
-						start();
-					}
-				},
-				children: title
-			});
-		}
-		//#endregion
-		//#region lib/types/client/components/CitePanel.js
-		const PHASE_LABEL = {
-			idle: "新建或选择 Topic",
-			creating: "正在确认上下文方式…",
-			ready: "可以继续追问",
-			running: "CiteCiter 正在回答…",
-			stopping: "正在停止…",
-			stopped: "已停止，可继续",
-			error: "需要处理"
-		};
-		function compactPreview(text, limit = 120) {
-			const compact = text.replaceAll(/\s+/g, " ").trim();
-			return compact.length > limit ? compact.slice(0, limit) + "…" : compact;
-		}
-		function jsonObject(text) {
-			try {
-				const value = JSON.parse(text);
-				return typeof value === "object" && value !== null ? value : null;
-			} catch {
-				return null;
-			}
-		}
-		function friendlyFailure(text) {
-			if (text.includes("Citation source has no model route")) return "当前主会话还没有可复用的模型。请先在主对话发送一条消息，再创建 Topic。";
-			return text.replaceAll(/https?:\/\/[^\s)]+/gu, "模型服务地址");
-		}
-		function FlowDisclosure({ icon, title, summary, running = false, children }) {
-			const [open, setOpen] = (0, react.useState)(false);
-			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DisclosureRow, {
-				className: CiteCiter_module_css_default.flowDisclosure,
-				rowClassName: running ? CiteCiter_module_css_default.flowRowRunning : CiteCiter_module_css_default.flowRow,
-				icon,
-				title,
-				open,
-				expandable: true,
-				expandOnRowClick: true,
-				onToggle: () => setOpen(!open),
-				collapsedContent: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("span", {
-					className: CiteCiter_module_css_default.flowDot,
-					children: "·"
-				}), (0, react_jsx_runtime.jsx)("span", {
-					className: CiteCiter_module_css_default.flowSummary,
-					children: summary
-				})] }),
-				children
-			});
-		}
-		function ToolRow({ message, sessionId, load }) {
-			const args = jsonObject(message.arguments);
-			const result = message.result === null ? null : jsonObject(message.result);
-			const summary = message.running ? compactPreview(message.arguments) : message.isError ? "调用失败" : compactPreview(message.result || ((message.attachments?.length ?? 0) > 0 ? "图片已返回" : "完成"));
-			return (0, react_jsx_runtime.jsx)("div", {
-				"data-citeciter-message": message.id,
-				children: (0, react_jsx_runtime.jsx)(FlowDisclosure, {
-					icon: message.name === "ask_user_question" ? (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconQuestionOutline14, {}) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSparkle16, {}),
-					title: message.name,
-					summary,
-					running: message.running,
-					children: (0, react_jsx_runtime.jsxs)("div", {
-						className: CiteCiter_module_css_default.toolPreview,
-						children: [
-							(0, react_jsx_runtime.jsx)(MessageAttachments, {
-								sessionId,
-								attachments: message.attachments ?? [],
-								load
-							}),
-							(0, react_jsx_runtime.jsx)("strong", { children: "参数" }),
-							args === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.arguments }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
-								data: args,
-								label: "工具参数",
-								copyable: false,
-								labels: jsonTreeLabels
-							}),
-							message.result !== null && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("strong", { children: message.isError ? "错误" : "结果" }), result === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.result }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
-								data: result,
-								label: "工具结果",
-								copyable: false,
-								labels: jsonTreeLabels
-							})] })
-						]
-					})
-				})
-			});
-		}
-		function ErrorTurn({ message }) {
-			const summary = friendlyFailure(message.text);
-			return (0, react_jsx_runtime.jsxs)("article", {
-				className: CiteCiter_module_css_default.errorTurn,
-				"data-citeciter-message": message.id,
-				"data-status": message.status,
-				role: message.status === "failed" ? "alert" : void 0,
-				children: [
-					(0, react_jsx_runtime.jsx)("div", {
-						className: CiteCiter_module_css_default.turnRole,
-						children: message.status === "stopped" ? "已停止" : "请求失败"
-					}),
-					(0, react_jsx_runtime.jsx)("p", { children: summary }),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: CiteCiter_module_css_default.errorMeta,
-						children: [
-							(0, react_jsx_runtime.jsxs)("span", { children: [
-								"第 ",
-								message.attempt,
-								" 次请求"
-							] }),
-							(0, react_jsx_runtime.jsx)("span", { children: message.bodyRetained ? "已保留已生成正文" : "未产生可保留正文" }),
-							(0, react_jsx_runtime.jsx)("span", { children: message.status === "stopped" ? "可继续追问" : "可修改问题后重试" })
-						]
-					}),
-					summary !== message.text && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: "技术详情" }), (0, react_jsx_runtime.jsx)("pre", { children: message.text })] })
-				]
-			});
-		}
-		function AssistantTurn({ message, disabled, onQuestion, reportParseError }) {
-			const parsed = (0, react.useMemo)(() => parseNextQuestions(message.text, message.streaming), [message.streaming, message.text]);
-			(0, react.useEffect)(() => {
-				if (!message.streaming && parsed.invalid) reportParseError(message.id);
-			}, [
-				message.id,
-				message.streaming,
-				parsed.invalid,
-				reportParseError
-			]);
-			return (0, react_jsx_runtime.jsxs)("article", {
-				className: CiteCiter_module_css_default.assistantTurn,
-				"data-citeciter-message": message.renderKey ?? message.id,
-				children: [
-					(0, react_jsx_runtime.jsx)("div", {
-						className: CiteCiter_module_css_default.turnRole,
-						children: "CiteCiter"
-					}),
-					message.reasoning !== null && message.reasoning.trim() !== "" && (0, react_jsx_runtime.jsx)(ReasoningDisclosure, {
-						text: message.reasoning,
-						active: message.streaming && message.text === ""
-					}),
-					parsed.text !== "" && (0, react_jsx_runtime.jsx)(RichAnswer, {
-						text: parsed.text,
-						streaming: message.streaming
-					}),
-					!message.streaming && parsed.questions.length === 3 && (0, react_jsx_runtime.jsxs)("fieldset", {
-						className: CiteCiter_module_css_default.nextQuestions,
-						children: [(0, react_jsx_runtime.jsx)("legend", { children: "接下来可能想问" }), parsed.questions.map((question) => (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							disabled,
-							onClick: () => onQuestion(question),
-							children: question
-						}, question))]
-					})
-				]
-			});
-		}
-		/**
-		* Render the independent Topic workspace on the right edge of the shell.
-		* @param props - shared panel bus, Topic controller, and host callbacks.
-		* @returns the responsive Topic dock and its dialogs, or null while closed.
-		*/
-		function CitePanel({ nativeComposer, useCompanion, useOverlay, useInteractions, useSubmission, bus, companion, closePanel, openReader, reportParseError }) {
-			const overlay = useOverlay((value) => value);
-			const snapshot = useCompanion((value) => value);
-			const pendingInteraction = useInteractions((value) => snapshot.active?.topic.hosted === true ? value.get(snapshot.active.topic.sessionId) : void 0);
-			const draftKey = snapshot.active?.topic.sessionId ?? snapshot.sourceSessionId ?? "new";
-			const [drafts, setDrafts] = (0, react.useState)({});
-			const question = drafts[draftKey] ?? "";
-			const setQuestion = (0, react.useCallback)((value) => {
-				setDrafts((current) => ({
-					...current,
-					[draftKey]: typeof value === "string" ? value : value(current[draftKey] ?? "")
-				}));
-			}, [draftKey]);
-			const [files, setFiles] = (0, react.useState)({});
-			const defaultDelivery = useSubmission((value) => value);
-			const [deliveryOverride, setDeliveryOverride] = (0, react.useState)(null);
-			const delivery = deliveryOverride?.key === draftKey && deliveryOverride.base === defaultDelivery ? deliveryOverride.mode : defaultDelivery;
-			const setDelivery = (mode) => setDeliveryOverride({
-				key: draftKey,
-				base: defaultDelivery,
-				mode
-			});
-			const [attachmentError, setAttachmentError] = (0, react.useState)(null);
-			const [references, setReferences] = (0, react.useState)({});
-			const consumedSeeds = (0, react.useRef)(/* @__PURE__ */ new Set());
-			const [views, setViews] = (0, react.useState)({});
-			const view = views[draftKey] ?? "explain";
-			const setView = (next) => setViews((current) => ({
-				...current,
-				[draftKey]: next
-			}));
-			const cards = (0, react.useMemo)(() => projectLearningCards(snapshot.active?.messages ?? []), [snapshot.active?.messages]);
-			const [topicSettingsOpen, setTopicSettingsOpen] = (0, react.useState)(false);
-			const [deleteTarget, setDeleteTarget] = (0, react.useState)(null);
-			const [deleteConfirmation, setDeleteConfirmation] = (0, react.useState)("");
-			const [deleteError, setDeleteError] = (0, react.useState)(null);
-			const [widthPercent, setWidthPercent] = (0, react.useState)(snapshot.settings.panelWidthPercent);
-			const dockWidthPercent = widthPercent;
-			const resizeOrigin = (0, react.useRef)(null);
-			const panelRef = (0, react.useRef)(null);
-			const composerRef = (0, react.useRef)(null);
-			const transcript = useTranscriptPosition(draftKey, snapshot.active?.messages);
-			const modalReturnFocusRef = (0, react.useRef)(null);
-			const open = overlay.panelOpen;
-			const active = snapshot.active;
-			const addFiles = (batch) => {
-				if (active === null) return;
-				const key = active.topic.sessionId;
-				nativeComposer.add(key, batch).then((added) => {
-					setFiles((current) => ({
-						...current,
-						[key]: [...current[key] ?? [], ...added]
-					}));
-					setAttachmentError(null);
-				}).catch((error) => setAttachmentError(String(error)));
-			};
-			const canDropFiles = active !== null && active.topic.modelConfig !== void 0;
-			const fileDrop = useFileDrop(open, canDropFiles, addFiles);
-			const canAsk = snapshot.phase === "ready" || snapshot.phase === "stopped" || snapshot.phase === "error" || snapshot.phase === "running";
-			const dock = useHostDock(panelRef, open, widthPercent, overlay.presentation === "floating");
-			const compact = dock?.mode === "page";
-			const floating = overlay.presentation === "floating" && !compact;
-			useCompactNavigation(panelRef, open && compact);
-			const drag = usePanelDrag(panelRef, floating, bus.setPresentation);
-			const floatPosition = drag.position;
-			const docked = !floating && dock?.mode === "columns";
-			const composerFolded = false;
-			(0, react.useEffect)(() => open ? companion.retainVisible() : void 0, [companion, open]);
-			(0, react.useEffect)(() => setWidthPercent(snapshot.settings.panelWidthPercent), [snapshot.settings.panelWidthPercent]);
-			(0, react.useEffect)(() => {
-				setTopicSettingsOpen(false);
-			}, [active?.topic.sessionId]);
-			(0, react.useEffect)(() => {
-				setDeleteTarget(null);
-				setDeleteConfirmation("");
-				setDeleteError(null);
-			}, [snapshot.sourceSessionId]);
-			(0, react.useEffect)(() => {
-				if (deleteTarget !== null && deleteTarget.sessionId !== active?.topic.sessionId) {
-					setDeleteTarget(null);
-					setDeleteConfirmation("");
-				}
-			}, [active?.topic.sessionId, deleteTarget]);
-			(0, react.useEffect)(() => {
-				const citation = overlay.boardCitation;
-				if (citation === null || active?.topic.sessionId !== citation.topicSessionId) return;
-				setReferences((current) => ({
-					...current,
-					[citation.topicSessionId]: [...current[citation.topicSessionId] ?? [], {
-						id: `board-${citation.id}`,
-						kind: "board",
-						label: "板书引用",
-						content: citation.prompt
-					}]
-				}));
-				setViews((current) => ({
-					...current,
-					[citation.topicSessionId]: "explain"
-				}));
-				bus.clearBoardCitation(citation.id);
-				requestAnimationFrame(() => composerRef.current?.focus());
-			}, [
-				active?.topic.sessionId,
-				bus,
-				overlay.boardCitation,
-				setQuestion
-			]);
-			(0, react.useEffect)(() => {
-				const seed = snapshot.composeSeed;
-				if (seed === null || active?.topic.sessionId !== seed.sessionId || consumedSeeds.current.has(seed.id)) return;
-				consumedSeeds.current.add(seed.id);
-				setDrafts((current) => ({
-					...current,
-					[seed.sessionId]: seed.question
-				}));
-				setReferences((current) => ({
-					...current,
-					[seed.sessionId]: topicDraftReferences(active.topic, active.documentTitle)
-				}));
-				requestAnimationFrame(() => composerRef.current?.focus());
-			}, [snapshot.composeSeed, active]);
-			const modalTitle = deleteTarget !== null ? "永久删除 Topic" : topicSettingsOpen ? "Topic 设置" : null;
-			(0, react.useEffect)(() => {
-				if (modalTitle === null) return;
-				const dialog = [...document.querySelectorAll("[role=\"dialog\"]")].find((element) => element.getAttribute("aria-label") === modalTitle);
-				if (dialog === void 0) return;
-				const appRoot = document.getElementById("root");
-				const rootWasInert = appRoot?.hasAttribute("inert") ?? false;
-				const rootAriaHidden = appRoot?.getAttribute("aria-hidden") ?? null;
-				appRoot?.setAttribute("inert", "");
-				appRoot?.setAttribute("aria-hidden", "true");
-				const focusable = () => [...dialog.querySelectorAll("button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])")].filter((element) => element.offsetParent !== null);
-				const frame = requestAnimationFrame(() => {
-					if (!dialog.contains(document.activeElement)) focusable()[0]?.focus();
-				});
-				const trapFocus = (event) => {
-					if (event.key !== "Tab") return;
-					const candidates = focusable();
-					const first = candidates[0];
-					const last = candidates.at(-1);
-					if (first === void 0 || last === void 0) return;
-					if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
-						event.preventDefault();
-						last.focus();
-					} else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
-						event.preventDefault();
-						first.focus();
-					}
-				};
-				dialog.addEventListener("keydown", trapFocus);
-				const returnFocus = modalReturnFocusRef.current;
-				return () => {
-					cancelAnimationFrame(frame);
-					dialog.removeEventListener("keydown", trapFocus);
-					if (appRoot !== null) {
-						appRoot.toggleAttribute("inert", rootWasInert);
-						if (rootAriaHidden === null) appRoot.removeAttribute("aria-hidden");
-						else appRoot.setAttribute("aria-hidden", rootAriaHidden);
-					}
-					requestAnimationFrame(() => {
-						if (returnFocus?.isConnected === true) returnFocus.focus();
-						else panelRef.current?.querySelector("button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled])")?.focus();
-					});
-				};
-			}, [modalTitle]);
-			const visibleMessages = active?.messages.filter((message) => isTopicMessageVisible(message, active.messages)) ?? [];
-			if (!open) return null;
-			const submit = (event, mode = delivery) => {
-				event.preventDefault();
-				if (!canAsk || snapshot.modelRouteSaving || snapshot.reasoningEffortSaving) return;
-				const value = question.trim();
-				if (value === "" && (references[draftKey]?.length ?? 0) === 0 && (files[draftKey]?.length ?? 0) === 0) return;
-				const submitted = question;
-				const selectedReferences = references[draftKey] ?? [];
-				const payload = withLearningRoute(serializeDraftReferences(value, selectedReferences), snapshot.settings.learningRoute ?? false);
-				const sentFiles = files[draftKey] ?? [];
-				companion.ask(payload, sentFiles.map((file) => file.id), mode).then((sent) => {
-					if (sent) {
-						setQuestion((current) => current === submitted ? "" : current);
-						setFiles((current) => ({
-							...current,
-							[draftKey]: (current[draftKey] ?? []).filter((file) => !sentFiles.some((sent) => sent.id === file.id))
-						}));
-						const sentIds = new Set(selectedReferences.map((item) => item.id));
-						setReferences((current) => ({
-							...current,
-							[draftKey]: (current[draftKey] ?? []).filter((item) => !sentIds.has(item.id))
-						}));
-					}
-				});
-			};
-			const openNewTopic = () => {
-				companion.createFree("", "qa");
-			};
-			const confirmDelete = async () => {
-				if (deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting) return;
-				setDeleteError(null);
-				if (await companion.deleteTopic(deleteConfirmation) === false) setDeleteError("Topic 未删除，请重试。");
-			};
-			const updateWidth = (next) => {
-				const value = Math.max(28, Math.min(55, Math.round(next)));
-				setWidthPercent(value);
-				companion.setSetting("panelWidthPercent", value);
-			};
-			const startResize = (event) => {
-				event.preventDefault();
-				event.currentTarget.setPointerCapture(event.pointerId);
-				resizeOrigin.current = {
-					x: event.clientX,
-					width: widthPercent,
-					frameWidth: findContainingFrame(panelRef.current)?.getBoundingClientRect().width ?? window.innerWidth
-				};
-			};
-			const moveResize = (event) => {
-				const origin = resizeOrigin.current;
-				if (origin === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
-				setWidthPercent(Math.max(28, Math.min(55, Math.round(origin.width + (origin.x - event.clientX) / origin.frameWidth * 100))));
-			};
-			const endResize = (event) => {
-				const origin = resizeOrigin.current;
-				if (origin === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
-				resizeOrigin.current = null;
-				event.currentTarget.releasePointerCapture(event.pointerId);
-				updateWidth(origin.width + (origin.x - event.clientX) / origin.frameWidth * 100);
-			};
-			const resizeKey = (event) => {
-				if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-				event.preventDefault();
-				updateWidth(widthPercent + (event.key === "ArrowLeft" ? 1 : -1));
-			};
-			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-				active?.captureId && (0, react_jsx_runtime.jsx)(BoardCaptureSurface, {
-					id: active.captureId,
-					sessionId: active.topic.sessionId,
-					board: active.board,
-					reply: companion.boardCaptureReply
-				}, active.captureId),
-				drag.dockTarget && (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
-					className: CiteCiter_module_css_default.dockTarget,
-					"aria-label": "松开以停靠"
-				}) }),
-				(0, react_jsx_runtime.jsx)(OverlayPortal, {
-					inline: !floating,
-					children: (0, react_jsx_runtime.jsxs)("aside", {
-						ref: panelRef,
-						className: `${CiteCiter_module_css_default.dock} ${floating ? CiteCiter_module_css_default.floating : ""}`,
-						style: {
-							width: floating ? void 0 : dock?.width,
-							height: floating ? void 0 : dock?.height,
-							top: floating ? void 0 : dock?.top,
-							...floating && floatPosition !== null ? {
-								left: floatPosition.left,
-								top: floatPosition.top,
-								right: "auto"
-							} : {},
-							"--citeciter-panel-width": `${dockWidthPercent}vw`
-						},
-						"data-citeciter-panel": true,
-						...fileDrop.handlers,
-						"data-arrangement": floating ? "floating" : dock?.mode ?? "unsupported",
-						"aria-label": "CiteCiter 学习伴侣",
-						children: [
-							fileDrop.active && (0, react_jsx_runtime.jsx)(FileDropHint, {
-								enabled: canDropFiles,
-								title: active?.topic.title
-							}),
-							docked && !floating && (0, react_jsx_runtime.jsx)("div", {
-								className: CiteCiter_module_css_default.resizeHandle,
-								role: "separator",
-								"aria-label": "调整 CiteCiter 宽度",
-								"aria-orientation": "vertical",
-								"aria-valuemin": 28,
-								"aria-valuemax": 55,
-								"aria-valuenow": widthPercent,
-								tabIndex: 0,
-								onPointerDown: startResize,
-								onPointerMove: moveResize,
-								onPointerUp: endResize,
-								onPointerCancel: () => {
-									resizeOrigin.current = null;
-								},
-								onKeyDown: resizeKey
-							}),
-							!compact && (0, react_jsx_runtime.jsx)("button", {
-								className: CiteCiter_module_css_default.closeButton,
-								type: "button",
-								onClick: closePanel,
-								"aria-label": "关闭 CiteCiter",
-								children: (0, react_jsx_runtime.jsx)("img", {
-									src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSI+CiAgPHBhdGggZD0iTTExIDcuNSAxOS41IDE2IDExIDI0LjUiIHN0cm9rZT0iIzM0NzhmNiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==",
-									alt: ""
-								})
-							}),
-							!floating && dock === null && (0, react_jsx_runtime.jsx)("p", {
-								className: CiteCiter_module_css_default.layoutNotice,
-								role: "status",
-								children: "当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。"
-							}),
-							(0, react_jsx_runtime.jsx)("div", {
-								className: CiteCiter_module_css_default.dockBody,
-								children: (0, react_jsx_runtime.jsxs)("section", {
-									className: CiteCiter_module_css_default.learningWorkspace,
-									children: [
-										(0, react_jsx_runtime.jsx)(TopicHeader, {
-											compact,
-											onBack: closePanel,
-											onDrag: drag.start,
-											status: PHASE_LABEL[snapshot.phase],
-											title: active === null ? (0, react_jsx_runtime.jsx)("strong", { children: "Citer" }) : (0, react_jsx_runtime.jsx)(TopicTitle, {
-												id: active.topic.sessionId,
-												title: active.topic.title,
-												onRename: companion.rename
-											}),
-											children: (0, react_jsx_runtime.jsx)(TopicNavigation, {
-												topics: snapshot.topics,
-												activeId: active?.topic.sessionId,
-												archived: snapshot.includeArchived,
-												onOpen: (id) => {
-													companion.openTopic(id);
-												},
-												onNew: openNewTopic,
-												onArchiveView: companion.setIncludeArchived,
-												onReader: openReader,
-												onSettings: () => {
-													modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-													setTopicSettingsOpen(true);
-												}
-											})
-										}),
-										snapshot.topicsStatus === "error" && (0, react_jsx_runtime.jsxs)("p", {
-											className: CiteCiter_module_css_default.panelError,
-											role: "alert",
-											children: ["Topic 读取失败：", snapshot.topicsError]
-										}),
-										snapshot.notice !== null && (0, react_jsx_runtime.jsx)("div", {
-											className: CiteCiter_module_css_default.panelNotice,
-											role: "status",
-											children: snapshot.notice
-										}),
-										active === null && snapshot.draftQuote === null ? (0, react_jsx_runtime.jsxs)("div", {
-											className: CiteCiter_module_css_default.emptyState,
-											children: [
-												(0, react_jsx_runtime.jsx)("div", {
-													className: CiteCiter_module_css_default.emptyWhale,
-													"aria-hidden": "true",
-													children: (0, react_jsx_runtime.jsx)("img", {
-														src: citeciter_mascot_default,
-														alt: ""
-													})
-												}),
-												(0, react_jsx_runtime.jsx)("h2", { children: "把没懂的地方，慢慢讲明白" }),
-												(0, react_jsx_runtime.jsx)("p", { children: "新建一个学习 Topic，或选中主对话中的文字，从问题本身开始。" }),
-												(0, react_jsx_runtime.jsx)("button", {
-													className: LearningWorkspace_module_css_default.action,
-													type: "button",
-													onClick: openNewTopic,
-													children: "开始学习"
-												}),
-												snapshot.phase === "creating" && (0, react_jsx_runtime.jsx)("div", {
-													className: CiteCiter_module_css_default.loadingCard,
-													children: "正在创建 Topic…"
-												}),
-												snapshot.error !== null && (0, react_jsx_runtime.jsx)("p", {
-													className: CiteCiter_module_css_default.panelError,
-													role: "alert",
-													children: friendlyFailure(snapshot.error)
-												})
-											]
-										}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-											(0, react_jsx_runtime.jsxs)("details", {
-												className: `${CiteCiter_module_css_default.contextBar} ${LearningWorkspace_module_css_default.source}`,
-												children: [
-													(0, react_jsx_runtime.jsx)("summary", { children: active?.topic.citation == null ? "自由讨论 · 查看上下文" : `引用来源 · ${compactPreview(active.topic.citation.displayText, 70)}` }),
-													(0, react_jsx_runtime.jsx)("blockquote", { children: active?.topic.citation === null ? "无引用 · 自由讨论" : "“" + (active?.topic.citation?.displayText ?? snapshot.draftQuote) + "”" }),
-													active !== null && (0, react_jsx_runtime.jsxs)("div", {
-														className: CiteCiter_module_css_default.contextMeta,
-														children: [(0, react_jsx_runtime.jsx)("span", {
-															"data-ok": active.topic.sourceAvailable || void 0,
-															children: active.topic.sourceAvailable ? "来源在线" : "来源不可用"
-														}), (0, react_jsx_runtime.jsx)("span", { children: active.topic.observedThroughSeq === null ? "等待按需读取来源" : "来源已同步" })]
-													})
-												]
-											}),
-											(0, react_jsx_runtime.jsx)(LearningRoute, {
-												enabled: snapshot.settings.learningRoute ?? false,
-												messages: active?.messages ?? [],
-												onChange: (value) => {
-													companion.setSetting("learningRoute", value);
-												}
-											}),
-											(0, react_jsx_runtime.jsxs)("div", {
-												className: LearningWorkspace_module_css_default.views,
-												"aria-label": "学习内容视图",
-												children: [(0, react_jsx_runtime.jsx)("button", {
-													type: "button",
-													"aria-pressed": view === "explain",
-													onClick: () => setView("explain"),
-													children: "讲解"
-												}), (0, react_jsx_runtime.jsxs)("button", {
-													type: "button",
-													"aria-pressed": view === "cards",
-													onClick: () => setView("cards"),
-													children: ["学习卡", (0, react_jsx_runtime.jsx)("span", {
-														className: LearningWorkspace_module_css_default.count,
-														children: cards.cards.length
-													})]
-												})]
-											}),
-											view === "explain" && (0, react_jsx_runtime.jsxs)("div", {
-												ref: transcript.ref,
-												className: CiteCiter_module_css_default.transcript,
-												"aria-live": "polite",
-												onScroll: transcript.onScroll,
-												children: [
-													visibleMessages.map((message) => {
-														if (message.role === "tool") return (0, react_jsx_runtime.jsx)(ToolRow, {
-															message,
-															sessionId: active.topic.sessionId,
-															load: nativeComposer.attachment
-														}, message.id);
-														if (message.role === "user") return (0, react_jsx_runtime.jsxs)("article", {
-															className: CiteCiter_module_css_default.userTurn,
-															"data-citeciter-message": message.id,
-															"aria-label": "用户消息",
-															children: [(0, react_jsx_runtime.jsx)(MessageAttachments, {
-																sessionId: active.topic.sessionId,
-																attachments: message.attachments ?? [],
-																load: nativeComposer.attachment
-															}), message.text.startsWith("【学习阶段：") ? (0, react_jsx_runtime.jsxs)("details", {
-																className: LearningWorkspace_module_css_default.questionDetails,
-																children: [(0, react_jsx_runtime.jsxs)("summary", { children: [message.text.split("\n")[0], message.text.includes("\n\n我的问题：") ? ` · ${message.text.split("\n\n我的问题：").slice(1).join("\n\n我的问题：")}` : ""] }), (0, react_jsx_runtime.jsx)("p", { children: message.text })]
-															}) : (0, react_jsx_runtime.jsx)(UserMessageBody, { text: message.text })]
-														}, message.id);
-														if (message.role === "error") return (0, react_jsx_runtime.jsx)(ErrorTurn, { message }, message.id);
-														if (message.role === "context") return null;
-														return (0, react_jsx_runtime.jsx)(AssistantTurn, {
-															message,
-															disabled: !canAsk,
-															onQuestion: (value) => {
-																setQuestion((current) => current.trim() === "" ? value : `${current}\n${value}`);
-																requestAnimationFrame(() => composerRef.current?.focus());
-															},
-															reportParseError
-														}, message.renderKey ?? message.id);
-													}),
-													snapshot.phase === "creating" && (0, react_jsx_runtime.jsx)("div", {
-														className: CiteCiter_module_css_default.loadingCard,
-														children: "正在验证引用并建立 Topic…"
-													}),
-													snapshot.error !== null && (0, react_jsx_runtime.jsx)("p", {
-														className: CiteCiter_module_css_default.panelError,
-														"data-citeciter-error": true,
-														role: "alert",
-														children: friendlyFailure(snapshot.error)
-													})
-												]
-											}),
-											view === "cards" && active !== null && (0, react_jsx_runtime.jsx)("div", {
-												className: LearningWorkspace_module_css_default.content,
-												children: (0, react_jsx_runtime.jsx)(LearningCards, {
-													projection: cards,
-													recall: snapshot.settings.activeRecall ?? false,
-													setRecall: (value) => {
-														companion.setSetting("activeRecall", value);
-													},
-													disabled: snapshot.settingsSaveStatus === "saving",
-													topicTitle: active.topic.title,
-													topicId: active.topic.sessionId,
-													source: active.topic.citation?.displayText ?? "无引用 · 自由讨论",
-													onRevise: () => {
-														setQuestion("请先核对本 Topic 的结论，纠正错误并标明未核实内容，再生成总结学习卡片。");
-														setView("explain");
-														requestAnimationFrame(() => composerRef.current?.focus());
-													}
-												}, active.topic.sessionId)
-											}),
-											view !== "explain" && snapshot.error !== null && (0, react_jsx_runtime.jsx)("p", {
-												className: CiteCiter_module_css_default.panelError,
-												role: "alert",
-												children: friendlyFailure(snapshot.error)
-											}),
-											active?.topic.hosted === true && (0, react_jsx_runtime.jsx)(NativeQueue, {
-												sessionId: active.topic.sessionId,
-												native: nativeComposer
-											}),
-											pendingInteraction !== void 0 && (0, react_jsx_runtime.jsx)(NativeInteraction, {
-												pending: pendingInteraction,
-												messages: active?.messages ?? []
-											}, pendingInteraction.key),
-											active?.pendingQuestion !== null && active?.pendingQuestion !== void 0 ? (0, react_jsx_runtime.jsx)(QuestionCard, {
-												pending: active.pendingQuestion,
-												onAnswer: (answer) => companion.answerQuestion(active.pendingQuestion.key, answer),
-												onCancel: () => companion.cancelQuestion(active.pendingQuestion.key)
-											}, active.pendingQuestion.key) : (0, react_jsx_runtime.jsx)(TopicComposer, {
-												sources: active === null ? [] : topicDraftReferences(active.topic, active.documentTitle).filter((reference) => !(references[draftKey] ?? []).some((current) => current.label === reference.label)),
-												onReference: (reference) => setReferences((current) => ({
-													...current,
-													[draftKey]: [...current[draftKey] ?? [], reference]
-												})),
-												permission: active?.topic.permission ?? "read-only",
-												onPermission: (mode) => {
-													companion.setPermission(mode);
-												},
-												delivery,
-												onDelivery: setDelivery,
-												onFiles: addFiles,
-												question,
-												route: active?.topic.modelConfig,
-												providers: snapshot.providers,
-												phase: snapshot.phase,
-												canSend: canAsk && active !== null && (question.trim() !== "" || (references[draftKey]?.length ?? 0) > 0 || (files[draftKey]?.length ?? 0) > 0),
-												routeSaving: snapshot.modelRouteSaving || snapshot.reasoningEffortSaving,
-												folded: composerFolded,
-												inputRef: composerRef,
-												onQuestion: setQuestion,
-												onSubmit: submit,
-												placeholder: "输入问题 · Enter 发送，Shift + Enter 换行",
-												attachments: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-													attachmentError && (0, react_jsx_runtime.jsx)("p", {
-														role: "alert",
-														children: attachmentError
-													}),
-													(0, react_jsx_runtime.jsx)(FileAttachments, {
-														native: nativeComposer,
-														sessionId: draftKey,
-														files: files[draftKey] ?? [],
-														remove: (id) => {
-															nativeComposer.remove(id);
-															setFiles((current) => ({
-																...current,
-																[draftKey]: (current[draftKey] ?? []).filter((file) => file.id !== id)
-															}));
-														}
-													}),
-													(0, react_jsx_runtime.jsx)(ReferenceAttachments, {
-														references: references[draftKey] ?? [],
-														onRemove: (id) => setReferences((current) => ({
-															...current,
-															[draftKey]: (current[draftKey] ?? []).filter((item) => item.id !== id)
-														}))
-													})
-												] }),
-												onExpand: () => {
-													requestAnimationFrame(() => composerRef.current?.focus());
-												},
-												onStop: () => {
-													companion.stop();
-												},
-												onModel: (provider, model) => {
-													companion.setModelRoute(provider, model);
-												},
-												onReasoning: (effort) => {
-													companion.setReasoningEffort(effort);
-												}
-											})
-										] })
-									]
-								})
-							})
-						]
-					})
-				}),
-				!floating && (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsxs)("div", {
-					className: CiteCiter_module_css_default.fullscreenNotice,
-					role: "status",
-					children: ["学习栏已打开。退出文件全屏查看，或 ", (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						onClick: () => bus.setPresentation("floating"),
-						children: "悬浮查看"
-					})]
-				}) }),
-				(0, react_jsx_runtime.jsx)(TopicSettingsDialog, {
-					open: topicSettingsOpen,
-					topic: active?.topic,
-					archiving: snapshot.archiving,
-					deleting: snapshot.deleting,
-					error: snapshot.error === null ? null : friendlyFailure(snapshot.error),
-					onClose: () => setTopicSettingsOpen(false),
-					onArchive: companion.archive,
-					onDelete: () => {
-						if (active === null) return;
-						setTopicSettingsOpen(false);
-						setDeleteTarget({
-							sessionId: active.topic.sessionId,
-							title: active.topic.title
-						});
-						setDeleteConfirmation("");
-						setDeleteError(null);
-					}
-				}),
-				(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
-					open: deleteTarget !== null,
-					onClose: () => {
-						if (!snapshot.deleting) setDeleteTarget(null);
-					},
-					closeLabel: "关闭",
-					title: "永久删除 Topic",
-					...deleteTarget === null ? {} : { description: `这会永久删除“${deleteTarget.title}”。请输入完整 Topic Session ID 确认。` },
-					footer: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-						variant: "outline",
-						disabled: snapshot.deleting,
-						onClick: () => setDeleteTarget(null),
-						children: "取消"
-					}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-						variant: "outline",
-						className: CiteCiter_module_css_default.deleteAction,
-						disabled: deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting,
-						onClick: () => {
-							confirmDelete();
-						},
-						children: snapshot.deleting ? "删除中…" : "永久删除"
-					})] }),
-					children: deleteTarget !== null && (0, react_jsx_runtime.jsxs)("div", {
-						className: CiteCiter_module_css_default.deleteForm,
-						children: [
-							(0, react_jsx_runtime.jsx)("code", { children: deleteTarget.sessionId }),
-							(0, react_jsx_runtime.jsx)("input", {
-								autoFocus: true,
-								value: deleteConfirmation,
-								disabled: snapshot.deleting,
-								"aria-label": "输入 Topic Session ID 以确认永久删除",
-								placeholder: "粘贴上方 Session ID",
-								onChange: (event) => setDeleteConfirmation(event.currentTarget.value)
-							}),
-							deleteError !== null && (0, react_jsx_runtime.jsx)("div", {
-								className: CiteCiter_module_css_default.modalError,
-								role: "alert",
-								children: friendlyFailure(snapshot.error ?? deleteError)
-							})
-						]
-					})
-				})
-			] });
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\ActionWheel.module.css.mjs
-		const css$3 = ".uyZH7q_wheel{width:360px;height:360px;transform:translate(-50%,-50%) scale(var(--wheel-scale,1));z-index:10020;pointer-events:auto;color:var(--dsw-alias-label-primary,#263d3b);filter:drop-shadow(0 12px 26px #132f3328);user-select:none;outline:none;font:13px/1.35 system-ui,sans-serif;animation:.22s cubic-bezier(.2,.8,.2,1) uyZH7q_wheelIn;position:fixed}.uyZH7q_wheel:before{content:\"\";backdrop-filter:blur(28px)saturate(160%);background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 72%,transparent);border:1px solid #ffffffb3;border-radius:50%;position:absolute;inset:1px;box-shadow:inset 0 1px 3px #ffffffc0,inset 0 -1px 12px #638c9a18}.uyZH7q_ring{pointer-events:none;width:100%;height:100%;position:absolute;inset:0}.uyZH7q_ring path{fill:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fcfdfc) 38%,transparent);stroke:color-mix(in srgb,var(--dsw-alias-border-l1,#d6dfdc) 65%,transparent);stroke-width:1.5px;transition:fill .12s,stroke .12s}.uyZH7q_ring path[data-active]{fill:#d8eee5;stroke:#3b8874;stroke-width:2px}.uyZH7q_ring path[data-empty]{fill:var(--dsw-alias-bg-base,#f1f4f3)}.uyZH7q_slot{width:92px;color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;flex-direction:column;align-items:center;gap:3px;padding:4px 0;display:flex;position:absolute;transform:translate(-50%,-50%)}.uyZH7q_slot strong{white-space:nowrap;text-overflow:ellipsis;max-width:90px;font-size:13px;overflow:hidden}.uyZH7q_slot small{color:var(--dsw-alias-label-secondary,#60706c);font-size:10px}.uyZH7q_slot[data-active]{color:#143e33}.uyZH7q_slot[data-active] small{color:#3b675b}.uyZH7q_slot[aria-disabled=true]{opacity:.5;cursor:default}.uyZH7q_slot:focus-visible{border-radius:8px;outline:2px solid #3b8874}.uyZH7q_slotNumber{opacity:.55;font-size:10px}.uyZH7q_center{background:var(--dsw-alias-bg-layer-1,#fff);width:80px;height:80px;color:inherit;cursor:pointer;border:0;border-radius:50%;flex-direction:column;justify-content:center;align-items:center;gap:4px;display:flex;position:absolute;top:140px;left:140px}.uyZH7q_center small{opacity:.5}.uyZH7q_caption{text-align:center;background:var(--dsw-alias-bg-layer-1,#fff);box-sizing:border-box;border-radius:9px;width:360px;padding:6px 4px;font-size:12px;position:absolute;top:366px;left:0}.uyZH7q_prompt{z-index:10021;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:var(--dsw-alias-bg-layer-1,#fff);width:min(420px,100vw - 24px);color:var(--dsw-alias-label-primary,#263d3b);pointer-events:auto;border-radius:16px;padding:16px;font:13px/1.5 system-ui,sans-serif;position:fixed;box-shadow:0 16px 50px #132f3333}.uyZH7q_prompt header,.uyZH7q_prompt footer{justify-content:space-between;align-items:center;gap:12px;display:flex}.uyZH7q_prompt header button{color:inherit;cursor:pointer;background:0 0;border:0;font-size:20px}.uyZH7q_prompt blockquote{background:var(--dsw-alias-bg-base,#f2f6f4);white-space:pre-wrap;border-left:3px solid #3b8874;max-height:70px;margin:12px 0;padding:8px 12px;font-size:12px;overflow:auto}.uyZH7q_prompt textarea,.uyZH7q_field select,.uyZH7q_settings input,.uyZH7q_settings textarea,.uyZH7q_settings select{box-sizing:border-box;width:100%;font:inherit;color:inherit;border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:var(--dsw-alias-bg-base,#fff);border-radius:8px;padding:8px}.uyZH7q_prompt textarea{resize:vertical;max-height:180px}.uyZH7q_field{gap:5px;margin:12px 0;font-size:12px;display:grid}.uyZH7q_prompt footer{margin-top:12px;font-size:12px}.uyZH7q_prompt footer button,.uyZH7q_save{color:#fff;cursor:pointer;background:#317969;border:0;border-radius:8px;padding:8px 16px}.uyZH7q_prompt button:disabled,.uyZH7q_save:disabled{opacity:.5;cursor:default}.uyZH7q_error{color:#b34535}.uyZH7q_prompt{--prompt-top:clamp(48px,var(--prompt-y),calc(100vh - 370px));left:clamp(12px,var(--prompt-x),calc(100vw - 432px));top:var(--prompt-top);max-height:calc(100vh - var(--prompt-top) - 16px);background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);backdrop-filter:blur(26px)saturate(155%);border-top-color:#ffffffc9;animation:.18s ease-out uyZH7q_promptIn;overflow:auto;box-shadow:inset 0 1px 2px #ffffff80,0 18px 50px #132f332b}@keyframes uyZH7q_wheelIn{0%{opacity:0;transform:translate(-50%,-50%) scale(calc(var(--wheel-scale,1) * .92))}to{opacity:1;transform:translate(-50%,-50%) scale(var(--wheel-scale,1))}}@keyframes uyZH7q_promptIn{0%{opacity:0;translate:0 6px}to{opacity:1;translate:0}}.uyZH7q_settings{gap:12px;font:13px/1.5 system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:grid}.uyZH7q_settings p{color:var(--dsw-alias-label-secondary,#60706c);margin:0}.uyZH7q_settings details{border:1px solid var(--dsw-alias-border-l1,#d6dfdc);background:color-mix(in srgb,var(--dsw-alias-bg-base,#fff) 40%,transparent);border-radius:14px;padding:12px 14px}.uyZH7q_settings summary{cursor:pointer;padding:2px 0;font-weight:550}.uyZH7q_settings label{gap:5px;margin-top:10px;display:grid}.uyZH7q_settings .uyZH7q_toggle{align-items:center;gap:8px;display:flex}.uyZH7q_settings .uyZH7q_toggle input{width:auto}.uyZH7q_slotActions{flex-wrap:wrap;gap:6px;margin-top:10px;display:flex}.uyZH7q_settings button{border:1px solid var(--dsw-alias-border-l1,#d6dfdc);color:inherit;font:inherit;cursor:pointer;background:0 0;border-radius:9px;padding:7px 12px;transition:background .14s,border-color .14s}.uyZH7q_settings button:hover{background:color-mix(in srgb,var(--dsw-alias-label-primary,#263d3b) 6%,transparent)}.uyZH7q_settings .uyZH7q_save{color:#fff;background:#317969;border-color:#0000}.uyZH7q_settings .uyZH7q_save:hover{background:#286a5c}.uyZH7q_settings :focus-visible{outline-offset:3px;outline:2px solid #4b9b87}.uyZH7q_settings input,.uyZH7q_settings textarea,.uyZH7q_settings select{border-radius:10px}body:has([role=dialog][aria-modal=true]) .uyZH7q_wheel,body:has([role=dialog][aria-modal=true]) .uyZH7q_prompt{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.uyZH7q_wheel,.uyZH7q_prompt,.uyZH7q_wheel *,.uyZH7q_settings button{transition:none;animation:none}}@media (prefers-contrast:more){.uyZH7q_wheel:before,.uyZH7q_prompt{background:var(--dsw-alias-bg-layer-1,#fff);backdrop-filter:none}}";
-		const tagId$3 = "@kirkchinese/dsh-citeciter/ActionWheel.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$3) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$3;
-			tag.textContent = css$3;
-			document.head.appendChild(tag);
-		}
-		var ActionWheel_module_css_default = {
-			"caption": "uyZH7q_caption",
-			"center": "uyZH7q_center",
-			"error": "uyZH7q_error",
-			"field": "uyZH7q_field",
-			"prompt": "uyZH7q_prompt",
-			"promptIn": "uyZH7q_promptIn",
-			"ring": "uyZH7q_ring",
-			"save": "uyZH7q_save",
-			"settings": "uyZH7q_settings",
-			"slot": "uyZH7q_slot",
-			"slotActions": "uyZH7q_slotActions",
-			"slotNumber": "uyZH7q_slotNumber",
-			"toggle": "uyZH7q_toggle",
-			"wheel": "uyZH7q_wheel",
-			"wheelIn": "uyZH7q_wheelIn"
-		};
-		//#endregion
-		//#region lib/types/client/components/ModelChoice.js
-		/** Model identities are encoded together, so provider-local model IDs never collide. */
-		function ModelChoice({ providers, value, onChange, disabled = false, label = "处理模型" }) {
-			const encoded = value === void 0 ? "" : JSON.stringify([value.provider, value.model]);
-			const known = providers.some((provider) => provider.id === value?.provider && provider.models.some((model) => model.id === value.model));
-			return (0, react_jsx_runtime.jsxs)("label", {
-				className: ActionWheel_module_css_default.field,
-				children: [label, (0, react_jsx_runtime.jsxs)("select", {
-					"aria-label": label,
-					disabled,
-					value: encoded,
-					onChange: (event) => {
-						if (event.currentTarget.value === "") onChange(void 0);
-						else {
-							const [provider, model] = JSON.parse(event.currentTarget.value);
-							onChange({
-								provider,
-								model
-							});
-						}
-					},
-					children: [
-						(0, react_jsx_runtime.jsx)("option", {
-							value: "",
-							children: "跟随来源会话模型"
-						}),
-						value !== void 0 && !known && (0, react_jsx_runtime.jsxs)("option", {
-							value: encoded,
-							children: [
-								value.provider,
-								" / ",
-								value.model,
-								"（暂不可用）"
-							]
-						}),
-						providers.map((provider) => (0, react_jsx_runtime.jsx)("optgroup", {
-							label: provider.name,
-							children: provider.models.map((model) => (0, react_jsx_runtime.jsx)("option", {
-								value: JSON.stringify([provider.id, model.id]),
-								children: model.name
-							}, model.id))
-						}, provider.id))
-					]
-				})]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/components/WheelSettings.js
-		/** Edit eight stable slots as one validated settings transaction. */
-		function WheelSettings({ snapshot, companion }) {
-			const [slots, setSlots] = (0, react.useState)(() => [...snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS]);
-			const [error, setError] = (0, react.useState)(null);
-			const savedSlots = snapshot.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS;
-			const savedRevision = JSON.stringify(savedSlots);
-			const previousRevision = (0, react.useRef)(savedRevision);
-			(0, react.useEffect)(() => {
-				if (previousRevision.current === savedRevision) return;
-				previousRevision.current = savedRevision;
-				setSlots([...savedSlots]);
-			}, [savedSlots, savedRevision]);
-			const change = (index, patch) => setSlots((current) => current.map((slot, i) => i === index ? {
-				...slot ?? {
-					label: "自定义",
-					prompt: "",
-					ask: true,
-					scenario: "qa",
-					presentation: "side"
-				},
-				...patch
-			} : slot));
-			const swap = (index, offset) => setSlots((current) => {
-				const next = [...current];
-				const to = (index + offset + 8) % 8;
-				[next[index], next[to]] = [next[to], next[index]];
-				return next;
-			});
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: ActionWheel_module_css_default.settings,
-				children: [
-					(0, react_jsx_runtime.jsx)("h3", { children: "选文轮盘" }),
-					(0, react_jsx_runtime.jsx)("p", { children: "选中文字后按住触发键，移向动作，松开后准备草稿。中心、空槽和 Esc 取消；右键短按可改为点击选择，Shift + 右键保留原生菜单。" }),
-					(0, react_jsx_runtime.jsxs)("label", { children: ["按住触发键", (0, react_jsx_runtime.jsxs)("select", {
-						"aria-label": "轮盘触发键",
-						value: snapshot.settings.wheelTrigger ?? "right-button",
-						onChange: (event) => void companion.setSetting("wheelTrigger", event.currentTarget.value),
-						children: [
-							(0, react_jsx_runtime.jsx)("option", {
-								value: "right-button",
-								children: "鼠标右键（默认）"
-							}),
-							(0, react_jsx_runtime.jsx)("option", {
-								value: "Alt",
-								children: "Alt / Option"
-							}),
-							(0, react_jsx_runtime.jsx)("option", {
-								value: "Control",
-								children: "Control"
-							}),
-							(0, react_jsx_runtime.jsx)("option", {
-								value: "Shift",
-								children: "Shift"
-							}),
-							(0, react_jsx_runtime.jsx)("option", {
-								value: "Meta",
-								children: "Meta / Command"
-							})
-						]
-					})] }),
-					(0, react_jsx_runtime.jsx)(ModelChoice, {
-						label: "Citer 默认模型",
-						providers: snapshot.providers,
-						value: snapshot.settings.defaultCiterModel ?? void 0,
-						onChange: (value) => void companion.setSetting("defaultCiterModel", value ?? null)
-					}),
-					(0, react_jsx_runtime.jsx)("p", { children: "所有动作只准备草稿，由用户手动发送。无需补充问题的动作使用默认模型；需要输入的动作可先选模型。未指定时跟随来源模型。八槽从正上方开始顺时针排列。" }),
-					slots.map((slot, index) => (0, react_jsx_runtime.jsxs)("details", { children: [
-						(0, react_jsx_runtime.jsxs)("summary", { children: [
-							index + 1,
-							" · ",
-							slot?.label ?? "空槽",
-							slot === null ? "" : slot.ask ? " · 需输入" : " · 预设问题"
-						] }),
-						slot === null ? (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							onClick: () => change(index, {}),
-							children: "添加自定义模式"
-						}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-							(0, react_jsx_runtime.jsxs)("label", { children: ["名称", (0, react_jsx_runtime.jsx)("input", {
-								"aria-label": `槽位 ${index + 1} 名称`,
-								maxLength: 20,
-								value: slot.label,
-								onChange: (event) => change(index, { label: event.currentTarget.value })
-							})] }),
-							(0, react_jsx_runtime.jsxs)("label", { children: ["提示词", (0, react_jsx_runtime.jsx)("textarea", {
-								"aria-label": `槽位 ${index + 1} 提示词`,
-								rows: 3,
-								maxLength: 4e3,
-								value: slot.prompt,
-								onChange: (event) => change(index, { prompt: event.currentTarget.value })
-							})] }),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: ActionWheel_module_css_default.toggle,
-								children: [(0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: slot.ask,
-									onChange: (event) => change(index, { ask: event.currentTarget.checked })
-								}), "先输入问题并选择模型"]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", { children: ["内容方式", (0, react_jsx_runtime.jsxs)("select", {
-								value: slot.scenario,
-								onChange: (event) => change(index, { scenario: event.currentTarget.value }),
-								children: [(0, react_jsx_runtime.jsx)("option", {
-									value: "qa",
-									children: "直接问答"
-								}), (0, react_jsx_runtime.jsx)("option", {
-									value: "present",
-									children: "学习讲解与板书"
-								})]
-							})] }),
-							(0, react_jsx_runtime.jsxs)("label", { children: ["默认打开位置", (0, react_jsx_runtime.jsxs)("select", {
-								value: slot.presentation,
-								onChange: (event) => change(index, { presentation: event.currentTarget.value }),
-								children: [(0, react_jsx_runtime.jsx)("option", {
-									value: "side",
-									children: "侧边（窄窗口自动悬浮）"
-								}), (0, react_jsx_runtime.jsx)("option", {
-									value: "floating",
-									children: "悬浮"
-								})]
-							})] })
-						] }),
-						(0, react_jsx_runtime.jsxs)("div", {
-							className: ActionWheel_module_css_default.slotActions,
-							children: [
-								(0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									onClick: () => swap(index, -1),
-									children: "逆时针移动"
-								}),
-								(0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									onClick: () => swap(index, 1),
-									children: "顺时针移动"
-								}),
-								(0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									onClick: () => setSlots((current) => current.map((item, i) => i === index ? null : item)),
-									children: "清空"
-								})
-							]
-						})
-					] }, index)),
-					error !== null && (0, react_jsx_runtime.jsx)("p", {
-						role: "alert",
-						className: ActionWheel_module_css_default.error,
-						children: error
-					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: ActionWheel_module_css_default.slotActions,
-						children: [(0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							onClick: () => {
-								setSlots([...DEFAULT_WHEEL_SLOTS]);
-								setError(null);
-							},
-							children: "恢复默认草稿"
-						}), (0, react_jsx_runtime.jsx)("button", {
-							className: ActionWheel_module_css_default.save,
-							type: "button",
-							disabled: snapshot.settingsSaveStatus === "saving",
-							onClick: () => {
-								const result = wheelSlotsSchema.safeParse(slots);
-								if (!result.success) {
-									setError("请填写模式名称；无需补充问题的模式必须有提示词。");
-									return;
-								}
-								setError(null);
-								companion.setSetting("wheelSlots", result.data);
-							},
-							children: "保存八个槽位"
-						})]
-					})
-				]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/components/CiteCiterSettings.js
-		/** Native DSH settings page for CiteCiter-owned preferences. */
-		function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }) {
-			const snapshot = useCompanion((value) => value);
-			const documentSnapshot = useDocument((value) => value);
-			const updateSnapshot = useUpdate((value) => value);
-			const settings = snapshot.settings;
-			(0, react.useEffect)(() => companion.retainVisible(), [companion]);
-			const [widthDraft, setWidthDraft] = (0, react.useState)(settings.panelWidthPercent);
-			const committedWidth = (0, react.useRef)(settings.panelWidthPercent);
-			(0, react.useEffect)(() => {
-				settingsDocument.load();
-			}, [settingsDocument]);
-			(0, react.useEffect)(() => {
-				committedWidth.current = settings.panelWidthPercent;
-				setWidthDraft(settings.panelWidthPercent);
-			}, [settings.panelWidthPercent]);
-			const commitWidth = (value) => {
-				if (value === committedWidth.current) return;
-				committedWidth.current = value;
-				companion.setSetting("panelWidthPercent", value);
-			};
-			return (0, react_jsx_runtime.jsxs)("div", {
-				className: CiteCiter_module_css_default.settingsPage,
-				children: [
-					(0, react_jsx_runtime.jsxs)("header", {
-						className: CiteCiter_module_css_default.settingsHero,
-						children: [(0, react_jsx_runtime.jsx)("span", {
-							className: CiteCiter_module_css_default.settingsWhale,
-							"aria-hidden": "true",
-							children: (0, react_jsx_runtime.jsx)("img", {
-								src: citeciter_mascot_default,
-								alt: ""
-							})
-						}), (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h2", { children: "CiteCiter" }), (0, react_jsx_runtime.jsx)("p", { children: "保留 DSH 的编程主界面，把学习讨论放在右侧独立工作区。" })] })]
-					}),
-					snapshot.settingsSaveMessage !== null && (0, react_jsx_runtime.jsx)("p", {
-						className: CiteCiter_module_css_default.settingsSaveStatus,
-						"data-status": snapshot.settingsSaveStatus,
-						role: snapshot.settingsSaveStatus === "error" ? "alert" : "status",
-						children: snapshot.settingsSaveMessage
-					}),
-					(0, react_jsx_runtime.jsx)(WheelSettings, {
-						snapshot,
-						companion
-					}),
-					(0, react_jsx_runtime.jsxs)("section", {
-						className: CiteCiter_module_css_default.settingsGroup,
-						children: [
-							(0, react_jsx_runtime.jsx)("h3", { children: "权限与来源" }),
-							(0, react_jsx_runtime.jsxs)("div", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "新 Topic 默认权限" }), (0, react_jsx_runtime.jsx)("small", { children: "使用 DSH 权限；此设置只影响新 Topic。" })] }), (0, react_jsx_runtime.jsx)(PermissionControl, {
-									value: settings.defaultPermission ?? "read-only",
-									onChange: (mode) => {
-										companion.setSetting("defaultPermission", mode);
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "包含来源 reasoning" }), (0, react_jsx_runtime.jsx)("small", { children: "关闭后 read_source_session 不向 CiteCiter 返回主 Agent 的思考正文。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: settings.includeSourceReasoning,
-									onChange: (event) => {
-										companion.setSetting("includeSourceReasoning", event.currentTarget.checked);
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "旧 Topic：允许调查来源工作区" }), (0, react_jsx_runtime.jsx)("small", { children: "此开关仅控制旧 Topic 的只读文件工具。新 Topic 使用完整 DSH 工具，权限由输入框中的模式控制。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: settings.allowSourceFiles,
-									onChange: (event) => {
-										companion.setSetting("allowSourceFiles", event.currentTarget.checked);
-									}
-								})]
-							})
-						]
-					}),
-					(0, react_jsx_runtime.jsxs)("section", {
-						className: CiteCiter_module_css_default.settingsGroup,
-						children: [
-							(0, react_jsx_runtime.jsx)("h3", { children: "提示词与快捷键" }),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "主动回忆（可选）" }), (0, react_jsx_runtime.jsx)("small", { children: "默认关闭，直接阅读学习卡片；开启后先显示自测问题，点击才展开结论和答案。不安排复习任务。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: settings.activeRecall ?? false,
-									onChange: (event) => {
-										companion.setSetting("activeRecall", event.currentTarget.checked);
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingStack,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "自定义导师提示词" }), (0, react_jsx_runtime.jsx)("small", { children: "补充教学偏好；留空使用内置提示词。原生 Topic 从下次发送起生效；旧 Topic 恢复后生效。" })] }), (0, react_jsx_runtime.jsx)("textarea", {
-									className: CiteCiter_module_css_default.promptTextarea,
-									value: settings.tutorPrompt ?? "",
-									maxLength: 4e3,
-									rows: 4,
-									placeholder: "留空 = 使用内置导师提示词",
-									onChange: (event) => {
-										companion.setSetting("tutorPrompt", event.currentTarget.value === "" ? void 0 : event.currentTarget.value);
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "首答附追问建议" }), (0, react_jsx_runtime.jsx)("small", { children: "在首个回答末尾生成三个追问候选；关闭后回答保持纯净。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: settings.followupQuestions ?? true,
-									onChange: (event) => {
-										companion.setSetting("followupQuestions", event.currentTarget.checked);
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "黑板动画" }), (0, react_jsx_runtime.jsx)("small", { children: "关闭后 animate 只保留最终状态，不再播放淡入、滑入、脉冲或高亮动画。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: settings.boardAnimations ?? true,
-									onChange: (event) => {
-										companion.setSetting("boardAnimations", event.currentTarget.checked);
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingStack,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "打开学习栏快捷键" }), (0, react_jsx_runtime.jsx)("small", { children: "格式如 Control+Shift+C；留空禁用。输入框和编辑器内的按键不会被拦截。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "text",
-									value: settings.shortcutOpenPanel ?? "",
-									maxLength: 40,
-									placeholder: "Control+Shift+C",
-									onChange: (event) => {
-										companion.setSetting("shortcutOpenPanel", event.currentTarget.value === "" ? void 0 : event.currentTarget.value);
-									}
-								})]
-							})
-						]
-					}),
-					(0, react_jsx_runtime.jsxs)("section", {
-						className: CiteCiter_module_css_default.settingsGroup,
-						children: [
-							(0, react_jsx_runtime.jsx)("h3", { children: "版本更新" }),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "版本更新提醒" }), (0, react_jsx_runtime.jsx)("small", { children: updateSnapshot.preferencePersistence === "browser" ? "远程 Web 只在当前浏览器保存此选择；开启后会重新检查可用版本。" : "在 DSH 设置中保存；关闭后可随时回到这里恢复。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: updateSnapshot.notificationsEnabled,
-									disabled: !updateSnapshot.preferenceReady || updateSnapshot.preferenceStatus === "saving",
-									"aria-busy": updateSnapshot.preferenceStatus === "saving",
-									onChange: (event) => {
-										updateController.setNotificationsEnabled(event.currentTarget.checked);
-									}
-								})]
-							}),
-							updateSnapshot.preferenceMessage !== null && (0, react_jsx_runtime.jsx)("p", {
-								className: CiteCiter_module_css_default.settingsSaveStatus,
-								"data-status": updateSnapshot.preferenceStatus,
-								role: updateSnapshot.preferenceStatus === "error" ? "alert" : "status",
-								children: updateSnapshot.preferenceMessage
-							})
-						]
-					}),
-					(0, react_jsx_runtime.jsxs)("section", {
-						className: CiteCiter_module_css_default.settingsGroup,
-						children: [(0, react_jsx_runtime.jsx)("h3", { children: "配置文件" }), (0, react_jsx_runtime.jsxs)("div", {
-							className: CiteCiter_module_css_default.settingsDocumentAction,
-							children: [(0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								className: CiteCiter_module_css_default.settingsDocumentButton,
-								"data-status": documentSnapshot.status,
-								disabled: [
-									"loading",
-									"missing",
-									"unavailable"
-								].includes(documentSnapshot.status) || documentSnapshot.opening,
-								"aria-busy": documentSnapshot.opening || documentSnapshot.status === "loading",
-								onClick: () => {
-									settingsDocument.open();
-								},
-								children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSettingsOutline14, { size: 14 }), documentSnapshot.opening ? "正在打开…" : documentSnapshot.status === "loading" ? "正在检查…" : documentSnapshot.status === "unavailable" ? "宿主不支持打开" : documentSnapshot.status === "missing" ? "配置文件不存在" : documentSnapshot.status === "error" ? "重试打开配置文件" : "打开配置文件"]
-							}), (documentSnapshot.error !== null || documentSnapshot.message !== null) && (0, react_jsx_runtime.jsx)("p", {
-								className: CiteCiter_module_css_default.settingsDocumentStatus,
-								"data-status": documentSnapshot.error === null ? "success" : "error",
-								role: documentSnapshot.error === null ? "status" : "alert",
-								children: documentSnapshot.error ?? documentSnapshot.message
-							})]
-						})]
-					}),
-					(0, react_jsx_runtime.jsxs)("section", {
-						className: CiteCiter_module_css_default.settingsGroup,
-						children: [
-							(0, react_jsx_runtime.jsx)("h3", { children: "学习栏" }),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.widthSetting,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "默认宽度" }), (0, react_jsx_runtime.jsxs)("output", { children: [widthDraft, "%"] })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "range",
-									min: 28,
-									max: 55,
-									step: 1,
-									value: widthDraft,
-									onChange: (event) => setWidthDraft(Number(event.currentTarget.value)),
-									onPointerUp: (event) => commitWidth(Number(event.currentTarget.value)),
-									onBlur: (event) => commitWidth(Number(event.currentTarget.value)),
-									onKeyUp: (event) => {
-										if ([
-											"ArrowLeft",
-											"ArrowRight",
-											"Home",
-											"End"
-										].includes(event.key)) commitWidth(Number(event.currentTarget.value));
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "重新打开上次 Topic" }), (0, react_jsx_runtime.jsx)("small", { children: "刷新或重新进入来源 Session 时，自动展开学习栏并恢复最近讨论。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: settings.reopenLastTopic,
-									onChange: (event) => {
-										companion.setSetting("reopenLastTopic", event.currentTarget.checked);
-									}
-								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("div", {
-								className: CiteCiter_module_css_default.dockPreview,
-								"aria-label": "学习栏宽度预览",
-								children: [
-									(0, react_jsx_runtime.jsx)("span", { className: CiteCiter_module_css_default.previewSidebar }),
-									(0, react_jsx_runtime.jsx)("span", {
-										className: CiteCiter_module_css_default.previewCoding,
-										children: "DSH 编程对话"
-									}),
-									(0, react_jsx_runtime.jsx)("span", {
-										className: CiteCiter_module_css_default.previewDock,
-										style: { width: widthDraft + "%" },
-										children: "CiteCiter"
-									})
-								]
-							})
-						]
-					})
-				]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/reader-selection.js
-		/** Reader textarea selection facts resolved from the user-owned textarea value. */
-		const READER_CONTEXT_CHARS = 240;
-		/**
-		* Resolve the current textarea selection into a verifiable document claim.
-		* @param textarea - read-only document textarea holding the complete loaded page.
-		* @returns trimmed quote with surrounding context, or null for a collapsed/empty selection.
-		*/
-		function readTextareaSelection(textarea) {
-			const value = textarea.value;
-			const start = textarea.selectionStart;
-			const end = textarea.selectionEnd;
-			if (start === end) return null;
-			const raw = value.slice(start, end);
-			const leading = raw.length - raw.trimStart().length;
-			const trailing = raw.length - raw.trimEnd().length;
-			const text = raw.trim();
-			if (text === "") return null;
-			const startOffset = start + leading;
-			const endOffset = end - trailing;
-			return {
-				displayText: text,
-				prefixText: value.slice(Math.max(0, startOffset - READER_CONTEXT_CHARS), startOffset),
-				suffixText: value.slice(endOffset, endOffset + READER_CONTEXT_CHARS)
-			};
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\DocumentReader.module.css.mjs
-		const css$2 = ".kD5sxW_root{z-index:9000;pointer-events:auto;font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;position:fixed;bottom:16px;left:50%;transform:translate(-50%)}.kD5sxW_trigger{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);background:var(--dsw-alias-bg-layer-2,#fff);width:44px;height:44px;color:var(--dsw-alias-label-primary,#20232a);cursor:pointer;border-radius:50%;font-size:20px;box-shadow:0 2px 10px #0000001f}.kD5sxW_panel{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d8dbe2);background:color-mix(in srgb, var(--dsw-alias-bg-layer-1,#fff) 94%, transparent);backdrop-filter:blur(24px)saturate(140%);width:min(520px,100vw - 32px);height:min(640px,100vh - 32px);color:var(--dsw-alias-label-primary,#20232a);border-radius:22px;flex-direction:column;gap:8px;padding:16px;display:flex;box-shadow:0 8px 28px #00000029}.kD5sxW_header{justify-content:space-between;align-items:center;display:flex}.kD5sxW_header h2{margin:0;font-size:15px}.kD5sxW_header button{cursor:pointer;color:inherit;background:0 0;border:0;border-radius:50%;width:32px;height:32px;font-size:18px}.kD5sxW_error{color:var(--dsw-alias-danger,#c42b2b);margin:0;font-size:12px}.kD5sxW_import{flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;display:inline-flex}body:has([role=dialog][aria-modal=true]) .kD5sxW_root{visibility:hidden;pointer-events:none}.kD5sxW_import input{min-width:0;max-width:100%}.kD5sxW_pagination{justify-content:space-between;align-items:center;gap:8px;font-size:12px;display:flex}.kD5sxW_pagination button{cursor:pointer;width:32px;height:32px;color:inherit;background:color-mix(in srgb, currentColor 6%, transparent);border:0;border-radius:50%;padding:0;font-size:22px;line-height:1}.kD5sxW_pagination button:disabled{cursor:default;opacity:.5}.kD5sxW_import button{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);color:inherit;cursor:pointer;background:0 0;border-radius:10px;padding:7px 10px}.kD5sxW_panel button,.kD5sxW_panel input{font-family:inherit;transition:background .16s,box-shadow .16s}.kD5sxW_panel button:focus-visible,.kD5sxW_panel input:focus-visible,.kD5sxW_content:focus-visible{outline-offset:2px;outline:2px solid #3478f6}.kD5sxW_panel button:hover:not(:disabled){box-shadow:0 0 0 2px color-mix(in srgb, currentColor 8%, transparent)}@media (prefers-reduced-motion:reduce){.kD5sxW_panel button,.kD5sxW_panel input{transition:none}}.kD5sxW_documents{flex-direction:column;gap:4px;max-height:120px;margin:0;padding:0;list-style:none;display:flex;overflow:auto}.kD5sxW_documents button{cursor:pointer;text-align:left;width:100%;color:inherit;overflow-wrap:anywhere;background:0 0;border:1px solid #0000;border-radius:6px;flex-direction:column;align-items:flex-start;padding:6px 8px;display:flex}.kD5sxW_documents button:hover,.kD5sxW_documents button.kD5sxW_activeDocument{border-color:var(--dsw-alias-border-l1,#d8dbe2);background:var(--dsw-alias-bg-layer-2,#f4f6fa)}.kD5sxW_documents span{opacity:.7;font-size:11px}.kD5sxW_documents .kD5sxW_empty{opacity:.7;padding:6px 8px;font-size:12px}.kD5sxW_content{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#d8dbe2);resize:none;background:var(--dsw-alias-bg-layer-2,#fbfcfe);width:100%;min-height:60px;color:var(--dsw-alias-label-primary,#20232a);white-space:pre-wrap;border-radius:8px;flex:1;padding:8px;font-family:inherit;font-size:13px;line-height:1.6}.kD5sxW_ask{gap:8px;display:flex}.kD5sxW_ask input{border:1px solid var(--dsw-alias-border-l1,#d8dbe2);min-width:0;color:inherit;background:var(--dsw-alias-bg-layer-2,#fbfcfe);border-radius:8px;flex:1;padding:8px}.kD5sxW_ask button{background:var(--dsw-alias-accent,#2f6fed);color:#fff;cursor:pointer;border:0;border-radius:8px;padding:8px 14px}.kD5sxW_ask button:disabled{opacity:.5;cursor:not-allowed}";
-		const tagId$2 = "@kirkchinese/dsh-citeciter/DocumentReader.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$2) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$2;
-			tag.textContent = css$2;
-			document.head.appendChild(tag);
-		}
-		var DocumentReader_module_css_default = {
-			"activeDocument": "kD5sxW_activeDocument",
-			"ask": "kD5sxW_ask",
-			"content": "kD5sxW_content",
-			"documents": "kD5sxW_documents",
-			"empty": "kD5sxW_empty",
-			"error": "kD5sxW_error",
-			"header": "kD5sxW_header",
-			"import": "kD5sxW_import",
-			"pagination": "kD5sxW_pagination",
-			"panel": "kD5sxW_panel",
-			"root": "kD5sxW_root",
-			"trigger": "kD5sxW_trigger"
-		};
-		//#endregion
-		//#region lib/types/client/components/DocumentReader.js
-		/** Reader shell-overlay entry: compact trigger plus the document library panel. */
-		function DocumentReader({ reader, useReader, useOverlay, registerSurface, sourceSessionId }) {
-			const snapshot = useReader((value) => value);
-			const panelOpen = useOverlay((value) => value.panelOpen);
-			const textareaRef = (0, react.useRef)(null);
-			const importRef = (0, react.useRef)(null);
-			(0, react.useEffect)(() => {
-				const element = textareaRef.current;
-				const active = snapshot.active;
-				if (element === null || active === null || snapshot.loading) return;
-				return registerSurface(element, () => {
-					const selected = readTextareaSelection(element);
-					const source = sourceSessionId();
-					return selected === null || source === null ? null : {
-						kind: "document",
-						sourceSessionId: source,
-						title: active.title,
-						documentId: active.documentId,
-						...selected
-					};
-				});
-			}, [
-				registerSurface,
-				sourceSessionId,
-				snapshot.active,
-				snapshot.open,
-				snapshot.loading
-			]);
-			const syncSelection = () => {
-				const textarea = textareaRef.current;
-				reader.setSelection(textarea === null ? null : readTextareaSelection(textarea));
-			};
-			const onImport = async (event) => {
-				const input = event.currentTarget;
-				const file = input.files?.[0];
-				if (file === void 0) return;
-				await reader.importLocalFile(file);
-				input.value = "";
-			};
-			const onCreate = (event) => {
-				event.preventDefault();
-				reader.createTopic();
-			};
-			return (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
-				className: DocumentReader_module_css_default.root,
-				children: !snapshot.open ? !panelOpen && (0, react_jsx_runtime.jsx)("button", {
-					type: "button",
-					className: DocumentReader_module_css_default.trigger,
-					onClick: () => reader.setOpen(true),
-					title: "打开 CiteCiter 读书",
-					children: "📖"
-				}) : (0, react_jsx_runtime.jsxs)("section", {
-					className: DocumentReader_module_css_default.panel,
-					"data-citeciter-reader": true,
-					children: [
-						(0, react_jsx_runtime.jsxs)("header", {
-							className: DocumentReader_module_css_default.header,
-							children: [(0, react_jsx_runtime.jsx)("h2", { children: "文档阅读" }), (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								onClick: () => reader.setOpen(false),
-								"aria-label": "关闭读书面板",
-								children: "×"
-							})]
-						}),
-						snapshot.error !== null ? (0, react_jsx_runtime.jsx)("p", {
-							className: DocumentReader_module_css_default.error,
-							children: snapshot.error
-						}) : null,
-						(0, react_jsx_runtime.jsxs)("div", {
-							className: DocumentReader_module_css_default.import,
-							children: [(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: snapshot.importing,
-								onClick: () => importRef.current?.click(),
-								"aria-label": "导入文本 / Markdown",
-								children: snapshot.importing ? "导入中…" : "+ 导入文档"
-							}), (0, react_jsx_runtime.jsx)("input", {
-								ref: importRef,
-								type: "file",
-								hidden: true,
-								disabled: snapshot.importing,
-								accept: ".txt,.md,.markdown,text/plain,text/markdown",
-								onChange: (event) => void onImport(event)
-							})]
-						}),
-						(0, react_jsx_runtime.jsxs)("ul", {
-							className: DocumentReader_module_css_default.documents,
-							children: [snapshot.documents.map((document) => (0, react_jsx_runtime.jsx)("li", { children: (0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								onClick: () => void reader.openDocument(document.documentId),
-								className: snapshot.active?.documentId === document.documentId ? DocumentReader_module_css_default.activeDocument : void 0,
-								children: [document.title, (0, react_jsx_runtime.jsxs)("span", { children: [
-									document.format,
-									" · ",
-									document.size,
-									" B"
-								] })]
-							}) }, document.documentId)), snapshot.documentsStatus === "ready" && snapshot.documents.length === 0 ? (0, react_jsx_runtime.jsx)("li", {
-								className: DocumentReader_module_css_default.empty,
-								children: "还没有文档"
-							}) : null]
-						}),
-						(0, react_jsx_runtime.jsx)("textarea", {
-							"aria-label": "文档正文",
-							"aria-busy": snapshot.loading,
-							ref: textareaRef,
-							className: DocumentReader_module_css_default.content,
-							readOnly: true,
-							value: snapshot.active?.content ?? "",
-							placeholder: "选择文档开始阅读",
-							onSelect: snapshot.loading ? void 0 : syncSelection,
-							onMouseUp: snapshot.loading ? void 0 : syncSelection,
-							onKeyUp: snapshot.loading ? void 0 : syncSelection
-						}),
-						snapshot.active !== null ? (0, react_jsx_runtime.jsxs)("nav", {
-							className: DocumentReader_module_css_default.pagination,
-							"aria-label": "文档分页",
-							children: [
-								(0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									"aria-label": "上一页",
-									disabled: snapshot.loading || snapshot.active.page === 0,
-									onClick: () => void reader.openPage(snapshot.active.page - 1),
-									children: "‹"
-								}),
-								(0, react_jsx_runtime.jsx)("span", {
-									role: "status",
-									children: snapshot.loading ? "加载中…" : `第 ${snapshot.active.page + 1} / ${snapshot.active.pageCount} 页`
-								}),
-								(0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									"aria-label": "下一页",
-									disabled: snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount,
-									onClick: () => void reader.openPage(snapshot.active.page + 1),
-									children: "›"
-								})
-							]
-						}) : null,
-						(0, react_jsx_runtime.jsxs)("form", {
-							className: DocumentReader_module_css_default.ask,
-							onSubmit: onCreate,
-							children: [(0, react_jsx_runtime.jsx)("input", {
-								value: snapshot.question,
-								maxLength: 12e3,
-								onChange: (event) => reader.setQuestion(event.target.value),
-								placeholder: "就选中内容问 CiteCiter…",
-								"aria-label": "读书面板的问题"
-							}), (0, react_jsx_runtime.jsx)("button", {
-								type: "submit",
-								disabled: snapshot.creating || snapshot.loading || snapshot.selection === null || snapshot.question.trim() === "",
-								children: snapshot.creating ? "创建中…" : "准备草稿"
-							})]
-						})
-					]
-				})
-			}) });
-		}
-		//#endregion
-		//#region lib/types/client/action-controller.js
-		const actionSourceSession = (source) => source.kind === "conversation" ? source.selection.sourceSessionId : source.sourceSessionId;
-		const actionSourceQuote = (source) => source.kind === "conversation" ? source.selection.displayText : source.displayText;
-		/** Direction around the actual displayed centre; no action inside the dead zone or outside the wheel. */
-		function wheelSector(dx, dy) {
-			const radius = Math.hypot(dx, dy);
-			if (radius < 42 || radius > 180) return null;
-			return Math.floor((Math.atan2(dy, dx) + Math.PI / 2 + Math.PI * 2 + Math.PI / 8) % (Math.PI * 2) / (Math.PI / 4));
-		}
-		/** Controller owns duplicate submission, retry drafts and source-change cancellation. Dispose with the Client. */
-		function createActionController(execute, defaultModel = () => void 0) {
-			const store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({
-				wheel: null,
-				pending: null,
-				question: "",
-				submitting: false,
-				error: null,
-				model: void 0
-			});
-			let disposed = false;
-			let generation = 0;
-			const update = (fn) => {
-				if (!disposed) store.update(fn);
-			};
-			const cancel = () => {
-				generation++;
-				update((d) => {
-					d.wheel = null;
-					d.pending = null;
-					d.error = null;
-					d.question = "";
-				});
-			};
-			const submit = async () => {
-				const snapshot = store.getSnapshot();
-				if (disposed || snapshot.submitting || snapshot.pending === null) return;
-				const { source, action } = snapshot.pending;
-				if (action.ask && snapshot.question.trim() === "") return;
-				const question = actionQuestion(action, snapshot.question);
-				if (question === "") return;
-				const ticket = generation;
-				update((d) => {
-					d.submitting = true;
-					d.error = null;
-				});
-				try {
-					await execute(source, action, question, snapshot.model);
-					if (ticket === generation) update((d) => {
-						d.pending = null;
-						d.question = "";
-					});
-				} catch (error) {
-					if (ticket === generation) update((d) => {
-						d.error = error instanceof Error ? error.message : String(error);
-					});
-				} finally {
-					update((d) => {
-						d.submitting = false;
-					});
-				}
-			};
-			const choose = (index) => {
-				const { wheel, submitting } = store.getSnapshot();
-				if (disposed || submitting || wheel === null) return;
-				const action = index === null ? null : wheel.slots[index];
-				if (action == null) {
-					cancel();
-					return;
-				}
-				update((d) => {
-					d.wheel = null;
-					d.pending = {
-						source: wheel.source,
-						action,
-						x: wheel.x,
-						y: wheel.y
-					};
-					d.question = "";
-					d.error = null;
-				});
-				if (!action.ask) submit();
-			};
-			return {
-				getSnapshot: store.getSnapshot,
-				subscribe: store.subscribe,
-				open(source, x, y, slots, held) {
-					if (disposed || store.getSnapshot().submitting || store.getSnapshot().pending !== null) return;
-					generation++;
-					const scale = Math.min(1, (window.innerWidth - 16) / 360, (window.innerHeight - 16) / 400);
-					const horizontal = 180 * scale + 8, above = 180 * scale + 8, below = 220 * scale + 8;
-					update((d) => {
-						d.pending = null;
-						d.error = null;
-						d.model = defaultModel();
-						d.wheel = {
-							source,
-							x: Math.max(horizontal, Math.min(x, window.innerWidth - horizontal)),
-							y: Math.max(above, Math.min(y, window.innerHeight - below)),
-							slots,
-							active: null,
-							held,
-							scale
-						};
-					});
-				},
-				move(x, y) {
-					const wheel = store.getSnapshot().wheel;
-					if (wheel === null) return;
-					const active = wheelSector((x - wheel.x) / wheel.scale, (y - wheel.y) / wheel.scale);
-					if (active !== wheel.active) update((d) => {
-						d.wheel = {
-							...wheel,
-							active
-						};
-					});
-				},
-				focus(index) {
-					const wheel = store.getSnapshot().wheel;
-					if (wheel !== null) update((d) => {
-						d.wheel = {
-							...wheel,
-							active: index
-						};
-					});
-				},
-				release(quick) {
-					const wheel = store.getSnapshot().wheel;
-					if (wheel === null) return;
-					if (quick && wheel.active === null) update((d) => {
-						d.wheel = {
-							...wheel,
-							held: false
-						};
-					});
-					else choose(wheel.active);
-				},
-				/** Cancel only the transient gesture; a question draft belongs to its explicit close/source lifecycle. */
-				dismissWheel() {
-					update((d) => {
-						d.wheel = null;
-					});
-				},
-				choose,
-				cancel,
-				submit,
-				setModel(model) {
-					if (!store.getSnapshot().submitting) update((d) => {
-						d.model = model;
-					});
-				},
-				setQuestion(question) {
-					if (!store.getSnapshot().submitting) update((d) => {
-						d.question = question;
-					});
-				},
-				async dispose() {
-					cancel();
-					disposed = true;
-				}
-			};
-		}
-		//#endregion
-		//#region lib/types/client/action-executor.js
-		/** Bind explicit Topic and document services. No UI, global listeners or Cordis discovery. */
-		function createActionExecutor(companion, reader, open) {
-			const imports = /* @__PURE__ */ new WeakMap();
-			return async (source, action, question, modelRoute) => {
-				const sourceId = actionSourceSession(source);
-				const assertSource = () => {
-					if (companion.getSnapshot().sourceSessionId !== sourceId) throw new Error("来源会话已切换，请返回原文件或重新选文");
-				};
-				assertSource();
-				open(action.presentation);
-				if (source.kind === "conversation") {
-					await companion.create(source.selection, question, void 0, action.scenario, modelRoute);
-					assertSource();
-					if (companion.getSnapshot().phase === "error") throw new Error(companion.getSnapshot().error ?? "创建失败");
-					return;
-				}
-				let documentId = source.documentId ?? imports.get(source);
-				if (documentId === void 0) {
-					if (source.content === void 0) throw new Error("文件快照不可用，请重新选择");
-					const imported = await reader.importFile(source.title.slice(0, 200), source.content);
-					if (imported === null) throw new Error(reader.getSnapshot().error ?? "无法保存文件快照");
-					documentId = imported.documentId;
-					imports.set(source, documentId);
-				}
-				assertSource();
-				await companion.createFromDocument({
-					documentId,
-					displayText: source.displayText,
-					prefixText: source.prefixText,
-					suffixText: source.suffixText
-				}, question, sourceId, modelRoute);
-				assertSource();
-				reader.setOpen(false);
-			};
-		}
-		//#endregion
-		//#region lib/types/client/wheel-gesture.js
-		/** Owned reading surfaces provide captures without probing other plugins' private DOM. */
-		function createSelectionSurfaces() {
-			const readers = /* @__PURE__ */ new Map();
-			return {
-				register(element, read) {
-					readers.set(element, read);
-					return () => {
-						readers.delete(element);
-					};
-				},
-				read(target) {
-					for (const [element, read] of readers) if (target instanceof Node && element.contains(target)) return read();
-					return null;
-				}
-			};
-		}
-		/** Install hold/move/release gestures; returns a disposer removing every global listener. */
-		function installWheelGesture(controller, read, preferences) {
-			let held = null;
-			let suppressContextUntil = 0;
-			let pointer = {
-				x: 0,
-				y: 0,
-				target: null
-			};
-			const blocked = (target) => target instanceof Element && target.closest("[data-citeciter-menu], [role=\"dialog\"][aria-modal=\"true\"]") !== null;
-			const capture = (event, key) => {
-				if (blocked(event.target) || controller.getSnapshot().pending !== null) return;
-				const source = read(event);
-				if (source === null) return;
-				event.preventDefault();
-				held = {
-					key,
-					time: Date.now()
-				};
-				controller.open(source, event.clientX, event.clientY, preferences().wheelSlots ?? DEFAULT_WHEEL_SLOTS, true);
-			};
-			const down = (event) => {
-				if (event.button === 2 && (preferences().wheelTrigger ?? "right-button") === "right-button" && !event.shiftKey) capture(event, "right-button");
-				else if (!blocked(event.target) && event.button === 0) controller.dismissWheel();
-			};
-			const move = (event) => {
-				pointer = {
-					x: event.clientX,
-					y: event.clientY,
-					target: event.target
-				};
-				if (held !== null) controller.move(event.clientX, event.clientY);
-			};
-			const release = (key) => {
-				if (held?.key !== key) return;
-				const quick = Date.now() - held.time < 220;
-				held = null;
-				suppressContextUntil = Date.now() + 800;
-				controller.release(quick);
-			};
-			const up = (event) => {
-				if (event.button === 2) release("right-button");
-			};
-			const menu = (event) => {
-				if (held !== null || Date.now() < suppressContextUntil) {
-					event.preventDefault();
-					return;
-				}
-				if ((preferences().wheelTrigger ?? "right-button") !== "right-button" || event.shiftKey || blocked(event.target)) return;
-				const source = read(event);
-				if (source === null) return;
-				event.preventDefault();
-				controller.open(source, event.clientX, event.clientY, preferences().wheelSlots ?? DEFAULT_WHEEL_SLOTS, false);
-			};
-			const keydown = (event) => {
-				if (event.key === "Escape") {
-					held = null;
-					controller.cancel();
-					return;
-				}
-				if (held !== null && held.key !== "right-button" && event.key !== held.key) {
-					held = null;
-					controller.cancel();
-					return;
-				}
-				if (event.repeat || event.isComposing || held !== null) return;
-				if (event.key !== preferences().wheelTrigger) return;
-				if (event.target instanceof Element && event.target.closest("input, textarea:not([readonly]), [contenteditable=\"true\"]")) return;
-				const synthetic = {
-					target: document.elementFromPoint(pointer.x, pointer.y) ?? pointer.target,
-					clientX: pointer.x,
-					clientY: pointer.y,
-					preventDefault: () => event.preventDefault()
-				};
-				capture(synthetic, event.key);
-			};
-			const keyup = (event) => release(event.key);
-			const cancelGesture = () => {
-				held = null;
-				controller.dismissWheel();
-			};
-			document.addEventListener("pointerdown", down);
-			document.addEventListener("pointermove", move);
-			document.addEventListener("pointerup", up);
-			document.addEventListener("contextmenu", menu);
-			document.addEventListener("keydown", keydown);
-			document.addEventListener("keyup", keyup);
-			document.addEventListener("pointercancel", cancelGesture);
-			window.addEventListener("blur", cancelGesture);
-			window.addEventListener("resize", cancelGesture);
-			return () => {
-				held = null;
-				controller.cancel();
-				document.removeEventListener("pointerdown", down);
-				document.removeEventListener("pointermove", move);
-				document.removeEventListener("pointerup", up);
-				document.removeEventListener("contextmenu", menu);
-				document.removeEventListener("keydown", keydown);
-				document.removeEventListener("keyup", keyup);
-				document.removeEventListener("pointercancel", cancelGesture);
-				window.removeEventListener("blur", cancelGesture);
-				window.removeEventListener("resize", cancelGesture);
-			};
-		}
-		//#endregion
-		//#region lib/types/client/components/ActionWheel.js
-		/** Public shell overlay: wheel, input prompt and visible retry. Business work stays in its controller. */
-		function ActionWheel({ useActions, useCompanion, actions, companion }) {
-			const state = useActions((value) => value);
-			const snapshot = useCompanion((value) => value);
-			const menu = (0, react.useRef)(null);
-			const wheel = state.wheel;
-			const active = wheel?.active == null ? null : wheel.slots[wheel.active];
-			const pending = state.pending;
-			const visible = wheel !== null || pending !== null;
-			(0, react.useEffect)(() => visible ? companion.retainVisible() : void 0, [companion, visible]);
-			(0, react.useEffect)(() => {
-				if (wheel !== null && !wheel.held) menu.current?.focus();
-			}, [wheel?.held]);
-			return (0, react_jsx_runtime.jsxs)(OverlayPortal, { children: [wheel !== null && (0, react_jsx_runtime.jsxs)("div", {
-				className: ActionWheel_module_css_default.wheel,
-				style: {
-					left: wheel.x,
-					top: wheel.y,
-					"--wheel-scale": wheel.scale
-				},
-				"data-citeciter-menu": true,
-				"data-citeciter-wheel": true,
-				ref: menu,
-				tabIndex: -1,
-				role: "menu",
-				"aria-label": "CiteCiter 选文动作",
-				onKeyDown: (event) => {
-					if (event.key === "Escape") actions.cancel();
-					else if (/^[1-8]$/u.test(event.key)) {
-						event.preventDefault();
-						actions.choose(Number(event.key) - 1);
-					} else if (event.key === "Enter" || event.key === " ") {
-						event.preventDefault();
-						actions.choose(wheel.active);
-					} else if (event.key.startsWith("Arrow")) {
-						event.preventDefault();
-						actions.focus(((wheel.active ?? 0) + (["ArrowLeft", "ArrowUp"].includes(event.key) ? 7 : 1)) % 8);
-					}
-				},
-				children: [
-					(0, react_jsx_runtime.jsx)("svg", {
-						viewBox: "-180 -180 360 360",
-						"aria-hidden": "true",
-						className: ActionWheel_module_css_default.ring,
-						children: wheel.slots.map((slot, index) => {
-							const a = (index * 45 - 112.5) * Math.PI / 180, b = a + Math.PI / 4;
-							const p = (r, angle) => `${r * Math.cos(angle)} ${r * Math.sin(angle)}`;
-							return (0, react_jsx_runtime.jsx)("path", {
-								"data-active": wheel.active === index && slot !== null || void 0,
-								"data-empty": slot === null || void 0,
-								d: `M ${p(43, a)} L ${p(178, a)} A 178 178 0 0 1 ${p(178, b)} L ${p(43, b)} A 43 43 0 0 0 ${p(43, a)}`
-							}, index);
-						})
-					}),
-					wheel.slots.map((slot, index) => {
-						const angle = (index * 45 - 90) * Math.PI / 180;
-						return (0, react_jsx_runtime.jsxs)("button", {
-							className: ActionWheel_module_css_default.slot,
-							type: "button",
-							role: "menuitem",
-							"aria-disabled": slot === null,
-							"data-active": wheel.active === index || void 0,
-							style: {
-								left: 180 + Math.cos(angle) * 114,
-								top: 180 + Math.sin(angle) * 114
-							},
-							onMouseEnter: () => {
-								if (!wheel.held) actions.focus(index);
-							},
-							onFocus: () => actions.focus(index),
-							onClick: () => actions.choose(index),
-							title: slot?.prompt,
-							children: [
-								(0, react_jsx_runtime.jsx)("span", {
-									className: ActionWheel_module_css_default.slotNumber,
-									children: index + 1
-								}),
-								(0, react_jsx_runtime.jsx)("strong", { children: slot?.label ?? "空槽" }),
-								(0, react_jsx_runtime.jsx)("small", { children: slot === null ? "在设置中添加" : slot.ask ? "需输入 · 选模型" : `准备草稿 · ${slot.presentation === "side" ? "侧边" : "悬浮"}` })
-							]
-						}, index);
-					}),
-					(0, react_jsx_runtime.jsxs)("button", {
-						type: "button",
-						className: ActionWheel_module_css_default.center,
-						onClick: actions.cancel,
-						"aria-label": "取消轮盘",
-						children: ["取消", (0, react_jsx_runtime.jsx)("small", { children: "Esc" })]
-					}),
-					(0, react_jsx_runtime.jsx)("div", {
-						className: ActionWheel_module_css_default.caption,
-						role: "status",
-						children: active == null ? "移向动作 · 回到中心取消" : `${active.label} · ${active.ask ? "松开后输入问题并选择模型" : "松开后准备草稿"}`
-					})
-				]
-			}), pending !== null && (0, react_jsx_runtime.jsxs)("form", {
-				className: ActionWheel_module_css_default.prompt,
-				"data-citeciter-menu": true,
-				role: "dialog",
-				"aria-label": `${pending.action.label}：输入问题`,
-				style: {
-					"--prompt-x": `${pending.x - 210}px`,
-					"--prompt-y": `${pending.y - 100}px`
-				},
-				onSubmit: (event) => {
-					event.preventDefault();
-					actions.submit();
-				},
-				children: [
-					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsx)("strong", { children: pending.action.label }), (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						onClick: actions.cancel,
-						"aria-label": "关闭提问",
-						children: "×"
-					})] }),
-					(0, react_jsx_runtime.jsx)("blockquote", { children: actionSourceQuote(pending.source).slice(0, 180) }),
-					pending.action.ask && (0, react_jsx_runtime.jsx)("textarea", {
-						autoFocus: true,
-						"aria-label": "补充问题",
-						placeholder: "输入你的问题…",
-						maxLength: 7500,
-						rows: 3,
-						value: state.question,
-						disabled: state.submitting,
-						onChange: (event) => actions.setQuestion(event.currentTarget.value),
-						onKeyDown: (event) => {
-							if (event.key === "Enter" && (event.ctrlKey || event.metaKey) && !event.nativeEvent.isComposing) {
-								event.preventDefault();
-								actions.submit();
-							}
-						}
-					}),
-					pending.action.ask && (0, react_jsx_runtime.jsx)("div", {
-						className: ActionWheel_module_css_default.slotActions,
-						children: (snapshot.settings.promptTemplates ?? []).map((template) => (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							disabled: state.submitting,
-							onClick: () => actions.setQuestion(template.text),
-							children: template.label
-						}, template.id))
-					}),
-					(pending.action.ask || state.error !== null) && (0, react_jsx_runtime.jsx)(ModelChoice, {
-						providers: snapshot.providers,
-						value: state.model,
-						onChange: actions.setModel,
-						disabled: state.submitting
-					}),
-					state.error !== null && (0, react_jsx_runtime.jsx)("p", {
-						role: "alert",
-						className: ActionWheel_module_css_default.error,
-						children: state.error
-					}),
-					(0, react_jsx_runtime.jsxs)("footer", { children: [(0, react_jsx_runtime.jsx)("span", { children: pending.action.presentation === "side" ? "在学习栏中打开" : "在悬浮窗中打开" }), (0, react_jsx_runtime.jsx)("button", {
-						type: "submit",
-						disabled: state.submitting || pending.action.ask && state.question.trim() === "",
-						children: state.submitting ? "正在创建…" : state.error === null ? "准备草稿" : "重试"
-					})] })
-				]
-			})] });
-		}
-		//#endregion
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-util-works_83054963422b68e11bf8c3c8ca359d64/node_modules/@deepseek-ai/dsh-util-workspace-path/lib/index.js
-		/**
-		* The `dsh-resource://file/…` address grammar: how a file is named across the
-		* Sidebar and the resource model, built and parsed without touching a
-		* filesystem.
-		* @module
-		*/
-		/** The scheme and type every file address opens with. */
-		const FILE_ADDRESS_PREFIX = "dsh-resource://file/";
-		/** Whether a decoded first path segment is a Windows drive (`C:`). */
-		function isDriveSegment(segment) {
-			return segment !== void 0 && /^[A-Za-z]:$/.test(segment);
-		}
-		/**
-		* Read a file address back into its parts without resolving `.` or `..`.
-		* Query and fragment suffixes are ignored; encoded path segments are decoded.
-		* @param address - a candidate address.
-		* @returns the parts, or `undefined` when the string is not a `dsh-resource://file/` URI in a known scope with a path, or a segment is not validly encoded.
-		*/
-		function parseFileAddress(address) {
-			try {
-				if (!address.startsWith(FILE_ADDRESS_PREFIX)) return void 0;
-				const end = address.search(/[?#]/);
-				const [scope, ...rest] = address.slice(20, end === -1 ? void 0 : end).split("/");
-				if (scope === "session") {
-					const [id, ...segments] = rest;
-					if (id === void 0 || id === "" || segments.length === 0) return void 0;
-					return {
-						scope,
-						sessionId: decodeURIComponent(id),
-						path: segments.map(decodeURIComponent).join("/")
-					};
-				}
-				if (scope === "absolute") {
-					const unc = rest[0] === "" && rest.length > 1;
-					const segments = (unc ? rest.slice(1) : rest).map(decodeURIComponent);
-					if (segments.length === 0 || segments[0] === "") return void 0;
-					if (unc) return {
-						scope,
-						path: `//${segments.join("/")}`
-					};
-					return {
-						scope,
-						path: isDriveSegment(segments[0]) ? segments.join("/") : `/${segments.join("/")}`
-					};
-				}
-				return;
-			} catch {
-				return;
-			}
-		}
-		//#endregion
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-brand@0.1.5-rc.1_@deepseek-ai+cordis@4.0.2/node_modules/@deepseek-ai/dsh-brand/lib/index.js
-		/**
-		* Duplicate-install-safe nominal primitive helpers.
-		*
-		* A brand makes structurally identical strings or numbers non-interchangeable
-		* at the type level: a `SessionId` cannot be passed where a `ToolCallId` is
-		* expected, and an event sequence cannot be passed as a log offset. Comparison,
-		* logging, and serialization retain the underlying primitive behavior.
-		*
-		* This package owns no concrete domain value and keeps no runtime identity or mutable
-		* state, so independently installed copies produce interchangeable values.
-		*
-		* @module @deepseek-ai/dsh-brand
-		*/
-		/**
-		* Apply a compile-time string brand without changing the value.
-		* @param value - string admitted by the domain that owns the target brand.
-		* @returns the same string with the requested compile-time brand.
-		*/
-		function brandString(value) {
-			return value;
-		}
-		/**
-		* Apply a compile-time number brand without changing the value.
-		* @param value - number admitted by the domain that owns the target brand.
-		* @returns the same number with the requested compile-time brand.
-		*/
-		function brandNumber(value) {
-			return value;
-		}
-		//#endregion
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-session@0._19a3f679910325ead5ac78e2fac662f7/node_modules/@deepseek-ai/dsh-session/lib/types/types.js
-		/**
-		* Brand a string as a {@link SessionId}.
-		* @param id - the raw session id string.
-		* @returns the same string with the session-id brand.
-		*/
-		function SessionId(id) {
-			return brandString(id);
-		}
-		/**
-		* Admit a numeric value as an existing Session event position.
-		* @param value - non-negative safe integer admitted by the owning log operation.
-		* @returns the same number with the Session-sequence brand.
-		*/
-		function SessionSeq(value) {
-			if (!Number.isSafeInteger(value) || value < 0 || Object.is(value, -0)) throw new TypeError(`SessionSeq must be a non-negative safe integer, got ${String(value)}`);
-			return brandNumber(value);
-		}
-		//#endregion
-		//#region lib/types/client/native-document.js
-		/** Decode a complete Host-owned preview buffer. Reject binary, partial and oversized imports. */
-		function decodeNativeText(content) {
-			if (content.kind === "text" && !content.eof) throw new Error("请等待原生预览读取完整文件后再学习");
-			if (content.kind === "bytes" && content.data.byteLength > 8388608) throw new Error("学习文本超过 8 MiB 上限");
-			const text = content.kind === "text" ? content.text : new TextDecoder("utf-8", { fatal: true }).decode(content.data);
-			if (text.includes("\0")) throw new Error("学习查看方式只支持 UTF-8 文本");
-			if (text.length > 2e6) throw new Error("学习文本不能超过 2,000,000 个字符");
-			return text;
-		}
-		/** Capture the file address's own Session and immutable text, never the later active tab. */
-		function nativeDocumentSource(address, content, selection) {
-			const file = parseFileAddress(address);
-			if (file?.scope !== "session") throw new Error("文件地址没有来源会话");
-			return {
-				kind: "document",
-				sourceSessionId: SessionId(file.sessionId),
-				title: file.path,
-				content,
-				...selection
-			};
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\NativeLearningDocument.module.css.mjs
-		const css$1 = ".WrwnuW_document{height:100%;min-height:0;color:var(--dsw-alias-label-primary,#263d3b);flex-direction:column;font:13px/1.5 system-ui,sans-serif;display:flex}.WrwnuW_document header{background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 76%,transparent);backdrop-filter:blur(18px)saturate(140%);border-bottom:1px solid var(--dsw-alias-border-l1,#d6dfdc);justify-content:space-between;align-items:center;gap:8px;padding:12px;display:flex}.WrwnuW_document small{color:var(--dsw-alias-label-secondary,#60706c);font-size:11px;display:block}.WrwnuW_document button{white-space:nowrap;color:#245c4f;cursor:pointer;background:#d9eee4;border:1px solid #43877466;border-radius:10px;padding:7px 10px}.WrwnuW_document p{margin:8px 12px;font-size:12px}.WrwnuW_document nav{justify-content:center;align-items:center;gap:16px;padding:8px;display:flex}.WrwnuW_document [role=alert]{color:#b34535}.WrwnuW_document textarea{resize:none;box-sizing:border-box;width:100%;min-height:120px;color:inherit;tab-size:4;background:0 0;border:0;outline:none;flex:1;padding:14px;font:13px/1.7 ui-monospace,Consolas,monospace}";
-		const tagId$1 = "@kirkchinese/dsh-citeciter/NativeLearningDocument.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$1) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$1;
-			tag.textContent = css$1;
-			document.head.appendChild(tag);
-		}
-		var NativeLearningDocument_module_css_default = { "document": "WrwnuW_document" };
-		/** Split UTF-8 text without breaking code points; concatenation exactly reproduces the input. */
-		function documentPages(content) {
-			const pages = [];
-			let start = 0, offset = 0, bytes = 0;
-			for (const character of content) {
-				const code = character.codePointAt(0);
-				const size = code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
-				if (bytes + size > 512e3) {
-					pages.push(content.slice(start, offset));
-					start = offset;
-					bytes = 0;
-				}
-				offset += character.length;
-				bytes += size;
-			}
-			pages.push(content.slice(start));
-			return pages;
-		}
-		//#endregion
-		//#region lib/types/client/components/NativeLearningDocument.js
-		/** Alternate native document renderer. DSH owns loading, reload and file navigation. */
-		function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface, openActions }) {
-			const field = (0, react.useRef)(null);
-			const [error, setError] = (0, react.useState)(null);
-			const [page, setPage] = (0, react.useState)(0);
-			const decoded = (0, react.useMemo)(() => {
-				try {
-					return {
-						text: decodeNativeText(content),
-						error: null
-					};
-				} catch (error) {
-					return {
-						text: "",
-						error: error instanceof Error ? error.message : String(error)
-					};
-				}
-			}, [content]);
-			const pages = (0, react.useMemo)(() => documentPages(decoded.text), [decoded.text]);
-			const currentPage = Math.min(page, pages.length - 1);
-			const read = () => {
-				const selected = field.current === null ? null : readTextareaSelection(field.current);
-				if (selected === null || decoded.error !== null) return null;
-				try {
-					return nativeDocumentSource(resourceAddress, decoded.text, selected);
-				} catch (error) {
-					setError(error instanceof Error ? error.message : String(error));
-					return null;
-				}
-			};
-			(0, react.useEffect)(() => {
-				const element = field.current;
-				if (element === null) return;
-				return registerSurface(element, read);
-			}, [
-				registerSurface,
-				resourceAddress,
-				decoded.text,
-				currentPage
-			]);
-			(0, react.useEffect)(() => {
-				setError(null);
-				setPage(0);
-			}, [content, resourceAddress]);
-			(0, react.useEffect)(() => {
-				field.current?.setSelectionRange(0, 0);
-				if (field.current !== null) field.current.scrollTop = 0;
-			}, [currentPage, decoded.text]);
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: NativeLearningDocument_module_css_default.document,
-				children: [
-					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "CiteCiter 学习" }), (0, react_jsx_runtime.jsx)("small", { children: "选文 → 按住触发键 → 移向动作 → 松开" })] }), (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						onClick: (event) => {
-							try {
-								const source = read();
-								if (source === null) {
-									setError("请先在正文中选中文字");
-									return;
-								}
-								setError(null);
-								const rect = event.currentTarget.getBoundingClientRect();
-								openActions(source, rect.left, rect.bottom);
-							} catch (error) {
-								setError(String(error));
-							}
-						},
-						children: "选文动作"
-					})] }),
-					(0, react_jsx_runtime.jsx)("p", { children: "使用原生文件与刷新功能；开始学习时保存全文快照。Markdown 和代码以源文本显示。" }),
-					(decoded.error ?? error) !== null && (0, react_jsx_runtime.jsx)("p", {
-						role: "alert",
-						children: decoded.error ?? error
-					}),
-					pages.length > 1 && (0, react_jsx_runtime.jsxs)("nav", {
-						"aria-label": "学习文档分页",
-						children: [
-							(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: currentPage === 0,
-								onClick: () => setPage(currentPage - 1),
-								children: "上一页"
-							}),
-							(0, react_jsx_runtime.jsxs)("span", { children: [
-								currentPage + 1,
-								" / ",
-								pages.length
-							] }),
-							(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: currentPage === pages.length - 1,
-								onClick: () => setPage(currentPage + 1),
-								children: "下一页"
-							})
-						]
-					}),
-					(0, react_jsx_runtime.jsx)("textarea", {
-						ref: (element) => {
-							field.current = element;
-							scrollportRef(element);
-						},
-						readOnly: true,
-						"aria-label": "原生文件学习正文",
-						value: pages[currentPage] ?? "",
-						wrap: wrap ? "soft" : "off",
-						spellCheck: false
-					})
-				]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/components/CiteLauncher.js
-		/** Independent entry back to the current learning workspace; owns no selection state. */
-		function CiteLauncher({ useCompanion, useOverlay, openPanel }) {
-			const snapshot = useCompanion((value) => value);
-			const open = useOverlay((value) => value.panelOpen);
-			if (snapshot.sourceSessionId === null || open) return null;
-			return (0, react_jsx_runtime.jsxs)("button", {
-				className: CiteCiter_module_css_default.topicLauncher,
-				type: "button",
-				onClick: openPanel,
-				"aria-label": snapshot.topics.length === 0 ? "打开 CiteCiter" : `打开 CiteCiter，共 ${snapshot.topics.length} 个讨论`,
-				title: "打开 CiteCiter",
-				children: [(0, react_jsx_runtime.jsx)("img", {
-					src: citeciter_mascot_default,
-					alt: "",
-					"aria-hidden": "true"
-				}), snapshot.topics.length > 0 && (0, react_jsx_runtime.jsx)("span", {
-					className: CiteCiter_module_css_default.launcherCount,
-					children: snapshot.topics.length
-				})]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/update-controller.js
-		const CHECK_INTERVAL_MS = 864e5;
-		const BROWSER_DISABLED_KEY = "citeciter:update-notifications-disabled";
-		const DEFERRED_KEY_PREFIX = "citeciter:update-deferred:";
-		/** Initial root-scoped update-notice state. */
-		const INITIAL_UPDATE_SNAPSHOT = Object.freeze({
-			available: null,
-			checking: false,
-			copyStatus: "idle",
-			copyMessage: null,
-			notificationsEnabled: true,
-			preferenceReady: false,
-			preferencePersistence: "host",
-			preferenceStatus: "idle",
-			preferenceMessage: null
-		});
-		const UNAVAILABLE_STORAGE = Object.freeze({
-			getItem: (_key) => null,
-			setItem: (_key, _value) => void 0,
-			removeItem: (_key) => void 0
-		});
-		function readBrowserStorage(read) {
-			try {
-				return read();
-			} catch {
-				return UNAVAILABLE_STORAGE;
-			}
-		}
-		/** @returns browser services without letting denied storage or clipboard getters break plugin mount. */
-		function createUpdateBrowserEnvironment() {
-			let clipboard;
-			try {
-				clipboard = typeof navigator === "undefined" ? void 0 : navigator.clipboard;
-			} catch {
-				clipboard = void 0;
-			}
-			return {
-				document,
-				sessionStorage: readBrowserStorage(() => sessionStorage),
-				localStorage: readBrowserStorage(() => localStorage),
-				clipboard,
-				now: Date.now
-			};
-		}
-		function updateCommand(version, profile = "web") {
-			if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(profile)) throw new Error("Invalid DSH profile name");
-			return `dsh plugin --profile ${profile} add @kirkchinese/dsh-citeciter@${version}`;
-		}
-		function deferredKey(version) {
-			return DEFERRED_KEY_PREFIX + version;
-		}
-		function storageHas(storage, key) {
-			try {
-				return storage.getItem(key) === "1";
-			} catch {
-				return false;
-			}
-		}
-		function writeBrowserPreference(storage, enabled) {
-			try {
-				if (enabled) storage.removeItem(BROWSER_DISABLED_KEY);
-				else storage.setItem(BROWSER_DISABLED_KEY, "1");
-				return storage.getItem(BROWSER_DISABLED_KEY) === "1" !== enabled;
-			} catch {
-				return false;
-			}
-		}
-		function isAbortError(error) {
-			return error instanceof DOMException && error.name === "AbortError";
-		}
-		/**
-		* Own update discovery, deferral, copy feedback, and preference persistence.
-		* @param settings - existing CiteCiter settings namespace scope.
-		* @param checkUpdate - validated Host version check; it never installs software.
-		* @param store - root-scoped observable state owned by the client runtime.
-		* @param environment - browser APIs, injectable for deterministic tests.
-		* @param reportCheckError - diagnostic sink for silent automatic-check failures.
-		* @returns the root-scoped update controller.
-		*/
-		function createUpdateController(settings, checkUpdate, store, environment = createUpdateBrowserEnvironment(), reportCheckError = () => void 0) {
-			let disposed = false;
-			let started = false;
-			let lastCheckAt = null;
-			let activeCheck = null;
-			let checkOperation = null;
-			let copyOperation = null;
-			let preferenceOperation = null;
-			const operations = /* @__PURE__ */ new Set();
-			const memoryDeferred = /* @__PURE__ */ new Set();
-			const track = (operation) => {
-				let tracked;
-				tracked = operation.finally(() => operations.delete(tracked));
-				operations.add(tracked);
-				return tracked;
-			};
-			const readPreference = () => {
-				const snapshot = settings.getSnapshot();
-				const browser = snapshot.mode === "memory";
-				return {
-					ready: browser || snapshot.status !== "loading",
-					enabled: browser ? !storageHas(environment.localStorage, BROWSER_DISABLED_KEY) : snapshot.value?.updateNotifications !== false,
-					persistence: browser ? "browser" : "host"
-				};
-			};
-			const publishPreference = () => {
-				const preference = readPreference();
-				store.update((state) => {
-					state.notificationsEnabled = preference.enabled;
-					state.preferenceReady = preference.ready;
-					state.preferencePersistence = preference.persistence;
-					if (!preference.enabled) {
-						state.available = null;
-						state.copyStatus = "idle";
-						state.copyMessage = null;
-					}
-				});
-				if (!preference.enabled) activeCheck?.abort();
-				return preference;
-			};
-			const report = (error) => {
-				try {
-					reportCheckError(error);
-				} catch {}
-			};
-			const runCheck = async (force = false) => {
-				if (disposed || checkOperation !== null) return checkOperation ?? Promise.resolve();
-				const preference = publishPreference();
-				if (!preference.ready || !preference.enabled) return;
-				const now = environment.now();
-				if (!force && lastCheckAt !== null && now - lastCheckAt < CHECK_INTERVAL_MS) return;
-				lastCheckAt = now;
-				const abort = new AbortController();
-				activeCheck = abort;
-				store.update((state) => {
-					state.checking = true;
-				});
-				const operation = (async () => {
-					try {
-						const available = await checkUpdate(abort.signal);
-						if (disposed || abort.signal.aborted || activeCheck !== abort || !readPreference().enabled) return;
-						const deferred = available !== null && (memoryDeferred.has(available.latestVersion) || storageHas(environment.sessionStorage, deferredKey(available.latestVersion)));
-						store.update((state) => {
-							state.available = deferred ? null : available;
-							state.copyStatus = "idle";
-							state.copyMessage = null;
-						});
-					} catch (error) {
-						if (!disposed && !abort.signal.aborted && !isAbortError(error)) report(error);
-					} finally {
-						if (activeCheck === abort) activeCheck = null;
-						if (!disposed) store.update((state) => {
-							state.checking = false;
-						});
-					}
-				})();
-				checkOperation = track(operation).finally(() => {
-					checkOperation = null;
-				});
-				return checkOperation;
-			};
-			const onSettingsChange = () => {
-				const previous = store.getSnapshot();
-				const preference = publishPreference();
-				if (!started || !preference.ready || !preference.enabled) return;
-				if (!previous.preferenceReady || !previous.notificationsEnabled) runCheck(true);
-			};
-			const unsubscribeSettings = settings.subscribe(onSettingsChange);
-			publishPreference();
-			const onVisibilityChange = () => {
-				if (environment.document.visibilityState === "visible") runCheck();
-			};
-			return {
-				getSnapshot: store.getSnapshot,
-				subscribe: store.subscribe,
-				start: async () => {
-					if (disposed || started) return;
-					started = true;
-					environment.document.addEventListener("visibilitychange", onVisibilityChange);
-					await runCheck();
-				},
-				copyUpdateCommand: async () => {
-					const available = store.getSnapshot().available;
-					if (disposed || available === null || copyOperation !== null) return copyOperation ?? Promise.resolve();
-					store.update((state) => {
-						state.copyStatus = "copying";
-						state.copyMessage = "正在复制更新命令…";
-					});
-					const operation = (async () => {
-						try {
-							if (environment.clipboard === void 0) throw new Error("clipboard unavailable");
-							await environment.clipboard.writeText(updateCommand(available.latestVersion, available.profile));
-							if (!disposed) store.update((state) => {
-								state.copyStatus = "copied";
-								state.copyMessage = "更新命令已复制。运行后请重启当前 DSH。";
-							});
-						} catch {
-							if (!disposed) store.update((state) => {
-								state.copyStatus = "error";
-								state.copyMessage = "无法自动复制，请手动复制下方命令。运行后请重启当前 DSH。";
-							});
-						}
-					})();
-					copyOperation = track(operation).finally(() => {
-						copyOperation = null;
-					});
-					return copyOperation;
-				},
-				defer: () => {
-					const available = store.getSnapshot().available;
-					if (disposed || available === null) return;
-					memoryDeferred.add(available.latestVersion);
-					try {
-						environment.sessionStorage.setItem(deferredKey(available.latestVersion), "1");
-					} catch {}
-					store.update((state) => {
-						state.available = null;
-						state.copyStatus = "idle";
-						state.copyMessage = null;
-					});
-				},
-				setNotificationsEnabled: async (enabled) => {
-					if (disposed || preferenceOperation !== null) return preferenceOperation ?? false;
-					store.update((state) => {
-						state.preferenceStatus = "saving";
-						state.preferenceMessage = enabled ? "正在开启更新提醒…" : "正在关闭更新提醒…";
-					});
-					const operation = (async () => {
-						const persistence = readPreference().persistence;
-						let saved = false;
-						try {
-							if (persistence === "browser") saved = writeBrowserPreference(environment.localStorage, enabled);
-							else {
-								await settings.set("updateNotifications", enabled);
-								saved = settings.getSnapshot().value?.updateNotifications === enabled;
-							}
-						} catch {
-							saved = false;
-						}
-						if (disposed) return false;
-						publishPreference();
-						if (!saved) {
-							store.update((state) => {
-								state.preferenceStatus = "error";
-								state.preferenceMessage = persistence === "browser" ? "浏览器阻止了本地存储，无法保存更新提醒设置。" : "无法保存更新提醒设置，请重试。";
-							});
-							return false;
-						}
-						store.update((state) => {
-							state.preferenceStatus = "saved";
-							state.preferenceMessage = enabled ? "已开启版本更新提醒" : "已关闭版本更新提醒";
-							if (!enabled) state.available = null;
-						});
-						if (enabled) runCheck(true);
-						return true;
-					})();
-					preferenceOperation = track(operation).finally(() => {
-						preferenceOperation = null;
-					});
-					return preferenceOperation;
-				},
-				dispose: async () => {
-					if (disposed) return;
-					disposed = true;
-					activeCheck?.abort();
-					activeCheck = null;
-					unsubscribeSettings();
-					if (started) environment.document.removeEventListener("visibilitychange", onVisibilityChange);
-					started = false;
-					while (operations.size > 0) await Promise.allSettled([...operations]);
-				}
-			};
-		}
-		/** @param version - validated latest package version. @param profile - active Desktop profile, or Web default. @returns the command shown and copied by the notice. */
-		function citeCiterUpdateCommand(version, profile = "web") {
-			return updateCommand(version, profile);
-		}
-		//#endregion
-		//#region \0dsh-css:src\client\components\UpdateNotice.module.css.mjs
-		const css = ".Ftywza_notice{z-index:210;top:max(16px, calc(env(safe-area-inset-top) + 12px));right:max(16px, calc(env(safe-area-inset-right) + 12px));box-sizing:border-box;width:min(384px,100vw - 32px);max-height:calc(100dvh - 32px);color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-2,#fff);border:1px solid var(--dsw-alias-border-inverted,#d9dde5);box-shadow:var(--dsw-shadow-lv3,0 14px 36px #1a1f2c2e);pointer-events:auto;border-radius:22px;flex-direction:column;gap:14px;padding:20px;animation:.16s ease-out Ftywza_update-notice-in;display:flex;position:absolute;overflow:auto}.Ftywza_announcement{clip:rect(0 0 0 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.Ftywza_heading{align-items:center;gap:12px;display:flex}.Ftywza_heading h2,.Ftywza_heading p,.Ftywza_description,.Ftywza_feedback{margin:0}.Ftywza_heading h2{font-size:16px;font-weight:600;line-height:24px}.Ftywza_badge{width:38px;height:38px;color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,#3478f6);border-radius:12px;flex:none;place-items:center;font-size:20px;font-weight:600;display:grid}.Ftywza_version{color:var(--dsw-alias-label-secondary,#606875);white-space:nowrap;align-items:center;gap:6px;font-size:12px;line-height:18px;display:flex}.Ftywza_version strong{color:var(--dsw-alias-state-success-primary,#16875d);font-weight:600}.Ftywza_description{color:var(--dsw-alias-label-secondary,#606875);font-size:13px;line-height:20px}.Ftywza_command{overflow-wrap:anywhere;color:var(--dsw-alias-label-primary,#20232a);background:var(--dsw-alias-bg-layer-1,#f7f8fa);border:1px solid var(--dsw-alias-border-l1,#e4e7ec);font-family:var(--dsw-font-family-mono,ui-monospace, monospace);user-select:text;border-radius:10px;padding:10px 12px;font-size:11px;line-height:18px;display:block}.Ftywza_feedback{color:var(--dsw-alias-state-success-primary,#16875d);font-size:12px;line-height:18px}.Ftywza_feedback[data-status=copying]{color:var(--dsw-alias-label-secondary,#606875)}.Ftywza_feedback[data-status=error]{color:var(--dsw-alias-state-error-primary,#c93f3f)}.Ftywza_actions{grid-template-columns:auto auto auto;justify-content:end;gap:8px;display:grid}.Ftywza_action{white-space:nowrap;min-height:40px}.Ftywza_action:focus-visible{outline:2px solid var(--dsw-alias-state-focus,#3478f6);outline-offset:2px}@keyframes Ftywza_update-notice-in{0%{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}@media (width<=480px){.Ftywza_notice{top:max(12px, calc(env(safe-area-inset-top) + 12px));right:max(12px, calc(env(safe-area-inset-right) + 12px));left:max(12px, calc(env(safe-area-inset-left) + 12px));border-radius:18px;width:auto;max-height:calc(100dvh - 24px);padding:18px}.Ftywza_actions{grid-template-columns:minmax(0,1fr) minmax(0,1fr);justify-content:stretch}.Ftywza_updateAction{grid-column:1/-1}.Ftywza_action{width:100%;min-height:44px}}@media (width<=360px){.Ftywza_actions{grid-template-columns:minmax(0,1fr)}.Ftywza_updateAction{grid-column:auto}}@media (prefers-reduced-motion:reduce){.Ftywza_notice{animation:none}}";
-		const tagId = "@kirkchinese/dsh-citeciter/UpdateNotice.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId;
-			tag.textContent = css;
-			document.head.appendChild(tag);
-		}
-		var UpdateNotice_module_css_default = {
-			"action": "Ftywza_action",
-			"actions": "Ftywza_actions",
-			"announcement": "Ftywza_announcement",
-			"badge": "Ftywza_badge",
-			"command": "Ftywza_command",
-			"description": "Ftywza_description",
-			"feedback": "Ftywza_feedback",
-			"heading": "Ftywza_heading",
-			"notice": "Ftywza_notice",
-			"update-notice-in": "Ftywza_update-notice-in",
-			"updateAction": "Ftywza_updateAction",
-			"version": "Ftywza_version"
-		};
-		//#endregion
-		//#region lib/types/client/components/UpdateNotice.js
-		/**
-		* Render the non-modal Web update notice in the frame-wide overlay.
-		* @param props - root-scoped update actions and observable state.
-		* @returns the available-version card, or no surface while current or suppressed.
-		*/
-		function UpdateNotice({ useUpdate, updateController }) {
-			const snapshot = useUpdate((value) => value);
-			const titleId = (0, react.useId)();
-			const descriptionId = (0, react.useId)();
-			const previousFocus = (0, react.useRef)(null);
-			const available = snapshot.available;
-			(0, react.useEffect)(() => {
-				if (available === null) return;
-				const active = document.activeElement;
-				if (active instanceof HTMLElement && active.closest("[data-citeciter-update-notice]") === null) previousFocus.current = active;
-			}, [available]);
-			if (available === null) return null;
-			const busy = snapshot.copyStatus === "copying" || snapshot.preferenceStatus === "saving";
-			const restoreFocus = () => {
-				const target = previousFocus.current;
-				requestAnimationFrame(() => {
-					if (target?.isConnected === true) target.focus();
-				});
-			};
-			const rememberFocus = () => {
-				const active = document.activeElement;
-				if (active instanceof HTMLElement && active.closest("[data-citeciter-update-notice]") === null) previousFocus.current = active;
-			};
-			const disableNotifications = async () => {
-				if (await updateController.setNotificationsEnabled(false)) restoreFocus();
-			};
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: UpdateNotice_module_css_default.notice,
-				"data-citeciter-update-notice": true,
-				role: "region",
-				"aria-labelledby": titleId,
-				"aria-describedby": descriptionId,
-				"aria-busy": busy,
-				onPointerDownCapture: rememberFocus,
-				onFocusCapture: rememberFocus,
-				children: [
-					(0, react_jsx_runtime.jsxs)("p", {
-						className: UpdateNotice_module_css_default.announcement,
-						role: "status",
-						"aria-live": "polite",
-						children: ["CiteCiter 有新版本 ", available.latestVersion]
-					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: UpdateNotice_module_css_default.heading,
-						children: [(0, react_jsx_runtime.jsx)("span", {
-							className: UpdateNotice_module_css_default.badge,
-							"aria-hidden": "true",
-							children: "↑"
-						}), (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h2", {
-							id: titleId,
-							children: "CiteCiter 有新版本"
-						}), (0, react_jsx_runtime.jsxs)("p", {
-							className: UpdateNotice_module_css_default.version,
-							children: [
-								(0, react_jsx_runtime.jsxs)("span", { children: ["v", available.currentVersion] }),
-								(0, react_jsx_runtime.jsx)("span", {
-									"aria-hidden": "true",
-									children: "→"
-								}),
-								(0, react_jsx_runtime.jsxs)("strong", { children: ["v", available.latestVersion] })
-							]
-						})] })]
-					}),
-					(0, react_jsx_runtime.jsx)("p", {
-						id: descriptionId,
-						className: UpdateNotice_module_css_default.description,
-						children: "“更新”复制安装命令。执行前请核对目标 Profile 与新版 DSH 要求，完成后重启当前 DSH。"
-					}),
-					(0, react_jsx_runtime.jsx)("code", {
-						className: UpdateNotice_module_css_default.command,
-						children: citeCiterUpdateCommand(available.latestVersion, available.profile)
-					}),
-					snapshot.copyMessage !== null && (0, react_jsx_runtime.jsx)("p", {
-						className: UpdateNotice_module_css_default.feedback,
-						"data-status": snapshot.copyStatus,
-						role: snapshot.copyStatus === "error" ? "alert" : "status",
-						children: snapshot.copyMessage
-					}),
-					snapshot.preferenceStatus === "error" && snapshot.preferenceMessage !== null && (0, react_jsx_runtime.jsx)("p", {
-						className: UpdateNotice_module_css_default.feedback,
-						"data-status": "error",
-						role: "alert",
-						children: snapshot.preferenceMessage
-					}),
-					(0, react_jsx_runtime.jsxs)("div", {
-						className: UpdateNotice_module_css_default.actions,
-						children: [
-							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-								variant: "primary",
-								className: `${UpdateNotice_module_css_default.action} ${UpdateNotice_module_css_default.updateAction}`,
-								"aria-label": "更新",
-								disabled: busy,
-								onClick: () => {
-									updateController.copyUpdateCommand();
-								},
-								children: "更新"
-							}),
-							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-								variant: "outline",
-								className: UpdateNotice_module_css_default.action,
-								"aria-label": "下次一定",
-								disabled: busy,
-								onClick: () => {
-									updateController.defer();
-									restoreFocus();
-								},
-								children: "下次一定"
-							}),
-							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-								variant: "ghost",
-								className: UpdateNotice_module_css_default.action,
-								"aria-label": "不再提示",
-								disabled: busy,
-								onClick: () => {
-									disableNotifications();
-								},
-								children: "不再提示"
-							})
-						]
-					})
-				]
-			});
-		}
-		//#endregion
-		//#region lib/types/client/conversation-dom.js
-		/** Centralized best-effort adapters for DSH conversation and Read Frog DOM markers. */
-		const DSH_FLOW_SELECTOR = "[data-chat-flow-kind]";
-		const DSH_ASSISTANT_ANCHOR_SELECTOR = "[data-chat-flow-kind=\"assistant-step\"][data-chat-anchor-key]";
-		const DSH_REASONING_SELECTOR = "[data-variant=\"think\"]";
-		const DSH_REASONING_HEADER_SELECTOR = "[data-disclosure-row]";
-		const DSH_GENERATED_CONTENT_SELECTOR = "button, .katex, [data-footnotes], sup";
-		const DSH_CODE_BLOCK_SELECTOR = ".md-code-block";
-		const READ_FROG_TRANSLATION_SELECTOR = "[data-read-frog-translation-mode]";
-		const READ_FROG_PARAGRAPH_SELECTOR = "[data-read-frog-paragraph]";
-		function elementForNode(node) {
-			return node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-		}
-		function parseFlow(element) {
-			if (element === null) return null;
-			return {
-				element,
-				kind: element.dataset.chatFlowKind ?? "",
-				anchorKey: element.dataset.chatAnchorKey ?? null
-			};
-		}
-		function parseAssistantAnchor(element) {
-			const flow = parseFlow(element);
-			if (flow === null || flow.kind !== "assistant-step" || flow.anchorKey === null || flow.anchorKey === "") return null;
-			return {
-				element: flow.element,
-				anchorKey: flow.anchorKey
-			};
-		}
-		/**
-		* Parse the nearest DSH conversation flow containing a DOM node.
-		*
-		* @param node - rendered conversation node to inspect.
-		* @returns parsed flow metadata, or null outside a known DSH flow.
-		*/
-		function dshConversationFlow(node) {
-			return parseFlow(elementForNode(node)?.closest(DSH_FLOW_SELECTOR) ?? null);
-		}
-		/**
-		* Parse the assistant anchor that owns a context-menu event target.
-		*
-		* @param target - browser event target to inspect.
-		* @returns validated assistant metadata, or null outside an anchored assistant flow.
-		*/
-		function dshAssistantAnchorForTarget(target) {
-			if (!(target instanceof Element)) return null;
-			return parseAssistantAnchor(target.closest(DSH_ASSISTANT_ANCHOR_SELECTOR));
-		}
-		/**
-		* Return assistant anchors intersected by a DOM range in document order.
-		*
-		* @param range - current rendered selection range.
-		* @returns validated assistant anchors touched by the range.
-		*/
-		function dshIntersectedAssistantAnchors(range) {
-			const anchors = [];
-			for (const element of document.querySelectorAll(DSH_ASSISTANT_ANCHOR_SELECTOR)) {
-				if (!range.intersectsNode(element)) continue;
-				const anchor = parseAssistantAnchor(element);
-				if (anchor !== null) anchors.push(anchor);
-			}
-			return anchors;
-		}
-		/**
-		* Detect generated controls and collapsed code chrome.
-		*
-		* @param range - current rendered selection range.
-		* @param flow - assistant flow containing the range.
-		* @returns whether the range touches content that CiteCiter must ignore.
-		*/
-		function dshRangeTouchesExcludedContent(range, flow) {
-			for (const generated of flow.querySelectorAll(DSH_GENERATED_CONTENT_SELECTOR)) if (range.intersectsNode(generated)) return true;
-			for (const endpoint of [range.startContainer, range.endContainer]) {
-				const element = elementForNode(endpoint);
-				if (element?.closest(DSH_CODE_BLOCK_SELECTOR) !== null && element?.closest("pre") === null) return true;
-			}
-			return false;
-		}
-		/**
-		* Detect a selection endpoint inside a generated reasoning disclosure row.
-		*
-		* @param range - current rendered selection range.
-		* @param flow - assistant flow containing the range.
-		* @returns whether a collapsed or expanded reasoning header anchors the selection.
-		*/
-		function dshRangeHasReasoningHeaderEndpoint(range, flow) {
-			for (const endpoint of [range.startContainer, range.endContainer]) {
-				const header = elementForNode(endpoint)?.closest(DSH_REASONING_HEADER_SELECTOR);
-				if (header !== null && header !== void 0 && flow.contains(header) && header.closest(DSH_REASONING_SELECTOR) !== null) return true;
-			}
-			return false;
-		}
-		/**
-		* Determine whether a node is generated UI rather than committed citable text.
-		*
-		* @param node - rendered node to classify.
-		* @returns whether the node must stay out of the citable projection.
-		*/
-		function isNonCitableProjection(node) {
-			if (node.nodeType !== Node.ELEMENT_NODE) return false;
-			const element = node;
-			return element.matches(READ_FROG_TRANSLATION_SELECTOR) || element.matches(DSH_REASONING_HEADER_SELECTOR) && element.closest(DSH_REASONING_SELECTOR) !== null;
-		}
-		/**
-		* Determine whether a node owns one DSH reasoning block.
-		*
-		* @param node - rendered node to classify.
-		* @returns whether the node is a reasoning root.
-		*/
-		function isDshReasoningContent(node) {
-			return node.nodeType === Node.ELEMENT_NODE && node.matches(DSH_REASONING_SELECTOR);
-		}
-		/**
-		* Resolve a selection wholly inside one Read Frog translation to its source paragraph.
-		*
-		* @param range - current rendered selection range.
-		* @param assistant - assistant flow containing the translated projection.
-		* @returns translation mapping state and source paragraph when available.
-		*/
-		function readFrogSelection(range, assistant) {
-			const translatedStart = elementForNode(range.startContainer)?.closest(READ_FROG_TRANSLATION_SELECTOR);
-			const translatedEnd = elementForNode(range.endContainer)?.closest(READ_FROG_TRANSLATION_SELECTOR);
-			if (translatedStart === null || translatedStart === void 0) return translatedEnd === null || translatedEnd === void 0 ? { kind: "none" } : { kind: "invalid" };
-			if (translatedEnd === null || translatedEnd === void 0 || translatedStart !== translatedEnd) return { kind: "invalid" };
-			const sourceParagraph = translatedStart.parentElement?.closest(READ_FROG_PARAGRAPH_SELECTOR);
-			if (sourceParagraph === null || sourceParagraph === void 0 || !assistant.contains(sourceParagraph)) return { kind: "invalid" };
-			return {
-				kind: "translation",
-				sourceParagraph
-			};
-		}
-		//#endregion
-		//#region lib/types/client/entry-ids.js
-		/** Stable identities for CiteCiter client entry points. */
-		const ASSISTANT_ENTRY_ID = "citeciter.entry.assistant";
-		const TOOL_ENTRY_ID = "citeciter.entry.tool";
-		//#endregion
-		//#region lib/types/evidence-text.js
-		/** Shared tool-evidence text projections used by Host validation and Client claims. */
-		/**
-		* Join the text blocks of one tool result into its citable projection.
-		* @param blocks - model-facing tool-result content blocks.
-		* @returns concatenated text blocks.
-		*/
-		function projectToolResultText(blocks) {
-			let text = "";
-			for (const block of blocks) {
-				if (block === null || typeof block !== "object") continue;
-				const candidate = block;
-				if (candidate.type === "text" && typeof candidate.text === "string") text += candidate.text;
-			}
-			return text;
-		}
-		/**
-		* Project one diff payload from a tool-result presentation meta.
-		* @param meta - opaque tool-result meta carrying an optional `diffs` array.
-		* @returns deterministic whole-card diff text, or null when no valid diff exists.
-		*/
-		function projectDiffMeta(meta) {
-			if (meta === null || typeof meta !== "object") return null;
-			const candidate = meta;
-			if (!Array.isArray(candidate.diffs) || candidate.diffs.length === 0) return null;
-			const sections = [];
-			for (const entry of candidate.diffs) {
-				if (entry === null || typeof entry !== "object") return null;
-				const diff = entry;
-				if (typeof diff.path !== "string" || diff.path === "" || typeof diff.newText !== "string") return null;
-				if (diff.oldText !== null && typeof diff.oldText !== "string") return null;
-				sections.push(`--- ${diff.path} (old) ---\n${diff.oldText ?? ""}\n+++ ${diff.path} (new) ---\n${diff.newText}`);
-			}
-			return sections.join("\n\n");
-		}
-		/**
-		* Resolve the citable whole-card projection for one tool result.
-		* @param projection - declared evidence projection kind.
-		* @param content - model-facing tool-result content blocks.
-		* @param meta - opaque presentation meta (diff payload for the diff projection).
-		* @returns projection text, or null when the payload cannot satisfy the kind.
-		*/
-		function projectToolEvidence(projection, content, meta) {
-			if (projection === "diff") return projectDiffMeta(meta);
-			return projectToolResultText(content);
-		}
-		//#endregion
-		//#region lib/types/client/selection.js
-		const RANGE_CONTEXT_CHARS = 240;
-		function committedText(root, target) {
-			let text = "";
-			let targetStart;
-			let targetEnd;
-			const visit = (node) => {
-				if (isNonCitableProjection(node)) return;
-				const start = text.length;
-				if (node === target) targetStart = text.length;
-				if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
-				else for (const child of node.childNodes) visit(child);
-				if (node === target) targetEnd = text.length;
-				if (isDshReasoningContent(node) && text.length > start) text += "\n\n";
-			};
-			visit(root);
-			return {
-				text,
-				targetStart,
-				targetEnd
-			};
-		}
-		function committedTextBefore(root, boundary, offset) {
-			let text = "";
-			let found = false;
-			const visit = (node) => {
-				if (found || isNonCitableProjection(node)) return;
-				if (node === boundary) {
-					if (node.nodeType === Node.TEXT_NODE) text += (node.textContent ?? "").slice(0, offset);
-					else for (let index = 0; index < offset; index++) {
-						const child = node.childNodes[index];
-						if (child !== void 0) visit(child);
-					}
-					found = true;
-					return;
-				}
-				const start = text.length;
-				if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
-				else for (const child of node.childNodes) {
-					visit(child);
-					if (found) return;
-				}
-				if (isDshReasoningContent(node) && text.length > start) text += "\n\n";
-			};
-			visit(root);
-			return found ? text : null;
-		}
-		/**
-		* Resolve the current DOM selection into a CiteSelection.
-		*
-		* A Range inside one assistant flow keeps exact visible offsets. A cross-flow
-		* Range binds to its final intersected assistant model call while preserving
-		* the complete visible quote for the learning UI.
-		*
-		* @param event - context-menu event whose pointer position anchors the menu.
-		* @param sourceSessionId - current session identity captured with the DOM range.
-		* @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
-		* @returns validated selection metadata, or null when CiteCiter should ignore it.
-		*/
-		function readSelection(event, sourceSessionId, committedAssistantText) {
-			const eventAnchor = dshAssistantAnchorForTarget(event.target);
-			if (eventAnchor === null) return null;
-			const selection = window.getSelection();
-			if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return null;
-			const range = selection.getRangeAt(0);
-			const startFlow = dshConversationFlow(range.startContainer);
-			const endFlow = dshConversationFlow(range.endContainer);
-			if (startFlow === null || endFlow === null) return null;
-			if (endFlow.element !== startFlow.element) {
-				const anchor = dshIntersectedAssistantAnchors(range).at(-1);
-				const displayText = range.toString().trim();
-				if (anchor === void 0 || anchor.element !== eventAnchor.element || displayText === "") return null;
-				const projected = committedText(anchor.element).text;
-				const sourceHintText = projected.trim();
-				if (sourceHintText === "") return null;
-				const startOffset = projected.length - projected.trimStart().length;
-				const endOffset = projected.length - (projected.length - projected.trimEnd().length);
-				return {
-					entryId: ASSISTANT_ENTRY_ID,
-					sourceSessionId,
-					displayText,
-					sourceHintText,
-					kind: "assistant-step",
-					anchorKey: anchor.anchorKey,
-					startOffset,
-					endOffset,
-					prefixText: "",
-					suffixText: "",
-					x: event.clientX,
-					y: event.clientY
-				};
-			}
-			if (startFlow.element !== eventAnchor.element || dshRangeTouchesExcludedContent(range, startFlow.element)) return null;
-			if (dshRangeHasReasoningHeaderEndpoint(range, startFlow.element)) {
-				const displayText = range.toString().trim();
-				if (displayText === "" || committedAssistantText === void 0 || committedAssistantText === "") return null;
-				return {
-					entryId: ASSISTANT_ENTRY_ID,
-					sourceSessionId,
-					displayText,
-					sourceHintText: committedAssistantText,
-					kind: "assistant-step",
-					anchorKey: eventAnchor.anchorKey,
-					startOffset: 0,
-					endOffset: committedAssistantText.length,
-					prefixText: "",
-					suffixText: "",
-					x: event.clientX,
-					y: event.clientY
-				};
-			}
-			const translated = readFrogSelection(range, startFlow.element);
-			if (translated.kind === "invalid") return null;
-			let text;
-			let flowText;
-			let startOffset;
-			let endOffset;
-			let sourceHintText;
-			if (translated.kind === "translation") {
-				const projected = committedText(startFlow.element, translated.sourceParagraph);
-				if (projected.targetStart === void 0 || projected.targetEnd === void 0) return null;
-				const rawSourceHint = projected.text.slice(projected.targetStart, projected.targetEnd);
-				const sourceLeading = rawSourceHint.length - rawSourceHint.trimStart().length;
-				const sourceTrailing = rawSourceHint.length - rawSourceHint.trimEnd().length;
-				text = range.toString().trim();
-				flowText = projected.text;
-				startOffset = projected.targetStart + sourceLeading;
-				endOffset = projected.targetEnd - sourceTrailing;
-				sourceHintText = rawSourceHint.trim();
-			} else {
-				const beforeStart = committedTextBefore(startFlow.element, range.startContainer, range.startOffset);
-				const beforeEnd = committedTextBefore(startFlow.element, range.endContainer, range.endOffset);
-				if (beforeStart === null || beforeEnd === null || beforeEnd.length < beforeStart.length) return null;
-				const rawText = beforeEnd.slice(beforeStart.length);
-				const leadingWhitespace = rawText.length - rawText.trimStart().length;
-				const trailingWhitespace = rawText.length - rawText.trimEnd().length;
-				text = rawText.trim();
-				flowText = committedText(startFlow.element).text;
-				startOffset = beforeStart.length + leadingWhitespace;
-				endOffset = beforeEnd.length - trailingWhitespace;
-			}
-			if (text === "") return null;
-			if (startOffset < 0 || endOffset < startOffset || endOffset > flowText.length) return null;
-			return {
-				entryId: ASSISTANT_ENTRY_ID,
-				sourceSessionId,
-				displayText: text,
-				...sourceHintText === void 0 ? {} : { sourceHintText },
-				kind: "assistant-step",
-				anchorKey: eventAnchor.anchorKey,
-				startOffset,
-				endOffset,
-				prefixText: flowText.slice(Math.max(0, startOffset - RANGE_CONTEXT_CHARS), startOffset),
-				suffixText: flowText.slice(endOffset, endOffset + RANGE_CONTEXT_CHARS),
-				x: event.clientX,
-				y: event.clientY
-			};
-		}
-		/**
-		* Claim a context menu only after resolving a valid DSH assistant selection.
-		*
-		* @param event - context-menu event to validate and optionally cancel.
-		* @param sourceSessionId - current source session captured with the selection.
-		* @param committedAssistantText - DSH Session projection used when a collapsed reasoning row anchors the range.
-		* @returns validated selection metadata, or null while leaving the native menu untouched.
-		*/
-		function claimSelectionContextMenu(event, sourceSessionId, committedAssistantText) {
-			const selection = readSelection(event, sourceSessionId, committedAssistantText);
-			if (selection === null) return null;
-			event.preventDefault();
-			return selection;
-		}
-		//#endregion
-		//#region lib/types/client/entries.js
-		/** Create an ordered client entry registry. */
-		function createCiteCiterEntryRegistry() {
-			const entries = [];
-			return {
-				register(entry) {
-					entries.push(entry);
-					return () => {
-						const index = entries.indexOf(entry);
-						if (index !== -1) entries.splice(index, 1);
-					};
-				},
-				list: () => [...entries],
-				claim(event, context) {
-					for (const entry of entries) {
-						const selection = entry.claim(event, context);
-						if (selection !== null) return {
-							entry,
-							selection
-						};
-					}
-					return null;
-				}
-			};
-		}
-		/**
-		* Built-in assistant answer entry: resolves a selection inside a committed
-		* `assistant-step` flow, including collapsed reasoning disclosure rows.
-		* @returns the entry contribution; register it on the shared registry.
-		*/
-		function createAssistantEntry() {
-			return {
-				id: ASSISTANT_ENTRY_ID,
-				claim(event, { readChat, sourceSessionId }) {
-					const anchor = dshAssistantAnchorForTarget(event.target);
-					if (anchor === null) return null;
-					const node = readChat(sourceSessionId)?.nodes.get(anchor.anchorKey);
-					return claimSelectionContextMenu(event, sourceSessionId, (node?.kind === "assistant-step" ? readAssistantAnswer(node.data) : null)?.text);
-				}
-			};
-		}
-		/** Classify the projection a tool-card pointer event asks for. */
-		function toolProjectionForTarget(target) {
-			if (target.closest("[data-terminal]") !== null) return "terminal";
-			if (target.closest("[data-diff]") !== null) return "diff";
-			return "result-text";
-		}
-		/**
-		* Built-in tool evidence entry: claims a whole-card tool result from its
-		* `call:<callId>` row and the enclosing `tool-call` chat flow. Terminal and
-		* diff cards select their dedicated projections; everything else is
-		* `result-text`.
-		* @returns the entry contribution; register it after the assistant entry.
-		*/
-		function createToolEvidenceEntry() {
-			return {
-				id: TOOL_ENTRY_ID,
-				claim(event, { readChat, sourceSessionId }) {
-					const target = event.target;
-					if (target === null || typeof target !== "object" || typeof target.closest !== "function") return null;
-					const closest = target.closest.bind(target);
-					const callRow = closest("[data-chat-call-id]");
-					if (callRow === null) return null;
-					const flowElement = closest("[data-chat-flow-kind]");
-					if (flowElement === null || flowElement.dataset.chatFlowKind !== "tool-call") return null;
-					const anchorKey = flowElement.dataset.chatAnchorKey;
-					if (anchorKey === void 0 || anchorKey === "") return null;
-					const node = readChat(sourceSessionId)?.nodes.get(anchorKey);
-					if (node === void 0 || node.kind !== "tool-call") return null;
-					const root = node.data.root;
-					if (root === null || typeof root !== "object") return null;
-					const settled = root;
-					const callId = callRow.dataset.chatCallId;
-					if (settled.kind !== "tool-result" || callId === void 0 || callId === "" || settled.callId !== callId) return null;
-					const projection = toolProjectionForTarget(target);
-					const text = projectToolEvidence(projection, settled.content ?? [], settled.meta);
-					if (text === null || text.trim() === "") return null;
-					event.preventDefault();
-					return {
-						entryId: TOOL_ENTRY_ID,
-						kind: "tool-result",
-						sourceSessionId,
-						callId,
-						projection,
-						displayText: text.trim(),
-						anchorKey,
-						x: event.clientX,
-						y: event.clientY
-					};
-				}
-			};
-		}
-		//#endregion
-		//#region lib/types/client/hotkeys.js
-		/** CiteCiter-owned accelerator parsing and listener installation. */
-		const MODIFIER_KEYS = /* @__PURE__ */ new Set([
-			"Control",
-			"Alt",
-			"Shift",
-			"Meta"
-		]);
-		/**
-		* Parse a `Modifier+Modifier+Key` accelerator string.
-		* @param accelerator - user-configured accelerator, e.g. `Control+Shift+C`.
-		* @returns normalized modifiers and the final key, or null when malformed.
-		*/
-		function parseAccelerator(accelerator) {
-			const parts = accelerator.split("+").map((part) => part.trim()).filter((part) => part !== "");
-			if (parts.length < 2) return null;
-			const key = parts.pop();
-			if (key === void 0 || key.length === 0) return null;
-			const modifiers = /* @__PURE__ */ new Set();
-			for (const part of parts) {
-				if (!MODIFIER_KEYS.has(part)) return null;
-				modifiers.add(part);
-			}
-			if (modifiers.size === 0) return null;
-			return {
-				modifiers,
-				key
-			};
-		}
-		/** Whether the event target is an editable surface that must keep every key. */
-		function targetIsEditable(target) {
-			if (target === null || typeof target !== "object") return false;
-			const element = target;
-			if (typeof element.closest !== "function") return false;
-			return element.closest("input, textarea, [contenteditable=\"true\"]") !== null;
-		}
-		/**
-		* Install a window-level keydown listener that reads the accelerator fresh on
-		* every keypress, so settings changes apply without re-registering.
-		* @param accelerator - current accelerator getter; an empty value disables the binding.
-		* @param handler - invoked once for each matching, non-editable, non-IME keypress.
-		* @returns disposer removing the listener.
-		*/
-		function installDynamicAccelerator(accelerator, handler) {
-			const onKeyDown = (event) => {
-				const configured = accelerator();
-				if (configured === void 0 || configured === "") return;
-				const parsed = parseAccelerator(configured);
-				if (parsed === null) return;
-				if (event.isComposing || event.keyCode === 229) return;
-				if (targetIsEditable(event.target)) return;
-				if (event.ctrlKey !== parsed.modifiers.has("Control")) return;
-				if (event.altKey !== parsed.modifiers.has("Alt")) return;
-				if (event.shiftKey !== parsed.modifiers.has("Shift")) return;
-				if (event.metaKey !== parsed.modifiers.has("Meta")) return;
-				if (event.key.toLocaleLowerCase() !== parsed.key.toLocaleLowerCase()) return;
-				event.preventDefault();
-				handler();
-			};
-			window.addEventListener("keydown", onKeyDown);
-			return () => window.removeEventListener("keydown", onKeyDown);
-		}
-		//#endregion
-		//#region lib/types/client/reader-controller.js
-		/** Reader panel controller: document library browsing, import, selection, and Topic creation. */
-		/** Initial Reader snapshot. */
-		function createInitialReaderSnapshot() {
-			return {
-				open: false,
-				documents: [],
-				documentsStatus: "idle",
-				active: null,
-				selection: null,
-				question: "",
-				creating: false,
-				importing: false,
-				loading: false,
-				error: null
-			};
-		}
-		function remoteValue(result) {
-			if (!result.ok) throw new Error(result.error.message);
-			return result.value;
-		}
-		function formatFromName(name) {
-			return /\.(md|markdown)$/iu.test(name) ? "markdown" : "text";
-		}
-		/** Bind the Reader store to the CiteCiter Remote and the companion Topic creator. */
-		function createReaderController(request, companion, store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(createInitialReaderSnapshot())) {
-			let disposed = false;
-			const lifecycle = new AbortController();
-			const operations = /* @__PURE__ */ new Set();
-			let documentGeneration = 0;
-			let refreshGeneration = 0;
-			const update = (mutator) => {
-				if (!disposed) store.update(mutator);
-			};
-			const fail = (error) => {
-				if (disposed) return;
-				update((draft) => {
-					draft.error = error instanceof Error ? error.message : String(error);
-					draft.creating = false;
-				});
-			};
-			const call = (command) => {
-				const operation = (async () => {
-					lifecycle.signal.throwIfAborted();
-					const result = await request(command, lifecycle.signal);
-					lifecycle.signal.throwIfAborted();
-					return remoteValue(result);
-				})().finally(() => operations.delete(operation));
-				operations.add(operation);
-				return operation;
-			};
-			const refresh = async () => {
-				if (disposed) return;
-				const generation = ++refreshGeneration;
-				update((draft) => {
-					draft.documentsStatus = "loading";
-					draft.error = null;
-				});
-				try {
-					const response = await call({ action: "documents" });
-					if (generation !== refreshGeneration) return;
-					if (response.kind !== "documents") throw new Error("CiteCiter 返回了错误的文档列表响应");
-					update((draft) => {
-						draft.documents = response.documents;
-						draft.documentsStatus = "ready";
-					});
-				} catch (error) {
-					if (!disposed && generation === refreshGeneration) update((draft) => {
-						draft.documentsStatus = "error";
-						draft.error = error instanceof Error ? error.message : String(error);
-					});
-				}
-			};
-			const setOpen = (open) => {
-				if (disposed || store.getSnapshot().open === open) return;
-				update((draft) => {
-					draft.open = open;
-					draft.error = null;
-				});
-				if (open) refresh();
-			};
-			const importFile = async (name, content) => {
-				if (disposed) return null;
-				try {
-					const title = name.trim() === "" ? "未命名文档" : name.trim();
-					const response = await call({
-						action: "document-import",
-						title,
-						format: formatFromName(name),
-						content
-					});
-					if (response.kind !== "document") throw new Error("CiteCiter 返回了错误的文档导入响应");
-					await refresh();
-					return response.document;
-				} catch (error) {
-					fail(error);
-					return null;
-				}
-			};
-			const loadPage = async (documentId, page, resetQuestion) => {
-				if (disposed) return;
-				const generation = ++documentGeneration;
-				update((draft) => {
-					if (resetQuestion) draft.active = null;
-					draft.selection = null;
-					if (resetQuestion) draft.question = "";
-					draft.error = null;
-					draft.loading = true;
-				});
-				try {
-					const response = await call({
-						action: "document-get",
-						documentId,
-						page
-					});
-					if (generation !== documentGeneration) return;
-					if (response.kind !== "document-content") throw new Error("CiteCiter 返回了错误的文档内容响应");
-					update((draft) => {
-						draft.active = response.document;
-					});
-				} catch (error) {
-					if (generation === documentGeneration) fail(error);
-				} finally {
-					if (generation === documentGeneration) update((draft) => {
-						draft.loading = false;
-					});
-				}
-			};
-			const openDocument = (documentId) => loadPage(documentId, 0, true);
-			const openPage = async (page) => {
-				const { active, loading } = store.getSnapshot();
-				if (active === null || loading || page < 0 || page >= active.pageCount) return;
-				await loadPage(active.documentId, page, false);
-			};
-			const importLocalFile = async (file) => {
-				if (disposed || store.getSnapshot().importing) return;
-				update((draft) => {
-					draft.importing = true;
-					draft.error = null;
-				});
-				try {
-					if (file.size > 8388608) throw new Error("文件过大；请导入不超过 2,000,000 个字符的文本");
-					const content = await file.text();
-					if (disposed) return;
-					if (content.length > 2e6) throw new Error("文档不能超过 2,000,000 个字符");
-					const imported = await importFile(file.name, content);
-					if (imported !== null) await openDocument(imported.documentId);
-				} catch (error) {
-					fail(error);
-				} finally {
-					update((draft) => {
-						draft.importing = false;
-					});
-				}
-			};
-			const createTopic = async () => {
-				if (disposed) return;
-				const snapshot = store.getSnapshot();
-				if (snapshot.creating || snapshot.loading) return;
-				const generation = documentGeneration;
-				const selection = snapshot.selection;
-				const question = snapshot.question.trim();
-				if (snapshot.active === null || selection === null) {
-					fail(/* @__PURE__ */ new Error("请先在文档中选择一段内容"));
-					return;
-				}
-				if (question === "") {
-					fail(/* @__PURE__ */ new Error("请输入要问 CiteCiter 的问题"));
-					return;
-				}
-				update((draft) => {
-					draft.creating = true;
-					draft.error = null;
-				});
-				try {
-					await companion.createFromDocument({
-						documentId: snapshot.active.documentId,
-						displayText: selection.displayText,
-						prefixText: selection.prefixText,
-						suffixText: selection.suffixText
-					}, question);
-					update((draft) => {
-						draft.creating = false;
-						if (generation === documentGeneration && draft.question === snapshot.question) {
-							draft.open = false;
-							draft.selection = null;
-							draft.question = "";
-						}
-					});
-				} catch (error) {
-					fail(error);
-				}
-			};
-			return {
-				getSnapshot: store.getSnapshot,
-				subscribe: store.subscribe,
-				setOpen,
-				refresh,
-				importFile,
-				importLocalFile,
-				openDocument,
-				openPage,
-				setSelection: (selection) => {
-					if (disposed) return;
-					update((draft) => {
-						draft.selection = selection;
-					});
-				},
-				setQuestion: (question) => {
-					if (disposed) return;
-					update((draft) => {
-						draft.question = question;
-					});
-				},
-				createTopic,
-				dispose: async () => {
-					if (disposed) return;
-					disposed = true;
-					lifecycle.abort(new DOMException("CiteCiter is shutting down", "AbortError"));
-					while (operations.size > 0) await Promise.allSettled([...operations]);
-				}
-			};
-		}
-		//#endregion
-		//#region lib/types/client/settings-document.js
-		const INITIAL = Object.freeze({
-			status: "idle",
-			opening: false,
-			error: null,
-			message: null
-		});
-		function memoryStore(initial) {
-			let state = initial;
-			const listeners = /* @__PURE__ */ new Set();
-			return {
-				getSnapshot: () => state,
-				subscribe: (listener) => {
-					listeners.add(listener);
-					return () => listeners.delete(listener);
-				},
-				update: (mutator) => {
-					const next = { ...state };
-					mutator(next);
-					state = next;
-					for (const listener of [...listeners]) listener();
-				},
-				set: (next) => {
-					state = next;
-					for (const listener of [...listeners]) listener();
-				}
-			};
-		}
-		/**
-		* Create the browser owner for the Host settings-document action.
-		* @param describe - mirrored Host settings-document availability.
-		* @param openDocument - Host operation that opens the authoritative file.
-		* @returns observable loading, availability, and action state.
-		*/
-		function createSettingsDocumentController(describe, openDocument) {
-			const store = memoryStore(INITIAL);
-			let unsubscribe = null;
-			let opening = null;
-			let disposed = false;
-			const operations = /* @__PURE__ */ new Set();
-			const track = (operation) => {
-				let tracked;
-				tracked = operation.finally(() => operations.delete(tracked));
-				operations.add(tracked);
-				return tracked;
-			};
-			const derive = () => {
-				const mirrored = describe.getSnapshot();
-				if (mirrored.view === void 0) {
-					store.update((state) => {
-						state.status = mirrored.status === "loading" ? "loading" : mirrored.status === "unavailable" ? "unavailable" : mirrored.error === null ? "idle" : "error";
-						state.error = mirrored.status === "unavailable" ? mirrored.error ?? "当前宿主不支持打开配置文件" : mirrored.error;
-						state.message = null;
-					});
-					return;
-				}
-				const hasDocument = mirrored.view.hasDocument;
-				store.update((state) => {
-					state.status = hasDocument ? "ready" : "missing";
-					state.error = hasDocument ? mirrored.error : "配置文件不存在";
-					state.message = null;
-				});
-			};
-			const load = async () => {
-				if (disposed) return;
-				unsubscribe ??= describe.subscribe(derive);
-				store.update((state) => {
-					state.status = "loading";
-					state.error = null;
-					state.message = null;
-				});
-				try {
-					await track(describe.ensure());
-					if (!disposed) derive();
-				} catch (error) {
-					if (!disposed) store.update((state) => {
-						state.status = "error";
-						state.error = error instanceof Error ? error.message : String(error);
-					});
-				}
-			};
-			return {
-				getSnapshot: store.getSnapshot,
-				subscribe: store.subscribe,
-				load,
-				open: async () => {
-					if (store.getSnapshot().status === "idle" || store.getSnapshot().status === "error") await load();
-					if (disposed || store.getSnapshot().status !== "ready" || store.getSnapshot().opening) return;
-					const abort = new AbortController();
-					opening = abort;
-					store.update((state) => {
-						state.opening = true;
-						state.error = null;
-						state.message = null;
-					});
-					try {
-						await track(openDocument(abort.signal));
-						if (!disposed) store.update((state) => {
-							state.opening = false;
-							state.message = "已打开配置文件";
-						});
-					} catch (error) {
-						if (!disposed) store.update((state) => {
-							state.opening = false;
-							state.error = error instanceof Error ? error.message : String(error);
-						});
-					} finally {
-						if (opening === abort) opening = null;
-					}
-				},
-				dispose: async () => {
-					if (disposed) return;
-					disposed = true;
-					opening?.abort();
-					opening = null;
-					unsubscribe?.();
-					unsubscribe = null;
-					while (operations.size > 0) await Promise.allSettled([...operations]);
-				}
-			};
-		}
-		//#endregion
-		//#region lib/types/client/types.js
-		/** Observable panel presentation and board-citation requests; gestures have their own controller. */
-		var CiteBus = class {
-			reportListenerError;
-			snapshot = {
-				panelOpen: false,
-				presentation: "side",
-				boardCitation: null
-			};
-			listeners = /* @__PURE__ */ new Set();
-			nextCitationId = 1;
-			/** @param reportListenerError - contains one failed browser subscriber. */
-			constructor(reportListenerError) {
-				this.reportListenerError = reportListenerError;
-			}
-			/** @returns stable overlay snapshot. */
-			getSnapshot = () => this.snapshot;
-			/** @param listener - observer. @returns disposer. */
-			subscribe = (listener) => {
-				this.listeners.add(listener);
-				return () => {
-					this.listeners.delete(listener);
-				};
-			};
-			/** Open or close the independent companion dock. */
-			setPanelOpen(panelOpen) {
-				if (this.snapshot.panelOpen === panelOpen) return;
-				this.snapshot = {
-					...this.snapshot,
-					panelOpen
-				};
-				this.notify();
-			}
-			/** Change only the current workspace presentation, keeping its Topic and drafts. */
-			setPresentation(presentation) {
-				if (this.snapshot.presentation === presentation) return;
-				this.snapshot = {
-					...this.snapshot,
-					presentation
-				};
-				this.notify();
-			}
-			/**
-			* Queue one user-requested board reference for the matching Topic composer.
-			* @param topicSessionId - Topic that owns the referenced board.
-			* @param prompt - composer text derived from the selected board element.
-			*/
-			requestBoardCitation(topicSessionId, prompt) {
-				this.snapshot = {
-					...this.snapshot,
-					boardCitation: {
-						id: this.nextCitationId++,
-						topicSessionId,
-						prompt
-					}
-				};
-				this.notify();
-			}
-			/**
-			* Clear the citation only when the matching consumer handled it.
-			* @param id - monotonically assigned citation request identity.
-			*/
-			clearBoardCitation(id) {
-				if (this.snapshot.boardCitation?.id !== id) return;
-				this.snapshot = {
-					...this.snapshot,
-					boardCitation: null
-				};
-				this.notify();
-			}
-			notify() {
-				for (const listener of [...this.listeners]) try {
-					listener();
-				} catch (error) {
-					this.reportListenerError(error);
-				}
-			}
-		};
-		//#endregion
-		//#region lib/types/client/citer-session-face.js
-		/** Own the published SessionFace contract for Citer navigation. Sending, uploads and inbox mutations remain native DSH operations. */
-		var CiterSessionFace = class {
-			ctx;
-			sessionId;
-			store;
-			pending = /* @__PURE__ */ new Map();
-			lifetime = new AbortController();
-			emptyProjection = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(void 0);
-			projections = { faceOf: (_key) => this.emptyProjection };
-			observers = 0;
-			timer;
-			refreshing;
-			constructor(ctx, sessionId) {
-				this.ctx = ctx;
-				this.sessionId = sessionId;
-				this.store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({
-					sessionId,
-					queue: [],
-					pendingSubmissions: [],
-					running: false,
-					subagent: null,
-					removed: false,
-					openState: "cold",
-					openError: null,
-					hasMore: false,
-					loadingOlder: false,
-					promptError: null,
-					blank: true,
-					lastAgentError: null,
-					promptAttempted: false,
-					awaitingFirstTurn: false
-				});
-			}
-			getSnapshot = () => this.store.getSnapshot();
-			subscribe = (listener) => {
-				this.observers++;
-				const release = this.store.subscribe(listener);
-				this.schedule(0);
-				return () => {
-					release();
-					this.observers--;
-					this.schedule();
-				};
-			};
-			/** Establish ownership and obtain a real baseline before accepting composer work. */
-			async ready() {
-				await this.refresh();
-				this.lifetime.signal.throwIfAborted();
-			}
-			patch(patch) {
-				this.store.set({
-					...this.getSnapshot(),
-					...patch
-				});
-			}
-			retire(id, outcome) {
-				const input = this.pending.get(id);
-				if (input === void 0) return;
-				this.pending.delete(id);
-				this.patch({ pendingSubmissions: this.getSnapshot().pendingSubmissions.filter((row) => row.requestId !== id) });
-				input.onRetire?.(outcome);
-				this.schedule();
-			}
-			beginSubmission(input) {
-				this.lifetime.signal.throwIfAborted();
-				const requestId = crypto.randomUUID();
-				this.pending.set(requestId, input);
-				const current = this.getSnapshot();
-				this.patch({
-					promptAttempted: true,
-					pendingSubmissions: [...current.pendingSubmissions, {
-						requestId,
-						placement: current.running ? input.mode === "steer" ? "steering" : "queued" : "transcript",
-						time: Date.now(),
-						text: input.text,
-						attachments: input.attachments
-					}]
-				});
-				this.schedule(0);
-				return {
-					requestId,
-					abandon: () => this.retire(requestId, { reason: "failed" })
-				};
-			}
-			prompt = async (content, mode, signal, requestId) => {
-				const id = requestId ?? crypto.randomUUID();
-				this.patch({
-					promptError: null,
-					lastAgentError: null,
-					promptAttempted: true
-				});
-				try {
-					const result = await this.ctx.remote.session.prompt({
-						sessionId: this.sessionId,
-						requestId: id,
-						content,
-						mode,
-						clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-					}, AbortSignal.any([this.lifetime.signal, ...signal === void 0 ? [] : [signal]]));
-					if (!result.ok) {
-						this.retire(id, { reason: "failed" });
-						this.patch({ promptError: {
-							op: "send",
-							error: result.error
-						} });
-					} else {
-						this.patch({ blank: false });
-						this.schedule(0);
-					}
-					return result;
-				} catch (error) {
-					this.retire(id, { reason: "failed" });
-					throw error;
-				}
-			};
-			/** Generic Citer attachment read; the installed SessionFace verb only supports images. */
-			readCiterAttachment = async (attachmentId) => {
-				const result = await this.ctx.remote.citeciter.request({
-					action: "native-attachment",
-					topicSessionId: this.sessionId,
-					attachmentId
-				}, this.lifetime.signal);
-				if (!result.ok) return result;
-				if (result.value.kind !== "native-attachment") throw new Error("Citer 附件响应类型不匹配");
-				return {
-					ok: true,
-					value: {
-						attachment: result.value.attachment,
-						data: Uint8Array.from(atob(result.value.data), (char) => char.charCodeAt(0))
-					}
-				};
-			};
-			readAttachment = async (attachmentId) => {
-				const result = await this.readCiterAttachment(attachmentId);
-				if (!result.ok) return result;
-				if (!("mediaType" in result.value.attachment)) throw new Error("此附件是普通文件，请使用文件下载入口");
-				return {
-					ok: true,
-					value: {
-						attachment: result.value.attachment,
-						data: result.value.data
-					}
-				};
-			};
-			updateQueue = async (itemId, action) => {
-				const result = await this.ctx.remote.session.updateQueue({
-					sessionId: this.sessionId,
-					itemId,
-					action
-				});
-				this.schedule(0);
-				return result;
-			};
-			cancel = async () => {
-				const result = await this.ctx.remote.session.cancel({ sessionId: this.sessionId });
-				if (!result.ok) this.patch({ promptError: {
-					op: "stop",
-					error: result.error
-				} });
-				this.schedule(0);
-				return result;
-			};
-			rename = async (title) => {
-				const result = await this.ctx.remote.session.rename({
-					sessionId: this.sessionId,
-					title
-				});
-				return result.ok ? {
-					ok: true,
-					value: {
-						title: result.value.title,
-						seq: SessionSeq(result.value.seq)
-					}
-				} : result;
-			};
-			command = async (line) => {
-				const result = await this.ctx.remote.commands.execute(this.sessionId, line, []);
-				return result.ok ? {
-					ok: true,
-					value: { matched: result.value !== void 0 }
-				} : result;
-			};
-			loadOlder = async () => {};
-			loadThrough = async () => {};
-			schedule(delay = 350) {
-				clearTimeout(this.timer);
-				this.timer = void 0;
-				if (this.lifetime.signal.aborted || this.observers === 0 && this.pending.size === 0) return;
-				this.timer = setTimeout(() => {
-					this.timer = void 0;
-					this.refresh().catch((error) => {
-						if (!this.lifetime.signal.aborted) this.patch({
-							openState: "error",
-							lastAgentError: String(error)
-						});
-					}).finally(() => this.schedule());
-				}, delay);
-			}
-			refresh() {
-				if (this.refreshing !== void 0) return this.refreshing;
-				const operation = (async () => {
-					const result = await this.ctx.remote.citeciter.request({
-						action: "native-state",
-						topicSessionId: this.sessionId,
-						requestIds: [...this.pending.keys()].slice(0, 32)
-					}, this.lifetime.signal);
-					if (!result.ok) throw new Error(result.error.message);
-					if (result.value.kind !== "native-state") throw new Error("Citer 会话状态响应类型不匹配");
-					if (this.lifetime.signal.aborted) return;
-					const state = result.value.state;
-					this.patch({
-						openState: "open",
-						openError: null,
-						running: state.running,
-						blank: state.blank,
-						lastAgentError: state.error,
-						queue: state.queue.map((row) => ({
-							id: row.id,
-							messageId: row.id,
-							placement: row.placement,
-							...row.rpcId === void 0 ? {} : { rpcId: row.rpcId },
-							text: row.text || null,
-							preview: row.text || "附件",
-							content: [{
-								type: "text",
-								text: row.text
-							}, ...row.attachments]
-						}))
-					});
-					for (const receipt of state.receipts) this.retire(receipt.requestId, {
-						reason: "observed",
-						attachments: receipt.attachments.map((block) => block.attachment)
-					});
-				})();
-				this.refreshing = operation;
-				operation.finally(() => {
-					if (this.refreshing === operation) this.refreshing = void 0;
-				}).catch(() => {});
-				return operation;
-			}
-			/** Stop polling and settle each owned submission exactly once when its plugin closes. */
-			dispose() {
-				this.lifetime.abort();
-				clearTimeout(this.timer);
-				for (const id of this.pending.keys()) this.retire(id, { reason: "failed" });
-			}
-		};
-		//#endregion
-		//#region lib/types/client/native-composer.js
-		/** Adapt the installed conversation service's published composer methods; never reach its private input machine. */
-		function createNativeComposer(ctx) {
-			const conversation = ctx.conversation;
-			const owned = /* @__PURE__ */ new Set();
-			const sessions = /* @__PURE__ */ new Map();
-			let disposed = false;
-			ctx.effect(() => () => {
-				disposed = true;
-				for (const session of sessions.values()) session.dispose();
-				sessions.clear();
-				for (const id of owned) conversation.releaseDraftAttachment(id);
-				owned.clear();
-			}, "citeciter: native attachment drafts");
-			if (typeof conversation.sendSession !== "function" || typeof conversation.createDrafts !== "function") throw new Error("当前 DSH 不提供 Citer 所需的原生附件发送接口");
-			const face = (id) => {
-				if (disposed) throw new Error("Citer 已关闭");
-				let session = sessions.get(id);
-				if (session === void 0) {
-					session = new CiterSessionFace(ctx, id);
-					sessions.set(id, session);
-				}
-				return session;
-			};
-			const binding = async (id) => {
-				const session = face(id);
-				await session.ready();
-				return { session };
-			};
-			return {
-				uploads: conversation.fileUploads,
-				retry: (id, attachment) => conversation.retryFileUpload(id, attachment),
-				watch: (id, listener) => {
-					const session = face(id);
-					const update = () => listener(session.getSnapshot());
-					const unsubscribe = session.subscribe(update);
-					update();
-					return unsubscribe;
-				},
-				queue: async (id, item, action) => {
-					const result = await (await binding(id)).session.updateQueue(item, action);
-					if (!result.ok && result.error.code !== "session/queue-item-not-found") throw new Error(result.error.message);
-				},
-				attachment: async (sessionId, id) => {
-					const result = await (await binding(sessionId)).session.readCiterAttachment(id);
-					if (!result.ok) throw new Error(result.error.message);
-					return new Blob([new Uint8Array(result.value.data)], { type: "mediaType" in result.value.attachment ? result.value.attachment.mediaType : "application/octet-stream" });
-				},
-				add: async (id, files) => {
-					await binding(id);
-					if (disposed) throw new Error("Citer 已关闭，未创建附件");
-					const drafts = conversation.createDrafts(id, files);
-					for (const draft of drafts) owned.add(draft.id);
-					return drafts;
-				},
-				remove: (id) => {
-					conversation.releaseDraftAttachment(id);
-					owned.delete(id);
-				},
-				send: async (id, text, attachments, mode) => {
-					const target = await binding(id);
-					const outcome = await conversation.sendSession(target.session, text, attachments, mode);
-					if (outcome.kind === "error") {
-						const failure = target.session.getSnapshot().promptError?.error;
-						const details = failure?.details;
-						const attachmentReason = details !== null && typeof details === "object" && "reason" in details ? details.reason : void 0;
-						const reason = failure?.code === "session/attachment-invalid" && (attachmentReason === "INVALID_IMAGE" || attachmentReason === "IMAGE_TYPE_MISMATCH") ? "附件格式无效或内容损坏，请移除或更换附件后重试" : failure?.message ?? outcome.text ?? "DSH 未接受此次发送";
-						throw new Error(`${reason}；草稿已保留`);
-					}
-					for (const id of attachments) owned.delete(id);
-				}
-			};
-		}
-		//#endregion
-		//#region lib/types/client/submission-preference.js
-		/** Read the conversation-owned busy-Enter preference through the public settings mirror. The bound scope is disposed with ctx; this adapter never writes Host settings. */
-		function bindSubmissionPreference(ctx) {
-			const scope = ctx.settingsScope.bind({ namespace: "ui-conversation" });
-			return {
-				getSnapshot: () => scope.getSnapshot().value?.busyEnter ?? "queue",
-				subscribe: (listener) => scope.subscribe(listener)
-			};
-		}
-		//#endregion
-		//#region lib/types/client/view-actions.js
-		/**
-		* Remove lifecycle and subscription methods from a plain controller's view props.
-		* @param controller - Client-owned controller with arrow-function callbacks.
-		* @returns callbacks separate from the observable supplied to inject.hooks.
-		*/
-		function viewActions(controller) {
-			const { getSnapshot, subscribe, dispose, ...actions } = controller;
-			return actions;
+		//#region lib/types/client/components/BoardCaptureWorker.js
+		/** Root-owned render workers survive panel close, Topic changes and source navigation. */
+		function BoardCaptureWorker({ useCapture, reply }) {
+			const jobs = useCapture((value) => value.jobs);
+			return (0, react_jsx_runtime.jsx)(react_jsx_runtime.Fragment, { children: jobs.map((job) => (0, react_jsx_runtime.jsx)(BoardCaptureSurface, {
+				id: job.id,
+				sessionId: job.sessionId,
+				board: job.board,
+				reply
+			}, job.id)) });
 		}
 		//#endregion
 		//#region lib/types/client/index.js
@@ -42457,13 +43367,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"remote.settings",
 			"remote.session",
 			"remote.commands",
-			"settingsScope",
 			"conversation"
 		];
-		function decodeSettings(section) {
-			const parsed = citeCiterSettingsSchema.safeParse(section);
-			return parsed.success ? parsed.data : void 0;
-		}
 		/** Register one root-scoped companion without entering DSH's Session list. */
 		async function apply(ctx) {
 			const unmountRemote = await ctx.remote.$mount(TYPERT_REMOTE);
@@ -42477,11 +43382,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					conversation.activate("chat");
 					return conversation.target("chat").getSnapshot();
 				};
-				const settingsBinder = remoteCtx.settingsScope;
-				const settings = settingsBinder.bind({
-					namespace: CITECITER_SETTINGS_NAMESPACE,
-					decode: decodeSettings
-				});
+				const settingsBinder = hostSettings(remoteCtx);
+				const interactions = hostInteractions(remoteCtx);
+				const settings = settingsBinder.get(CITECITER_SETTINGS_NAMESPACE);
 				const settingsDocument = createSettingsDocumentController(settingsBinder.describe(), async (signal) => {
 					const response = await remoteCtx.remote.settings.openSettingsDocument(signal);
 					if (!response.ok) throw new Error(response.error.message);
@@ -42498,6 +43401,35 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					} : null;
 				}, (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(INITIAL_UPDATE_SNAPSHOT), void 0, (error) => remoteCtx.logger.warn("CiteCiter update check failed", error));
 				const nativeComposer = createNativeComposer(remoteCtx);
+				const drafts = createDraftController(async (request) => {
+					const response = await remoteCtx.remote.citeciter.request(request);
+					if (!response.ok) throw new Error(response.error.message);
+					return response.value;
+				}, nativeComposer);
+				remoteCtx.effect(() => () => drafts.dispose(), "citeciter: durable drafts");
+				remoteCtx.effect(() => {
+					const beforeUnload = (event) => {
+						if (!drafts.hasUnsavedChanges()) return;
+						drafts.flushAll();
+						event.preventDefault();
+						event.returnValue = "";
+					};
+					const visibility = () => {
+						if (document.visibilityState === "hidden") drafts.flushAll();
+					};
+					window.addEventListener("beforeunload", beforeUnload);
+					document.addEventListener("visibilitychange", visibility);
+					return () => {
+						window.removeEventListener("beforeunload", beforeUnload);
+						document.removeEventListener("visibilitychange", visibility);
+					};
+				}, "citeciter: draft navigation guard");
+				const capture = createBoardCaptureController(async (request, signal) => {
+					const response = await remoteCtx.remote.citeciter.request(request, signal);
+					if (!response.ok) throw new Error(response.error.message);
+					return response.value;
+				}, (error) => remoteCtx.logger.warn("CiteCiter board capture failed", error));
+				remoteCtx.effect(() => () => capture.dispose(), "citeciter: background board capture");
 				const submissionPreference = bindSubmissionPreference(remoteCtx);
 				const bus = new CiteBus((error) => remoteCtx.logger.warn("CiteCiter browser listener failed", error));
 				const openPanel = () => {
@@ -42526,13 +43458,18 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					reportedParseErrors.add(messageId);
 					remoteCtx.logger.warn(`CiteCiter ignored malformed first-answer follow-up questions in ${messageId}`);
 				};
+				const currentSession = remoteCtx.uiSession.adapter.current;
+				const readSource = () => {
+					const key = currentSession.getSnapshot().key;
+					return key === void 0 ? null : SessionId(key);
+				};
 				const syncSource = () => {
-					const source = sessions.list.getSnapshot().current ?? null;
+					const source = readSource();
 					if (companion.getSnapshot().sourceSessionId !== source) actions.cancel();
 					companion.setSource(source);
 				};
 				syncSource();
-				const unsubscribeSessions = sessions.list.subscribe(syncSource);
+				const unsubscribeSessions = currentSession.subscribe(syncSource);
 				remoteCtx.effect(() => {
 					const entries = createCiteCiterEntryRegistry();
 					const disposeAssistantEntry = remoteCtx.effect(() => entries.register(createAssistantEntry()), "citeciter: assistant selection entry");
@@ -42540,8 +43477,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					const disposeGesture = installWheelGesture(actions, (event) => {
 						const owned = surfaces.read(event.target);
 						if (owned !== null) return owned;
-						const sourceSessionId = sessions.list.getSnapshot().current;
-						if (sourceSessionId === void 0) return null;
+						const sourceSessionId = readSource();
+						if (sourceSessionId === null) return null;
 						const claim = entries.claim(event, {
 							readChat,
 							sourceSessionId
@@ -42567,6 +43504,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					requestBoardCitation: bus.requestBoardCitation.bind(bus),
 					clearBoardCitation: bus.clearBoardCitation.bind(bus)
 				};
+				remoteCtx.slots.inject("shell.overlay", () => remoteCtx.slots.register({
+					name: "shell.overlay",
+					id: "citeciter.board-capture",
+					inject: () => ({
+						reply: capture.reply,
+						hooks: { capture }
+					})
+				}, BoardCaptureWorker));
 				remoteCtx.slots.inject("shell.overlay", () => remoteCtx.slots.register({
 					name: "shell.overlay",
 					id: "citeciter.wheel",
@@ -42639,16 +43584,18 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					id: "citeciter.panel",
 					inject: () => ({
 						nativeComposer,
+						drafts: viewActions(drafts),
 						bus: busActions,
 						companion: companionActions,
 						closePanel,
 						openReader: () => reader.setOpen(true),
 						reportParseError,
 						hooks: {
+							drafts,
 							companion,
 							overlay: bus,
 							submission: submissionPreference,
-							interactions: remoteCtx.uiSession.pendingInteractions
+							interactions
 						}
 					})
 				}, CitePanel));

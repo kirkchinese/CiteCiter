@@ -8,9 +8,14 @@ const NEXT_QUESTION_MARKERS = [NEXT_QUESTIONS_OPEN, NEXT_QUESTIONS_CLOSE];
  * prose. System Tutor and Citation Context travel through their own layers.
  */
 export function normalizeQuestion(rawQuestion) {
-    const question = rawQuestion.trim();
+    const question = normalizeDraftQuestion(rawQuestion);
     if (question === '')
         throw new Error('question cannot be empty');
+    return question;
+}
+/** Creation may prepare an empty composer; length limits apply before any request. */
+export function normalizeDraftQuestion(rawQuestion) {
+    const question = rawQuestion.trim();
     if (question.length > MAX_QUESTION_CHARS) {
         throw new Error(`question exceeds ${MAX_QUESTION_CHARS} characters`);
     }

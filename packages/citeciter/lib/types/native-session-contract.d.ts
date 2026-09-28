@@ -101,6 +101,7 @@ export declare const nativeAttachmentSchema: z.ZodDiscriminatedUnion<[z.ZodObjec
 }, z.core.$strict>], "type">;
 /** Read-only control projection. The Agent inbox remains the only authoritative queue. */
 export declare const nativeStateSchema: z.ZodObject<{
+    modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
     running: z.ZodBoolean;
     blank: z.ZodBoolean;
     error: z.ZodNullable<z.ZodString>;

@@ -361,8 +361,8 @@ export declare class TopicRuntime {
     private globTool;
     private learningCardsTool;
     private blackboardApplyTool;
-    private readDocumentTool;
-    private searchDocumentTool;
+    /** Keep storage and submitted-reference authorization outside the shared document tool contract. */
+    private registerDocumentTools;
     /** Share source-read instructions and contract across native and legacy Topic runtimes. */
     private registerSourceTool;
     private ensureHandle;
@@ -379,6 +379,8 @@ export declare class TopicRuntime {
     private stop;
     private rename;
     private archive;
+    /** Restore only admissions newer than the latest explicit archive; serialize with rename/delete/archive. */
+    private restoreSubmittedTopic;
     private delete;
     private deleteAdmitted;
     /** Observe the retired Session after its Agent has released write ownership. */

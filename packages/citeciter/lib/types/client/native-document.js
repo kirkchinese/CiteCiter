@@ -2,6 +2,8 @@ import { parseFileAddress } from '@deepseek-ai/dsh-util-workspace-path';
 import { SessionId } from '@deepseek-ai/dsh-session/types';
 /** Decode a complete Host-owned preview buffer. Reject binary, partial and oversized imports. */
 export function decodeNativeText(content) {
+    if (content.kind !== 'text' && content.kind !== 'bytes')
+        throw new Error('此预览没有文本数据，请切换到文本文件的学习查看方式');
     if (content.kind === 'text' && !content.eof)
         throw new Error('请等待原生预览读取完整文件后再学习');
     if (content.kind === 'bytes' && content.data.byteLength > 8 * 1024 * 1024)

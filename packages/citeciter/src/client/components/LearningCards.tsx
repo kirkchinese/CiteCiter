@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { learningCardsMarkdown, type LearningCard, type LearningCardsProjection } from '../../learning.ts'
 import { RichAnswer } from './RichAnswer.tsx'
+import { LearningExample } from './LearningExample.tsx'
 import css from './LearningWorkspace.module.css'
 
 function Card({ card, recall, index }: { readonly card: LearningCard, readonly recall: boolean, readonly index: number }) {
@@ -13,7 +14,7 @@ function Card({ card, recall, index }: { readonly card: LearningCard, readonly r
       {recall && <div className={css.recallQuestion}><strong>先试着用自己的话回答</strong><RichAnswer text={card.question} streaming={false} /></div>}
       {showAnswer ? <>
         <RichAnswer text={card.summary} streaming={false} />
-        <div className={css.example}><strong>用一个例子记住</strong><RichAnswer text={card.example} streaming={false} /></div>
+        <div className={css.example}><strong>用一个例子记住</strong><LearningExample example={card.example} /></div>
         {recall && <div className={css.reference}><strong>参考答案</strong><RichAnswer text={card.answer} streaming={false} /></div>}
       </> : <button type="button" className={css.action} onClick={() => setRevealed(true)}>展开结论与参考答案</button>}
     </article>

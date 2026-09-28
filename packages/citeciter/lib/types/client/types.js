@@ -1,7 +1,7 @@
 /** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export class CiteBus {
     reportListenerError;
-    snapshot = { panelOpen: false, presentation: 'side', boardCitation: null };
+    snapshot = { panelOpen: false, activation: 0, presentation: 'side', boardCitation: null };
     listeners = new Set();
     nextCitationId = 1;
     /** @param reportListenerError - contains one failed browser subscriber. */
@@ -19,9 +19,9 @@ export class CiteBus {
     };
     /** Open or close the independent companion dock. */
     setPanelOpen(panelOpen) {
-        if (this.snapshot.panelOpen === panelOpen)
+        if (!panelOpen && !this.snapshot.panelOpen)
             return;
-        this.snapshot = { ...this.snapshot, panelOpen };
+        this.snapshot = { ...this.snapshot, panelOpen, activation: this.snapshot.activation + (panelOpen ? 1 : 0) };
         this.notify();
     }
     /** Change only the current workspace presentation, keeping its Topic and drafts. */

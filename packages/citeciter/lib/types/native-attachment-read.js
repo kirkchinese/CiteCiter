@@ -1,10 +1,9 @@
 import { assembleAssistantStream } from '@deepseek-ai/dsh-llm';
+import { toolResultRecord } from "./tool-events.js";
 function* attachments(content) {
     for (const block of content) {
         if (block.type === 'image' || block.type === 'file')
             yield block;
-        else if (block.type === 'tool-result')
-            yield* attachments(block.content);
     }
 }
 /**
@@ -23,7 +22,7 @@ export async function readNativeAttachment(ctx, session, id, signal) {
         const content = event.type === 'user/message' ? event.data.content
             : event.type === 'assistant/message' ? event.data.message.content
                 : event.type === 'assistant/attempt' ? assembleAssistantStream(event.data.stream).blocks()
-                    : event.type === 'tool/result' ? event.data.message.content : [];
+                    : toolResultRecord(event)?.content ?? [];
         for (const block of attachments(content))
             if (String(block.attachment.attachmentId) === id) {
                 if (block.type === 'image') {

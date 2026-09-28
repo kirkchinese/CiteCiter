@@ -7,7 +7,7 @@ on:
 
 jobs:
   static-checks:
-    name: ${{ matrix.os }} / Node ${{ matrix.node }} / DSH 0.1.5-rc.1
+    name: ${{ matrix.os }} / Node ${{ matrix.node }} / DSH 0.1.7-rc.2
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -28,6 +28,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm typecheck:desktop
       - run: pnpm build
       - run: pnpm --dir packages/citeciter pack --pack-destination "${{ github.workspace }}/.refs/artifacts"
       - run: git diff --check

@@ -18,23 +18,31 @@ export function ChoicePopover({ anchor, label, onClose, children }: {
       const button = anchor.current?.getBoundingClientRect()
       const menu = surface.current
       if (button === undefined || menu === null) return
-      const available = Math.max(100, window.innerHeight - 16)
-      const height = Math.min(menu.scrollHeight, available, 420)
+      const available = Math.max(0, window.innerHeight - 16)
+      const maxHeight = Math.min(available, 420)
+      const height = Math.min(menu.scrollHeight + menu.offsetHeight - menu.clientHeight, maxHeight)
       const top = button.top >= height + 16 ? button.top - height - 8 : Math.min(button.bottom + 8, window.innerHeight - height - 8)
-      setPosition({ left: Math.max(8, Math.min(button.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8)), top: Math.max(8, top), maxHeight: available })
+      setPosition({ left: Math.max(8, Math.min(button.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8)), top: Math.max(8, top), maxHeight })
     }
     place()
     const observer = new ResizeObserver(place)
     if (surface.current !== null) observer.observe(surface.current)
     window.addEventListener('resize', place)
     return () => { observer.disconnect(); window.removeEventListener('resize', place) }
-  }, [anchor])
+  }, [anchor, children])
+  useLayoutEffect(() => {
+    const menu = surface.current
+    // A submenu can remove the focused item. Keep keyboard navigation inside
+    // the replacement surface, without resetting focus on ordinary rerenders.
+    if (menu !== null && !menu.contains(document.activeElement)) {
+      menu.querySelector<HTMLElement>('[role^="menuitem"]:not([disabled])')?.focus()
+    }
+  }, [children])
   useEffect(() => {
     const dismiss = (event: PointerEvent) => {
       if (event.target instanceof Node && !surface.current?.contains(event.target) && !anchor.current?.contains(event.target)) close.current()
     }
     document.addEventListener('pointerdown', dismiss, true)
-    surface.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus()
     return () => document.removeEventListener('pointerdown', dismiss, true)
   }, [anchor])
   return <OverlayPortal><div ref={surface} className={css.menu} role="menu" aria-label={label} style={position} onKeyDown={event => {

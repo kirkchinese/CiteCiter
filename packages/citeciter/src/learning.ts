@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { TopicMessage } from './topic.ts'
+import { learningExampleSchema, learningExampleMarkdown } from './learning-example.ts'
 
 /** User-selected teaching stages; these indicate intent, never measured mastery. */
 export const LEARNING_STAGES = [
@@ -28,16 +29,33 @@ export function latestLearningStage(messages: readonly TopicMessage[]): Learning
   return null
 }
 
+/** The validation schema and model-visible native tool must expose the same field contract. */
+export const LEARNING_CARD_FIELD_DESCRIPTIONS = {
+  title: 'Non-empty title, at most 100 characters.',
+  summary: 'Markdown summary, at most 2000 characters. Separate independent points with lists or paragraphs; include conditions and corrections.',
+  question: 'Non-empty self-test question, at most 500 characters.',
+  answer: 'Markdown reference answer, at most 2000 characters, consistent with the summary and example. Fence multiline code.',
+} as const
+
 export const learningCardSchema = z.object({
-  title: z.string().trim().min(1).max(100),
-  summary: z.string().trim().min(1).max(2000),
-  example: z.string().trim().min(1).max(1500),
-  question: z.string().trim().min(1).max(500),
-  answer: z.string().trim().min(1).max(2000),
+  title: z.string().trim().min(1).max(100).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.title),
+  summary: z.string().trim().min(1).max(2000).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.summary),
+  example: learningExampleSchema,
+  question: z.string().trim().min(1).max(500).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.question),
+  answer: z.string().trim().min(1).max(2000).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.answer),
 }).strict()
 
 export const learningCardsInputSchema = z.object({ cards: z.array(learningCardSchema).min(1).max(8) }).strict()
 export type LearningCard = z.infer<typeof learningCardSchema>
+
+// Legacy strings are accepted only at the log reader, never for new tool calls.
+// Their original Markdown presentation is preserved without rewriting old records.
+const persistedCardsInputSchema = z.object({ cards: z.array(learningCardSchema.extend({
+  example: z.union([
+    learningExampleSchema,
+    z.string().trim().min(1).max(1500).transform(content => ({ kind: 'text' as const, content })),
+  ]),
+})).min(1).max(8) }).strict()
 
 export interface LearningCardsProjection {
   readonly cards: readonly LearningCard[]
@@ -56,7 +74,7 @@ export function projectLearningCards(messages: readonly TopicMessage[]): Learnin
   for (const message of messages) {
     if (message.role !== 'tool' || message.name !== 'learning_cards' || message.running || message.isError || message.result === null) continue
     try {
-      const input = learningCardsInputSchema.parse(JSON.parse(message.arguments))
+      const input = persistedCardsInputSchema.parse(JSON.parse(message.arguments))
       const output = z.object({ saved: z.number().int().min(1).max(8) }).strict().parse(JSON.parse(message.result))
       if (output.saved !== input.cards.length) throw new Error('card count does not match the committed result')
       result = { ...result, cards: input.cards, messageId: message.id }
@@ -70,7 +88,7 @@ export function projectLearningCards(messages: readonly TopicMessage[]): Learnin
 
 /** Export the visible set with its Topic provenance; content is plain Markdown, never executed. */
 export function learningCardsMarkdown(cards: readonly LearningCard[], topicTitle: string, topicId: string, source: string): string {
-  return `# ${topicTitle}\n\nTopic: ${topicId}\n\n来源：${source}\n\n${cards.map((card, index) => `## ${index + 1}. ${card.title}\n\n${card.summary}\n\n**例子**\n\n${card.example}\n\n**可选自测**\n\n${card.question}\n\n**参考答案**\n\n${card.answer}`).join('\n\n---\n\n')}\n`
+  return `# ${topicTitle}\n\nTopic: ${topicId}\n\n来源：${source}\n\n${cards.map((card, index) => `## ${index + 1}. ${card.title}\n\n${card.summary}\n\n**例子**\n\n${learningExampleMarkdown(card.example)}\n\n**可选自测**\n\n${card.question}\n\n**参考答案**\n\n${card.answer}`).join('\n\n---\n\n')}\n`
 }
 
 /** Shared teaching contract appended to every scenario's logged tutor section. */
@@ -78,4 +96,4 @@ export const LEARNING_PROMPT = `The optional learning route is 底层逻辑 → 
 
 Use learning_cards only when the user asks to summarize or revise learning cards. Before composing cards in this same turn, check the Topic's conclusions and existing board for incorrect definitions, missing conditions, faulty derivations or arithmetic, and contradictions. Earlier assistant output is not evidence. Read available sources when needed; distinguish source evidence from general knowledge. Correct errors before saving, and explicitly label unresolved claims as 未核实 (unverified) or omit them. Check every card's summary, example, question and reference answer for consistency: a correction in the summary must also reach its example and answer. Briefly report corrections and unresolved points; do not present this self-check as independent verification.
 
-Each successful learning_cards call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Preserve real available source locators inside summaries; do not invent offsets, sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`
+Each successful learning_cards call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Respect the user's requested count: one card means one card, not one per stage. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Choose example.kind=text for Markdown prose or example.kind=code for raw source code; code includes its language and preserves indentation without Markdown fences. Put explanations in the summary or answer, not around a code example. Preserve real available source locators inside summaries; do not invent offsets, sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`

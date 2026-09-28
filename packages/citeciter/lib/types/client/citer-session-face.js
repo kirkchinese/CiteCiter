@@ -12,6 +12,9 @@ export class CiterSessionFace {
     observers = 0;
     timer;
     refreshing;
+    nextRequestId;
+    /** Use the draft's durable identity for this explicit send, including retries after restart. */
+    prepareSubmission(requestId) { this.nextRequestId = requestId; }
     constructor(ctx, sessionId) {
         this.ctx = ctx;
         this.sessionId = sessionId;
@@ -42,7 +45,8 @@ export class CiterSessionFace {
     }
     beginSubmission(input) {
         this.lifetime.signal.throwIfAborted();
-        const requestId = crypto.randomUUID();
+        const requestId = this.nextRequestId ?? crypto.randomUUID();
+        this.nextRequestId = undefined;
         this.pending.set(requestId, input);
         const current = this.getSnapshot();
         this.patch({ promptAttempted: true, pendingSubmissions: [...current.pendingSubmissions, {
@@ -143,10 +147,10 @@ export class CiterSessionFace {
                 return;
             const state = result.value.state;
             this.patch({ openState: 'open', openError: null, running: state.running, blank: state.blank, lastAgentError: state.error,
-                queue: state.queue.map(row => ({
-                    id: row.id, messageId: row.id, placement: row.placement,
-                    ...(row.rpcId === undefined ? {} : { rpcId: row.rpcId }),
-                    text: row.text || null, preview: row.text || '附件', content: [{ type: 'text', text: row.text }, ...row.attachments],
+                modelSelectionRequired: state.modelSelectionRequired === true,
+                queue: state.queue.map(({ rpcId, ...row }) => ({ ...row, id: row.id, messageId: row.id,
+                    ...(rpcId === undefined ? {} : { rpcId: rpcId }),
+                    preview: row.text || '附件', content: [{ type: 'text', text: row.text }, ...row.attachments],
                 })),
             });
             for (const receipt of state.receipts)

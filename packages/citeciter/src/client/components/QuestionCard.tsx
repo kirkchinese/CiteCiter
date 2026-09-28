@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from 'react'
-import { IconQuestionOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconQuestionOutlineMedium } from '../host-icons.ts'
 import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import type { PendingQuestion } from '../../topic.ts'
 import { RichAnswer } from './RichAnswer.tsx'
@@ -68,7 +68,7 @@ export function QuestionCard({ onAnswer, onCancel, pending }: QuestionCardProps)
   return (
     <form className={css.questionFrame} onSubmit={submit} aria-label="CiteCiter 提问">
       <div className={css.questionHeader}>
-        <IconQuestionOutline14 />
+        <IconQuestionOutlineMedium />
         <div>
           <span>{question.header ?? 'CiteCiter 需要你的回答'}</span>
           <strong>{question.question}</strong>

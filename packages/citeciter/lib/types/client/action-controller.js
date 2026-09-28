@@ -9,30 +9,26 @@ export function wheelSector(dx, dy) {
         return null;
     return Math.floor(((Math.atan2(dy, dx) + Math.PI / 2 + Math.PI * 2 + Math.PI / 8) % (Math.PI * 2)) / (Math.PI / 4));
 }
-/** Controller owns duplicate submission, retry drafts and source-change cancellation. Dispose with the Client. */
+/** Prepare a draft through the action's destination policy; the Topic composer owns input and submission. */
 export function createActionController(execute, defaultModel = () => undefined) {
-    const store = createSnapshotStore({ wheel: null, pending: null, question: '', submitting: false, error: null, model: undefined });
+    const store = createSnapshotStore({ wheel: null, pending: null, submitting: false, error: null, model: undefined });
     let disposed = false;
     let generation = 0;
     const update = (fn) => { if (!disposed)
         store.update(fn); };
-    const cancel = () => { generation++; update(d => { d.wheel = null; d.pending = null; d.error = null; d.question = ''; }); };
+    const cancel = () => { generation++; update(d => { d.wheel = null; d.pending = null; d.error = null; }); };
     const submit = async () => {
         const snapshot = store.getSnapshot();
         if (disposed || snapshot.submitting || snapshot.pending === null)
             return;
         const { source, action } = snapshot.pending;
-        if (action.ask && snapshot.question.trim() === '')
-            return;
-        const question = actionQuestion(action, snapshot.question);
-        if (question === '')
-            return;
+        const question = actionQuestion(action, '');
         const ticket = generation;
         update(d => { d.submitting = true; d.error = null; });
         try {
             await execute(source, action, question, snapshot.model);
             if (ticket === generation)
-                update(d => { d.pending = null; d.question = ''; });
+                update(d => { d.pending = null; });
         }
         catch (error) {
             if (ticket === generation)
@@ -51,9 +47,8 @@ export function createActionController(execute, defaultModel = () => undefined) 
             cancel();
             return;
         }
-        update(d => { d.wheel = null; d.pending = { source: wheel.source, action, x: wheel.x, y: wheel.y }; d.question = ''; d.error = null; });
-        if (!action.ask)
-            void submit();
+        update(d => { d.wheel = null; d.pending = { source: wheel.source, action, x: wheel.x, y: wheel.y }; d.error = null; });
+        void submit();
     };
     return {
         getSnapshot: store.getSnapshot,
@@ -85,13 +80,9 @@ export function createActionController(execute, defaultModel = () => undefined) 
             else
                 choose(wheel.active);
         },
-        /** Cancel only the transient gesture; a question draft belongs to its explicit close/source lifecycle. */
+        /** Focus loss cancels only the transient gesture; the Topic composer retains its draft. */
         dismissWheel() { update(d => { d.wheel = null; }); },
         choose, cancel, submit,
-        setModel(model) { if (!store.getSnapshot().submitting)
-            update(d => { d.model = model; }); },
-        setQuestion(question) { if (!store.getSnapshot().submitting)
-            update(d => { d.question = question; }); },
         async dispose() { cancel(); disposed = true; },
     };
 }

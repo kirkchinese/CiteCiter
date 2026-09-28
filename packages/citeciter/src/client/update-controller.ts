@@ -1,4 +1,4 @@
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { SettingsForm as ConfigForm } from './host-ui-adapter.ts'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { CiteCiterSettings } from '../topic.ts'
 
@@ -142,7 +142,7 @@ function isAbortError(error: unknown): boolean {
  * @returns the root-scoped update controller.
  */
 export function createUpdateController(
-  settings: SettingsScope<CiteCiterSettings>,
+  settings: ConfigForm<CiteCiterSettings>,
   checkUpdate: CheckUpdate,
   store: SnapshotStore<UpdateNoticeSnapshot>,
   environment: UpdateBrowserEnvironment = createUpdateBrowserEnvironment(),

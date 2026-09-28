@@ -6,11 +6,13 @@ export interface DockViewport {
   readonly details: number
   readonly caption: number
   readonly percent: number
+  /** Explicit Citer navigation may temporarily take the compact page from details. */
+  readonly preferDetails?: boolean
 }
 
-/** Wide windows reserve a column; compact windows navigate to a Citer page. */
+/** Wide windows reserve a column; compact details take priority unless Citer was explicitly selected. */
 export interface DockGeometry {
-  readonly mode: 'columns' | 'page'
+  readonly mode: 'columns' | 'page' | 'suspended'
   readonly width: number
   readonly height: number
   readonly top: number
@@ -33,5 +35,8 @@ export function resolveDockGeometry(viewport: DockViewport): DockGeometry {
       top: viewport.caption,
     }
   }
-  return { mode: 'page', width: Math.max(0, viewport.width - viewport.sidebar), height: contentHeight, top: viewport.caption }
+  return {
+    mode: viewport.details > 0 && viewport.preferDetails !== false ? 'suspended' : 'page',
+    width: Math.max(0, viewport.width - viewport.sidebar), height: contentHeight, top: viewport.caption,
+  }
 }

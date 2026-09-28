@@ -1,10 +1,11 @@
 /** Durable navigation metadata and bounded legacy artifact cleanup, independent of Agent execution. */
 import { randomUUID } from 'node:crypto';
-import { lstat, mkdir, realpath, readFile, readdir, rename, rmdir, unlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, realpath, readFile, readdir, rmdir, unlink, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths';
 import { z } from 'zod';
 import { topicMetadataSchema, parseTopicMetadataFile } from "./topic.js";
+import { atomicReplace } from "./atomic-replace.js";
 const TOPIC_INDEX_ROOT = dshHomePath('citeciter', 'workspaces');
 export function errorCode(error) {
     return typeof error === 'object' && error !== null && 'code' in error
@@ -130,7 +131,7 @@ async function atomicWriteJson(path, value) {
     const temp = `${path}.${randomUUID()}.tmp`;
     try {
         await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-        await rename(temp, path);
+        await atomicReplace(temp, path);
     }
     catch (error) {
         await unlinkIfPresent(temp);

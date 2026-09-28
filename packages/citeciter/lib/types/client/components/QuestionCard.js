@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useMemo, useState } from 'react';
-import { IconQuestionOutline14 } from '@deepseek-ai/dsh-client-ui-primitives';
+import { IconQuestionOutlineMedium } from "../host-icons.js";
 import { RichAnswer } from "./RichAnswer.js";
 import css from './CiteCiter.module.css';
 /** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
@@ -54,7 +54,7 @@ export function QuestionCard({ onAnswer, onCancel, pending }) {
         };
         run(() => onAnswer(answer));
     };
-    return (_jsxs("form", { className: css.questionFrame, onSubmit: submit, "aria-label": "CiteCiter \u63D0\u95EE", children: [_jsxs("div", { className: css.questionHeader, children: [_jsx(IconQuestionOutline14, {}), _jsxs("div", { children: [_jsx("span", { children: question.header ?? 'CiteCiter 需要你的回答' }), _jsx("strong", { children: question.question })] }), _jsxs("span", { children: [page + 1, "/", pending.questions.length] })] }), question.detail !== undefined && _jsx(RichAnswer, { text: question.detail, streaming: false }), error !== undefined && _jsx("p", { role: "alert", children: error }), (question.options ?? []).length > 0 && (_jsx("div", { className: css.questionOptions, children: question.options?.map((option, index) => {
+    return (_jsxs("form", { className: css.questionFrame, onSubmit: submit, "aria-label": "CiteCiter \u63D0\u95EE", children: [_jsxs("div", { className: css.questionHeader, children: [_jsx(IconQuestionOutlineMedium, {}), _jsxs("div", { children: [_jsx("span", { children: question.header ?? 'CiteCiter 需要你的回答' }), _jsx("strong", { children: question.question })] }), _jsxs("span", { children: [page + 1, "/", pending.questions.length] })] }), question.detail !== undefined && _jsx(RichAnswer, { text: question.detail, streaming: false }), error !== undefined && _jsx("p", { role: "alert", children: error }), (question.options ?? []).length > 0 && (_jsx("div", { className: css.questionOptions, children: question.options?.map((option, index) => {
                     const selected = draft.selected.includes(option.label);
                     return (_jsxs("button", { type: "button", disabled: busy, "data-selected": selected || undefined, onClick: () => choose(option.label), children: [_jsx("span", { children: question.multiSelect === true ? selected ? '✓' : '□' : index + 1 }), _jsxs("span", { children: [_jsx("strong", { children: option.label }), option.description !== undefined && _jsx("small", { children: option.description })] })] }, option.label));
                 }) })), _jsx("textarea", { className: css.questionCustom, rows: 2, disabled: busy, value: draft.custom, placeholder: (question.options ?? []).length === 0 ? '输入回答…' : '其他（可填写）', "aria-label": "\u81EA\u5B9A\u4E49\u56DE\u7B54", onChange: (event) => update({

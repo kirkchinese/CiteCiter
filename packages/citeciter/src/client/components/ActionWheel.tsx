@@ -1,20 +1,18 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
-import { ModelChoice } from './ModelChoice.tsx'
 import { OverlayPortal } from './OverlayPortal.tsx'
 import { actionSourceQuote, type ActionController, type ActionSnapshot } from '../action-controller.ts'
 import type { CompanionActions } from '../view-actions.ts'
-import type { CompanionSnapshot } from '../companion-controller.ts'
 import css from './ActionWheel.module.css'
+import { actionTarget } from '../../actions.ts'
 
 export type ActionCallbacks = Omit<ActionController, 'getSnapshot' | 'subscribe' | 'dispose'>
 
-/** Public shell overlay: wheel, input prompt and visible retry. Business work stays in its controller. */
-export function ActionWheel({ useActions, useCompanion, actions, companion }: {
-  useActions: SnapshotSelectorHook<ActionSnapshot>, useCompanion: SnapshotSelectorHook<CompanionSnapshot>, actions: ActionCallbacks, companion: CompanionActions
+/** Public wheel and creation-error retry. Questions and models are edited only in the Topic composer. */
+export function ActionWheel({ useActions, actions, companion }: {
+  useActions: SnapshotSelectorHook<ActionSnapshot>, actions: ActionCallbacks, companion: CompanionActions
 }) {
   const state = useActions(value => value)
-  const snapshot = useCompanion(value => value)
   const menu = useRef<HTMLDivElement>(null)
   const wheel = state.wheel
   const active = wheel?.active == null ? null : wheel.slots[wheel.active]
@@ -37,20 +35,17 @@ export function ActionWheel({ useActions, useCompanion, actions, companion }: {
       {wheel.slots.map((slot, index) => {
         const angle = (index * 45 - 90) * Math.PI / 180
         return <button key={index} className={css.slot} type="button" role="menuitem" aria-disabled={slot === null} data-active={wheel.active === index || undefined} style={{ left: 180 + Math.cos(angle) * 114, top: 180 + Math.sin(angle) * 114 }} onMouseEnter={() => { if (!wheel.held) actions.focus(index) }} onFocus={() => actions.focus(index)} onClick={() => actions.choose(index)} title={slot?.prompt}>
-          <span className={css.slotNumber}>{index + 1}</span><strong>{slot?.label ?? '空槽'}</strong><small>{slot === null ? '在设置中添加' : slot.ask ? '需输入 · 选模型' : `准备草稿 · ${slot.presentation === 'side' ? '侧边' : '悬浮'}`}</small>
+          <span className={css.slotNumber}>{index + 1}</span><strong>{slot?.label ?? '空槽'}</strong><small>{slot === null ? '在设置中添加' : `${actionTarget(slot) === 'current' ? '加入 Topic' : '新建 Topic'}${slot.ask ? ' · 输入问题' : ''}`}</small>
         </button>
       })}
       <button type="button" className={css.center} onClick={actions.cancel} aria-label="取消轮盘">取消<small>Esc</small></button>
-      <div className={css.caption} role="status">{active == null ? '移向动作 · 回到中心取消' : `${active.label} · ${active.ask ? '松开后输入问题并选择模型' : '松开后准备草稿'}`}</div>
+      <div className={css.caption} role="status">{active == null ? '移向动作 · 回到中心取消' : `${active.label} · ${active.ask ? '在 Citer 中输入并发送' : '松开后准备草稿'}`}</div>
     </div>}
-    {pending !== null && <form className={css.prompt} data-citeciter-menu role="dialog" aria-label={`${pending.action.label}：输入问题`} style={{ '--prompt-x': `${pending.x - 210}px`, '--prompt-y': `${pending.y - 100}px` } as CSSProperties} onSubmit={event => { event.preventDefault(); void actions.submit() }}>
+    {pending !== null && state.error !== null && <form className={css.prompt} data-citeciter-menu role="dialog" aria-label={`${pending.action.label}：创建失败`} style={{ '--prompt-x': `${pending.x - 210}px`, '--prompt-y': `${pending.y - 100}px` } as CSSProperties} onSubmit={event => { event.preventDefault(); void actions.submit() }}>
       <header><strong>{pending.action.label}</strong><button type="button" onClick={actions.cancel} aria-label="关闭提问">×</button></header>
       <blockquote>{actionSourceQuote(pending.source).slice(0, 180)}</blockquote>
-      {pending.action.ask && <textarea autoFocus aria-label="补充问题" placeholder="输入你的问题…" maxLength={7500} rows={3} value={state.question} disabled={state.submitting} onChange={event => actions.setQuestion(event.currentTarget.value)} onKeyDown={event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.nativeEvent.isComposing) { event.preventDefault(); void actions.submit() } }} />}
-      {pending.action.ask && <div className={css.slotActions}>{(snapshot.settings.promptTemplates ?? []).map(template => <button key={template.id} type="button" disabled={state.submitting} onClick={() => actions.setQuestion(template.text)}>{template.label}</button>)}</div>}
-      {(pending.action.ask || state.error !== null) && <ModelChoice providers={snapshot.providers} value={state.model} onChange={actions.setModel} disabled={state.submitting} />}
       {state.error !== null && <p role="alert" className={css.error}>{state.error}</p>}
-      <footer><span>{pending.action.presentation === 'side' ? '在学习栏中打开' : '在悬浮窗中打开'}</span><button type="submit" disabled={state.submitting || pending.action.ask && state.question.trim() === ''}>{state.submitting ? '正在创建…' : state.error === null ? '准备草稿' : '重试'}</button></footer>
+      <footer><span>引用已保留</span><button type="submit" disabled={state.submitting}>重试</button></footer>
     </form>}
   </OverlayPortal>
 }
