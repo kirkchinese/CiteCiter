@@ -132,7 +132,10 @@ export function createDraftController(request, native) {
         entry.timer = setTimeout(() => { void flush(id).catch(() => { }); }, 150);
     };
     const mutate = async (id, change) => {
-        await ensure(id);
+        // Controlled input values must be echoed before the React event returns.
+        // Yielding even for a ready draft restores the previous value and ends IME composition.
+        if (!entryOf(id).view.ready)
+            await ensure(id);
         if (disposed)
             return;
         const entry = entryOf(id);
@@ -155,6 +158,7 @@ export function createDraftController(request, native) {
         hasUnsavedChanges: () => [...entries.values()].some(entry => entry.generation !== entry.saved),
         flushAll: () => Promise.allSettled([...entries.keys()].filter(id => entryOf(id).view.ready).map(flush)),
         ensure, flush,
+        /** Publish ready-draft edits synchronously; the returned promise only waits for an initial load when needed. */
         setText: (id, text) => mutate(id, entry => { entry.state = { ...entry.state, content: { ...entry.state.content, text } }; }),
         append: (id, text, references) => mutate(id, entry => {
             entry.state = { ...entry.state, content: { ...entry.state.content,
