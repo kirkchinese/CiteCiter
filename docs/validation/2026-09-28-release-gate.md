@@ -1,6 +1,6 @@
 # 0.9.0-alpha.1 发布检查
 
-2026-09-28。用户确认将只读 PowerShell 问题作为上游宿主限制，不再阻挡本次 alpha 预发布。代码、安装核对和远端 CI 已完成，GitHub 预发布已发布；npm 上传被自动审批拒绝，待用户手动执行。具体结果见文末；npm next、GitHub prerelease，正式版 latest 保持 0.8.2。
+2026-09-28。用户确认将只读 PowerShell 问题作为上游宿主限制，不再阻挡本次 alpha 预发布。代码、安装核对和远端 CI 已完成，GitHub 与 npm next 预发布均已完成；用户手动完成 npm 上传，公开下载包已核验。具体结果见文末；npm next、GitHub prerelease，正式版 latest 保持 0.8.2。
 
 ## 发布决定与最终包
 
@@ -43,7 +43,7 @@ npm 查询：DSH latest/next 为 0.1.7-rc.2，alpha 为 0.1.7-alpha.2；Codex Co
 | 偶发 UNKNOWN | 本轮完整构建通过；历史错误根因未确定，不声称修复或添加无证据重试 |
 | 本地旧目录 | 用户清理后五项已不存在；dsh-rc1 仍在，排除于包和 Git，备份保留 |
 | Git 与远端验收 | 4b2a89e 经 PR #10 合并为 main 616ea87；Windows / Ubuntu CI 的锁文件、两套 SDK、构建与打包全部通过。个人 VS Code 配置和既有宣传制作记录未纳入提交 |
-| 发布 | GitHub v0.9.0-alpha.1 prerelease 已发布并核对资产 SHA-256；npm publish 被自动审批拒绝，尚未上传，待用户操作 |
+| 发布 | GitHub v0.9.0-alpha.1 prerelease 与 npm next 均已完成；公开 tgz 与本地逐字节一致，SHA-1、SHA-256、SHA-512 integrity 通过，latest 保持 0.8.2 |
 
 安装时 pnpm peers check 报告宿主 peers 未列入 Profile 自身的依赖图；实际 DSH 通过共享依赖链接提供它们。两端实际模块解析和版本核对均通过，因此该警告与 Issue #9 的版本闸门拒绝分别记录，没有额外安装第二套宿主单例来消除警告。
 
@@ -57,6 +57,10 @@ npm 查询：DSH latest/next 为 0.1.7-rc.2，alpha 为 0.1.7-alpha.2；Codex Co
 
 [PR #10](https://github.com/kirkchinese/CiteCiter/pull/10) 已合并；发布标签 v0.9.0-alpha.1 指向 616ea87a7aecc0d0fca9b2d2eff9b98cc7839675，与通过检查的 4b2a89e249626114d9e2dae5f86e9d259b57a7be 源码树一致。[CI 36416110193](https://github.com/kirkchinese/CiteCiter/actions/runs/36416110193) 的 Windows / Node 24 与 Ubuntu / Node 22.19.0 均通过，Ubuntu 的静态检查不扩展本轮 Linux 功能声明。
 
-[GitHub Release](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.1) 已作为 prerelease 发布，未设为 latest；包含 900835 字节 tgz 和 SHA256SUMS，GitHub 报告的 tgz digest 与本地最终包完全一致。Release 正文明示 npm 尚待上传，可以使用附件 tgz 安装。
+[GitHub Release](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.1) 已作为 prerelease 发布，未设为 latest；包含 900835 字节 tgz 和 SHA256SUMS，GitHub 报告的 tgz digest 与本地最终包完全一致。Release 初次发布时明示 npm 尚待上传；用户上传完成后已更新为 npm 安装说明。
 
 npm 正式上传命令被自动审批在执行前拒绝，仅返回 blocked by policy，未提供具体规则。没有换工具、CI 或 DSH 重试同一受限动作。提供给用户的本地手动发布助手固定官方 registry、next、公有包和上述 SHA-256，隐藏输入密钥，只向临时子进程提供凭据，结束后恢复环境并清理无密钥配置文件；助手不入库，语法检查通过，未由代理执行。此前官方 whoami 成功，不能据此宣称上传已经完成。
+
+用户随后在本机执行手动发布助手，npm 返回成功和异步处理提示。开头出现本机 `.npmrc` 的 prefix 配置警告，未阻止上传。最初包级元数据暂未显示新版本，随后官方精确版本端点与 dist-tag 查询均确认公开：next=0.9.0-alpha.1，latest=0.8.2。公开 tgz 为 900835 字节，与本地最终包逐字节一致；SHA-1 3473d5e9175cbc78399e56c3bdd5ef78bad9ae3d、SHA-256 15b722387edf919f86731c855420448bfe876118250b1e1e1ec6d6f2f066813f 和 registry 的 SHA-512 integrity 全部一致。手动发布助手使用后已删除，凭据没有入库。
+
+[npm 0.9.0-alpha.1](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter/v/0.9.0-alpha.1) 与 GitHub 预发布指向同一产物；本机两个 Profile 已安装该产物，无需再次替换运行时代码。合并后的 main CI 36416319519 及首轮发布记录 CI 36416726839 均通过。PowerShell 宿主限制、Linux/macOS 与 Desktop NEXT 验收边界保持不变。
