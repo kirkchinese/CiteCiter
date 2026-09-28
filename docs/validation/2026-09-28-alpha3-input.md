@@ -31,3 +31,11 @@
 两次真实请求均由界面手动发送；没有人工模型、临时测试脚本或 DOM 状态注入。组合输入通过浏览器协议模拟实际 composition 生命周期，未声称覆盖每种 Windows 输入法候选窗。当前控制工具禁用原生应用 API，Desktop 本轮完成独立编译、管理 CLI 安装和字节核对，未新增原生窗口输入验收；不以 Web 结果替代。Linux/macOS 和独立 Desktop NEXT 仍未实机验收。
 
 用户已接受的 Windows 只读 PowerShell 宿主编码限制与本次输入回归无关。此次修改不更改 Host Loop、会话格式、权限、发送收据或草稿冲突策略。
+
+## 发布记录
+
+[PR #12](https://github.com/kirkchinese/CiteCiter/pull/12) 已合并，发布标签 v0.9.0-alpha.3 指向 d22560447ede0e9452a3de2dad43413ed3812b0d。PR 的 [CI 36426337148](https://github.com/kirkchinese/CiteCiter/actions/runs/36426337148) 与合并后的 [CI 36426566652](https://github.com/kirkchinese/CiteCiter/actions/runs/36426566652) 均通过 Windows / Ubuntu 检查。
+
+[GitHub prerelease](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.3) 和 npm 均已发布。npm latest / next 均为 0.9.0-alpha.3；公开包 SHA-1、下载后的 SHA-256 及 GitHub 资产 digest 与本机验收包一致。npm 首次接受上传后异步处理，本次等待公开后再同步标签，没有重复上传。
+
+Web 与 Desktop 配置已安装同一发布产物，主 Web 已重启。单变量定位包、临时发布辅助文件和认证配置已清理；凭据未提交到仓库。原有未跟踪的视频制作笔记和 .vscode 配置保留。
