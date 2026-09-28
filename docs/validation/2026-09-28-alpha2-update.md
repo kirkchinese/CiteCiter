@@ -26,4 +26,8 @@
 
 [PR #11](https://github.com/kirkchinese/CiteCiter/pull/11) 已合并；[CI 36421068577](https://github.com/kirkchinese/CiteCiter/actions/runs/36421068577) 的 Ubuntu / Node 22.19.0 和 Windows / Node 24 均通过。标签 v0.9.0-alpha.2 指向 78e1cb0d74e946408f0ff1902a00bfc99d65a32f，发布代码与通过 CI 的 PR 头相同。
 
-[GitHub prerelease](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.2) 已提供 tgz 和 SHA256SUMS；GitHub 报告的包 digest 与本机 SHA-256 完全相同。npm 上传待维护者手动完成，随后核对 latest / next、下载包完整性及已安装版本的自动更新检查。此前自动审批拒绝 npm publish，本轮没有通过其他工具绕过。
+[GitHub prerelease](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.2) 已提供 tgz 和 SHA256SUMS；GitHub 报告的包 digest 与本机 SHA-256 完全相同。维护者已手动完成 npm 上传及标签同步；公开 registry 的 latest / next 均为 0.9.0-alpha.2。此前自动审批拒绝 npm publish，本轮拒绝 next 标签更新；两次均交由维护者执行，没有通过其他工具绕过。
+
+首次上传在北京时间 20:22 获得 HTTP 202，npm 提示仍在处理；20:25 重复上传返回 E409 previously staged。带认证的暂存列表为空，20:29 再查时版本已公开。最终确认是异步发布处理延迟，未删除暂存记录、未改包或改版本号。公开 tgz 与本机验收包逐字节一致，SHA-1、SHA-256 与 SHA-512 integrity 全部一致。
+
+发布后的真实 latest 端点通过三组版本检查：0.8.2 与 alpha.1 输入提示升级，alpha.2 输入不提示升级；此处使用修复后的比较器，不表示旧已发布比较器已被原地修复。主 Web 重启清除缓存后，通过界面更新提醒开关触发 checkUpdate，HTTP 200，返回 installedVersion=latestVersion=0.9.0-alpha.2、updateAvailable=false。开关恢复原有开启状态，原草稿仍未发送。合并及文档 CI 36421280303、36421434075 均通过。
