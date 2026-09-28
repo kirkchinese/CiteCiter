@@ -33,14 +33,15 @@ flowchart LR
 
 ## Version and installation
 
-This is **0.9.0-alpha.1, a prerelease on npm next**, targeting Web DSH `0.1.7-rc.2` and the same DSH bundled with [DSH Desktop 2.0.15](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.15). Separate Host/Client compile checks against DSH `0.1.5-rc.2` remain; they do not establish functional acceptance of the latest Desktop. The stable release is **0.8.2**, targeting DSH `0.1.5-rc.1` / Desktop `2.0.9`. Node.js must satisfy `^22.19.0 || >=24.0.0`. Linux acceptance is excluded from this round.
+This is **0.9.0-alpha.2, the default prerelease on npm latest / next**, targeting Web DSH `0.1.7-rc.2` and the same DSH bundled with [DSH Desktop 2.0.15](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.15). Separate Host/Client compile checks against DSH `0.1.5-rc.2` remain; they do not establish functional acceptance of the latest Desktop. The older **0.8.2** package remains available only for DSH `0.1.5-rc.1` / Desktop `2.0.9`. Node.js must satisfy `^22.19.0 || >=24.0.0`. Linux acceptance is excluded from this round.
 
 **Do not use 0.8.2 with DSH 0.1.7.** Its exact peer ranges fail the compatibility gate; forcing installation then fails Typert activation because `create()` factories are missing. See [Issue #9](https://github.com/kirkchinese/CiteCiter/issues/9). This release supports the RC2 gate and Host/Remote factories without `allow-version`. Install this prerelease instead of forcing the old package through a compatibility exemption.
 
 | Version | Status | Main differences |
 | --- | --- | --- |
-| 0.9.0-alpha.1 | Prerelease; npm next | Dual-host adapters, durable drafts, PTC tool display, reference routing and learning-route policy |
-| 0.8.2 | Stable | Explicit source horizons and continuation; native first-answer question suggestions |
+| 0.9.0-alpha.2 | Default prerelease; npm latest / next | Prerelease-aware update checks; no repeat update prompt for the same version |
+| 0.9.0-alpha.1 | Earlier prerelease | Dual-host adapters, durable drafts, PTC tool display, reference routing and learning-route policy |
+| 0.8.2 | Older hosts | Explicit source horizons and continuation; native first-answer question suggestions |
 | 0.8.1 | Published | Fix Topic startup through Linux/macOS launcher symlinks |
 | 0.8.0 | Deprecated; upgrade to 0.8.2 | Linux launcher symlinks can prevent Topics from opening |
 | 0.7.0-beta.3 | Previous development candidate | Private read-only Topics, selection wheel, manual five-stage learning |
@@ -50,11 +51,11 @@ For DSH 0.1.7, install this prerelease:
 
 ```powershell
 npm install -g @deepseek-ai/dsh@0.1.7-rc.2
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-alpha.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-alpha.2
 dsh web
 ```
 
-`next` selects the prerelease series; `latest` stays at 0.8.2 for DSH 0.1.5-rc.1 / Desktop 2.0.9 only. For DSH 0.1.2-rc.1 / Desktop 2.0.5, keep using @kirkchinese/dsh-citeciter@0.6.0. If npm blocks native dependency installation scripts, follow its output to allow the named dependencies and reinstall. Do not disable script restrictions globally.
+Both `latest` and `next` select 0.9.0-alpha.2; it remains a prerelease. For DSH 0.1.5-rc.1 / Desktop 2.0.9, explicitly install 0.8.2. Older built-in update checks may reject prerelease versions; use the installation command above to upgrade. For DSH 0.1.2-rc.1 / Desktop 2.0.5, keep using @kirkchinese/dsh-citeciter@0.6.0. If npm blocks native dependency installation scripts, follow its output to allow the named dependencies and reinstall. Do not disable script restrictions globally.
 
 In 0.8.0, launching DSH through a Linux/macOS symlink can prevent Topics from opening with a missing dsh-agent-loop error. Version 0.8.1 resolves the real CLI entry before loading host modules and retains Desktop's app.asar anchor. Native Linux Node regression passed; macOS has not been tested.
 
@@ -67,10 +68,10 @@ pnpm typecheck
 pnpm typecheck:desktop
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
-dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.9.0-alpha.1.tgz
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.9.0-alpha.2.tgz
 ```
 
-Desktop bundles its own DSH. Version 0.8.2 retains the accepted Desktop 2.0.9 baseline. This release targets Desktop 2.0.15: run `dsh plugin add @kirkchinese/dsh-citeciter@0.9.0-alpha.1` in its managed terminal. Updating the global CLI does not update Desktop's embedded runtime. Restart the relevant host after installation. Do not run Web and Desktop writers against the same DSH home simultaneously.
+Desktop bundles its own DSH. Version 0.8.2 retains the accepted Desktop 2.0.9 baseline. This release targets Desktop 2.0.15: run `dsh plugin add @kirkchinese/dsh-citeciter@0.9.0-alpha.2` in its managed terminal. Updating the global CLI does not update Desktop's embedded runtime. Restart the relevant host after installation. Do not run Web and Desktop writers against the same DSH home simultaneously.
 
 Known host limitation: Windows read-only PowerShell can reject the host encoding initialization under ConstrainedLanguage, and some Chinese output can be garbled. Citer retains the original errors without raising permissions or hiding output; DSH must fix the executor. This prerelease makes no native acceptance claim for Linux/macOS or the separate Desktop NEXT shell.
 
@@ -178,7 +179,7 @@ Both follow the same rules: public extension points only, nothing written into a
 
 ## Development and acceptance
 
-[Contributing](CONTRIBUTING.md) · [Alpha changes](docs/releases/v0.9.0-alpha.1.md) · [Current acceptance status](docs/validation/2026-09-27-connect-450.md) · [0.8.2 fix notes](docs/releases/v0.8.2.md)
+[Contributing](CONTRIBUTING.md) · [Alpha changes](docs/releases/v0.9.0-alpha.2.md) · [Current acceptance status](docs/validation/2026-09-27-connect-450.md) · [0.8.2 fix notes](docs/releases/v0.8.2.md)
 
 Host and Client compile separately. Native session adaptation, source reading, index storage, attachments, queue, board capture, learning plans and UI controls are separate modules. The DSH Agent Loop is unchanged. The full host input component has no supported cross-session embedding interface; Citer reuses public ConversationController / SessionFace behavior and does not automatically inherit every third-party composer extension.
 

@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.9.0-alpha.1",
+  "version": "0.9.0-alpha.2",
   "description": "Source-aware native DSH Topics with manual drafts, permissions, visual boards and learning cards",
   "keywords": [
     "deepseek-harness",
@@ -35,7 +35,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "tag": "next",
+    "tag": "latest",
     "registry": "https://registry.npmjs.org"
   },
   "main": "lib/index.js",
@@ -97,7 +97,6 @@
     "typecheck": "tsc -p tsconfig.host.json --noEmit && tsc -p tsconfig.client.json --noEmit"
   },
   "peerDependencies": {
-    "zod": "^4.1.12",
     "@deepseek-ai/cordis": "4.0.2 || 4.0.4",
     "@deepseek-ai/dsh-agent": "0.1.5-rc.2 || 0.1.7-rc.1 || 0.1.7-rc.2",
     "@deepseek-ai/dsh-agent-loop": "0.1.5-rc.2 || 0.1.7-rc.1 || 0.1.7-rc.2",
@@ -123,23 +122,10 @@
     "@deepseek-ai/dsh-tools": "0.1.5-rc.2 || 0.1.7-rc.1 || 0.1.7-rc.2",
     "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.2 || 0.1.7-rc.1 || 0.1.7-rc.2",
     "@deepseek-ai/dsh-user-questions": "0.1.5-rc.2 || 0.1.7-rc.1 || 0.1.7-rc.2",
-    "@deepseek-ai/schemastery": "3.18.2 || 3.18.4"
+    "@deepseek-ai/schemastery": "3.18.2 || 3.18.4",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@types/mdast": "^4.0.4",
-    "@types/node": "^24.10.0",
-    "@types/react": "~18.3.1",
-    "@types/react-dom": "~18.3.1",
-    "lightningcss": "^1.32.0",
-    "mdast-util-from-markdown": "^2.0.3",
-    "mdast-util-gfm": "^3.1.0",
-    "micromark-extension-gfm": "^3.0.0",
-    "micromark-util-decode-string": "^2.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "tsdown": "^0.22.2",
-    "typescript": "^6.0.3",
-    "zod": "^4.4.3",
     "@deepseek-ai/cordis": "4.0.4",
     "@deepseek-ai/dsh-agent": "0.1.7-rc.2",
     "@deepseek-ai/dsh-agent-loop": "0.1.7-rc.2",
@@ -182,14 +168,30 @@
     "@deepseek-ai/dsh-tool-fs-search": "0.1.7-rc.2",
     "@deepseek-ai/dsh-tools": "0.1.7-rc.2",
     "@deepseek-ai/dsh-typert-protocol": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-typert-registry": "0.1.7-rc.2",
     "@deepseek-ai/dsh-user-questions": "0.1.7-rc.2",
     "@deepseek-ai/dsh-util-workspace-path": "0.1.7-rc.2",
     "@deepseek-ai/schemastery": "3.18.4",
-    "@deepseek-ai/dsh-typert-registry": "0.1.7-rc.2"
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^24.10.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "~18.3.1",
+    "@types/semver": "7.8.0",
+    "lightningcss": "^1.32.0",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-gfm": "^3.1.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "micromark-util-decode-string": "^2.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-util-values": "0.1.7-rc.2",
     "html-to-image": "1.11.13",
     "katex": "^0.18.4",
-    "@deepseek-ai/dsh-util-values": "0.1.7-rc.2"
+    "semver": "7.8.5"
   }
 }

@@ -1,5 +1,6 @@
 /** Bounded, read-only npm update check for the Web plugin. */
 import { z } from 'zod'
+import { comparePackageVersions, isPackageVersion } from './package-version.ts'
 
 /** Fixed registry document used to resolve the installable `latest` version. */
 export const CITECITER_NPM_LATEST_URL = 'https://registry.npmjs.org/@kirkchinese%2fdsh-citeciter/latest' as const
@@ -19,18 +20,8 @@ function stableVersionParts(version: string): readonly [number, number, number] 
   return [parts[0]!, parts[1]!, parts[2]!]
 }
 
-const stableVersionSchema = z.string().refine(
-  (version) => stableVersionParts(version) !== null,
-  'expected a stable MAJOR.MINOR.PATCH version with safe integer components',
-)
-
-/** Installed development builds may use a valid SemVer prerelease suffix; registry latest stays stable. */
-const installedVersionSchema = z.string().refine((version) => {
-  const [core, ...suffix] = version.split('-')
-  if (core === undefined || stableVersionParts(core) === null) return false
-  if (suffix.length === 0) return true
-  return suffix.join('-').split('.').every(part => /^[0-9A-Za-z-]+$/u.test(part) && (!/^\d+$/u.test(part) || part === '0' || !part.startsWith('0')))
-}, 'expected a stable version or a valid prerelease')
+/** npm tags select versions; latest is not a guarantee that the selected version is stable. */
+const packageVersionSchema = z.string().refine(isPackageVersion, 'expected a canonical SemVer package version')
 
 /** Stable failure identifiers consumed by the Web settings and notification UI. */
 export const updateCheckErrorCodeSchema = z.enum([
@@ -50,8 +41,8 @@ export type UpdateCheckErrorCode = z.infer<typeof updateCheckErrorCodeSchema>
 export const updateCheckResponseSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('success'),
-    installedVersion: installedVersionSchema,
-    latestVersion: stableVersionSchema,
+    installedVersion: packageVersionSchema,
+    latestVersion: packageVersionSchema,
     updateAvailable: z.boolean(),
     checkedAt: z.number().int().nonnegative(),
     profile: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/u).optional(),
@@ -187,7 +178,7 @@ export class UpdateChecker {
     } catch {
       return { kind: 'error', code: 'installed-version-invalid', checkedAt: this.now() }
     }
-    if (!installedVersionSchema.safeParse(installedVersion).success) {
+    if (!packageVersionSchema.safeParse(installedVersion).success) {
       return { kind: 'error', code: 'installed-version-invalid', checkedAt: this.now() }
     }
 
@@ -214,7 +205,7 @@ export class UpdateChecker {
       }
       const latest = registryLatestSchema.safeParse(raw)
       if (!latest.success) return { kind: 'error', code: 'registry-response-invalid', checkedAt: this.now() }
-      const comparison = compareStableVersions(installedVersion.split('-')[0]!, latest.data.version)
+      const comparison = comparePackageVersions(installedVersion, latest.data.version)
       if (comparison === null) return { kind: 'error', code: 'registry-version-invalid', checkedAt: this.now() }
 
       const checkedAt = this.now()
@@ -222,7 +213,7 @@ export class UpdateChecker {
         kind: 'success',
         installedVersion,
         latestVersion: latest.data.version,
-        updateAvailable: comparison < 0 || comparison === 0 && installedVersion.includes('-'),
+        updateAvailable: comparison < 0,
         checkedAt,
       }
       this.cached = { expiresAt: checkedAt + UPDATE_CHECK_TTL_MS, response: result }
