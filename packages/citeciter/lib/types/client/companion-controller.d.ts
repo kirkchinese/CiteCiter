@@ -1,7 +1,7 @@
 import type { NativeComposer, DeliveryMode } from './native-composer.ts';
 import type { DraftAttachmentId } from '@deepseek-ai/dsh-client-ui-conversation/client';
 import type { SessionId } from '@deepseek-ai/dsh-session/types';
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { SettingsForm } from './host-ui-adapter.ts';
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store';
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
@@ -9,16 +9,19 @@ import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, 
 import { type CreateMode, type DocumentClaimIntent } from './request-guard.ts';
 import type { ActionModel } from '../actions.ts';
 import type { CiteSelection } from './types.ts';
+import { type DraftReference } from './draft-references.ts';
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error';
 export type { CreateMode } from './request-guard.ts';
 export type TopicsStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type SettingsSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+export interface ComposeSeed {
+    readonly sessionId: string;
+    readonly question: string;
+    readonly id: string;
+    readonly references: readonly DraftReference[];
+}
 export interface CompanionSnapshot {
-    composeSeed: {
-        readonly sessionId: string;
-        readonly question: string;
-        readonly id: string;
-    } | null;
+    composeSeeds: readonly ComposeSeed[];
     sourceSessionId: SessionId | null;
     phase: CompanionPhase;
     draftQuote: string | null;
@@ -51,11 +54,16 @@ export interface CompanionFace {
     /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
     createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>;
     openTopic(sessionId: string): Promise<void>;
-    ask(question: string, attachments?: readonly DraftAttachmentId[], mode?: DeliveryMode): Promise<boolean>;
+    /** Resolve only the explicitly selected, unarchived Topic; null means create a new one. */
+    resolveDraftTopic(sourceSessionId: SessionId): Promise<string | null>;
+    /** Append to the exact still-selected Topic; never change its route, permissions or running turn. */
+    appendSelection(sourceSessionId: SessionId, topicSessionId: string, question: string, references: readonly DraftReference[]): void;
+    /** Acknowledge a draft event only after its UI consumer accepted it. */
+    consumeComposeSeed(id: string): void;
+    ask(question: string, attachments?: readonly DraftAttachmentId[], mode?: DeliveryMode, requestId?: string, expectedSessionId?: string): Promise<boolean>;
     setPermission(mode: NonNullable<CiteCiterSettings['defaultPermission']>): Promise<void>;
     answerQuestion(key: string, answer: QuestionAnswer): Promise<void>;
     cancelQuestion(key: string): Promise<void>;
-    boardCaptureReply(sessionId: string, id: string, png?: string, error?: string): Promise<void>;
     stop(): Promise<void>;
     rename(title: string): Promise<boolean>;
     archive(archived: boolean): Promise<boolean>;
@@ -70,4 +78,4 @@ export interface CompanionFace {
 /** Initial browser snapshot for the root-scoped CiteCiter controller. */
 export declare const INITIAL_COMPANION_SNAPSHOT: CompanionSnapshot;
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
-export declare function createCompanionController(readChat: (sessionId: SessionId) => ChatSnapshot | undefined, settingsScope: SettingsScope<CiteCiterSettings>, request: RemoteRequest, onAutoOpen: () => void, store: SnapshotStore<CompanionSnapshot>, nativeComposer: NativeComposer): CompanionFace;
+export declare function createCompanionController(readChat: (sessionId: SessionId) => ChatSnapshot | undefined, configForms: SettingsForm<CiteCiterSettings>, request: RemoteRequest, onAutoOpen: () => void, store: SnapshotStore<CompanionSnapshot>, nativeComposer: NativeComposer): CompanionFace;

@@ -1,7 +1,8 @@
 import type { NativeComposer, DeliveryMode } from './native-composer.ts'
+import { UncertainSubmissionError } from './native-composer.ts'
 import type { DraftAttachmentId } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { SettingsForm } from './host-ui-adapter.ts'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
@@ -17,7 +18,7 @@ import {
   type TopicSummary,
 } from '../topic.ts'
 import { readAssistantAnswer } from './answer.ts'
-import { normalizeQuestion } from './prompt.ts'
+import { normalizeQuestion, normalizeDraftQuestion } from './prompt.ts'
 import {
   claimAskIntent,
   claimCreateFreeTopicIntent,
@@ -31,14 +32,22 @@ import {
 import { isCurrentTopicResponse, shouldReopenLastTopic } from './response-guard.ts'
 import type { ActionModel } from '../actions.ts'
 import type { CiteSelection } from './types.ts'
+import { topicDraftReferences, type DraftReference } from './draft-references.ts'
 
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error'
 export type { CreateMode } from './request-guard.ts'
 export type TopicsStatus = 'idle' | 'loading' | 'ready' | 'error'
 export type SettingsSaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
+export interface ComposeSeed {
+  readonly sessionId: string
+  readonly question: string
+  readonly id: string
+  readonly references: readonly DraftReference[]
+}
+
 export interface CompanionSnapshot {
-  composeSeed: { readonly sessionId: string, readonly question: string, readonly id: string } | null
+  composeSeeds: readonly ComposeSeed[]
   sourceSessionId: SessionId | null
   phase: CompanionPhase
   draftQuote: string | null
@@ -76,11 +85,16 @@ export interface CompanionFace {
   /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
   createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>
   openTopic(sessionId: string): Promise<void>
-  ask(question: string, attachments?: readonly DraftAttachmentId[], mode?: DeliveryMode): Promise<boolean>
+  /** Resolve only the explicitly selected, unarchived Topic; null means create a new one. */
+  resolveDraftTopic(sourceSessionId: SessionId): Promise<string | null>
+  /** Append to the exact still-selected Topic; never change its route, permissions or running turn. */
+  appendSelection(sourceSessionId: SessionId, topicSessionId: string, question: string, references: readonly DraftReference[]): void
+  /** Acknowledge a draft event only after its UI consumer accepted it. */
+  consumeComposeSeed(id: string): void
+  ask(question: string, attachments?: readonly DraftAttachmentId[], mode?: DeliveryMode, requestId?: string, expectedSessionId?: string): Promise<boolean>
   setPermission(mode: NonNullable<CiteCiterSettings['defaultPermission']>): Promise<void>
   answerQuestion(key: string, answer: QuestionAnswer): Promise<void>
   cancelQuestion(key: string): Promise<void>
-  boardCaptureReply(sessionId: string, id: string, png?: string, error?: string): Promise<void>
   stop(): Promise<void>
   rename(title: string): Promise<boolean>
   archive(archived: boolean): Promise<boolean>
@@ -95,7 +109,7 @@ export interface CompanionFace {
 
 /** Initial browser snapshot for the root-scoped CiteCiter controller. */
 export const INITIAL_COMPANION_SNAPSHOT: CompanionSnapshot = {
-  composeSeed: null,
+  composeSeeds: [],
   sourceSessionId: null,
   phase: 'idle',
   draftQuote: null,
@@ -177,7 +191,7 @@ function writeCitationAnchor(sourceSessionId: string, anchorSeq: number, anchorK
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
 export function createCompanionController(
   readChat: (sessionId: SessionId) => ChatSnapshot | undefined,
-  settingsScope: SettingsScope<CiteCiterSettings>,
+  configForms: SettingsForm<CiteCiterSettings>,
   request: RemoteRequest,
   onAutoOpen: () => void,
   store: SnapshotStore<CompanionSnapshot>,
@@ -267,6 +281,8 @@ export function createCompanionController(
   const acceptTopic = (rawTopic: TopicSnapshot, operationGeneration: number, expectedSessionId?: string, polling = false) => {
     const topic = clearRecoveredError(withPendingModelConfig(rawTopic))
     const current = store.getSnapshot()
+    // A poll may finish after navigation has accepted a different Topic.
+    if (polling && current.active?.topic.sessionId !== topic.topic.sessionId) return
     if (disposed || !isCurrentTopicResponse(
       operationGeneration,
       activeGeneration,
@@ -277,7 +293,13 @@ export function createCompanionController(
     )) return
     if (!polling) actionFailure = null
     const failure = actionFailure?.generation === operationGeneration ? actionFailure.message : null
+    const restored = current.active?.topic.sessionId === topic.topic.sessionId
+      && current.active.topic.archived && !topic.topic.archived && current.includeArchived
     update((draft) => {
+      if (restored) {
+        draft.includeArchived = false
+        draft.topics = []
+      }
       const lastMessage = topic.messages.at(-1)
       draft.active = topic
       draft.draftQuote = null
@@ -289,7 +311,9 @@ export function createCompanionController(
       draft.error = failure ?? topic.error
       upsertTopic(draft, topic.topic)
     })
-    writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId)
+    // Background snapshots in another window must not replace the user's latest navigation.
+    if (!polling) writeLastTopic(topic.topic.sourceSessionId, topic.topic.sessionId)
+    if (restored) void refreshTopics()
   }
 
   const call = (command: CiteCiterRequest): Promise<CiteCiterResponse> => track(remoteOperations, (async () => {
@@ -404,10 +428,20 @@ export function createCompanionController(
     if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId, true)
   }
 
+  const resolveDraftTopic = async (sourceSessionId: SessionId): Promise<string | null> => {
+    if (disposed || store.getSnapshot().sourceSessionId !== sourceSessionId) throw new Error('来源已切换，请重新选文')
+    const current = store.getSnapshot()
+    if (current.deleting || current.archiving || current.phase === 'creating') throw new Error('Topic 正在切换，请稍后重新选文')
+    if (current.active !== null && !current.active.topic.archived) return current.active.topic.sessionId
+    return null
+  }
+
   const poll = async () => {
     if (!visible || disposed || polling) return
     if (pendingFreeCreates.size > 0) return
-    const active = store.getSnapshot().active
+    const current = store.getSnapshot()
+    if (current.phase === 'creating') return
+    const active = current.active
     if (active !== null && pendingAsks.has(active.topic.sessionId)) return
     polling = true
     const operationGeneration = activeGeneration
@@ -434,7 +468,7 @@ export function createCompanionController(
     }
   }
 
-  const settingsSnapshot = settingsScope.getSnapshot()
+  const settingsSnapshot = configForms.getSnapshot()
   settingsReady = settingsSnapshot.status !== 'loading'
   const initialSettings = settingsSnapshot.value ?? DEFAULT_CITECITER_SETTINGS
   update((draft) => {
@@ -447,8 +481,8 @@ export function createCompanionController(
     }
     return merged
   }
-  const unsubscribeSettings = settingsScope.subscribe(() => {
-    const scopeSnapshot = settingsScope.getSnapshot()
+  const unsubscribeSettings = configForms.subscribe(() => {
+    const scopeSnapshot = configForms.getSnapshot()
     const becameReady = !settingsReady && scopeSnapshot.status !== 'loading'
     settingsReady = scopeSnapshot.status !== 'loading'
     const value = scopeSnapshot.value
@@ -600,7 +634,7 @@ export function createCompanionController(
         writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey)
       }
       acceptTopic(response.topic, operationGeneration)
-      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId } })
+      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: response.topic.topic.sessionId, question, id: intent.requestId, references: topicDraftReferences(response.topic.topic, response.topic.documentTitle) }] })
       await refreshTopics()
     } catch (error) {
       fail(error, operationGeneration)
@@ -609,7 +643,7 @@ export function createCompanionController(
 
   const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode, scenario: TopicScenario = 'qa', modelRoute?: ActionModel): Promise<void> => {
     if (disposed) return
-    const question = normalizeQuestion(rawQuestion)
+    const question = normalizeDraftQuestion(rawQuestion)
     const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode
     const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario, modelRoute)
     if (disposed) return
@@ -654,7 +688,7 @@ export function createCompanionController(
         if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
         completeRequestIntent(intent)
         acceptTopic(response.topic, operationGeneration)
-        if (operationGeneration === activeGeneration) update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId } })
+        if (operationGeneration === activeGeneration) update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: response.topic.topic.sessionId, question, id: intent.requestId, references: topicDraftReferences(response.topic.topic, response.topic.documentTitle) }] })
         await refreshTopics()
         return operationGeneration === activeGeneration
       } catch (error) {
@@ -675,7 +709,7 @@ export function createCompanionController(
     const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId
     if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
     if (sourceSessionId === null) throw new Error('打开 CiteCiter 面板后即可创建文档 Topic')
-    const question = normalizeQuestion(rawQuestion)
+    const question = normalizeDraftQuestion(rawQuestion)
     const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute)
     if (disposed) return
     if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
@@ -708,7 +742,7 @@ export function createCompanionController(
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的文档 Topic 响应')
       completeRequestIntent(intent)
       acceptTopic(response.topic, operationGeneration)
-      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeed = { sessionId: response.topic.topic.sessionId, question, id: intent.requestId } })
+      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: response.topic.topic.sessionId, question, id: intent.requestId, references: topicDraftReferences(response.topic.topic, response.topic.documentTitle) }] })
       if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId) onAutoOpen()
       await refreshTopics()
     } catch (error) {
@@ -723,6 +757,7 @@ export function createCompanionController(
     update((draft) => {
       draft.phase = 'running'
       draft.error = null
+      draft.notice = null
     })
     try {
       const response = await call({
@@ -740,22 +775,30 @@ export function createCompanionController(
     }
   }
 
-  const ask = async (rawQuestion: string, attachments: readonly DraftAttachmentId[] = [], mode: DeliveryMode = 'queue'): Promise<boolean> => {
+  const ask = async (rawQuestion: string, attachments: readonly DraftAttachmentId[] = [], mode: DeliveryMode = 'queue', requestId?: string, expectedSessionId?: string): Promise<boolean> => {
     if (disposed) return false
     const snapshot = store.getSnapshot()
     const active = snapshot.active
     if (active === null || !['ready', 'stopped', 'error', 'running'].includes(snapshot.phase)) return false
     const sessionId = active.topic.sessionId
+    if (expectedSessionId !== undefined && expectedSessionId !== sessionId) return false
     if (active.topic.hosted === true) {
       if (pendingAsks.has(sessionId)) return false
       const generation = activeGeneration
       const operation = (async () => {
         try {
-          await nativeComposer.send(sessionId, rawQuestion, attachments, mode)
-        } catch (error) { fail(error, generation); return false }
+          await nativeComposer.send(sessionId, rawQuestion, attachments, mode, requestId)
+        } catch (error) {
+          fail(error, generation)
+          if (error instanceof UncertainSubmissionError) throw error
+          return false
+        }
         // Host admission is authoritative. A later read failure must not keep an
         // already accepted draft available for accidental duplicate submission.
-        if (generation === activeGeneration) actionFailure = null
+        if (generation === activeGeneration) {
+          actionFailure = null
+          update(draft => { draft.notice = null })
+        }
         try {
           const response = await call({ action: 'get', topicSessionId: sessionId })
           if (response.kind === 'topic') acceptTopic(response.topic, generation, sessionId)
@@ -1056,11 +1099,11 @@ export function createCompanionController(
       draft.settingsSaveMessage = '正在保存…'
     })
     try {
-      if (value === undefined) await track(remoteOperations, settingsScope.unset(key))
-      else await track(remoteOperations, settingsScope.set(key, value))
+      if (value === undefined) await track(remoteOperations, configForms.unset(key))
+      else await track(remoteOperations, configForms.set(key, value))
       if (pendingSettings.get(key)?.operation !== operation || disposed) return
       pendingSettings.delete(key)
-      const authoritative = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
+      const authoritative = configForms.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
       update((draft) => {
         draft.settings = settingsWithPending(authoritative)
         draft.settingsSaveStatus = pendingSettings.size === 0 ? 'saved' : 'saving'
@@ -1069,7 +1112,7 @@ export function createCompanionController(
     } catch (error) {
       if (pendingSettings.get(key)?.operation !== operation || disposed) return
       pendingSettings.delete(key)
-      const restored = settingsScope.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
+      const restored = configForms.getSnapshot().value ?? DEFAULT_CITECITER_SETTINGS
       update((draft) => {
         draft.settings = settingsWithPending(restored)
         draft.settingsSaveStatus = 'error'
@@ -1087,6 +1130,13 @@ export function createCompanionController(
     createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
     createFromDocument: (...args) => admit(undefined, () => createFromDocument(...args)),
     openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
+    resolveDraftTopic: sourceSessionId => admit(null, () => resolveDraftTopic(sourceSessionId)),
+    appendSelection: (sourceSessionId, topicSessionId, question, references) => {
+      const snapshot = store.getSnapshot()
+      if (disposed || snapshot.sourceSessionId !== sourceSessionId || snapshot.active?.topic.sessionId !== topicSessionId || snapshot.active.topic.archived || snapshot.deleting || snapshot.archiving || snapshot.phase === 'creating') throw new Error('当前 Topic 已切换或不可编辑，请重新选文')
+      update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: topicSessionId, question, references, id: crypto.randomUUID() }] })
+    },
+    consumeComposeSeed: id => update(draft => { draft.composeSeeds = draft.composeSeeds.filter(seed => seed.id !== id) }),
     ask: (...args) => admit(false, () => ask(...args)),
     setPermission: mode => admit(undefined, async () => {
       const active = store.getSnapshot().active
@@ -1099,7 +1149,6 @@ export function createCompanionController(
     }),
     answerQuestion: (key, answer) => admit(undefined, () => answerQuestion(key, answer)),
     cancelQuestion: (key) => admit(undefined, () => cancelQuestion(key)),
-    boardCaptureReply: async (sessionId, id, png, error) => { await call({ action: 'board-capture', topicSessionId: sessionId, id, ...(png === undefined ? {} : { png }), ...(error === undefined ? {} : { error: error.slice(0, 500) }) }) },
     stop: () => admit(undefined, stop),
     rename: (title) => admit(false, () => rename(title)),
     archive: (archived) => admit(false, () => archive(archived)),

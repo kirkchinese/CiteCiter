@@ -1,12 +1,13 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentHandle } from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-agent-presets'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
 import { SessionId, SessionLogOffset, type SessionEvent } from '@deepseek-ai/dsh-session'
 import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 import type { CiteCiterSettings, TopicMetadata } from './topic.ts'
 import { CiterSessionWorld } from './citer-session-world.ts'
 import { CiterSessionAccess } from './citer-session-access.ts'
+import { assertOwnedSessionFormat } from './session-format-guard.ts'
 
 /** Host-owned session services; Citer owns only its scoped contributions and factory handles. */
 export class HostSessionAdapter {
@@ -23,14 +24,14 @@ export class HostSessionAdapter {
     private readonly storageRoot: (metadata: TopicMetadata) => string,
   ) {
     this.access = new CiterSessionAccess(ctx, () => this.dispose())
-    ctx.on('agent/created', ({ agent }) => {
+    ctx.on('agent/created', async ({ agent }) => {
       const metadata = this.metadata.get(agent.session.header.id)
-      if (metadata !== undefined) void this.attach(agent, metadata).catch(error => ctx.logger.error('CiteCiter session composition failed', error))
+      if (metadata !== undefined) await this.attach(agent, metadata)
     })
-    ctx.on('agent/disposed', ({ agent }) => {
+    ctx.on('agent/disposed', async ({ agent }) => {
       const entry = this.scopes.get(agent)
       this.scopes.delete(agent)
-      if (entry !== undefined) void entry.dispose().catch(error => ctx.logger.warn('CiteCiter scope disposal failed', error))
+      if (entry !== undefined) await entry.dispose()
     })
   }
 
@@ -57,6 +58,7 @@ export class HostSessionAdapter {
     if (metadata.storage !== 'source') return this.ctx
     let world = this.worlds.get(metadata.sessionId)
     if (world === undefined) {
+      await assertOwnedSessionFormat(this.storageRoot(metadata), metadata.sessionId)
       world = new CiterSessionWorld(this.ctx, this.storageRoot(metadata), this.access)
       this.worlds.set(metadata.sessionId, world)
     }

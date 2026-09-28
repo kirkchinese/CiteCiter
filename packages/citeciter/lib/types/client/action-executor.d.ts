@@ -1,4 +1,4 @@
-import type { CiteAction, ActionModel, PanelPresentation } from '../actions.ts';
+import { type CiteAction, type ActionModel, type PanelPresentation } from '../actions.ts';
 import { type ActionSource } from './action-controller.ts';
 import type { CompanionFace } from './companion-controller.ts';
 import type { ReaderFace } from './reader-controller.ts';

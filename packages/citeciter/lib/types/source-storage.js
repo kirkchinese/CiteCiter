@@ -1,13 +1,15 @@
 import { lstat, mkdir, readFile, realpath, readdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { SessionId } from '@deepseek-ai/dsh-session';
 import { z } from 'zod';
+import { assertSessionFormat, NewerSessionFormatError } from "./session-format-guard.js";
 const ownerSchema = z.object({ kind: z.literal('citeciter-source'), version: z.literal(1), sourceSessionId: z.string().min(1) }).strict();
 function absent(error) { return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'; }
 /** Locate only source-owned Citer directories through the installed JSONL backend; persisted paths are never trusted. */
 export class SourceStorage {
     host;
     pending = new Map();
+    historicalDirectories;
     constructor(host) {
         this.host = host;
     }
@@ -29,12 +31,18 @@ export class SourceStorage {
         if (typeof backend.resolveCurrentLog !== 'function')
             throw new Error('当前 DSH 存储后端不支持定位来源 Session 目录');
         const file = await backend.resolveCurrentLog(SessionId(sourceSessionId));
-        if (file === undefined) {
+        // Alpha reads older generations without publishing a successor until write
+        // access. An existing Citer directory must stay discoverable in that state.
+        const sourceDirectory = file === undefined
+            ? (await (this.historicalDirectories ??= this.findHistoricalDirectories(backend.config?.root))).get(sourceSessionId)
+            : dirname(await realpath(file));
+        if (sourceDirectory === undefined) {
             if (create)
                 throw new Error('来源 Session 尚未保存，请先在主对话发送消息');
             return undefined;
         }
-        const directory = resolve(dirname(await realpath(file)), 'citeciter');
+        await assertSessionFormat(sourceDirectory);
+        const directory = resolve(sourceDirectory, 'citeciter');
         let info = await lstat(directory).catch(error => { if (absent(error))
             return undefined; throw error; });
         if (info === undefined) {
@@ -65,13 +73,45 @@ export class SourceStorage {
             throw new Error('Citer 来源目录标记与 Session 不匹配');
         return realpath(directory);
     }
+    /** Locate historical source containers only; DSH alone reads and migrates their logs. */
+    async findHistoricalDirectories(root) {
+        if (typeof root !== 'string' || !isAbsolute(root))
+            throw new Error('当前 DSH 未提供可定位的 JSONL 存储根目录');
+        const result = new Map();
+        const workspaces = await readdir(root, { withFileTypes: true }).catch(error => { if (absent(error))
+            return []; throw error; });
+        for (const workspace of workspaces) {
+            if (!workspace.isDirectory() || workspace.isSymbolicLink())
+                continue;
+            const parent = resolve(root, workspace.name);
+            for (const session of await readdir(parent, { withFileTypes: true })) {
+                if (!session.isDirectory() || session.isSymbolicLink())
+                    continue;
+                const directory = resolve(parent, session.name);
+                const logs = await readdir(directory, { withFileTypes: true });
+                if (!logs.some(file => file.isFile() && /^session(?:\.v\d+)?\.jsonl(?:\.zstd)?$/u.test(file.name)))
+                    continue;
+                if (result.has(session.name))
+                    throw new Error('多个来源目录使用相同的 Session 标识，Citer 未选择其中任何一个');
+                result.set(session.name, directory);
+            }
+        }
+        return result;
+    }
     /** Discover owned roots without creating directories or changing Host Session data. */
     async discover() {
         const roots = new Map();
         for (const record of await this.host.sessionPersistence.list()) {
-            const root = await this.root(record.header.id);
-            if (root !== undefined)
-                roots.set(record.header.id, root);
+            try {
+                const root = await this.root(record.header.id);
+                if (root !== undefined)
+                    roots.set(record.header.id, root);
+            }
+            catch (error) {
+                if (!(error instanceof NewerSessionFormatError))
+                    throw error;
+                this.host.logger.warn(`Citer 未加载 ${record.header.id}：${error.message}`);
+            }
         }
         return roots;
     }

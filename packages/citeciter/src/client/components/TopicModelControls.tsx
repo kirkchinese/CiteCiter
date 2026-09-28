@@ -19,7 +19,7 @@ export function TopicModelControls({ providers, route, saving, onModel, onReason
   const effort = model?.reasoningEfforts.find(item => item.id === route.reasoningEffort)?.name ?? '默认'
   const finish = (action: () => void) => { action(); close(); anchor.current?.focus() }
   return <div className={css.controls}>
-    <button ref={anchor} type="button" className={css.trigger} disabled={saving} aria-label={`模型与思考强度：${name}，${effort}`} aria-haspopup="menu" aria-expanded={page !== 'closed'} onClick={() => setPage(page === 'closed' ? 'root' : 'closed')}>
+    <button ref={anchor} type="button" className={css.trigger} aria-disabled={saving} aria-busy={saving} aria-label={`模型与思考强度：${name}，${effort}`} aria-haspopup="menu" aria-expanded={page !== 'closed'} onClick={() => { if (!saving) setPage(page === 'closed' ? 'root' : 'closed') }}>
       <span>{name}</span><small>{effort}</small><span aria-hidden="true">⌄</span>
     </button>
     {page !== 'closed' && <ChoicePopover anchor={anchor} label="模型与思考强度" onClose={close}>

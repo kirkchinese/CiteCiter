@@ -3,7 +3,9 @@
   position: fixed;
   z-index: 2147483000;
   width: min(310px, calc(100vw - 16px));
+  box-sizing: border-box;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 7px;
   border: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary, #253040) 13%, transparent);
   border-radius: 18px;

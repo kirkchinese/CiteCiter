@@ -1,5 +1,6 @@
 import { citeCiterRequestSchema, citeCiterResponseSchema } from "./topic.js";
 import { updateCheckResponseSchema } from "./update.js";
+import { strictCodec } from "./typert-codec.js";
 /** Strict root-scoped Topic command shared by Host and browser manifests. */
 export const citeCiterRequestDescriptor = {
     id: '@kirkchinese/dsh-citeciter#citeciter/request',
@@ -11,18 +12,10 @@ export const citeCiterRequestDescriptor = {
             name: 'rawRequest',
             wire: 'rawRequest',
             source: 'json',
-            codec: {
-                mode: 'strict',
-                typeSymbol: '@kirkchinese/dsh-citeciter#CiteCiterRequest',
-                schema: citeCiterRequestSchema,
-            },
+            codec: strictCodec('@kirkchinese/dsh-citeciter#CiteCiterRequest', citeCiterRequestSchema),
         }],
     cancellation: { parameter: 'signal' },
-    result: {
-        mode: 'strict',
-        typeSymbol: '@kirkchinese/dsh-citeciter#CiteCiterResponse',
-        schema: citeCiterResponseSchema,
-    },
+    result: strictCodec('@kirkchinese/dsh-citeciter#CiteCiterResponse', citeCiterResponseSchema),
     sourceLocation: {
         file: 'src/index.ts',
         line: 127,
@@ -38,11 +31,7 @@ export const updateCheckDescriptor = {
     invocation: { kind: 'direct' },
     parameters: [],
     cancellation: { parameter: 'signal' },
-    result: {
-        mode: 'strict',
-        typeSymbol: '@kirkchinese/dsh-citeciter#UpdateCheckResponse',
-        schema: updateCheckResponseSchema,
-    },
+    result: strictCodec('@kirkchinese/dsh-citeciter#UpdateCheckResponse', updateCheckResponseSchema),
     sourceLocation: {
         file: 'src/index.ts',
         line: 134,

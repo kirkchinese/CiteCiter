@@ -1,4 +1,4 @@
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { SettingsForm as ConfigForm } from './host-ui-adapter.ts';
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store';
 import type { CiteCiterSettings } from '../topic.ts';
 type UpdateStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -53,7 +53,7 @@ export declare function createUpdateBrowserEnvironment(): UpdateBrowserEnvironme
  * @param reportCheckError - diagnostic sink for silent automatic-check failures.
  * @returns the root-scoped update controller.
  */
-export declare function createUpdateController(settings: SettingsScope<CiteCiterSettings>, checkUpdate: CheckUpdate, store: SnapshotStore<UpdateNoticeSnapshot>, environment?: UpdateBrowserEnvironment, reportCheckError?: (error: unknown) => void): UpdateController;
+export declare function createUpdateController(settings: ConfigForm<CiteCiterSettings>, checkUpdate: CheckUpdate, store: SnapshotStore<UpdateNoticeSnapshot>, environment?: UpdateBrowserEnvironment, reportCheckError?: (error: unknown) => void): UpdateController;
 /** @param version - validated latest package version. @param profile - active Desktop profile, or Web default. @returns the command shown and copied by the notice. */
 export declare function citeCiterUpdateCommand(version: string, profile?: string): string;
 export {};

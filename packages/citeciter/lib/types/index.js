@@ -34,12 +34,13 @@ var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, 
 };
 /** Host entry for native Topics, legacy compatibility and the browser Remote API. */
 import { Service } from '@deepseek-ai/cordis';
+import { bindHostSettings, settingsConfig } from "./host-settings-adapter.js";
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import z from '@deepseek-ai/schemastery';
 import { TopicRuntime } from "./topic-runtime.js";
 import { UpdateChecker } from "./update.js";
-import { DEFAULT_WHEEL_SLOTS } from "./actions.js";
-import { CITECITER_SETTINGS_NAMESPACE, DEFAULT_CITECITER_SETTINGS, citeCiterRequestSchema, citeCiterSettingsSchema, } from "./topic.js";
+import { actionTarget, DEFAULT_WHEEL_SLOTS } from "./actions.js";
+import { CITECITER_SETTINGS_NAMESPACE, DEFAULT_CITECITER_SETTINGS, citeCiterRequestSchema, } from "./topic.js";
 /** Cordis/Typert package identity. */
 export const name = '@kirkchinese/dsh-citeciter';
 /** Explicit dependencies for native session composition and legacy compatibility. */
@@ -74,13 +75,9 @@ export const CITECITER_SETTINGS_SCHEMA = z.object({
             ask: z.boolean(),
             scenario: z.union(['qa', 'present']),
             presentation: z.union(['side', 'floating']),
-        })])).min(8).max(8).default([...DEFAULT_WHEEL_SLOTS]),
+            target: z.union(['current', 'new']),
+        })])).min(8).max(8).default(DEFAULT_WHEEL_SLOTS.map(slot => slot === null ? null : { ...slot, target: actionTarget(slot) })),
 });
-function currentSettings(ctx) {
-    const raw = ctx.get('settings')?.get(CITECITER_SETTINGS_NS);
-    const parsed = citeCiterSettingsSchema.safeParse(raw);
-    return parsed.success ? parsed.data : DEFAULT_CITECITER_SETTINGS;
-}
 /** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
 let CiteCiterHost = (() => {
     let _classSuper = TypertRemoteService;
@@ -97,16 +94,14 @@ let CiteCiterHost = (() => {
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
         static inject = inject;
+        static Config = settingsConfig(CITECITER_SETTINGS_SCHEMA);
         topics = __runInitializers(this, _instanceExtraInitializers);
         updates = new UpdateChecker();
         service;
         releaseService;
-        constructor(ctx) {
+        constructor(ctx, config) {
             super(ctx, 'citeciter');
-            ctx.inject(['settings'], (settingsCtx) => {
-                settingsCtx.settings.register(CITECITER_SETTINGS_NS, CITECITER_SETTINGS_SCHEMA);
-            });
-            this.topics = new TopicRuntime(ctx, () => currentSettings(ctx));
+            this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, CITECITER_SETTINGS_SCHEMA, config));
             this.service = {
                 create: async (request, signal) => this.topicSnapshot(request, signal),
                 ask: async (request, signal) => this.topicSnapshot(request, signal),

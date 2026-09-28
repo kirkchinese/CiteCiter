@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis';
 import type SessionStore from '@deepseek-ai/dsh-session';
 import type { Session } from '@deepseek-ai/dsh-session';
-/** Bridge native checkpoints and identity lookups to owned stores without adding their members to Host enumeration. */
+/** Route durability checkpoints to owned stores without publishing Topic identities in the Host store. */
 export declare class CiterSessionAccess {
     private readonly owners;
     /** Install one reversible adapter for this plugin's lifetime. No Host files or Agent Loop methods change. */

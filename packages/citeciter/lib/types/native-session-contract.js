@@ -14,6 +14,7 @@ export const nativeAttachmentSchema = z.discriminatedUnion('type', [
 ]);
 /** Read-only control projection. The Agent inbox remains the only authoritative queue. */
 export const nativeStateSchema = z.object({
+    modelSelectionRequired: z.boolean().optional(),
     running: z.boolean(), blank: z.boolean(), error: z.string().nullable(),
     queue: z.array(z.object({
         id: z.string().min(1), placement: z.enum(['queued', 'steering', 'context']), rpcId: z.string().optional(),

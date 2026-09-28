@@ -38,6 +38,8 @@ export interface BoardCitationRequest {
 }
 export interface CiteOverlaySnapshot {
     readonly panelOpen: boolean;
+    /** Explicit navigation request, including reopening a temporarily covered panel. */
+    readonly activation: number;
     readonly presentation: PanelPresentation;
     readonly boardCitation: BoardCitationRequest | null;
 }

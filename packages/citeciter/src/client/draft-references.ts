@@ -1,16 +1,21 @@
 import type { TopicSummary } from '../topic.ts'
+import type { DraftContent } from '../draft-contract.ts'
 
 /** One unsent model-visible reference. Removing this value removes its serialized content. */
-export interface DraftReference {
-  readonly id: string
-  readonly kind: 'source' | 'excerpt' | 'board'
-  readonly label: string
-  readonly content: string
-  readonly address?: string
+export type DraftReference = DraftContent['references'][number]
+
+/** Append real references once per unsent draft. A later explicit selection can restore a removed item. */
+export function mergeDraftReferences(current: readonly DraftReference[], incoming: readonly DraftReference[]): readonly DraftReference[] {
+  const result = [...current]
+  for (const reference of incoming) {
+    if (!result.some(item => item.id === reference.id || item.kind === reference.kind && item.address === reference.address && item.content === reference.content)) result.push(reference)
+  }
+  return result
 }
 
 /** Build initial references without submitting them. Stable Topic-scoped IDs preserve menu focus during live snapshot refreshes. */
 export function topicDraftReferences(topic: TopicSummary, documentTitle?: string): readonly DraftReference[] {
+  if (topic.citation === null && topic.documentId === null) return []
   const address = `dsh://session/${encodeURIComponent(topic.sourceSessionId)}`
   const references: DraftReference[] = [{ id: `source:${topic.sessionId}`, kind: 'source', label: '来源对话', content: topic.sourceSessionId, address }]
   if (topic.documentId !== null) references.push({ id: `document:${topic.sessionId}:${topic.documentId}`, kind: 'source', label: '来源文档', content: documentTitle ?? topic.documentId, address: `dsh://document/${encodeURIComponent(topic.documentId)}` })

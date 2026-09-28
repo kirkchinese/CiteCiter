@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { DisclosureRow, IconThinkOutline14, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { DisclosureRow, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconThinkOutlineMedium } from '../host-icons.ts'
 import { markdownLabels } from '../copy.ts'
 import css from './ReasoningDisclosure.module.css'
 
@@ -11,7 +12,7 @@ export function ReasoningDisclosure({ text, active }: { readonly text: string, r
     <DisclosureRow
       className={css.disclosure}
       rowClassName={active ? css.activeRow : css.row}
-      icon={<IconThinkOutline14 />}
+      icon={<IconThinkOutlineMedium />}
       title={active ? '思考中' : '思考'}
       open={open}
       expandable

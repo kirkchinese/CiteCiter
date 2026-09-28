@@ -15,5 +15,8 @@ export function resolveDockGeometry(viewport) {
             top: viewport.caption,
         };
     }
-    return { mode: 'page', width: Math.max(0, viewport.width - viewport.sidebar), height: contentHeight, top: viewport.caption };
+    return {
+        mode: viewport.details > 0 && viewport.preferDetails !== false ? 'suspended' : 'page',
+        width: Math.max(0, viewport.width - viewport.sidebar), height: contentHeight, top: viewport.caption,
+    };
 }

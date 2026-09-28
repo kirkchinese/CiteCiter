@@ -4,6 +4,7 @@
   "packageManager": "pnpm@11.21.0",
   "scripts": {
     "build": "pnpm --filter @kirkchinese/dsh-citeciter build",
-    "typecheck": "pnpm --filter @kirkchinese/dsh-citeciter typecheck"
+    "typecheck": "pnpm --filter @kirkchinese/dsh-citeciter typecheck",
+    "typecheck:desktop": "node packages/citeciter/scripts/check-desktop.mjs"
   }
 }

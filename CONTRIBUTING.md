@@ -2,11 +2,12 @@
 
 [简体中文](CONTRIBUTING.zh.md)
 
-Use Node.js `^22.19.0 || >=24.0.0`, pnpm `11.21.0`, DSH `0.1.5-rc.1` and Desktop `2.0.9`. The package lives in `packages/citeciter/`; Host and Client compile separately with strict TypeScript.
+Use Node.js `^22.19.0 || >=24.0.0`, pnpm `11.21.0` and DSH `0.1.7-rc.2` for the 0.9 prerelease. Real-model acceptance and host limitations are recorded in docs/validation/2026-09-27-connect-450.md; the released 0.8 line retains its DSH `0.1.5-rc.1` / Desktop `2.0.9` baseline. The package lives in `packages/citeciter/`; Host and Client compile separately with strict TypeScript.
 
 ```powershell
 pnpm install --frozen-lockfile
 pnpm typecheck
+pnpm typecheck:desktop
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
 git diff --check
@@ -20,18 +21,30 @@ Follow the [DSH architecture](https://github.com/deepseek-ai/deepseek-harness/bl
 
 | Module | Responsibility |
 | --- | --- |
+| host-settings-adapter.ts / typert-codec.ts / client/host-ui-adapter.ts / client/host-icons.ts | Normalize the two pinned host contracts at isolated boundaries |
+| session-format-guard.ts | Refuse old-host writes to newer native logs without rewriting their format |
+| draft-contract.ts / draft-store.ts / client/draft-controller.ts | Versioned draft state, owned byte storage, CAS saves and exact admission reconciliation |
+| model-admission.ts | Recover a retired inherited model without losing the Topic or submitting its draft |
+| client/components/ToolMessage.tsx | Tool disclosure and visible attachments, using a session-authorized loader |
+| client/transcript-position.ts | Per-Topic reading anchors, explicit-send following and image/reflow restoration |
 | host-session-adapter.ts | Native Agent creation, resumption, initial permissions and scoped contributions |
 | citer-session-world.ts / citer-session-store.ts | Owned native factories and membership; no root navigation announcement |
-| citer-session-access.ts | Reversible native get/flush routing by exact identity; list remains unchanged |
+| citer-session-access.ts | Owned model checkpoints and reversible flush routing; Host get/list remain unchanged |
 | source-storage.ts / session-migration.ts / owned-session-cleanup.ts | Verified source paths, complete-log migration and contained cleanup |
 | source-session.ts | Source observation, disposal and submitted-reference checks |
 | topic-index.ts | Metadata validation, navigation and legacy private-log cleanup |
 | topic-runtime.ts | Topic use cases, tool contributions and legacy compatibility |
 | source-read-tool.ts / topic-prompts.ts | Source tool schema, paging guidance and native prompt composition |
+| document-tools.ts | Authorized document read/search contracts, UTF-16 ranges, response budgets and continuation guidance |
+| topic-archive.ts | Distinguish accepted user input from later inbox claims and model/tool events for archive recovery |
 | board-capture.ts | Capture correlation, cancellation, timeout and native attachment storage |
+| board-capture-protocol.ts / client/board-capture-controller.ts | Poll exact Topic/revision render requests independently of panel and navigation lifecycles |
+| client/components/BoardCaptureWorker.tsx / BoardCaptureSurface.tsx | Render the actual board without starting a model request |
 | client/native-composer.ts | Published DSH attachment, send and queue services |
 | native-attachment-read.ts / client/file-download.ts | Exact Topic authorization, native file/image reads and download lifetime |
 | client/draft-references.ts | Draft references and exact submission serialization |
+| client/action-executor.ts / client/selection-references.ts | Explicit append/create routing and references from actual selections |
+| tool-events.ts / document-access.ts | Native/PTC event normalization and submitted-document access |
 | client/learning-route.ts | Learning request constraints and native todo result reading |
 | client/panel-drag.ts, host-dock.ts | Pointer and host layout lifecycles |
 | client/components/ | Controlled UI receiving snapshots and callbacks, without Cordis discovery |

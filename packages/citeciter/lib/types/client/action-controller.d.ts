@@ -34,14 +34,13 @@ export interface ActionSnapshot {
         readonly x: number;
         readonly y: number;
     } | null;
-    question: string;
     submitting: boolean;
     error: string | null;
     model: ActionModel | undefined;
 }
 /** Direction around the actual displayed centre; no action inside the dead zone or outside the wheel. */
 export declare function wheelSector(dx: number, dy: number): number | null;
-/** Controller owns duplicate submission, retry drafts and source-change cancellation. Dispose with the Client. */
+/** Prepare a draft through the action's destination policy; the Topic composer owns input and submission. */
 export declare function createActionController(execute: (source: ActionSource, action: CiteAction, question: string, model?: ActionModel) => Promise<void>, defaultModel?: () => ActionModel | undefined): {
     getSnapshot: () => ActionSnapshot;
     subscribe: (fn: () => void) => () => void;
@@ -49,13 +48,11 @@ export declare function createActionController(execute: (source: ActionSource, a
     move(x: number, y: number): void;
     focus(index: number): void;
     release(quick: boolean): void;
-    /** Cancel only the transient gesture; a question draft belongs to its explicit close/source lifecycle. */
+    /** Focus loss cancels only the transient gesture; the Topic composer retains its draft. */
     dismissWheel(): void;
     choose: (index: number | null) => void;
     cancel: () => void;
     submit: () => Promise<void>;
-    setModel(model: ActionModel | undefined): void;
-    setQuestion(question: string): void;
     dispose(): Promise<void>;
 };
 export type ActionController = ReturnType<typeof createActionController>;

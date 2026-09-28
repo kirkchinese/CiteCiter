@@ -2,6 +2,7 @@ import { SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session';
 import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy';
 import { CiterSessionWorld } from "./citer-session-world.js";
 import { CiterSessionAccess } from "./citer-session-access.js";
+import { assertOwnedSessionFormat } from "./session-format-guard.js";
 /** Host-owned session services; Citer owns only its scoped contributions and factory handles. */
 export class HostSessionAdapter {
     ctx;
@@ -19,16 +20,16 @@ export class HostSessionAdapter {
         this.assemble = assemble;
         this.storageRoot = storageRoot;
         this.access = new CiterSessionAccess(ctx, () => this.dispose());
-        ctx.on('agent/created', ({ agent }) => {
+        ctx.on('agent/created', async ({ agent }) => {
             const metadata = this.metadata.get(agent.session.header.id);
             if (metadata !== undefined)
-                void this.attach(agent, metadata).catch(error => ctx.logger.error('CiteCiter session composition failed', error));
+                await this.attach(agent, metadata);
         });
-        ctx.on('agent/disposed', ({ agent }) => {
+        ctx.on('agent/disposed', async ({ agent }) => {
             const entry = this.scopes.get(agent);
             this.scopes.delete(agent);
             if (entry !== undefined)
-                void entry.dispose().catch(error => ctx.logger.warn('CiteCiter scope disposal failed', error));
+                await entry.dispose();
         });
     }
     /** Drain owned factories before removing their native checkpoint routes. */
@@ -53,6 +54,7 @@ export class HostSessionAdapter {
             return this.ctx;
         let world = this.worlds.get(metadata.sessionId);
         if (world === undefined) {
+            await assertOwnedSessionFormat(this.storageRoot(metadata), metadata.sessionId);
             world = new CiterSessionWorld(this.ctx, this.storageRoot(metadata), this.access);
             this.worlds.set(metadata.sessionId, world);
         }

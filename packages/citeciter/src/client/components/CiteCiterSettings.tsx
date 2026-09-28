@@ -5,7 +5,7 @@ import type { SettingsDocumentSnapshot } from '../settings-document.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, UpdateActions, SettingsDocumentActions } from '../view-actions.ts'
 import { useEffect, useRef, useState } from 'react'
-import { IconSettingsOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSettingsOutlineMedium } from '../host-icons.ts'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './CiteCiter.module.css'
@@ -163,7 +163,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
             aria-busy={documentSnapshot.opening || documentSnapshot.status === 'loading'}
             onClick={() => { void settingsDocument.open() }}
           >
-            <IconSettingsOutline14 size={14} />
+            <IconSettingsOutlineMedium size={14} />
             {documentSnapshot.opening
               ? '正在打开…'
               : documentSnapshot.status === 'loading' ? '正在检查…'

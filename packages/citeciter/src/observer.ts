@@ -1,6 +1,7 @@
 /** Pure Observer citation validation and source-session evidence formatting. */
 /** Shared tool-evidence projections also consumed by the browser entry layer. */
 import { createHash } from 'node:crypto'
+import { toolCallRecord, toolResultRecord } from './tool-events.ts'
 import { projectToolEvidence } from './evidence-text.ts'
 export {
   projectDiffMeta,
@@ -240,25 +241,18 @@ export function resolveToolEvidence(
   if (source.session.id !== claim.sourceSessionId) {
     throw new Error('Citation toolClaim sourceSessionId does not match the observed source Session')
   }
-  const resultEvent = source.events.find((event) => (
-    event.type === 'tool/result'
-    && event.data.message.content[0]?.toolCallId === claim.callId
-  ))
-  if (resultEvent?.type !== 'tool/result') {
+  const resultEvent = source.events.find(event => toolResultRecord(event)?.callId === claim.callId)
+  const result = resultEvent === undefined ? undefined : toolResultRecord(resultEvent)
+  if (resultEvent === undefined || result === undefined) {
     throw new Error('Citation toolClaim does not identify a committed tool/result')
   }
-  const callEvent = source.events.find((event) => (
-    event.type === 'tool/call' && event.data.callId === claim.callId
-  ))
-  if (callEvent?.type !== 'tool/call') {
+  const callEvent = source.events.find(event => toolCallRecord(event)?.callId === claim.callId)
+  const call = callEvent === undefined ? undefined : toolCallRecord(callEvent)
+  if (call === undefined) {
     throw new Error('Citation toolClaim has no committed tool/call in the source Session')
   }
-  const result = resultEvent.data.message.content[0]
-  if (result === undefined || result.type !== 'tool-result') {
-    throw new Error('Citation tool/result has no result content')
-  }
   const projection = claim.projection ?? 'result-text'
-  const sourceText = projectToolEvidence(projection, result.content, resultEvent.data.meta)
+  const sourceText = projectToolEvidence(projection, result.content, result.meta)
   if (sourceText === null) {
     throw new Error(`Citation tool result has no citable ${projection} projection`)
   }
@@ -274,7 +268,7 @@ export function resolveToolEvidence(
         kind: 'tool-result',
         anchorSeq: resultEvent.seq,
         callId: claim.callId,
-        toolName: callEvent.data.name,
+        toolName: call.name,
         projection,
       },
       startOffset: 0,
@@ -323,6 +317,8 @@ function formatEvidenceEvent(
   event: SessionEvent,
   includeReasoning: boolean,
 ): SourceEvidenceEvent | null {
+  if (event.type === 'tool/ptc-dispatch-start') return evidence({ type: event.type, seq: event.seq, callId: event.data.subCallId, parentCallId: event.data.parentCallId, name: event.data.name, arguments: event.data.arguments })
+  if (event.type === 'tool/ptc-dispatch') return evidence({ type: event.type, seq: event.seq, callId: event.data.subCallId, parentCallId: event.data.parentCallId, name: event.data.name, content: event.data.content, isError: event.data.isError })
   switch (event.type) {
     case 'turn/start':
       return evidence({ type: event.type, seq: event.seq, turn: event.data.turn })
@@ -363,13 +359,13 @@ function formatEvidenceEvent(
         arguments: event.data.arguments,
       })
     case 'tool/result': {
-      const result = event.data.message.content[0]
+      const result = toolResultRecord(event)!
       return evidence({
         type: event.type,
         seq: event.seq,
         turn: event.data.turn,
         step: event.data.step,
-        callId: result.toolCallId,
+        callId: result.callId,
         content: result.content,
         isError: result.isError ?? false,
         ...(event.data.error === undefined ? {} : { error: event.data.error }),

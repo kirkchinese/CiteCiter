@@ -33,7 +33,7 @@ export class CiterSessionWorld {
     async start(host, root, access) {
         const modules = await loadHostAgentModules();
         const ready = Promise.withResolvers();
-        const base = host.isolate('agents').isolate('sessions').isolate('agentLoop').isolate('sessionPersistence').isolate('settings').isolate('typert');
+        const base = host.isolate('agents').isolate('sessions').isolate('sessionTitle').isolate('agentLoop').isolate('sessionPersistence').isolate('settings').isolate('typert');
         const world = this;
         this.release = host.effect(function* () {
             const fiber = world.fiber = base.plugin({
@@ -42,9 +42,17 @@ export class CiterSessionWorld {
                     await ctx.plugin(CiterAgentRegistry, { registry: host.agents });
                     await ctx.plugin(createCiterSessionStore(modules.SessionStore, access), { store: host.sessions });
                     await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' });
+                    // Title writes require membership in the service's own SessionStore.
+                    // Resolve the class from this host so shared projection definitions
+                    // have exactly its schema versions, including the older Desktop SDK.
+                    await ctx.plugin(modules.SessionTitleService, {
+                        fallbackMaxWords: 5,
+                        fallbackMaxBytes: 40,
+                        maxTitleBytes: 80,
+                    });
                     await ctx.plugin({
                         name: 'citeciter-session-factory',
-                        inject: ['agents', 'sessionPersistence', 'llm', 'sessions', 'systemPrompt', 'tools', 'sessionProjections'],
+                        inject: ['agents', 'sessionPersistence', 'llm', 'sessions', 'sessionTitle', 'systemPrompt', 'tools', 'sessionProjections'],
                         apply: async (services) => {
                             // Factory variables receive their own registration scope. Agents still
                             // join the Host's standing preset and inherit its global variables.

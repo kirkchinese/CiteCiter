@@ -1,4 +1,4 @@
-/** Isolated, disposable layout adapter for DSH 0.1.5-rc.1 and Desktop 2.0.9 frames. */
+/** Isolated, disposable layout adapter for DSH alpha and legacy three-column frames. */
 import { type RefObject } from 'react';
 import { type DockGeometry } from './dock-geometry.ts';
 /**
@@ -13,6 +13,8 @@ export declare function findContainingFrame(panel: HTMLElement | null): HTMLElem
  * @param panel - mounted panel reference.
  * @param open - whether space should be reserved.
  * @param percent - user's preferred fraction of the content viewport.
+ * @param floating - whether the user detached the panel.
+ * @param activation - increases only on explicit Citer navigation, permitting return from details.
  * @returns measured panel placement; null when the host frame is unsupported.
  */
-export declare function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number, floating?: boolean): DockGeometry | null;
+export declare function useHostDock(panel: RefObject<HTMLElement | null>, open: boolean, percent: number, floating?: boolean, activation?: number): DockGeometry | null;

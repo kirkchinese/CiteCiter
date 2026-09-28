@@ -43,13 +43,15 @@ export interface BoardCitationRequest {
 
 export interface CiteOverlaySnapshot {
   readonly panelOpen: boolean
+  /** Explicit navigation request, including reopening a temporarily covered panel. */
+  readonly activation: number
   readonly presentation: PanelPresentation
   readonly boardCitation: BoardCitationRequest | null
 }
 
 /** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export class CiteBus {
-  private snapshot: CiteOverlaySnapshot = { panelOpen: false, presentation: 'side', boardCitation: null }
+  private snapshot: CiteOverlaySnapshot = { panelOpen: false, activation: 0, presentation: 'side', boardCitation: null }
   private readonly listeners = new Set<() => void>()
   private nextCitationId = 1
 
@@ -69,8 +71,8 @@ export class CiteBus {
 
   /** Open or close the independent companion dock. */
   setPanelOpen(panelOpen: boolean): void {
-    if (this.snapshot.panelOpen === panelOpen) return
-    this.snapshot = { ...this.snapshot, panelOpen }
+    if (!panelOpen && !this.snapshot.panelOpen) return
+    this.snapshot = { ...this.snapshot, panelOpen, activation: this.snapshot.activation + (panelOpen ? 1 : 0) }
     this.notify()
   }
 

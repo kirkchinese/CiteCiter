@@ -2,11 +2,12 @@
 
 [English](CONTRIBUTING.md)
 
-使用 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0`、DSH `0.1.5-rc.1`，Desktop 基线为 `2.0.9`。安装包位于 `packages/citeciter/`，Host / Client 分别通过严格 TypeScript 编译。
+本预发布分支使用 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0`、DSH `0.1.7-rc.2`。双端真实模型验收范围与宿主限制见 docs/validation/2026-09-27-connect-450.md。已发布的 0.8 系列保留 DSH `0.1.5-rc.1` / Desktop `2.0.9` 基线。安装包位于 `packages/citeciter/`，Host / Client 分别通过严格 TypeScript 编译。
 
 ```powershell
 pnpm install --frozen-lockfile
 pnpm typecheck
+pnpm typecheck:desktop
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
 git diff --check
@@ -20,17 +21,28 @@ git diff --check
 
 | 模块 | 责任 |
 | --- | --- |
+| host-settings-adapter.ts / typert-codec.ts / client/host-ui-adapter.ts / client/host-icons.ts | 独立适配两套固定宿主契约 |
+| session-format-guard.ts | 阻止旧宿主写入较新的原生日志，不重写日志格式 |
+| draft-contract.ts / draft-store.ts / client/draft-controller.ts | 草稿版本、附件字节存储、修订号比较保存及精确发送回执核对 |
+| model-admission.ts | 继承模型失效时保留 Topic 和草稿，阻止未选模型的发送 |
+| client/components/ToolMessage.tsx | 工具详情与直接可见的附件，使用会话授权的读取接口 |
+| client/transcript-position.ts | 各 Topic 阅读锚点、手动发送跟随和图片重排恢复 |
 | host-session-adapter.ts | 原生 Agent 创建、恢复、权限初始化和作用域贡献 |
 | citer-session-world.ts / citer-session-store.ts | 独立原生工厂与实时成员；不向主列表发布 Topic |
-| citer-session-access.ts | 可逆的原生 get / flush 适配；list 不变，按精确身份路由 |
+| citer-session-access.ts | Citer 模型请求持久化与可逆的 flush 适配；宿主 get / list 保持不变 |
 | source-storage.ts / session-migration.ts / owned-session-cleanup.ts | 来源路径、完整日志迁移与所有权受控清理 |
 | source-session.ts | 来源观察、释放与已发送附件检查 |
 | topic-index.ts | 元数据校验、索引与旧私有日志清理 |
 | topic-runtime.ts | Topic 用例编排、工具贡献及旧日志兼容 |
 | source-read-tool.ts / topic-prompts.ts | 来源工具契约、分页说明与原生提示词组合 |
+| document-tools.ts | 经授权的文档读取／搜索契约、UTF-16 区间、返回预算和续读说明 |
+| topic-archive.ts | 按用户消息接收事件恢复归档，区分后续出队、模型与工具事件 |
 | board-capture.ts | 截图请求关联、取消、超时和原生附件保存 |
+| board-capture-protocol.ts / client/board-capture-controller.ts | 按 Topic 与版本轮询待截图请求，独立于面板和导航生命周期 |
+| client/components/BoardCaptureWorker.tsx / BoardCaptureSurface.tsx | 复用真实板书组件渲染截图，不创建模型调用 |
+| tool-events.ts / document-access.ts | 原生与 PTC 工具事件适配、已发送文档地址授权 |
 | client/native-composer.ts | 适配公开 DSH 附件、发送与队列服务 |
-| client/draft-references.ts | 待发送引用构造和精确序列化 |
+| client/draft-references.ts / selection-references.ts | 真实选文的待发送引用构造、去重和精确序列化 |
 | client/learning-route.ts | 学习请求约束与原生 todo 结果读取 |
 | client/panel-drag.ts、host-dock.ts | 拖动及宿主布局生命周期 |
 | client/components/ | 受控 UI；接收快照与业务回调，不发现 Cordis 服务 |

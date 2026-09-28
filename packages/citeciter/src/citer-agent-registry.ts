@@ -6,8 +6,8 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 export class CiterAgentRegistry extends AgentRegistry {
   constructor(ctx: Context, private readonly options: { readonly registry: AgentRegistry }) { super(ctx) }
   override enter(agent: Agent, owner: Agent | undefined): () => void { return this.options.registry.enter(agent, owner) }
-  override announce(agent: Agent): void { this.options.registry.announce(agent) }
-  override register(agent: Agent): () => void { return this.options.registry.register(agent) }
+  override announce(...args: Parameters<AgentRegistry['announce']>): ReturnType<AgentRegistry['announce']> { return this.options.registry.announce(...args) }
+  override register(agent: Agent): ReturnType<AgentRegistry['register']> { return this.options.registry.register(agent) }
   override get(id: SessionId): Agent | undefined { return this.options.registry.get(id) }
   override list(): Agent[] { return this.options.registry.list() }
   override roots(): Agent[] { return this.options.registry.roots() }

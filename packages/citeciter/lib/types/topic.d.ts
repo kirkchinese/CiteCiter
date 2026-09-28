@@ -68,6 +68,10 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
             side: "side";
             floating: "floating";
         }>;
+        target: z.ZodOptional<z.ZodEnum<{
+            current: "current";
+            new: "new";
+        }>>;
     }, z.core.$strict>>>>;
     wheelTrigger: z.ZodOptional<z.ZodEnum<{
         "right-button": "right-button";
@@ -133,8 +137,8 @@ export declare const citationEntrySchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     }>;
     fileIndex: z.ZodOptional<z.ZodNumber>;
     side: z.ZodOptional<z.ZodEnum<{
-        old: "old";
         new: "new";
+        old: "old";
     }>>;
 }, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"document-range">;
@@ -161,8 +165,8 @@ export declare const citationRecordSchema: z.ZodObject<{
         }>;
         fileIndex: z.ZodOptional<z.ZodNumber>;
         side: z.ZodOptional<z.ZodEnum<{
-            old: "old";
             new: "new";
+            old: "old";
         }>>;
     }, z.core.$strict>, z.ZodObject<{
         kind: z.ZodLiteral<"document-range">;
@@ -203,8 +207,8 @@ declare const citationRecordFileSchema: z.ZodObject<{
         }>;
         fileIndex: z.ZodOptional<z.ZodNumber>;
         side: z.ZodOptional<z.ZodEnum<{
-            old: "old";
             new: "new";
+            old: "old";
         }>>;
     }, z.core.$strict>, z.ZodObject<{
         kind: z.ZodLiteral<"document-range">;
@@ -264,8 +268,8 @@ export declare const topicMetadataSchema: z.ZodObject<{
             }>;
             fileIndex: z.ZodOptional<z.ZodNumber>;
             side: z.ZodOptional<z.ZodEnum<{
-                old: "old";
                 new: "new";
+                old: "old";
             }>>;
         }, z.core.$strict>, z.ZodObject<{
             kind: z.ZodLiteral<"document-range">;
@@ -292,6 +296,7 @@ export declare const topicMetadataSchema: z.ZodObject<{
         investigate: "investigate";
     }>;
     documentId: z.ZodNullable<z.ZodString>;
+    modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
     hosted: z.ZodOptional<z.ZodBoolean>;
     storage: z.ZodOptional<z.ZodLiteral<"source">>;
     topicId: z.ZodNumber;
@@ -342,6 +347,7 @@ export declare const permissionSchema: z.ZodEnum<{
     "danger-full-access": "danger-full-access";
 }>;
 export declare const topicSummarySchema: z.ZodObject<{
+    modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
     permission: z.ZodOptional<z.ZodEnum<{
         "read-only": "read-only";
         "workspace-write": "workspace-write";
@@ -379,8 +385,8 @@ export declare const topicSummarySchema: z.ZodObject<{
             }>;
             fileIndex: z.ZodOptional<z.ZodNumber>;
             side: z.ZodOptional<z.ZodEnum<{
-                old: "old";
                 new: "new";
+                old: "old";
             }>>;
         }, z.core.$strict>, z.ZodObject<{
             kind: z.ZodLiteral<"document-range">;
@@ -422,8 +428,8 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     role: z.ZodLiteral<"user">;
     attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
-            image: "image";
             file: "file";
+            image: "image";
         }>;
         id: z.ZodString;
         name: z.ZodString;
@@ -449,8 +455,8 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     role: z.ZodLiteral<"tool">;
     attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
-            image: "image";
             file: "file";
+            image: "image";
         }>;
         id: z.ZodString;
         name: z.ZodString;
@@ -515,6 +521,7 @@ export declare const topicSnapshotSchema: z.ZodObject<{
     captureId: z.ZodOptional<z.ZodString>;
     documentTitle: z.ZodOptional<z.ZodString>;
     topic: z.ZodObject<{
+        modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
         permission: z.ZodOptional<z.ZodEnum<{
             "read-only": "read-only";
             "workspace-write": "workspace-write";
@@ -552,8 +559,8 @@ export declare const topicSnapshotSchema: z.ZodObject<{
                 }>;
                 fileIndex: z.ZodOptional<z.ZodNumber>;
                 side: z.ZodOptional<z.ZodEnum<{
-                    old: "old";
                     new: "new";
+                    old: "old";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 kind: z.ZodLiteral<"document-range">;
@@ -594,8 +601,8 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         role: z.ZodLiteral<"user">;
         attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
             kind: z.ZodEnum<{
-                image: "image";
                 file: "file";
+                image: "image";
             }>;
             id: z.ZodString;
             name: z.ZodString;
@@ -621,8 +628,8 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         role: z.ZodLiteral<"tool">;
         attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
             kind: z.ZodEnum<{
-                image: "image";
                 file: "file";
+                image: "image";
             }>;
             id: z.ZodString;
             name: z.ZodString;
@@ -666,8 +673,8 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         elements: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             kind: z.ZodEnum<{
-                image: "image";
                 text: "text";
+                image: "image";
                 markdown: "markdown";
                 math: "math";
                 svg: "svg";
@@ -906,6 +913,78 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
         investigate: "investigate";
     }>>;
 }, z.core.$strict>]>, z.ZodDiscriminatedUnion<[z.ZodObject<{
+    action: z.ZodLiteral<"draft-get">;
+    topicSessionId: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"draft-save">;
+    topicSessionId: z.ZodString;
+    state: z.ZodObject<{
+        version: z.ZodLiteral<1>;
+        revision: z.ZodNumber;
+        content: z.ZodObject<{
+            text: z.ZodString;
+            references: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                kind: z.ZodEnum<{
+                    source: "source";
+                    excerpt: "excerpt";
+                    board: "board";
+                }>;
+                label: z.ZodString;
+                content: z.ZodString;
+                address: z.ZodOptional<z.ZodString>;
+            }, z.core.$strict>>;
+            files: z.ZodArray<z.ZodObject<{
+                id: z.ZodUUID;
+                name: z.ZodString;
+                type: z.ZodString;
+                size: z.ZodNumber;
+                lastModified: z.ZodNumber;
+            }, z.core.$strict>>;
+        }, z.core.$strict>;
+        pending: z.ZodNullable<z.ZodObject<{
+            requestId: z.ZodUUID;
+            content: z.ZodObject<{
+                text: z.ZodString;
+                references: z.ZodArray<z.ZodObject<{
+                    id: z.ZodString;
+                    kind: z.ZodEnum<{
+                        source: "source";
+                        excerpt: "excerpt";
+                        board: "board";
+                    }>;
+                    label: z.ZodString;
+                    content: z.ZodString;
+                    address: z.ZodOptional<z.ZodString>;
+                }, z.core.$strict>>;
+                files: z.ZodArray<z.ZodObject<{
+                    id: z.ZodUUID;
+                    name: z.ZodString;
+                    type: z.ZodString;
+                    size: z.ZodNumber;
+                    lastModified: z.ZodNumber;
+                }, z.core.$strict>>;
+            }, z.core.$strict>;
+        }, z.core.$strict>>;
+    }, z.core.$strict>;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"draft-file-put">;
+    topicSessionId: z.ZodString;
+    file: z.ZodObject<{
+        id: z.ZodUUID;
+        name: z.ZodString;
+        type: z.ZodString;
+        size: z.ZodNumber;
+        lastModified: z.ZodNumber;
+    }, z.core.$strict>;
+    offset: z.ZodNumber;
+    data: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"draft-file-get">;
+    topicSessionId: z.ZodString;
+    fileId: z.ZodUUID;
+    offset: z.ZodNumber;
+}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"list">;
     sourceSessionId: z.ZodString;
     includeArchived: z.ZodOptional<z.ZodBoolean>;
@@ -915,6 +994,8 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     id: z.ZodString;
     png: z.ZodOptional<z.ZodString>;
     error: z.ZodOptional<z.ZodString>;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"board-capture-pending">;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"get">;
     topicSessionId: z.ZodString;
@@ -1005,8 +1086,112 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>;
 /** Strict response union returned by the single Remote command endpoint. */
 export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    kind: z.ZodLiteral<"draft">;
+    state: z.ZodObject<{
+        version: z.ZodLiteral<1>;
+        revision: z.ZodNumber;
+        content: z.ZodObject<{
+            text: z.ZodString;
+            references: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                kind: z.ZodEnum<{
+                    source: "source";
+                    excerpt: "excerpt";
+                    board: "board";
+                }>;
+                label: z.ZodString;
+                content: z.ZodString;
+                address: z.ZodOptional<z.ZodString>;
+            }, z.core.$strict>>;
+            files: z.ZodArray<z.ZodObject<{
+                id: z.ZodUUID;
+                name: z.ZodString;
+                type: z.ZodString;
+                size: z.ZodNumber;
+                lastModified: z.ZodNumber;
+            }, z.core.$strict>>;
+        }, z.core.$strict>;
+        pending: z.ZodNullable<z.ZodObject<{
+            requestId: z.ZodUUID;
+            content: z.ZodObject<{
+                text: z.ZodString;
+                references: z.ZodArray<z.ZodObject<{
+                    id: z.ZodString;
+                    kind: z.ZodEnum<{
+                        source: "source";
+                        excerpt: "excerpt";
+                        board: "board";
+                    }>;
+                    label: z.ZodString;
+                    content: z.ZodString;
+                    address: z.ZodOptional<z.ZodString>;
+                }, z.core.$strict>>;
+                files: z.ZodArray<z.ZodObject<{
+                    id: z.ZodUUID;
+                    name: z.ZodString;
+                    type: z.ZodString;
+                    size: z.ZodNumber;
+                    lastModified: z.ZodNumber;
+                }, z.core.$strict>>;
+            }, z.core.$strict>;
+        }, z.core.$strict>>;
+    }, z.core.$strict>;
+    conflict: z.ZodBoolean;
+}, z.core.$strict>, z.ZodObject<{
+    kind: z.ZodLiteral<"draft-file-saved">;
+}, z.core.$strict>, z.ZodObject<{
+    kind: z.ZodLiteral<"draft-file">;
+    data: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    kind: z.ZodLiteral<"board-captures">;
+    jobs: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        sessionId: z.ZodString;
+        board: z.ZodObject<{
+            version: z.ZodLiteral<4>;
+            revision: z.ZodNumber;
+            elements: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                kind: z.ZodEnum<{
+                    text: "text";
+                    image: "image";
+                    markdown: "markdown";
+                    math: "math";
+                    svg: "svg";
+                    html: "html";
+                    table: "table";
+                }>;
+                content: z.ZodString;
+                x: z.ZodNumber;
+                y: z.ZodNumber;
+                w: z.ZodNumber;
+                h: z.ZodNumber;
+                style: z.ZodObject<{
+                    color: z.ZodOptional<z.ZodString>;
+                    fontSize: z.ZodOptional<z.ZodString>;
+                }, z.core.$strict>;
+                focused: z.ZodBoolean;
+                animation: z.ZodOptional<z.ZodObject<{
+                    name: z.ZodEnum<{
+                        "fade-in": "fade-in";
+                        "slide-in": "slide-in";
+                        pulse: "pulse";
+                        highlight: "highlight";
+                    }>;
+                    durationMs: z.ZodNumber;
+                    iterations: z.ZodNumber;
+                    run: z.ZodNumber;
+                }, z.core.$strict>>;
+            }, z.core.$strict>>;
+            invalid: z.ZodNumber;
+        }, z.core.$strict>;
+    }, z.core.$strict>>;
+}, z.core.$strict>, z.ZodObject<{
+    kind: z.ZodLiteral<"board-capture-accepted">;
+}, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"native-state">;
     state: z.ZodObject<{
+        modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
         running: z.ZodBoolean;
         blank: z.ZodBoolean;
         error: z.ZodNullable<z.ZodString>;
@@ -1141,6 +1326,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         captureId: z.ZodOptional<z.ZodString>;
         documentTitle: z.ZodOptional<z.ZodString>;
         topic: z.ZodObject<{
+            modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
             permission: z.ZodOptional<z.ZodEnum<{
                 "read-only": "read-only";
                 "workspace-write": "workspace-write";
@@ -1178,8 +1364,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                     }>;
                     fileIndex: z.ZodOptional<z.ZodNumber>;
                     side: z.ZodOptional<z.ZodEnum<{
-                        old: "old";
                         new: "new";
+                        old: "old";
                     }>>;
                 }, z.core.$strict>, z.ZodObject<{
                     kind: z.ZodLiteral<"document-range">;
@@ -1220,8 +1406,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             role: z.ZodLiteral<"user">;
             attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 kind: z.ZodEnum<{
-                    image: "image";
                     file: "file";
+                    image: "image";
                 }>;
                 id: z.ZodString;
                 name: z.ZodString;
@@ -1247,8 +1433,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             role: z.ZodLiteral<"tool">;
             attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 kind: z.ZodEnum<{
-                    image: "image";
                     file: "file";
+                    image: "image";
                 }>;
                 id: z.ZodString;
                 name: z.ZodString;
@@ -1292,8 +1478,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             elements: z.ZodArray<z.ZodObject<{
                 id: z.ZodString;
                 kind: z.ZodEnum<{
-                    image: "image";
                     text: "text";
+                    image: "image";
                     markdown: "markdown";
                     math: "math";
                     svg: "svg";
@@ -1328,6 +1514,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
 }, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"topics">;
     topics: z.ZodArray<z.ZodObject<{
+        modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
         permission: z.ZodOptional<z.ZodEnum<{
             "read-only": "read-only";
             "workspace-write": "workspace-write";
@@ -1365,8 +1552,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 }>;
                 fileIndex: z.ZodOptional<z.ZodNumber>;
                 side: z.ZodOptional<z.ZodEnum<{
-                    old: "old";
                     new: "new";
+                    old: "old";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 kind: z.ZodLiteral<"document-range">;
@@ -1424,8 +1611,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
     sourceSessionId: z.ZodString;
     topicId: z.ZodNumber;
     cleanup: z.ZodEnum<{
-        complete: "complete";
         pending: "pending";
+        complete: "complete";
     }>;
 }, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"document">;

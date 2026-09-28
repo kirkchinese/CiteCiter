@@ -30,7 +30,7 @@ export function createSourceReadTool(options: {
 }) {
   return defineTool({
     name: 'read_source_session',
-    description: `Read committed evidence from this Topic's fixed source Session, within a 128 KiB events-array budget. ${PAGING_GUIDANCE}`,
+    description: 'Read a bounded page of committed evidence from this Topic\'s fixed source Session (128 KiB events-array budget). Check sourceMaxSeq and hasMore; a requested range cap is not the source end. Continue with fromSeq: nextFromSeq and omit throughSeq. Read only context needed for the current question.',
     parameters: {
       fromSeq: { type: 'integer', description: 'Inclusive starting sequence, default 0. For the next page, use the returned nextFromSeq. Sequences are event cursors, not turn numbers.' },
       throughSeq: { type: 'integer', description: 'Optional inclusive range cap. Omit to read toward the current sourceMaxSeq. A cap limits only this call; remove or increase it to continue past that window.' },

@@ -1,4 +1,58 @@
 import { z } from "zod";
+//#region lib/types/draft-contract.js
+/** Persisted drafts are user work, never model input until explicitly submitted. */
+const draftReferenceSchema = z.object({
+	id: z.string().min(1).max(500),
+	kind: z.enum([
+		"source",
+		"excerpt",
+		"board"
+	]),
+	label: z.string().max(1e3),
+	content: z.string().max(5e5),
+	address: z.string().max(4e3).optional()
+}).strict();
+const draftFileSchema = z.object({
+	id: z.uuid(),
+	name: z.string().min(1).max(1e3),
+	type: z.string().max(200),
+	size: z.number().int().nonnegative().max(104857600),
+	lastModified: z.number().int().nonnegative()
+}).strict();
+const draftContentSchema = z.object({
+	text: z.string().max(11e3),
+	references: z.array(draftReferenceSchema).max(64),
+	files: z.array(draftFileSchema).max(32)
+}).strict();
+const draftStateSchema = z.object({
+	version: z.literal(1),
+	revision: z.number().int().nonnegative(),
+	content: draftContentSchema,
+	pending: z.object({
+		requestId: z.uuid(),
+		content: draftContentSchema
+	}).strict().nullable()
+}).strict();
+const EMPTY_DRAFT_STATE = {
+	version: 1,
+	revision: 0,
+	content: {
+		text: "",
+		references: [],
+		files: []
+	},
+	pending: null
+};
+const DRAFT_CHUNK_BYTES = 262144;
+/** Remove only the acknowledged submission, preserving edits made while it was pending. */
+function subtractSubmitted(current, submitted) {
+	return {
+		text: current.text === submitted.text ? "" : current.text,
+		references: current.references.filter((item) => !submitted.references.some((sent) => sent.id === item.id)),
+		files: current.files.filter((item) => !submitted.files.some((sent) => sent.id === item.id))
+	};
+}
+//#endregion
 //#region lib/types/native-session-contract.js
 const attachmentId = z.string().min(1).transform((value) => value);
 const nativeImageSchema = z.object({
@@ -38,6 +92,7 @@ const nativeAttachmentSchema = z.discriminatedUnion("type", [z.object({
 }).strict()]);
 /** Read-only control projection. The Agent inbox remains the only authoritative queue. */
 const nativeStateSchema = z.object({
+	modelSelectionRequired: z.boolean().optional(),
 	running: z.boolean(),
 	blank: z.boolean(),
 	error: z.string().nullable(),
@@ -312,6 +367,71 @@ Object.freeze({
 	invalid: 0
 });
 //#endregion
+//#region lib/types/board-capture-protocol.js
+/** Immutable board revision requested by one real model tool call, independent of UI selection. */
+const boardCaptureJobSchema = z.object({
+	id: z.string().min(1),
+	sessionId: z.string().min(1),
+	board: boardSnapshotSchema
+}).strict();
+//#endregion
+//#region lib/types/learning-example.js
+/** Shared contract for model input and persisted card examples. Code is never Markdown. */
+const descriptions = {
+	text: "A prose example in Markdown, at most 1500 characters. Use the code variant for source code.",
+	code: "Raw source code, at most 1500 characters. Preserve line breaks and indentation; do not add Markdown fences.",
+	language: "Language identifier such as javascript, python, html or text; 1–40 letters, digits, underscores, plus signs, dots, hashes or hyphens."
+};
+const learningExampleSchema = z.discriminatedUnion("kind", [z.object({
+	kind: z.literal("text"),
+	content: z.string().trim().min(1).max(1500).describe(descriptions.text)
+}).strict(), z.object({
+	kind: z.literal("code"),
+	content: z.string().min(1).max(1500).refine((value) => value.trim().length > 0, "Code must not be blank").describe(descriptions.code),
+	language: z.string().regex(/^[a-zA-Z0-9_+#.-]{1,40}$/).describe(descriptions.language)
+}).strict()]);
+/** Native DSH tool schema; kept beside the validator to expose the same tagged contract. */
+const LEARNING_EXAMPLE_PARAMETER = {
+	required: true,
+	description: "Choose text for prose or code for literal source code.",
+	oneOf: [{
+		type: "object",
+		additionalProperties: false,
+		properties: {
+			kind: {
+				type: "string",
+				enum: ["text"],
+				required: true
+			},
+			content: {
+				type: "string",
+				required: true,
+				description: descriptions.text
+			}
+		}
+	}, {
+		type: "object",
+		additionalProperties: false,
+		properties: {
+			kind: {
+				type: "string",
+				enum: ["code"],
+				required: true
+			},
+			content: {
+				type: "string",
+				required: true,
+				description: descriptions.code
+			},
+			language: {
+				type: "string",
+				required: true,
+				description: descriptions.language
+			}
+		}
+	}]
+};
+//#endregion
 //#region lib/types/learning.js
 /** User-selected teaching stages; these indicate intent, never measured mastery. */
 const LEARNING_STAGES = [
@@ -356,20 +476,31 @@ function learningQuestion(stageId, question = "") {
 	const stage = LEARNING_STAGES.find((candidate) => candidate.id === stageId);
 	return `【学习阶段：${stage.label}】\n${stage.instruction}${question.trim() === "" ? "" : `\n\n我的问题：${question.trim()}`}`;
 }
+/** The validation schema and model-visible native tool must expose the same field contract. */
+const LEARNING_CARD_FIELD_DESCRIPTIONS = {
+	title: "Non-empty title, at most 100 characters.",
+	summary: "Markdown summary, at most 2000 characters. Separate independent points with lists or paragraphs; include conditions and corrections.",
+	question: "Non-empty self-test question, at most 500 characters.",
+	answer: "Markdown reference answer, at most 2000 characters, consistent with the summary and example. Fence multiline code."
+};
 const learningCardSchema = z.object({
-	title: z.string().trim().min(1).max(100),
-	summary: z.string().trim().min(1).max(2e3),
-	example: z.string().trim().min(1).max(1500),
-	question: z.string().trim().min(1).max(500),
-	answer: z.string().trim().min(1).max(2e3)
+	title: z.string().trim().min(1).max(100).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.title),
+	summary: z.string().trim().min(1).max(2e3).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.summary),
+	example: learningExampleSchema,
+	question: z.string().trim().min(1).max(500).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.question),
+	answer: z.string().trim().min(1).max(2e3).describe(LEARNING_CARD_FIELD_DESCRIPTIONS.answer)
 }).strict();
 const learningCardsInputSchema = z.object({ cards: z.array(learningCardSchema).min(1).max(8) }).strict();
+z.object({ cards: z.array(learningCardSchema.extend({ example: z.union([learningExampleSchema, z.string().trim().min(1).max(1500).transform((content) => ({
+	kind: "text",
+	content
+}))]) })).min(1).max(8) }).strict();
 /** Shared teaching contract appended to every scenario's logged tutor section. */
 const LEARNING_PROMPT = `The optional learning route is 底层逻辑 → 定性分析 → 定量分析（板书） → 概念关联 → 总结学习卡片. A user may select or skip any stage. Respond to the current request only; never advance automatically or claim that a stage proves mastery. Never schedule spaced repetition or reminders. Do not require quizzes before continuing.
 
 Use learning_cards only when the user asks to summarize or revise learning cards. Before composing cards in this same turn, check the Topic's conclusions and existing board for incorrect definitions, missing conditions, faulty derivations or arithmetic, and contradictions. Earlier assistant output is not evidence. Read available sources when needed; distinguish source evidence from general knowledge. Correct errors before saving, and explicitly label unresolved claims as 未核实 (unverified) or omit them. Check every card's summary, example, question and reference answer for consistency: a correction in the summary must also reach its example and answer. Briefly report corrections and unresolved points; do not present this self-check as independent verification.
 
-Each successful learning_cards call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Preserve real available source locators inside summaries; do not invent offsets, sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`;
+Each successful learning_cards call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Respect the user's requested count: one card means one card, not one per stage. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Choose example.kind=text for Markdown prose or example.kind=code for raw source code; code includes its language and preserves indentation without Markdown fences. Put explanations in the summary or answer, not around a code example. Preserve real available source locators inside summaries; do not invent offsets, sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`;
 //#endregion
 //#region lib/types/actions.js
 /** One persisted wheel slot; its prompt is sent as a durable user message. */
@@ -378,7 +509,8 @@ const citeActionSchema = z.object({
 	prompt: z.string().max(4e3),
 	ask: z.boolean(),
 	scenario: z.enum(["qa", "present"]),
-	presentation: z.enum(["side", "floating"])
+	presentation: z.enum(["side", "floating"]),
+	target: z.enum(["current", "new"]).optional()
 }).strict().refine((action) => action.ask || action.prompt.trim() !== "", "直接执行的模式需要提示词");
 const wheelSlotsSchema = z.array(citeActionSchema.nullable()).length(8);
 const wheelTriggerSchema = z.enum([
@@ -399,7 +531,8 @@ const DEFAULT_WHEEL_SLOTS = [
 		prompt: "",
 		ask: true,
 		scenario: "qa",
-		presentation: "side"
+		presentation: "side",
+		target: "current"
 	},
 	{
 		label: "解释这段",
@@ -439,6 +572,11 @@ const DEFAULT_WHEEL_SLOTS = [
 	null,
 	null
 ];
+/** Preserve customized legacy slots; only the unchanged built-in free question gains append behavior. */
+function actionTarget(action) {
+	if (action.target !== void 0) return action.target;
+	return action.label === "自由提问" && action.prompt === "" && action.ask && action.scenario === "qa" && action.presentation === "side" ? "current" : "new";
+}
 /** Host settings namespace mirrored by the browser settings scope. */
 const CITECITER_SETTINGS_NAMESPACE = "citeciter";
 /** Topic-scoped system prompt section. */
@@ -648,6 +786,7 @@ const modelConfigSchema = z.object({
 }).strict();
 /** Fields shared by the canonical Topic metadata schema and its on-disk reader. */
 const topicMetadataFields = {
+	modelSelectionRequired: z.boolean().optional(),
 	hosted: z.boolean().optional(),
 	storage: z.literal("source").optional(),
 	topicId: z.number().int().positive(),
@@ -719,6 +858,7 @@ const permissionSchema = z.enum([
 	"danger-full-access"
 ]);
 const topicSummarySchema = z.object({
+	modelSelectionRequired: z.boolean().optional(),
 	permission: permissionSchema.optional(),
 	hosted: z.boolean().optional(),
 	storage: z.literal("source").optional(),
@@ -929,6 +1069,28 @@ const createRequestSchema = z.union([
 /** One strict direct-RPC command for the private CiteCiter runtime. */
 const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnion("action", [
 	z.object({
+		action: z.literal("draft-get"),
+		topicSessionId: topicSessionIdSchema
+	}).strict(),
+	z.object({
+		action: z.literal("draft-save"),
+		topicSessionId: topicSessionIdSchema,
+		state: draftStateSchema
+	}).strict(),
+	z.object({
+		action: z.literal("draft-file-put"),
+		topicSessionId: topicSessionIdSchema,
+		file: draftFileSchema,
+		offset: z.number().int().nonnegative(),
+		data: z.string().max(349528).regex(/^[A-Za-z0-9+/]*={0,2}$/)
+	}).strict(),
+	z.object({
+		action: z.literal("draft-file-get"),
+		topicSessionId: topicSessionIdSchema,
+		fileId: z.uuid(),
+		offset: z.number().int().nonnegative()
+	}).strict(),
+	z.object({
 		action: z.literal("list"),
 		sourceSessionId: z.string().min(1),
 		includeArchived: z.boolean().optional()
@@ -940,6 +1102,7 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 		png: z.string().max(8e6).regex(/^[A-Za-z0-9+/]+={0,2}$/).optional(),
 		error: z.string().max(500).optional()
 	}).strict(),
+	z.object({ action: z.literal("board-capture-pending") }).strict(),
 	z.object({
 		action: z.literal("get"),
 		topicSessionId: topicSessionIdSchema
@@ -1030,6 +1193,21 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 ])]);
 /** Strict response union returned by the single Remote command endpoint. */
 const citeCiterResponseSchema = z.discriminatedUnion("kind", [
+	z.object({
+		kind: z.literal("draft"),
+		state: draftStateSchema,
+		conflict: z.boolean()
+	}).strict(),
+	z.object({ kind: z.literal("draft-file-saved") }).strict(),
+	z.object({
+		kind: z.literal("draft-file"),
+		data: z.string().max(349528).regex(/^[A-Za-z0-9+/]*={0,2}$/)
+	}).strict(),
+	z.object({
+		kind: z.literal("board-captures"),
+		jobs: z.array(boardCaptureJobSchema)
+	}).strict(),
+	z.object({ kind: z.literal("board-capture-accepted") }).strict(),
 	z.object({
 		kind: z.literal("native-state"),
 		state: nativeStateSchema
@@ -1338,4 +1516,4 @@ function waitForCaller(operation, signal) {
 	});
 }
 //#endregion
-export { topicSummarySchema as C, EMPTY_BOARD_STATE as D, learningCardsInputSchema as E, applyBoardOps as O, topicSnapshotSchema as S, LEARNING_PROMPT as T, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, boardBatchSchema as k, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, DEFAULT_WHEEL_SLOTS as w, topicMetadataSchema as x, renderCitationContext as y };
+export { EMPTY_BOARD_STATE as A, topicSummarySchema as C, LEARNING_PROMPT as D, LEARNING_CARD_FIELD_DESCRIPTIONS as E, draftFileSchema as F, draftStateSchema as I, subtractSubmitted as L, boardBatchSchema as M, DRAFT_CHUNK_BYTES as N, learningCardsInputSchema as O, EMPTY_DRAFT_STATE as P, topicSnapshotSchema as S, actionTarget as T, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, applyBoardOps as j, LEARNING_EXAMPLE_PARAMETER as k, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, DEFAULT_WHEEL_SLOTS as w, topicMetadataSchema as x, renderCitationContext as y };

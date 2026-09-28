@@ -7,7 +7,7 @@ export class CiterAgentRegistry extends AgentRegistry {
         this.options = options;
     }
     enter(agent, owner) { return this.options.registry.enter(agent, owner); }
-    announce(agent) { this.options.registry.announce(agent); }
+    announce(...args) { return this.options.registry.announce(...args); }
     register(agent) { return this.options.registry.register(agent); }
     get(id) { return this.options.registry.get(id); }
     list() { return this.options.registry.list(); }

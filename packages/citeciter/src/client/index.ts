@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-gateway/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-api-settings-controller/remote'
@@ -11,7 +11,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   CITECITER_SETTINGS_NAMESPACE,
-  citeCiterSettingsSchema,
   type CiteCiterSettings,
 } from '../topic.ts'
 import { TYPERT_REMOTE } from '../typert.remote-client.ts'
@@ -38,14 +37,13 @@ import { createNativeComposer } from './native-composer.ts'
 import { bindSubmissionPreference } from './submission-preference.ts'
 import { viewActions } from './view-actions.ts'
 import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from './update-controller.ts'
+import { createBoardCaptureController } from './board-capture-controller.ts'
+import { BoardCaptureWorker } from './components/BoardCaptureWorker.tsx'
+import { createDraftController } from './draft-controller.ts'
+import { hostSettings, hostInteractions } from './host-ui-adapter.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
-export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'settingsScope', 'conversation']
-
-function decodeSettings(section: unknown): CiteCiterSettings | undefined {
-  const parsed = citeCiterSettingsSchema.safeParse(section)
-  return parsed.success ? parsed.data : undefined
-}
+export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'conversation']
 
 /** Register one root-scoped companion without entering DSH's Session list. */
 export async function apply(ctx: Context): Promise<void> {
@@ -61,11 +59,9 @@ export async function apply(ctx: Context): Promise<void> {
       conversation.activate('chat')
       return conversation.target('chat').getSnapshot()
     }
-    const settingsBinder = remoteCtx.settingsScope
-    const settings = settingsBinder.bind({
-      namespace: CITECITER_SETTINGS_NAMESPACE,
-      decode: decodeSettings,
-    })
+    const settingsBinder = hostSettings(remoteCtx)
+    const interactions = hostInteractions(remoteCtx)
+    const settings = settingsBinder.get<CiteCiterSettings>(CITECITER_SETTINGS_NAMESPACE)
     const settingsDocument = createSettingsDocumentController(
       settingsBinder.describe(),
       async (signal) => {
@@ -89,6 +85,33 @@ export async function apply(ctx: Context): Promise<void> {
       (error) => remoteCtx.logger.warn('CiteCiter update check failed', error),
     )
     const nativeComposer = createNativeComposer(remoteCtx)
+    const drafts = createDraftController(async request => {
+      const response = await remoteCtx.remote.citeciter.request(request)
+      if (!response.ok) throw new Error(response.error.message)
+      return response.value
+    }, nativeComposer)
+    remoteCtx.effect(() => () => drafts.dispose(), 'citeciter: durable drafts')
+    remoteCtx.effect(() => {
+      const beforeUnload = (event: BeforeUnloadEvent) => {
+        if (!drafts.hasUnsavedChanges()) return
+        void drafts.flushAll()
+        event.preventDefault()
+        event.returnValue = ''
+      }
+      const visibility = () => { if (document.visibilityState === 'hidden') void drafts.flushAll() }
+      window.addEventListener('beforeunload', beforeUnload)
+      document.addEventListener('visibilitychange', visibility)
+      return () => {
+        window.removeEventListener('beforeunload', beforeUnload)
+        document.removeEventListener('visibilitychange', visibility)
+      }
+    }, 'citeciter: draft navigation guard')
+    const capture = createBoardCaptureController(async (request, signal) => {
+      const response = await remoteCtx.remote.citeciter.request(request, signal)
+      if (!response.ok) throw new Error(response.error.message)
+      return response.value
+    }, error => remoteCtx.logger.warn('CiteCiter board capture failed', error))
+    remoteCtx.effect(() => () => capture.dispose(), 'citeciter: background board capture')
     const submissionPreference = bindSubmissionPreference(remoteCtx)
     const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error))
     const openPanel = () => {
@@ -133,13 +156,18 @@ export async function apply(ctx: Context): Promise<void> {
       remoteCtx.logger.warn(`CiteCiter ignored malformed first-answer follow-up questions in ${messageId}`)
     }
 
+    const currentSession = remoteCtx.uiSession.adapter.current
+    const readSource = () => {
+      const key = currentSession.getSnapshot().key
+      return key === undefined ? null : SessionId(key)
+    }
     const syncSource = () => {
-      const source = sessions.list.getSnapshot().current ?? null
+      const source = readSource()
       if (companion.getSnapshot().sourceSessionId !== source) actions.cancel()
       companion.setSource(source)
     }
     syncSource()
-    const unsubscribeSessions = sessions.list.subscribe(syncSource)
+    const unsubscribeSessions = currentSession.subscribe(syncSource)
 
     remoteCtx.effect(() => {
       const entries = createCiteCiterEntryRegistry()
@@ -154,8 +182,8 @@ export async function apply(ctx: Context): Promise<void> {
       const disposeGesture = installWheelGesture(actions, event => {
         const owned = surfaces.read(event.target)
         if (owned !== null) return owned
-        const sourceSessionId = sessions.list.getSnapshot().current
-        if (sourceSessionId === undefined) return null
+        const sourceSessionId = readSource()
+        if (sourceSessionId === null) return null
         const claim = entries.claim(event, { readChat, sourceSessionId })
         return claim === null ? null : { kind: 'conversation', selection: claim.selection }
       }, () => companion.getSnapshot().settings)
@@ -173,6 +201,10 @@ export async function apply(ctx: Context): Promise<void> {
       clearBoardCitation: bus.clearBoardCitation.bind(bus),
     }
 
+    remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
+      name: 'shell.overlay', id: 'citeciter.board-capture',
+      inject: () => ({ reply: capture.reply, hooks: { capture } }),
+    }, BoardCaptureWorker))
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay', id: 'citeciter.wheel',
       inject: () => ({ actions: viewActions(actions), companion: companionActions, hooks: { actions, companion } }),
@@ -196,7 +228,7 @@ export async function apply(ctx: Context): Promise<void> {
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.panel',
-      inject: () => ({ nativeComposer, bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, hooks: { companion, overlay: bus, submission: submissionPreference, interactions: remoteCtx.uiSession.pendingInteractions } }),
+      inject: () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions } }),
     }, CitePanel))
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',

@@ -1,4 +1,3 @@
-const INTERNAL_TOOLS = new Set(['read_source_session', 'blackboard_apply']);
 /**
  * Append a requested board reference without replacing text the user already wrote.
  * @param draft - current Topic composer draft.
@@ -21,17 +20,9 @@ export function isTopicMessageVisible(message, messages) {
         return false;
     if (message.role === 'assistant' && message.text.trim() === '' && (message.reasoning ?? '').trim() === '')
         return false;
-    if (message.role === 'tool') {
-        if (!message.isError && INTERNAL_TOOLS.has(message.name))
-            return false;
-        if (!message.isError)
-            return true;
-        return !messages.some((candidate) => candidate.role === 'tool'
-            && candidate.seq > message.seq
-            && candidate.name === message.name
-            && !candidate.running
-            && !candidate.isError);
-    }
+    // Each dispatch has its own outcome. A later same-name success does not erase an earlier failure.
+    if (message.role === 'tool')
+        return true;
     if (message.role !== 'error')
         return true;
     return !messages.some((candidate) => candidate.role === 'assistant'
