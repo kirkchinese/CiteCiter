@@ -21,3 +21,9 @@
 发布包为 kirkchinese-dsh-citeciter-0.9.0-alpha.2.tgz，904265 字节、145 个文件。SHA-256：fcb230467d9c5a4107e76fd197e3e3a2928b9b9fdca6e84a12cb8eef572c6b1c；SHA-1：2e24ea0c004fd195bd95edb638afaf71d51fc80f。包内无临时测试、假模型、凭据或开发 home。
 
 此次修改不涉及模型请求，不为验证版本比较而消耗模型调用；前版真实模型功能证据见 [alpha.1 验收](2026-09-27-connect-450.md)。Desktop 本轮完成独立 SDK 检查、管理 CLI 安装与发布文件核对，没有新增原生窗口功能验收；不将 Web 结果代替 Desktop UI 结果。Windows 只读 PowerShell 限制仍由宿主处理，用户已接受不阻止本次预发布；Linux/macOS 与独立 Desktop NEXT 外壳未实机验收。
+
+## 发布记录
+
+[PR #11](https://github.com/kirkchinese/CiteCiter/pull/11) 已合并；[CI 36421068577](https://github.com/kirkchinese/CiteCiter/actions/runs/36421068577) 的 Ubuntu / Node 22.19.0 和 Windows / Node 24 均通过。标签 v0.9.0-alpha.2 指向 78e1cb0d74e946408f0ff1902a00bfc99d65a32f，发布代码与通过 CI 的 PR 头相同。
+
+[GitHub prerelease](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.2) 已提供 tgz 和 SHA256SUMS；GitHub 报告的包 digest 与本机 SHA-256 完全相同。npm 上传待维护者手动完成，随后核对 latest / next、下载包完整性及已安装版本的自动更新检查。此前自动审批拒绝 npm publish，本轮没有通过其他工具绕过。
