@@ -4300,7 +4300,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const ZodRealError = /*@__PURE__*/ $constructor("ZodError", initializer, void 0, { Parent: Error });
 		//#endregion
 		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/classic/parse.js
-		const parse = /* @__PURE__ */ _parse(ZodRealError);
+		const parse$1 = /* @__PURE__ */ _parse(ZodRealError);
 		const parseAsync = /* @__PURE__ */ _parseAsync(ZodRealError);
 		const safeParse = /* @__PURE__ */ _safeParse(ZodRealError);
 		const safeParseAsync = /* @__PURE__ */ _safeParseAsync(ZodRealError);
@@ -4432,7 +4432,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				own(this, "~standard", value);
 			},
 			parse: function _parse(data, params) {
-				return parse(this, data, params, { callee: _parse });
+				return parse$1(this, data, params, { callee: _parse });
 			},
 			parseAsync: async function _parseAsync(data, params) {
 				return await parseAsync(this, data, params, { callee: _parseAsync });
@@ -6260,28 +6260,360 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}).strict()
 		]);
 		//#endregion
+		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/debug.js
+		var require_debug = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+			module.exports = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {};
+		}));
+		//#endregion
+		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/constants.js
+		var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+			module.exports = {
+				MAX_LENGTH: 256,
+				MAX_SAFE_COMPONENT_LENGTH: 16,
+				MAX_SAFE_BUILD_LENGTH: 250,
+				MAX_SAFE_INTEGER: Number.MAX_SAFE_INTEGER ||
+				/* istanbul ignore next */ 9007199254740991,
+				RELEASE_TYPES: [
+					"major",
+					"premajor",
+					"minor",
+					"preminor",
+					"patch",
+					"prepatch",
+					"prerelease"
+				],
+				SEMVER_SPEC_VERSION: "2.0.0",
+				FLAG_INCLUDE_PRERELEASE: 1,
+				FLAG_LOOSE: 2
+			};
+		}));
+		//#endregion
+		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/re.js
+		var require_re = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+			const { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH, MAX_LENGTH } = require_constants();
+			const debug = require_debug();
+			exports = module.exports = {};
+			const re = exports.re = [];
+			const safeRe = exports.safeRe = [];
+			const src = exports.src = [];
+			const safeSrc = exports.safeSrc = [];
+			const t = exports.t = {};
+			let R = 0;
+			const LETTERDASHNUMBER = "[a-zA-Z0-9-]";
+			const safeRegexReplacements = [
+				["\\s", 1],
+				["\\d", MAX_LENGTH],
+				[LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH]
+			];
+			const makeSafeRegex = (value) => {
+				for (const [token, max] of safeRegexReplacements) value = value.split(`${token}*`).join(`${token}{0,${max}}`).split(`${token}+`).join(`${token}{1,${max}}`);
+				return value;
+			};
+			const createToken = (name, value, isGlobal) => {
+				const safe = makeSafeRegex(value);
+				const index = R++;
+				debug(name, index, value);
+				t[name] = index;
+				src[index] = value;
+				safeSrc[index] = safe;
+				re[index] = new RegExp(value, isGlobal ? "g" : void 0);
+				safeRe[index] = new RegExp(safe, isGlobal ? "g" : void 0);
+			};
+			createToken("NUMERICIDENTIFIER", "0|[1-9]\\d*");
+			createToken("NUMERICIDENTIFIERLOOSE", "\\d+");
+			createToken("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`);
+			createToken("MAINVERSION", `(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})`);
+			createToken("MAINVERSIONLOOSE", `(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})`);
+			createToken("PRERELEASEIDENTIFIER", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIER]})`);
+			createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIERLOOSE]})`);
+			createToken("PRERELEASE", `(?:-(${src[t.PRERELEASEIDENTIFIER]}(?:\\.${src[t.PRERELEASEIDENTIFIER]})*))`);
+			createToken("PRERELEASELOOSE", `(?:-?(${src[t.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${src[t.PRERELEASEIDENTIFIERLOOSE]})*))`);
+			createToken("BUILDIDENTIFIER", `${LETTERDASHNUMBER}+`);
+			createToken("BUILD", `(?:\\+(${src[t.BUILDIDENTIFIER]}(?:\\.${src[t.BUILDIDENTIFIER]})*))`);
+			createToken("FULLPLAIN", `v?${src[t.MAINVERSION]}${src[t.PRERELEASE]}?${src[t.BUILD]}?`);
+			createToken("FULL", `^${src[t.FULLPLAIN]}$`);
+			createToken("LOOSEPLAIN", `[v=\\s]*${src[t.MAINVERSIONLOOSE]}${src[t.PRERELEASELOOSE]}?${src[t.BUILD]}?`);
+			createToken("LOOSE", `^${src[t.LOOSEPLAIN]}$`);
+			createToken("GTLT", "((?:<|>)?=?)");
+			createToken("XRANGEIDENTIFIERLOOSE", `${src[t.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`);
+			createToken("XRANGEIDENTIFIER", `${src[t.NUMERICIDENTIFIER]}|x|X|\\*`);
+			createToken("XRANGEPLAIN", `[v=\\s]*(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:${src[t.PRERELEASE]})?${src[t.BUILD]}?)?)?`);
+			createToken("XRANGEPLAINLOOSE", `[v=\\s]*(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:${src[t.PRERELEASELOOSE]})?${src[t.BUILD]}?)?)?`);
+			createToken("XRANGE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAIN]}$`);
+			createToken("XRANGELOOSE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAINLOOSE]}$`);
+			createToken("COERCEPLAIN", `(^|[^\\d])(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}})(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?`);
+			createToken("COERCE", `${src[t.COERCEPLAIN]}(?:$|[^\\d])`);
+			createToken("COERCEFULL", src[t.COERCEPLAIN] + `(?:${src[t.PRERELEASE]})?(?:${src[t.BUILD]})?(?:$|[^\\d])`);
+			createToken("COERCERTL", src[t.COERCE], true);
+			createToken("COERCERTLFULL", src[t.COERCEFULL], true);
+			createToken("LONETILDE", "(?:~>?)");
+			createToken("TILDETRIM", `(\\s*)${src[t.LONETILDE]}\\s+`, true);
+			exports.tildeTrimReplace = "$1~";
+			createToken("TILDE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAIN]}$`);
+			createToken("TILDELOOSE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAINLOOSE]}$`);
+			createToken("LONECARET", "(?:\\^)");
+			createToken("CARETTRIM", `(\\s*)${src[t.LONECARET]}\\s+`, true);
+			exports.caretTrimReplace = "$1^";
+			createToken("CARET", `^${src[t.LONECARET]}${src[t.XRANGEPLAIN]}$`);
+			createToken("CARETLOOSE", `^${src[t.LONECARET]}${src[t.XRANGEPLAINLOOSE]}$`);
+			createToken("COMPARATORLOOSE", `^${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]})$|^$`);
+			createToken("COMPARATOR", `^${src[t.GTLT]}\\s*(${src[t.FULLPLAIN]})$|^$`);
+			createToken("COMPARATORTRIM", `(\\s*)${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]}|${src[t.XRANGEPLAIN]})`, true);
+			exports.comparatorTrimReplace = "$1$2$3";
+			createToken("HYPHENRANGE", `^\\s*(${src[t.XRANGEPLAIN]})\\s+-\\s+(${src[t.XRANGEPLAIN]})\\s*$`);
+			createToken("HYPHENRANGELOOSE", `^\\s*(${src[t.XRANGEPLAINLOOSE]})\\s+-\\s+(${src[t.XRANGEPLAINLOOSE]})\\s*$`);
+			createToken("STAR", "(<|>)?=?\\s*\\*");
+			createToken("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$");
+			createToken("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
+		}));
+		//#endregion
+		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/parse-options.js
+		var require_parse_options = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+			const looseOption = Object.freeze({ loose: true });
+			const emptyOpts = Object.freeze({});
+			const parseOptions = (options) => {
+				if (!options) return emptyOpts;
+				if (typeof options !== "object") return looseOption;
+				return options;
+			};
+			module.exports = parseOptions;
+		}));
+		//#endregion
+		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/identifiers.js
+		var require_identifiers = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+			const numeric = /^[0-9]+$/;
+			const compareIdentifiers = (a, b) => {
+				if (typeof a === "number" && typeof b === "number") return a === b ? 0 : a < b ? -1 : 1;
+				const anum = numeric.test(a);
+				const bnum = numeric.test(b);
+				if (anum && bnum) {
+					a = +a;
+					b = +b;
+				}
+				return a === b ? 0 : anum && !bnum ? -1 : bnum && !anum ? 1 : a < b ? -1 : 1;
+			};
+			const rcompareIdentifiers = (a, b) => compareIdentifiers(b, a);
+			module.exports = {
+				compareIdentifiers,
+				rcompareIdentifiers
+			};
+		}));
+		//#endregion
+		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/classes/semver.js
+		var require_semver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+			const debug = require_debug();
+			const { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
+			const { safeRe: re, t } = require_re();
+			const parseOptions = require_parse_options();
+			const { compareIdentifiers } = require_identifiers();
+			const isPrereleaseIdentifier = (prerelease, identifier) => {
+				const identifiers = identifier.split(".");
+				if (identifiers.length > prerelease.length) return false;
+				for (let i = 0; i < identifiers.length; i++) if (compareIdentifiers(prerelease[i], identifiers[i]) !== 0) return false;
+				return true;
+			};
+			module.exports = class SemVer {
+				constructor(version, options) {
+					options = parseOptions(options);
+					if (version instanceof SemVer) {
+						if (version.loose === !!options.loose && version.includePrerelease === !!options.includePrerelease) return version;
+						else version = version.version;
+					} else if (typeof version !== "string") throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version}".`);
+					if (version.length > MAX_LENGTH) throw new TypeError(`version is longer than ${MAX_LENGTH} characters`);
+					debug("SemVer", version, options);
+					this.options = options;
+					this.loose = !!options.loose;
+					this.includePrerelease = !!options.includePrerelease;
+					const m = version.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL]);
+					if (!m) throw new TypeError(`Invalid Version: ${version}`);
+					this.raw = version;
+					this.major = +m[1];
+					this.minor = +m[2];
+					this.patch = +m[3];
+					if (this.major > MAX_SAFE_INTEGER || this.major < 0) throw new TypeError("Invalid major version");
+					if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) throw new TypeError("Invalid minor version");
+					if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) throw new TypeError("Invalid patch version");
+					if (!m[4]) this.prerelease = [];
+					else this.prerelease = m[4].split(".").map((id) => {
+						if (/^[0-9]+$/.test(id)) {
+							const num = +id;
+							if (num >= 0 && num < MAX_SAFE_INTEGER) return num;
+						}
+						return id;
+					});
+					this.build = m[5] ? m[5].split(".") : [];
+					this.format();
+				}
+				format() {
+					this.version = `${this.major}.${this.minor}.${this.patch}`;
+					if (this.prerelease.length) this.version += `-${this.prerelease.join(".")}`;
+					return this.version;
+				}
+				toString() {
+					return this.version;
+				}
+				compare(other) {
+					debug("SemVer.compare", this.version, this.options, other);
+					if (!(other instanceof SemVer)) {
+						if (typeof other === "string" && other === this.version) return 0;
+						other = new SemVer(other, this.options);
+					}
+					if (other.version === this.version) return 0;
+					return this.compareMain(other) || this.comparePre(other);
+				}
+				compareMain(other) {
+					if (!(other instanceof SemVer)) other = new SemVer(other, this.options);
+					if (this.major < other.major) return -1;
+					if (this.major > other.major) return 1;
+					if (this.minor < other.minor) return -1;
+					if (this.minor > other.minor) return 1;
+					if (this.patch < other.patch) return -1;
+					if (this.patch > other.patch) return 1;
+					return 0;
+				}
+				comparePre(other) {
+					if (!(other instanceof SemVer)) other = new SemVer(other, this.options);
+					if (this.prerelease.length && !other.prerelease.length) return -1;
+					else if (!this.prerelease.length && other.prerelease.length) return 1;
+					else if (!this.prerelease.length && !other.prerelease.length) return 0;
+					let i = 0;
+					do {
+						const a = this.prerelease[i];
+						const b = other.prerelease[i];
+						debug("prerelease compare", i, a, b);
+						if (a === void 0 && b === void 0) return 0;
+						else if (b === void 0) return 1;
+						else if (a === void 0) return -1;
+						else if (a === b) continue;
+						else return compareIdentifiers(a, b);
+					} while (++i);
+				}
+				compareBuild(other) {
+					if (!(other instanceof SemVer)) other = new SemVer(other, this.options);
+					let i = 0;
+					do {
+						const a = this.build[i];
+						const b = other.build[i];
+						debug("build compare", i, a, b);
+						if (a === void 0 && b === void 0) return 0;
+						else if (b === void 0) return 1;
+						else if (a === void 0) return -1;
+						else if (a === b) continue;
+						else return compareIdentifiers(a, b);
+					} while (++i);
+				}
+				inc(release, identifier, identifierBase) {
+					if (release.startsWith("pre")) {
+						if (!identifier && identifierBase === false) throw new Error("invalid increment argument: identifier is empty");
+						if (identifier) {
+							const match = `-${identifier}`.match(this.options.loose ? re[t.PRERELEASELOOSE] : re[t.PRERELEASE]);
+							if (!match || match[1] !== identifier) throw new Error(`invalid identifier: ${identifier}`);
+						}
+					}
+					switch (release) {
+						case "premajor":
+							this.prerelease.length = 0;
+							this.patch = 0;
+							this.minor = 0;
+							this.major++;
+							this.inc("pre", identifier, identifierBase);
+							break;
+						case "preminor":
+							this.prerelease.length = 0;
+							this.patch = 0;
+							this.minor++;
+							this.inc("pre", identifier, identifierBase);
+							break;
+						case "prepatch":
+							this.prerelease.length = 0;
+							this.inc("patch", identifier, identifierBase);
+							this.inc("pre", identifier, identifierBase);
+							break;
+						case "prerelease":
+							if (this.prerelease.length === 0) this.inc("patch", identifier, identifierBase);
+							this.inc("pre", identifier, identifierBase);
+							break;
+						case "release":
+							if (this.prerelease.length === 0) throw new Error(`version ${this.raw} is not a prerelease`);
+							this.prerelease.length = 0;
+							break;
+						case "major":
+							if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0) this.major++;
+							this.minor = 0;
+							this.patch = 0;
+							this.prerelease = [];
+							break;
+						case "minor":
+							if (this.patch !== 0 || this.prerelease.length === 0) this.minor++;
+							this.patch = 0;
+							this.prerelease = [];
+							break;
+						case "patch":
+							if (this.prerelease.length === 0) this.patch++;
+							this.prerelease = [];
+							break;
+						case "pre": {
+							const base = Number(identifierBase) ? 1 : 0;
+							if (this.prerelease.length === 0) this.prerelease = [base];
+							else {
+								let i = this.prerelease.length;
+								while (--i >= 0) if (typeof this.prerelease[i] === "number") {
+									this.prerelease[i]++;
+									i = -2;
+								}
+								if (i === -1) {
+									if (identifier === this.prerelease.join(".") && identifierBase === false) throw new Error("invalid increment argument: identifier already exists");
+									this.prerelease.push(base);
+								}
+							}
+							if (identifier) {
+								let prerelease = [identifier, base];
+								if (identifierBase === false) prerelease = [identifier];
+								if (isPrereleaseIdentifier(this.prerelease, identifier)) {
+									const prereleaseBase = this.prerelease[identifier.split(".").length];
+									if (isNaN(prereleaseBase)) this.prerelease = prerelease;
+								} else this.prerelease = prerelease;
+							}
+							break;
+						}
+						default: throw new Error(`invalid increment argument: ${release}`);
+					}
+					this.raw = this.format();
+					if (this.build.length) this.raw += `+${this.build.join(".")}`;
+					return this;
+				}
+			};
+		}));
+		//#endregion
+		//#region lib/types/package-version.js
+		var import_parse = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports, module) => {
+			const SemVer = require_semver();
+			const parse = (version, options, throwErrors = false) => {
+				if (version instanceof SemVer) return version;
+				try {
+					return new SemVer(version, options);
+				} catch (er) {
+					if (!throwErrors) return null;
+					throw er;
+				}
+			};
+			module.exports = parse;
+		})))(), 1);
+		/** Accept canonical package versions, including prerelease and build identifiers, without coercion. */
+		function parsePackageVersion(version) {
+			const parsed = (0, import_parse.default)(version);
+			if (parsed === null) return null;
+			return parsed.version + (parsed.build.length > 0 ? `+${parsed.build.join(".")}` : "") === version ? parsed : null;
+		}
+		/** Validate an exact package version, not an npm tag, range or CLI argument. */
+		function isPackageVersion(version) {
+			return parsePackageVersion(version) !== null;
+		}
+		//#endregion
 		//#region lib/types/update.js
 		/** Bounded, read-only npm update check for the Web plugin. */
-		const stableVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
-		function stableVersionParts(version) {
-			const match = stableVersionPattern.exec(version);
-			if (match === null) return null;
-			const parts = match.slice(1).map(Number);
-			if (parts.length !== 3 || parts.some((part) => !Number.isSafeInteger(part))) return null;
-			return [
-				parts[0],
-				parts[1],
-				parts[2]
-			];
-		}
-		const stableVersionSchema = string().refine((version) => stableVersionParts(version) !== null, "expected a stable MAJOR.MINOR.PATCH version with safe integer components");
-		/** Installed development builds may use a valid SemVer prerelease suffix; registry latest stays stable. */
-		const installedVersionSchema = string().refine((version) => {
-			const [core, ...suffix] = version.split("-");
-			if (core === void 0 || stableVersionParts(core) === null) return false;
-			if (suffix.length === 0) return true;
-			return suffix.join("-").split(".").every((part) => /^[0-9A-Za-z-]+$/u.test(part) && (!/^\d+$/u.test(part) || part === "0" || !part.startsWith("0")));
-		}, "expected a stable version or a valid prerelease");
+		/** npm tags select versions; latest is not a guarantee that the selected version is stable. */
+		const packageVersionSchema = string().refine(isPackageVersion, "expected a canonical SemVer package version");
 		/** Stable failure identifiers consumed by the Web settings and notification UI. */
 		const updateCheckErrorCodeSchema = _enum([
 			"installed-version-invalid",
@@ -6295,8 +6627,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		/** Strict result of one read-only npm `latest` check. */
 		const updateCheckResponseSchema = discriminatedUnion("kind", [object({
 			kind: literal("success"),
-			installedVersion: installedVersionSchema,
-			latestVersion: stableVersionSchema,
+			installedVersion: packageVersionSchema,
+			latestVersion: packageVersionSchema,
 			updateAvailable: boolean(),
 			checkedAt: number().int().nonnegative(),
 			profile: string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/u).optional()
