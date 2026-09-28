@@ -36159,7 +36159,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}, 150);
 			};
 			const mutate = async (id, change) => {
-				await ensure(id);
+				if (!entryOf(id).view.ready) await ensure(id);
 				if (disposed) return;
 				const entry = entryOf(id);
 				change(entry);
@@ -36186,6 +36186,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				flushAll: () => Promise.allSettled([...entries.keys()].filter((id) => entryOf(id).view.ready).map(flush)),
 				ensure,
 				flush,
+				/** Publish ready-draft edits synchronously; the returned promise only waits for an initial load when needed. */
 				setText: (id, text) => mutate(id, (entry) => {
 					entry.state = {
 						...entry.state,
@@ -38508,10 +38509,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 													(attachmentError || draft.error) && (0, react_jsx_runtime.jsx)("p", {
 														role: "alert",
 														children: attachmentError || draft.error
-													}),
-													draft.saving && (0, react_jsx_runtime.jsx)("span", {
-														role: "status",
-														children: "保存草稿…"
 													}),
 													draft.conflict && (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("button", {
 														type: "button",

@@ -33,13 +33,14 @@ flowchart LR
 
 ## 版本与安装
 
-本版为 **0.9.0-alpha.2 默认安装的预发布版（npm latest / next）**，适配 Web DSH `0.1.7-rc.2` 和 [DSH Desktop 2.0.15](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.15) 内置的同版 DSH。保留 DSH `0.1.5-rc.2` 的独立 Host/Client 编译检查；旧版编译通过不代表最新 Desktop 功能通过。Web 与 Desktop 的真实模型验收范围见文末记录；不将旧 SDK 编译结果视为实机功能验证。旧版 **0.8.2** 仅保留给旧宿主，兼容基线为 DSH `0.1.5-rc.1` / Desktop `2.0.9`。Node.js 要求 `^22.19.0 || >=24.0.0`。本轮不验收 Linux。
+本版为 **0.9.0-alpha.3 默认安装的预发布版（npm latest / next）**，适配 Web DSH `0.1.7-rc.2` 和 [DSH Desktop 2.0.15](https://github.com/anywhere-labs/dsh-desktop/releases/tag/v2.0.15) 内置的同版 DSH。保留 DSH `0.1.5-rc.2` 的独立 Host/Client 编译检查；旧版编译通过不代表最新 Desktop 功能通过。Web 与 Desktop 的真实模型验收范围见文末记录；不将旧 SDK 编译结果视为实机功能验证。旧版 **0.8.2** 仅保留给旧宿主，兼容基线为 DSH `0.1.5-rc.1` / Desktop `2.0.9`。Node.js 要求 `^22.19.0 || >=24.0.0`。本轮不验收 Linux。
 
 **DSH 0.1.7 不能使用 0.8.2。** 旧版的精确 peer 范围不匹配；强制安装后还会因 Typert 缺少 `create()` 工厂而启动失败，见 [Issue #9](https://github.com/kirkchinese/CiteCiter/issues/9)。本版已适配 RC2 的版本检查及 Host/Remote 工厂接口，无需 `allow-version`。请安装本预发布版，不要将旧版强行加入兼容例外。
 
 | 版本 | 状态 | 主要差异 |
 | --- | --- | --- |
-| 0.9.0-alpha.2 | 默认预发布，npm latest / next | 更新检查支持预发布版本；相同版本不再重复提示升级 |
+| 0.9.0-alpha.3 | 默认预发布，npm latest / next | 修复组合输入被打断；后台保存草稿不显示进度提示 |
+| 0.9.0-alpha.2 | 早期预发布 | 更新检查支持预发布版本；存在组合输入回归，请升级 alpha.3 |
 | 0.9.0-alpha.1 | 早期预发布 | 双宿主适配、持久草稿、PTC 工具展示、引用追加与学习路线约束 |
 | 0.8.2 | 旧宿主版本 | 明确来源读取上界与续读位置，恢复原生 Topic 首答建议追问 |
 | 0.8.1 | 已发布 | 修复 Linux/macOS 符号链接启动时无法打开 Topic |
@@ -51,11 +52,11 @@ DSH 0.1.7 用户安装本预发布版：
 
 ```powershell
 npm install -g @deepseek-ai/dsh@0.1.7-rc.2
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-alpha.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-alpha.3
 dsh web
 ```
 
-`latest` 和 `next` 均指向 0.9.0-alpha.2；版本号仍为预发布。DSH 0.1.5-rc.1 / Desktop 2.0.9 用户须显式安装 0.8.2。旧版内置更新检查可能无法识别预发布版本，请使用上面的安装命令升级。旧宿主 DSH 0.1.2-rc.1 / Desktop 2.0.5 应继续使用 @kirkchinese/dsh-citeciter@0.6.0。如 npm 提示本地原生依赖的安装脚本被阻止，按 npm 输出对明确列出的依赖放行后重装。不要通过全局关闭脚本限制解决。
+`latest` 和 `next` 均指向 0.9.0-alpha.3；版本号仍为预发布。DSH 0.1.5-rc.1 / Desktop 2.0.9 用户须显式安装 0.8.2。旧版内置更新检查可能无法识别预发布版本，请使用上面的安装命令升级。旧宿主 DSH 0.1.2-rc.1 / Desktop 2.0.5 应继续使用 @kirkchinese/dsh-citeciter@0.6.0。如 npm 提示本地原生依赖的安装脚本被阻止，按 npm 输出对明确列出的依赖放行后重装。不要通过全局关闭脚本限制解决。
 
 0.8.0 在 Linux/macOS 通过符号链接启动 DSH 时，可能无法打开 Topic，报找不到 dsh-agent-loop。0.8.1 先解析 CLI 入口真实路径再加载宿主模块，保留 Desktop 的 app.asar 路径。Linux 原生 Node 回归已通过，macOS 尚未实测。
 
@@ -68,10 +69,10 @@ pnpm typecheck
 pnpm typecheck:desktop
 pnpm build
 pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
-dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.9.0-alpha.2.tgz
+dsh plugin --profile web add E:/project/CiteCiter/.refs/artifacts/kirkchinese-dsh-citeciter-0.9.0-alpha.3.tgz
 ```
 
-Desktop 使用自己的内置 DSH。0.8.2 对应已验收的 Desktop 2.0.9 基线；本版针对 Desktop 2.0.15，在其管理终端执行 `dsh plugin add @kirkchinese/dsh-citeciter@0.9.0-alpha.2`。全局 CLI 更新不会更新 Desktop 内置运行时。安装后重启相应宿主。同一 DSH home 不要同时运行 Web 和 Desktop 写入进程。
+Desktop 使用自己的内置 DSH。0.8.2 对应已验收的 Desktop 2.0.9 基线；本版针对 Desktop 2.0.15，在其管理终端执行 `dsh plugin add @kirkchinese/dsh-citeciter@0.9.0-alpha.3`。全局 CLI 更新不会更新 Desktop 内置运行时。安装后重启相应宿主。同一 DSH home 不要同时运行 Web 和 Desktop 写入进程。
 
 已知宿主限制：Windows 只读 PowerShell 的编码初始化可能被受限语言模式拒绝，部分中文输出可能乱码。Citer 保留原始错误，不提高权限或隐藏输出；此问题等待 DSH 修复。本次预发布不包含 Linux/macOS 或 Desktop NEXT 外壳的实机验收声明。
 
@@ -82,6 +83,8 @@ Desktop 使用自己的内置 DSH。0.8.2 对应已验收的 Desktop 2.0.9 基�
 原生 Topic 的首答默认提供三条建议追问，可在 CiteCiter 设置中关闭。用户本次要求不附建议、只给结果或严格限定格式与篇幅时，提示词要求省略追问。点击建议只填入草稿，手动发送后才调用模型。来源说明和建议追问由独立提示词模块提供；来源内容继续按已发送附件读取。
 
 ## 草稿与引用
+
+输入即时显示，拼音等组合输入在确认前保持原有选区。草稿在后台自动保存，不显示保存中的进度文字；保存失败、附件恢复失败和多窗口冲突仍显示处理提示。0.9.0-alpha.1 / alpha.2 的组合输入回归已在 alpha.3 修复。
 
 1. 在主对话选中文字，按住右键打开八槽轮盘，移向动作后松开。也可从工具结果、文档阅读器或原生文件预览创建 Topic。
 2. “自由提问”把选文加入当前选中的未归档 Topic；未选中或当前 Topic 已归档时新建。其他内置动作默认新建，自定义动作可选择目标。只在当前来源会话内追加，保留已有草稿、模型和权限。来源地址与选文显示为可移除附件；加号仅选择实际图片或文件，不生成引用。
@@ -179,7 +182,7 @@ CiteCiter 与同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh
 
 ## 开发与验收
 
-[开发规范](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/CONTRIBUTING.zh.md) · [alpha 变更说明](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/docs/releases/v0.9.0-alpha.2.md) · [本轮验收状态](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/docs/validation/2026-09-27-connect-450.md) · [0.8.2 修复说明](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/docs/releases/v0.8.2.md)
+[开发规范](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/CONTRIBUTING.zh.md) · [alpha 变更说明](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/docs/releases/v0.9.0-alpha.3.md) · [本轮验收状态](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/docs/validation/2026-09-27-connect-450.md) · [0.8.2 修复说明](https://github.com/kirkchinese/CiteCiter/blob/feat/dsh-latest-usability/docs/releases/v0.8.2.md)
 
 Host 和 Client 分别编译。原生会话适配、来源读取、索引存储、附件、发送队列、板书截图、学习计划和 UI 控件独立实现；不修改 DSH Agent Loop。完整宿主输入组件尚无跨会话嵌入接口，Citer 通过公开 ConversationController / SessionFace 复用行为，不能自动继承所有第三方输入区扩展。
 

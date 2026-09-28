@@ -26,6 +26,7 @@ export declare function createDraftController(request: Request, native: NativeCo
     flushAll: () => Promise<PromiseSettledResult<void>[]>;
     ensure: (id: string) => Promise<void>;
     flush: (id: string) => Promise<void>;
+    /** Publish ready-draft edits synchronously; the returned promise only waits for an initial load when needed. */
     setText: (id: string, text: string) => Promise<void>;
     append: (id: string, text: string, references: readonly DraftReference[]) => Promise<void>;
     removeReference: (id: string, referenceId: string) => Promise<void>;

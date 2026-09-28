@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.9.0-alpha.2",
+  "version": "0.9.0-alpha.3",
   "description": "Source-aware native DSH Topics with manual drafts, permissions, visual boards and learning cards",
   "keywords": [
     "deepseek-harness",

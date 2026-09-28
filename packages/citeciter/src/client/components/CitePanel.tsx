@@ -512,7 +512,6 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                     attachments={<>
                       {active?.topic.modelSelectionRequired === true && <p role="status">来源模型已不可用。草稿已保留，请选择可用模型后发送。</p>}
                       {(attachmentError || draft.error) && <p role="alert">{attachmentError || draft.error}</p>}
-                      {draft.saving && <span role="status">保存草稿…</span>}
                       {draft.conflict && <div><button type="button" onClick={() => runDraft(drafts.keepLocal(draftKey))}>保留本窗口草稿</button><button type="button" onClick={() => runDraft(drafts.reload(draftKey))}>载入已保存草稿</button></div>}
                       {draft.pending && !draft.sending && <p role="status">上次发送状态待核对。<button type="button" onClick={() => runDraft(drafts.reconcile(draftKey))}>核对发送状态</button><button type="button" onClick={event => submit(event, delivery, true)}>重试上次发送</button></p>}
                       {!draft.ready && draft.error && <button type="button" onClick={() => runDraft(drafts.ensure(draftKey))}>重新读取草稿</button>}

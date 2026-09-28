@@ -117,7 +117,9 @@ export function createDraftController(request: Request, native: NativeComposer) 
     entry.timer = setTimeout(() => { void flush(id).catch(() => { /* The view already exposes this save failure. */ }) }, 150)
   }
   const mutate = async (id: string, change: (entry: Entry) => void) => {
-    await ensure(id)
+    // Controlled input values must be echoed before the React event returns.
+    // Yielding even for a ready draft restores the previous value and ends IME composition.
+    if (!entryOf(id).view.ready) await ensure(id)
     if (disposed) return
     const entry = entryOf(id)
     change(entry); changed(id, entry)
@@ -137,6 +139,7 @@ export function createDraftController(request: Request, native: NativeComposer) 
     hasUnsavedChanges: () => [...entries.values()].some(entry => entry.generation !== entry.saved),
     flushAll: () => Promise.allSettled([...entries.keys()].filter(id => entryOf(id).view.ready).map(flush)),
     ensure, flush,
+    /** Publish ready-draft edits synchronously; the returned promise only waits for an initial load when needed. */
     setText: (id: string, text: string) => mutate(id, entry => { entry.state = { ...entry.state, content: { ...entry.state.content, text } } }),
     append: (id: string, text: string, references: readonly DraftReference[]) => mutate(id, entry => {
       entry.state = { ...entry.state, content: { ...entry.state.content,
