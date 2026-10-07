@@ -29,23 +29,25 @@ CiteCiter 帮助你从 Agent 的真实工作中学习。选中对话、工具结
 
 | 宿主 | 截至 2026-10-07 的状态 |
 | --- | --- |
-| 官方 DSH Desktop `0.2.0-rc.2` | 正在核对安装契约与实际流程，尚未完成验收 |
+| 官方 DSH Desktop `0.2.0-rc.2` | 固定提交的 Git 插件页安装与完整退出重启已通过；功能矩阵仍未完成 |
 | npm DSH `0.2.0-rc.2`（`latest` / `next`） | 当前适配目标，尚未完成验收 |
 | DSH `0.2.1-alpha.1`（`alpha`） | 正在审查源码，尚未完成验收 |
 
 本轮候选为 **0.9.0-alpha.4**，适配与验收仍在进行，尚未发布。当前已发布 CiteCiter 包为 **0.9.0-alpha.3**，是以 DSH `0.1.7-rc.2` 为基线的预发布版。不能把它安装到新宿主就视为兼容；不要绕过宿主的版本检查强行加载旧插件。
 
-### Git 安装：公开 CLI 安装已核验，桌面界面流程仍待验收
+### Git 安装：官方桌面插件页安装与重启已核验
 
-本分支已补齐仓库根目录的插件入口。官方 CLI `0.2.0-rc.2` 已通过以下固定 GitHub 提交的真实安装，bundle 登记、四个模块入口和 Typert 描述均核验成功；官方桌面所用 pnpm `11.7.0` 的本地真实 Git 快照安装也已通过。修复提交 `f8825a6` 位于公开开发分支 `codex/official-desktop-october`，尚未合并 `main`，也未发布新的 Release 或 npm 包。官方桌面插件页的 Git 安装、该安装路径后的重启加载及完整功能验收仍未完成，不能将默认分支地址视为已经可用。
+本分支已补齐仓库根目录的插件入口。官方 Desktop `0.2.0-rc.2` 已从插件页安装以下固定 GitHub 提交，立即启用后完整退出并重启成功；156 个发布文件（含 149 个 lib 文件）与该提交逐字节一致，来源会话、5 个 Topic、5 份普通消息草稿和附件保持完整。此前公开 CLI 与本地真实 Git 快照的安装验证另有记录。实测提交 `f0c30dd` 位于公开开发分支 `codex/official-desktop-october`，尚未合并 `main`，也未发布新的 Release 或 npm 包；完整功能矩阵仍未完成，不将默认分支视为已验证安装入口。
 
 以下命令固定到已核验的开发提交，**仅供候选复测，不是已完成完整验收的推荐安装版本**：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f0c30dd99299e4c054f1951a014489364ee7713e"
 ```
 
-官方桌面插件页的 Git 地址使用同一个带提交或标签的仓库地址；其实际界面流程仍待验收。该入口直接使用仓库内已构建的插件，不需要填写 `#path:packages/citeciter`、运行安装时构建或跳转到已发布 npm 包。检查范围与限制见[本轮验收记录](docs/validation/2026-10-07-official-desktop.md)。
+官方桌面插件页的 Git 地址使用同一个带固定提交的仓库地址；该提交的安装、启用和完整退出重启流程已实测。该入口直接使用仓库内已构建的插件，不需要填写 `#path:packages/citeciter`、运行安装时构建或跳转到已发布 npm 包。检查范围与限制见[本轮验收记录](docs/validation/2026-10-07-official-desktop.md)。
+
+本段是对已完成安装的后续记录；固定提交内的 README 早于本次文档更新，正文可以不同，所核验的构建文件不变。
 
 安装兼容插件后，在 DSH 中配置可用模型。全局 CLI 与桌面应用的内置运行时分别管理；不要让两个进程同时写入同一个 DSH home。Linux 与 macOS 本轮没有实机验收结论。
 

@@ -1,6 +1,6 @@
 # 2026-10-07 官方 DSH Desktop 兼容验收
 
-当前结论：候选未完成完整验收，不可据此宣布可发布。最新候选 `636409058e77` 已构建、打包，经官方 CLI 安装并在官方桌面真正退出后重启，154 个文件与 tarball 逐字节一致且无缺失或多余文件。新界面已正确显示 Topic 4 的“write · 已拒绝”，展开保留原始参数和错误，普通只读拒写与允许一次结果没有误标；Topic 5 纠正后的卡片也在重启后恢复，路线与主动回忆仍关闭，没有自动发送。真实审批执行及卡片生成发生在此前 `255f5aa1f764`，相关证据按候选分别保留。首尾空白显示边界、官方插件页 Git 安装等仍有待验收项，完整功能矩阵未通过，没有执行本轮 npm 或 GitHub 发布。
+当前结论：候选未完成完整功能验收，不可据此宣布可发布。当前主官方 Desktop 已通过原生插件页从公开固定提交 `f0c30dd99299e4c054f1951a014489364ee7713e` 安装 Git 插件，并在立即启用、完整退出后重新启动；156 个发布文件（含 149 个 lib 文件）与提交逐字节一致，无缺失或多余文件。来源、5 个 Topic、5 份普通消息草稿及附件完整保留，Topic 4 审批与 Topic 2 补答历史恢复，只读未变且无自动发送。此前 `636409058e77` tarball 和更早候选的运行证据分别保留，不混记为 Git 安装后的重新执行。问答卡未发送文字在完整重启后丢失已真实复现，修复预期正等待用户确认；首尾空白与其余组合仍待核验，没有执行本轮 npm 或 GitHub 发布。
 
 ## 范围与证据规则
 
@@ -13,14 +13,14 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 | 项目 | 当前已核验结果 |
 | --- | --- |
 | 官方安装器 | [官方固定下载地址](https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe)；ProductVersion `0.2.0-rc.2`；Authenticode 签名有效，发布者为 Hangzhou DeepSeek。 |
-| 本机 Desktop | 官方 `0.2.0-rc.2` 真正退出后，通过官方 CLI 安装本表不同哈希文件名的候选并实际重启；新原生窗口 ID 为 `1181910`。已观察审批摘要及纠正卡片恢复，具体操作见后续运行记录，不补猜精确重启时间。 |
+| 本机 Desktop | 官方 `0.2.0-rc.2` 的 Git 安装后重启窗口为 `4722158`；后续问答草稿复现再次完整退出并重启，当前窗口为 `12783160`。具体数据恢复与缺陷分别记于下文。 |
 | 社区应用 | 原本机主要社区桌面应用已卸载；源码中的社区专属兼容分支已移除。 |
 | DSH Codex Connect | 官方 Desktop 安装 `0.2.0-alpha.2`；本轮真实模型为 `openai-codex / gpt-6-sol`。文件、图片与问答观察按各次已安装候选分别记录，不自动转记到本表候选。 |
-| CiteCiter 当前已观察候选 | `0.9.0-alpha.4`；`.refs/artifacts/citeciter-alpha4-636409058e77.tgz`，909,422 字节。包含审批拒绝投影修复和此前公开 Git 安装说明的 README 更新；完整功能门槛尚未满足。 |
-| 候选压缩包 SHA-256 | `636409058E77631C165E1E4ADB5E0D1D55549AEE367B7425F0BECDC122E9D656` |
+| CiteCiter 当前已观察候选 | `0.9.0-alpha.4`；官方插件页 Git 安装 `github:kirkchinese/CiteCiter#f0c30dd99299e4c054f1951a014489364ee7713e`，bundle 已启用；完整功能门槛尚未满足。 |
+| 此前 tarball 对照 | `.refs/artifacts/citeciter-alpha4-636409058e77.tgz`，909,422 字节，SHA-256 `636409058E77631C165E1E4ADB5E0D1D55549AEE367B7425F0BECDC122E9D656`；当前为 Git 安装，两种产物不混为同一文件集合。 |
 | 已安装 `lib/index.js` SHA-256 | `02D8CBE7E5DD4C8F5318B5118962BC8BA726832A6594A4C28BBB41A27F6DDA75`。 |
 | 已安装 `lib/client.js` SHA-256 | `D9B3E7DB0E13C8450BFD58FEB129E13BC73762D95F30A9E11FAAA6290FCEE08B`。 |
-| 安装完整性 | 已安装的 154 个文件与本表 tarball 逐字节一致，无缺失或多余文件；完整性检查与实际重启、真实模型观察分别记录。 |
+| 安装完整性 | 当前 Git 安装的 156 个发布文件（含 149 个 lib 文件）与固定提交 Git blob 逐字节一致，无缺失或多余文件；入口哈希与此前 6364 tarball 相同。此前 tarball 安装的 154 个文件另行记录。 |
 
 发现并解决一处验收环境问题：反复安装同一路径、同版本的 tarball 时，pnpm 复用了旧包。改用包含最终 SHA-256 前缀的新文件名重新安装后，已安装入口文件与仓库最终构建一致。后续运行验收必须在重启加载该候选之后进行，不沿用重启前的页面作为最终候选证据。
 
@@ -37,7 +37,7 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 | Windows 构建写入修复 | 复现输出文件被映射时再次截断触发 Windows 错误 1224；将相同规范化移至 `generateBundle` 首次落盘之前后，连续 20 次 bundle、根构建和 pack 均成功。没有忽略错误或加入重试；详见构建 Agent Note。 |
 | 问答协议检查 | 一次性内存检查覆盖隐藏后超时、焦点暂停/续计、首次编辑暂停、晚答状态、混合语言回答保留、legacy 取消、重复同步只建立一个 claim、释放及不可复活、用户晚答恢复归档。不是实际模型或跨进程 Remote 验收。 |
 | 审批拒绝摘要 | 独立 `tool-approval-projection.ts` 严格关联唯一、有序的审批拒绝事件链，保留权限、日志和原始工具结果；双 SDK 类型检查、`pnpm build` 及 `git diff --check` 通过。`636409058e77` 安装重启后已在官方窗口验证“已拒绝”、原始详情保留及非拒绝结果不误标；不等于全部权限组合通过。 |
-| Git 包结构与 CLI 安装 | pnpm `11.7.0` 的本地真实 Git 快照安装与导出/Typert 验证通过；官方 CLI `0.2.0-rc.2` 另使用 pnpm `11.21.0` 完成公开 GitHub 固定提交安装，退出码 0，登记及解析 `skippedBundles=[]`。官方 Desktop 插件页的 Git 安装流程仍待验收，CLI 结果不代替 UI 结果。 |
+| Git 包结构、CLI 与官方插件页安装 | 早期本地 Git 快照、公开 `f8825a6` 的 CLI 安装分别通过；当前公开 `f0c30dd` 已在官方原生插件页完成安装、立即启用和完整退出重启，156 个文件与提交一致，来源/Topic/普通草稿/附件未改变。其余运行矩阵仍未通过。 |
 | 文档 | 四份 README、兼容说明及 X 图文材料已准备；X 素材未对外发布。社区专属文档清理覆盖 74 个文件，删除了仅适用于社区版本的记录；旧证据不计入本轮通过项。 |
 
 ## Git 安装验证的具体范围
@@ -50,11 +50,11 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 
 另以官方 `dsh.cmd` `0.2.0-rc.2` 执行 `plugin --profile web add`，将本地 Git 提交安装到专用隔离 `DSH_HOME`。命令成功退出，Citer 自动加入 `dsh.profile.bundles`；安装版官方 `loadProfileDirectory` 解析基础 bundle、Web bundle 和 Citer bundle，Citer patch 的 `id` 为 `citeciter`、包名为 `@kirkchinese/dsh-citeciter`，没有跳过任何 bundle。此 CLI 使用本机 pnpm `11.21.0`，与前述官方桌面 pnpm `11.7.0` 的独立安装检查分别记录。隔离 home 从未启动，没有模型请求或用户会话。隔离裸包检查故意不自动安装宿主 peers，出现的缺少宿主依赖提示不代表完整运行验收；它们不能与工作树已通过的 peer 检查混为一谈。
 
-根 `pnpm pack` 仍输出内层 npm 结构，包名与版本正确、`private=false`、主入口为 `lib/index.js`、bundle patch 为 `./cordis.patch.yml`，没有把根工作区结构当作 npm 发布包。本地临时 Git 的提交号不是本项目正式提交，不得用作文档安装示例。实际修复提交 `f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea` 已推送到公开开发分支 `codex/official-desktop-october`，尚未合并 `main`、发布 Release 或 npm 包；四份 README 已将该真实固定提交列为仅供候选复测的安装入口，不宣称完整验收通过。这些包解析证据不适用于其后未经核对的新构建。
+根 `pnpm pack` 仍输出内层 npm 结构，包名与版本正确、`private=false`、主入口为 `lib/index.js`、bundle patch 为 `./cordis.patch.yml`，没有把根工作区结构当作 npm 发布包。本地临时 Git 的提交号不是本项目正式提交，不得用作文档安装示例。实际修复提交 `f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea` 已推送到公开开发分支 `codex/official-desktop-october`，尚未合并 `main`、发布 Release 或 npm 包；当时四份 README 将该真实固定提交列为仅供候选复测的安装入口，不宣称完整验收通过。这些包解析证据不适用于其后未经核对的新构建。
 
-公开 GitHub 安装复测使用 `git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea`，由官方 CLI `0.2.0-rc.2` 的 `plugin --profile web add` 执行，pnpm 版本为 `11.21.0`，耗时 9.2 秒并以 0 退出。复用此前的隔离 `DSH_HOME`，没有启动 Host、创建真实会话或调用模型。远端固定提交实际登记为 Citer bundle；官方 `loadProfileDirectory` 解析 base、Web 和 Citer，`skippedBundles=[]`，Citer patch ID 为 `citeciter`。四个入口与当时的 `lib` 逐字节一致，其中 index/client 分别为历史 `255f5aa1f764` 包记录的 `70E829…` 和 `6386D9…`；真实导入后 `validateTypertManifest` 验证七个 schema 与两个 invocation，Host 的 util-values 为 `0.2.0-rc.2`。这补齐该公开固定提交的 Git CLI 取得、登记与包解析证据，不证明它包含后续审批展示修复；官方 Desktop 插件页安装、该安装路径的重启加载及其完整功能仍待验收。
+公开 GitHub 安装复测使用 `git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea`，由官方 CLI `0.2.0-rc.2` 的 `plugin --profile web add` 执行，pnpm 版本为 `11.21.0`，耗时 9.2 秒并以 0 退出。复用此前的隔离 `DSH_HOME`，没有启动 Host、创建真实会话或调用模型。远端固定提交实际登记为 Citer bundle；官方 `loadProfileDirectory` 解析 base、Web 和 Citer，`skippedBundles=[]`，Citer patch ID 为 `citeciter`。四个入口与当时的 `lib` 逐字节一致，其中 index/client 分别为历史 `255f5aa1f764` 包记录的 `70E829…` 和 `6386D9…`；真实导入后 `validateTypertManifest` 验证七个 schema 与两个 invocation，Host 的 util-values 为 `0.2.0-rc.2`。这补齐该公开固定提交的 Git CLI 取得、登记与包解析证据，不证明它包含后续审批展示修复；其后的官方 Desktop 插件页安装与完整退出重启使用更新的 `f0c30dd`，具体证据另列；完整功能矩阵仍未通过。
 
-此前公开 Git 安装说明已同步到 README，并随当前 `636409058e77` 包构建、打包和安装。其固定安装示例仍指向已核验的 `f8825a6`，不将尚未发布的新构建伪装为该提交，也不因当前本地 tarball 重启成功而宣布官方 Git 安装 UI 已通过。
+此前公开 Git CLI 安装说明随 `636409058e77` tarball 安装；此后已提交并公开 `f0c30dd99299e4c054f1951a014489364ee7713e`，真实完成下文官方插件页 Git 安装。本轮后续 README/文档改用这个已安装提交作为候选复测示例；这不会改变该固定提交，已安装包内的 README 早于本次记录，正文可以不同。
 
 本次审计产生的临时目录为 `E:\project\CiteCiter\.refs\git-fetch-audit-20261007`（临时 Git、隔离 consumer、pnpm 工具和 store、未启动的 DSH home、打包摘要），以及 `E:\project\CiteCiter\packages\citeciter\.refs\git-fetch-audit-20261007\npm-artifact`（根 pack 的相对输出路径按内层包解析后生成的审计 tarball）。目录均仅属于本次审计，不含主会话或迁移备份。对第一个目录内临时旧 `lib` 的清理已完成绝对路径和非链接检查，但 `Remove-Item` 被自动审批以 `blocked by policy` 拒绝；未改用其他手段删除，以上审计目录仍待清理。未创建或提交临时测试脚本。
 
@@ -72,10 +72,10 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 
 | 范围 | 覆盖范围与剩余限制 |
 | --- | --- |
-| 加载与安装 | 本地 tarball 的安装核对和官方重启已观察；仍需官方插件管理器从公开 Git 仓库安装及重启加载，并覆盖尚未运行的 Citer 与 Connect 模块、Remote 路径。 |
-| 真实模型与工具 | 普通文字、真实问答、编程、终端、PTC 子调用、图像、教学；思考、参数、结果、失败、取消和附件可见；使用真实账号与模型完成端到端调用。 |
+| 加载与安装 | 本地 tarball、公开 CLI、官方原生插件页固定 Git 安装及完整退出重启均有独立证据；仍需覆盖尚未运行的 Citer/Connect 模块、Remote 路径及完整功能组合。 |
+| 真实模型与工具 | Git `f0c30dd` 的 pwsh 回合保留 stdout/stderr，退出码偏差按授权记宿主限制。另用官方 PTC 预设的真实 Topic 6 已验证外层 run_code、成功 read 子调用和失败 read 子调用各自显示，参数/原始错误可展开且失败不误标拒绝。PTC 取消、审批及全部组合仍未通过；不宣称完整操作系统隔离。 |
 | 输入与草稿 | 中文输入法、英文、数字及混合输入；不再出现保存提示闪烁；Enter、Shift+Enter、Ctrl+Enter；切换来源、刷新、重启、发送失败及发送期间编辑的恢复。 |
-| 原生问答 | 下文按候选记录 blocking 回答/取消/停止、timed 超时/焦点/编辑等待、关闭面板后的继续、晚答/归档恢复、多题跳过及重启投影；仍需补齐断开释放、切换组合和首尾空白显示边界，并核对当前包所需的相关回归，不能整行判通过。 |
+| 原生问答 | 已记录 blocking 与 timed 子项；Git `f0c30dd` 新 12 秒等待实际 12,042 ms，pending 正常。未发送问答卡文字在完整退出重启后丢失已真实复现，普通消息草稿不受影响；持久化预期正向用户确认，尚未选择架构。断开释放、切换组合和首尾空白边界等仍需补齐，不能整行判通过。 |
 | 引用与轮盘 | 自由提问仅追加当前同源未归档 Topic；未选中或已归档时新建；其他内置动作默认新建；自定义目标；直接聚焦输入；移除引用后不进入模型上下文。 |
 | 会话与权限 | `255f5aa1f764` 已记录独立目录、主列表隔离、双击重命名、归档恢复、只读拒写、人工拒绝与仅允许一次执行；验收写入逐字节核对后已清理。`636409058e77` 已验证拒绝摘要修复和原始详情保留，默认只读不变，其他结果不误标。删除边界等仍待补齐，不能宣布权限整项全部通过。 |
 | 文件与图像 | 加号、整面板拖放与粘贴；主对话不收副本；普通文件/图片分类；损坏附件恢复；下载字节一致；原生预览、长文分页和重启后附件登记。 |
@@ -211,13 +211,56 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 
 真实模型的第二回合从 seq 54（14:07:20.012）开始，`learning_cards` seq 60（14:07:32.440）到 seq 61（14:07:32.445）返回 saved=1、isError=false；seq 65（14:07:35.956）明确承认原措辞不准确，seq 68 在 14:07:37.123 completed。新的自测与摘要明确区分 `Promise.all` 和 `Promise.allSettled`，最新完整集合仍为同标题的 1 张卡；这是替换原单卡集合，没有独立的 card.id 可用于声称同 ID 更新。代码示例内容逐字符保留，仍有 16 个实际换行。该回合只调用 `learning_cards`，没有项目读写、学习路线或 quiz 工具；来源完整日志 SHA-256 仍为 `ECB7FE6CAA620CFE34ABFE661C52498C656A2FA0DB1F65DC68D4678809ACF6C5`。当时已核验纠正后的持久化内容；后续新包的原生 UI 复查见下文，不据此宣称模型生成的全部教学内容正确。
 
-## 当前 6364 候选重启与修复复查
+## 此前 6364 tarball 重启与修复复查
 
-在官方 Desktop 退出后，通过官方 CLI 安装不同哈希文件名的 `.refs/artifacts/citeciter-alpha4-636409058e77.tgz` 并真正重启，出现新原生窗口 `1181910`。154 个安装文件与 tarball 逐字节一致，无缺失或多余文件；完整哈希见上表。本包包含审批拒绝展示修复及此前 README 的公开 Git 安装说明。本地 tarball 的安装、重启与以下观察不代替尚未进行的官方插件页 Git 安装流程。
+在官方 Desktop 退出后，通过官方 CLI 安装不同哈希文件名的 `.refs/artifacts/citeciter-alpha4-636409058e77.tgz` 并真正重启，出现新原生窗口 `1181910`。154 个安装文件与 tarball 逐字节一致，无缺失或多余文件；完整哈希见上表。本包包含审批拒绝展示修复及此前 README 的公开 Git 安装说明。本地 tarball 的安装、重启与以下观察，与后续官方插件页 Git 安装的证据分开记录。
 
 Topic 4 的历史工具行现显示“write · 已拒绝”。点击展开后，“状态”下仍保留原始 `user rejected escalation` 错误，参数完整；没有审批事件的早先只读拒写仍显示“调用失败”，随后 allowed-once 的成功结果仍为成功，没有误标为拒绝。默认权限仍为只读，没有自动发出新请求。本项通过的是新包对既有真实审批记录的展示修复；用户实际拒绝和允许执行仍属于上文 `255f5aa1f764` 的证据。
 
 Topic 5 的纠正卡片在本次官方 Desktop 重启后恢复。原生 UI 的新摘要明确 `Promise.all` 提前拒绝、不等待全部结束，以及 `Promise.allSettled` 等待全部；卡片数量仍为 1，代码保留，学习路线和主动回忆均关闭，没有自动发送。此前纠正的持久化结果与本次新包的显示结果分别核验通过；保留原卡措辞错误的历史，不宣称全部模型内容或完整矩阵正确。
+
+## 当前固定 Git 提交的官方插件页安装与重启
+
+修复提交 `f0c30dd99299e4c054f1951a014489364ee7713e` 已推送公开开发分支。用户即时确认后，在官方原生插件页填写该固定 Git 地址并安装，界面显示“已安装”“Git 仓库”和“下次启动后加载”；点击“立即启用”后 Citer 恢复。随后从应用菜单退出，窗口清单为空、Get-Process 无官方应用进程、10541 端口无监听，再启动官方应用得到窗口 `4722158`。这次实际经过完整进程退出，不把热启用替代重启。
+
+Profile 的实际依赖规格为 `github:kirkchinese/CiteCiter#f0c30dd99299e4c054f1951a014489364ee7713e`，Citer bundle 启用。独立核验覆盖 156 个发布文件，其中 149 个 lib 文件；全部与该提交的 Git blob 逐字节一致，无缺失或多余文件。入口 SHA-256 与上表以及此前 6364 tarball 一致；Git 包的 156 个文件与 tarball 的 154 个文件分别统计，不以数量不同推断遗漏。
+
+安装前后对比的 22 个来源/Citer 日志、普通草稿及附件文件全部未变，5 个 Topic 和 5 份普通消息草稿完整，没有文件增删或附件丢失。对比在北京时间 `2026-10-07 14:29:04.877` 前完成，结果保留于忽略目录的 `.refs/official-git-before-20261007.json`、`official-git-after-20261007.json` 和 `official-git-diff-20261007.json`，不提交会话内容。实际原生界面中来源主会话正常，五个 Topic 只在 Citer 内显示，Topic 4 拒绝/允许结果及 Topic 2“已补答”历史均恢复；权限仍为只读，没有自动发送。
+
+安装恢复核验时，新 PTC/终端回合和问答草稿跨重启尚待实际操作；随后获得的运行证据和真实缺陷见下节，不以 Git 安装成功代替这些检查。
+
+## Git 安装后的终端、限时提问与问答草稿缺陷
+
+以下均发生在已安装 `f0c30dd` 的官方 Desktop，时间为 `2026-10-07` 北京时间（UTC+8）。Topic 2 第 8 回合从 seq 97 开始；seq 101 的真实模型工具目录包含 34 个原生工具，没有 `run_code`。该回合没有 read 或 PTC 调用，因此不能把未出现的 PTC 行判断为消息显示遗漏，也不能将此回合作为 PTC 验收通过。
+
+真实 pwsh 调用从 seq 103（14:30:13.017）到 seq 104（14:30:13.696）；预设的 stdout、stderr 两个标记均完整保留，原始工具结果 `isError=false`，没有结构化 error。实际输出还包含 crashpad 和 `CannotCreateTypeConstrainedLanguage`，退出码为 1，而非验收请求期望的 3。根据用户此前明确允许忽略无法由插件修复的 PowerShell 宿主问题，此项作为外部环境限制保留；不将退出码 3、结构化错误分类或全部终端行为记为通过，也不改写原始工具结果。
+
+随后 `ask_user_question` 从 seq 108（14:30:20.183）到 seq 109（14:30:32.225），timeout 为 12 秒，实际间隔 12,042 ms，返回 pending=true。seq 113 发生一次 TRANSPORT 自动重试，seq 117 在 14:30:41.433 completed；不能记录为全程零失败。这个回合没有 PTC，后续官方 PTC 预设的独立结果见下节。
+
+模型回合完成后，在真实待补答问题卡的自填框输入 `未提交中文 English 123`，未提交；原生画面中文字存在，提交按钮启用。通过应用菜单退出，并确认进程和窗口消失后重新启动，得到窗口 `12783160`。同一待补答卡恢复，但自填文字为空，提交按钮禁用。由源码定位的内存草稿边界现已成为真实重启可复现的缺陷，仅指问答卡未发送答案；此前已核验的普通消息草稿不受影响。
+
+已向用户询问问答卡是否应按 Topic 自有草稿持久化规则补齐，尚未收到答案，未擅自选择存储架构或把该问题记为修复。完整矩阵仍未通过，不能判定候选可发布。
+
+## 官方 PTC 预设的真实成功与失败子调用
+
+在已安装 Git `f0c30dd` 的官方 UI 中，先选择官方 `ptc` 预设后创建 Topic 6（`citeciter-50c4747f-11f1-41d6-b299-09acee904a34`），随后将新任务默认恢复为 `standard`，并在原生设置中确认标准模式已是默认。Topic 6 自有日志位于来源实体目录的 `citeciter/6/`；seq 0 在北京时间 `2026-10-07 14:35:11.983` 记录只读，之后没有权限更改或审批事件。真实首回合由 seq 3 在 14:35:47.309 开始。
+
+| 事件 | 北京时间 | 实际结果 |
+| --- | --- | --- |
+| 外层 `run_code` seq 15 → 20 | 14:35:52.864 → 14:35:53.389 | `isError=false`；程序捕获子调用的 `ToolCallError`。 |
+| 子调用 `:ptc:1` seq 16 → 17 | 14:35:53.342 → 14:35:53.346 | `read` 读取 README，offset=1、limit=12，成功返回。 |
+| 子调用 `:ptc:2` seq 18 → 19 | 14:35:53.348 → 14:35:53.349 | `read` 读取不存在的文件，返回 `FsError / FS_NOT_FOUND`、`isError=true`。 |
+| 回合 seq 26 | 14:36:02.196 | completed。 |
+
+实际官方窗口中可见三个独立工具行：成功的 `run_code`、成功的 `read` 和“调用失败”的 `read`。展开失败子调用可见原始 `file_path` 参数及 not-found 错误，没有误标“已拒绝”。本轮没有写入文件、审批或权限提升，缺失路径仍不存在；来源完整日志 SHA-256 仍为 `ECB7FE6CAA620CFE34ABFE661C52498C656A2FA0DB1F65DC68D4678809ACF6C5`。主会话列表截图仍只有原来的 2 个主 Session，没有新增 Topic 条目。
+
+宿主外层结果包含 `File sandbox enforcement is partial on this host` 提示，不能将本次只读调用扩大为完整操作系统隔离已验证。本项仅通过 PTC 成功/失败子调用的真实投影及详情展示，不代表 PTC 取消、PTC 审批或全部工具组合已经通过。
+
+## 普通附件下载的保存步骤
+
+当前 Git 安装候选中，Topic 1 的 README 附件显示为文件下载按钮，图片显示为独立预览，没有将 Markdown 当成图片。将附件滚入视野后点击下载，实际打开 Windows“另存为”窗口，预填 `README.md`；这证明下载流程已到达系统保存步骤，不能据此判定下载落盘通过。现有下载目录里的旧 README 文件保留，不覆盖。
+
+为核对本次下载，准备保存为独立名称 `CiteCiter-README-official-20261007.md`。Computer Use 在设置文件名时返回 `element 747 is not available in cached app state`；按技能重新激活、读取并重试一次后仍是同一错误，已交由用户完成保存。待文件出现后应与原始 14,918 字节附件及 SHA-256 `99954ca5ff2c1ce634475e33558ecff31aeb1fe2fe65a68bb1184a609b0d6f06` 比对。目前不记录下载字节一致通过，也不将系统对话框控制限制认定为 CiteCiter 下载缺陷。
 
 ## 发布状态
 

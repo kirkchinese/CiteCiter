@@ -29,23 +29,25 @@ You do not need to plan a lesson or enable a learning route. Compared with start
 
 | Host | Status as of October 7, 2026 |
 | --- | --- |
-| Official DSH Desktop `0.2.0-rc.2` | Installation contract and real usage under review; not yet accepted |
+| Official DSH Desktop `0.2.0-rc.2` | Pinned Git installation through the plugin page and a complete app restart verified; full functional matrix incomplete |
 | npm DSH `0.2.0-rc.2` (`latest` / `next`) | Current adaptation target; not yet accepted |
 | DSH `0.2.1-alpha.1` (`alpha`) | Source review in progress; not yet accepted |
 
 The current candidate is **0.9.0-alpha.4**, with adaptation and acceptance still in progress; it has not been published. The published CiteCiter package is **0.9.0-alpha.3**, a prerelease built for DSH `0.1.7-rc.2`. Do not assume that installing it on the new host establishes compatibility or bypass host compatibility checks to force an older plugin to load.
 
-### Git installation: public CLI verified, desktop UI flow still pending
+### Git installation: official desktop plugin-page install and restart verified
 
-This branch now exposes the plugin from the repository root. The official CLI `0.2.0-rc.2` has installed the pinned public GitHub commit below, with bundle registration, all four module entries and the Typert manifest verified. The official desktop application's pnpm `11.7.0` also passed installation of a real local Git snapshot. Fix commit `f8825a6` is on the public development branch `codex/official-desktop-october`; it has not been merged into `main`, and no new Release or npm package has been published. Git installation through the official desktop plugin page, restart loading from that installation and complete functional acceptance remain pending; the default branch URL is not yet a verified installation source.
+This branch exposes the plugin from the repository root. Official Desktop `0.2.0-rc.2` installed the pinned GitHub commit below through its plugin page, activated it, and successfully loaded it after a complete app exit and restart. All 156 published files, including 149 lib files, matched the commit byte for byte; the source session, five Topics, five ordinary message drafts and attachments remained intact. Earlier public CLI and real local Git installation checks are recorded separately. Tested commit `f0c30dd` is public on `codex/official-desktop-october`, without a merge into `main` or a new Release/npm publication. The full functional matrix remains incomplete, and the default branch is not a verified installation source.
 
 This command pins the verified development commit **for candidate retesting only; it is not a recommended version with complete functional acceptance**:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f0c30dd99299e4c054f1951a014489364ee7713e"
 ```
 
-Use the same repository address with its commit or tag in the official desktop plugin page's Git field; that UI flow still needs acceptance. The entry uses prebuilt files committed to the repository, without a `#path:packages/citeciter` suffix, an install-time build or a redirect to a published npm package. See the [acceptance record](https://github.com/kirkchinese/CiteCiter/blob/codex/official-desktop-october/docs/validation/2026-10-07-official-desktop.md) for the exact scope and limits.
+Use the same pinned repository address in the official desktop plugin page's Git field; installation, activation and a complete app restart have been observed for this commit. The entry uses prebuilt files committed to the repository, without a `#path:packages/citeciter` suffix, an install-time build or a redirect to a published npm package. See the [acceptance record](https://github.com/kirkchinese/CiteCiter/blob/codex/official-desktop-october/docs/validation/2026-10-07-official-desktop.md) for the exact scope and limits.
+
+This is a follow-up record of the completed installation. The pinned commit's README predates this documentation update and may differ in wording; the verified build files are unchanged.
 
 Configure models in DSH after installing a compatible plugin. The global CLI and the desktop application's embedded runtime are managed separately; do not run two writers against the same DSH home. Linux and macOS have no native acceptance conclusion in this round.
 
