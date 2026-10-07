@@ -35,14 +35,14 @@ You do not need to plan a lesson or enable a learning route. Compared with start
 
 The current candidate is **0.9.0-alpha.4**, with adaptation and acceptance still in progress; it has not been published. The published CiteCiter package is **0.9.0-alpha.3**, a prerelease built for DSH `0.1.7-rc.2`. Do not assume that installing it on the new host establishes compatibility or bypass host compatibility checks to force an older plugin to load.
 
-### Git installation: fixed on this branch, public installation still pending
+### Git installation: public CLI verified, desktop UI flow still pending
 
-This branch now exposes the plugin from the repository root. The official CLI `0.2.0-rc.2` and the official desktop application's pnpm `11.7.0` have separately passed installation and package-resolution checks against a real local Git snapshot. The fix has not been pushed to the public GitHub repository. Git installation through the official desktop plugin page, restart loading and functional acceptance remain pending; the default branch URL is not yet a verified installation source.
+This branch now exposes the plugin from the repository root. The official CLI `0.2.0-rc.2` has installed the pinned public GitHub commit below, with bundle registration, all four module entries and the Typert manifest verified. The official desktop application's pnpm `11.7.0` also passed installation of a real local Git snapshot. Fix commit `f8825a6` is on the public development branch `codex/official-desktop-october`; it has not been merged into `main`, and no new Release or npm package has been published. Git installation through the official desktop plugin page, restart loading from that installation and complete functional acceptance remain pending; the default branch URL is not yet a verified installation source.
 
-After the fix is pushed and its commit or tag is announced, the Web CLI can use this format. Replace the placeholder with **a real commit or tag containing this fix**:
+This command pins the verified development commit **for candidate retesting only; it is not a recommended version with complete functional acceptance**:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#<COMMIT_OR_TAG_WITH_FIX>"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea"
 ```
 
 Use the same repository address with its commit or tag in the official desktop plugin page's Git field; that UI flow still needs acceptance. The entry uses prebuilt files committed to the repository, without a `#path:packages/citeciter` suffix, an install-time build or a redirect to a published npm package. See the [acceptance record](docs/validation/2026-10-07-official-desktop.md) for the exact scope and limits.

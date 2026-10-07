@@ -35,17 +35,17 @@ CiteCiter 帮助你从 Agent 的真实工作中学习。选中对话、工具结
 
 本轮候选为 **0.9.0-alpha.4**，适配与验收仍在进行，尚未发布。当前已发布 CiteCiter 包为 **0.9.0-alpha.3**，是以 DSH `0.1.7-rc.2` 为基线的预发布版。不能把它安装到新宿主就视为兼容；不要绕过宿主的版本检查强行加载旧插件。
 
-### Git 安装：本分支已修复，公开安装仍待验收
+### Git 安装：公开 CLI 安装已核验，桌面界面流程仍待验收
 
-本分支已补齐仓库根目录的插件入口。官方 CLI `0.2.0-rc.2` 和官方桌面使用的 pnpm `11.7.0` 已分别通过本地真实 Git 快照的安装与包解析检查。修复尚未推送到公开 GitHub 仓库；官方桌面插件页的 Git 安装、重启加载及功能验收仍未完成，不能将默认分支地址视为已经可用。
+本分支已补齐仓库根目录的插件入口。官方 CLI `0.2.0-rc.2` 已通过以下固定 GitHub 提交的真实安装，bundle 登记、四个模块入口和 Typert 描述均核验成功；官方桌面所用 pnpm `11.7.0` 的本地真实 Git 快照安装也已通过。修复提交 `f8825a6` 位于公开开发分支 `codex/official-desktop-october`，尚未合并 `main`，也未发布新的 Release 或 npm 包。官方桌面插件页的 Git 安装、该安装路径后的重启加载及完整功能验收仍未完成，不能将默认分支地址视为已经可用。
 
-修复推送并公布对应提交或标签后，Web CLI 可使用以下格式；请把占位符替换为**包含本次修复的真实提交或标签**：
+以下命令固定到已核验的开发提交，**仅供候选复测，不是已完成完整验收的推荐安装版本**：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#<COMMIT_OR_TAG_WITH_FIX>"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea"
 ```
 
-官方桌面插件页的 Git 地址使用同一个带提交或标签的仓库地址；其实际界面流程仍待验收。该入口直接使用仓库内已构建的插件，不需要填写 `#path:packages/citeciter`、运行安装时构建或跳转到已发布 npm 包。检查范围与限制见[本轮验收记录](https://github.com/kirkchinese/CiteCiter/blob/main/docs/validation/2026-10-07-official-desktop.md)。
+官方桌面插件页的 Git 地址使用同一个带提交或标签的仓库地址；其实际界面流程仍待验收。该入口直接使用仓库内已构建的插件，不需要填写 `#path:packages/citeciter`、运行安装时构建或跳转到已发布 npm 包。检查范围与限制见[本轮验收记录](https://github.com/kirkchinese/CiteCiter/blob/codex/official-desktop-october/docs/validation/2026-10-07-official-desktop.md)。
 
 安装兼容插件后，在 DSH 中配置可用模型。全局 CLI 与桌面应用的内置运行时分别管理；不要让两个进程同时写入同一个 DSH home。Linux 与 macOS 本轮没有实机验收结论。
 

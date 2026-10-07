@@ -16,7 +16,7 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 | 本机 Desktop | 官方 `0.2.0-rc.2` 已再次实际重启加载本表候选，新原生窗口 ID 为 `1441826`；历史选择、自定义和多题跳过晚答均恢复为用户气泡与“已补答”状态。具体操作见后续运行记录，不补猜精确重启时间。 |
 | 社区应用 | 原本机主要社区桌面应用已卸载；源码中的社区专属兼容分支已移除。 |
 | DSH Codex Connect | 官方 Desktop 安装 `0.2.0-alpha.2`；本轮真实模型为 `openai-codex / gpt-6-sol`。文件、图片与问答观察按各次已安装候选分别记录，不自动转记到本表候选。 |
-| CiteCiter 当前已观察候选 | `0.9.0-alpha.4`；`citeciter-alpha4-255f5aa1f764.tgz`，907,734 字节。是当前源码的安装产物，完整功能门槛尚未满足。 |
+| CiteCiter 当前已观察候选 | `0.9.0-alpha.4`；`citeciter-alpha4-255f5aa1f764.tgz`，907,734 字节。仍是当前已安装代码产物；其后的 README 与本记录更新尚未重新打包，完整功能门槛尚未满足。 |
 | 候选压缩包 SHA-256 | `255F5AA1F7644D4C573DE6C1DDB321FFB4FCEE5A668DC90705E0E6CF13377703` |
 | 已安装 `lib/index.js` SHA-256 | `70E82931D7CA483140EBD7CB78F1F30E9D251D02C43E59C0D18ADF6D45225A21`。 |
 | 已安装 `lib/client.js` SHA-256 | `6386D9900AC4C65DF1A7E6743512FD2B62B4BC1340048048D33E8DEAB4DB6FED`。 |
@@ -36,7 +36,7 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 | 构建、打包与本地安装 | 候选已生成并安装；压缩包和入口文件标识见上表。 |
 | Windows 构建写入修复 | 复现输出文件被映射时再次截断触发 Windows 错误 1224；将相同规范化移至 `generateBundle` 首次落盘之前后，连续 20 次 bundle、根构建和 pack 均成功。没有忽略错误或加入重试；详见构建 Agent Note。 |
 | 问答协议检查 | 一次性内存检查覆盖隐藏后超时、焦点暂停/续计、首次编辑暂停、晚答状态、混合语言回答保留、legacy 取消、重复同步只建立一个 claim、释放及不可复活、用户晚答恢复归档。不是实际模型或跨进程 Remote 验收。 |
-| Git 包结构与 CLI 安装 | pnpm `11.7.0` 完成本地真实 Git 快照安装与导出/Typert 验证；官方 CLI `0.2.0-rc.2` 已在全新隔离 home 中安装并登记 bundle，安装版官方 `loadProfileDirectory` 返回 `skippedBundles=[]`。公开 GitHub 与 Desktop 插件页的安装仍待验收。 |
+| Git 包结构与 CLI 安装 | pnpm `11.7.0` 的本地真实 Git 快照安装与导出/Typert 验证通过；官方 CLI `0.2.0-rc.2` 另使用 pnpm `11.21.0` 完成公开 GitHub 固定提交安装，退出码 0，登记及解析 `skippedBundles=[]`。官方 Desktop 插件页的 Git 安装流程仍待验收，CLI 结果不代替 UI 结果。 |
 | 文档 | 四份 README、兼容说明及 X 图文材料已准备；X 素材未对外发布。社区专属文档清理覆盖 74 个文件，删除了仅适用于社区版本的记录；旧证据不计入本轮通过项。 |
 
 ## Git 安装验证的具体范围
@@ -49,7 +49,11 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 
 另以官方 `dsh.cmd` `0.2.0-rc.2` 执行 `plugin --profile web add`，将本地 Git 提交安装到专用隔离 `DSH_HOME`。命令成功退出，Citer 自动加入 `dsh.profile.bundles`；安装版官方 `loadProfileDirectory` 解析基础 bundle、Web bundle 和 Citer bundle，Citer patch 的 `id` 为 `citeciter`、包名为 `@kirkchinese/dsh-citeciter`，没有跳过任何 bundle。此 CLI 使用本机 pnpm `11.21.0`，与前述官方桌面 pnpm `11.7.0` 的独立安装检查分别记录。隔离 home 从未启动，没有模型请求或用户会话。隔离裸包检查故意不自动安装宿主 peers，出现的缺少宿主依赖提示不代表完整运行验收；它们不能与工作树已通过的 peer 检查混为一谈。
 
-根 `pnpm pack` 仍输出内层 npm 结构，包名与版本正确、`private=false`、主入口为 `lib/index.js`、bundle patch 为 `./cordis.patch.yml`，没有把根工作区结构当作 npm 发布包。本地临时 Git 的提交号不是本项目正式提交，不得用作文档安装示例。公开仓库尚未推送修复，README 仅给出带“包含修复的提交或标签”占位符的格式；官方桌面插件页、重启加载、模型调用及其他功能仍按下方待验收矩阵执行。这些包解析证据不适用于其后未经核对的新构建。
+根 `pnpm pack` 仍输出内层 npm 结构，包名与版本正确、`private=false`、主入口为 `lib/index.js`、bundle patch 为 `./cordis.patch.yml`，没有把根工作区结构当作 npm 发布包。本地临时 Git 的提交号不是本项目正式提交，不得用作文档安装示例。实际修复提交 `f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea` 已推送到公开开发分支 `codex/official-desktop-october`，尚未合并 `main`、发布 Release 或 npm 包；四份 README 已将该真实固定提交列为仅供候选复测的安装入口，不宣称完整验收通过。这些包解析证据不适用于其后未经核对的新构建。
+
+公开 GitHub 安装复测使用 `git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea`，由官方 CLI `0.2.0-rc.2` 的 `plugin --profile web add` 执行，pnpm 版本为 `11.21.0`，耗时 9.2 秒并以 0 退出。复用此前的隔离 `DSH_HOME`，没有启动 Host、创建真实会话或调用模型。远端固定提交实际登记为 Citer bundle；官方 `loadProfileDirectory` 解析 base、Web 和 Citer，`skippedBundles=[]`，Citer patch ID 为 `citeciter`。四个入口与当前 `lib` 逐字节一致，其中 index/client 分别为上表 `70E829…` 和 `6386D9…`；真实导入后 `validateTypertManifest` 验证七个 schema 与两个 invocation，Host 的 util-values 为 `0.2.0-rc.2`。这补齐公开 Git CLI 的取得、登记与包解析证据；官方 Desktop 插件页安装、该安装路径的重启加载及其完整功能仍待验收。
+
+本次公开安装结果同步到了 README 和文档，但没有再次构建、打包或安装。主 Desktop 仍使用上表 `255f5aa1f764`，当前工作树的 README 文案不等同于该已安装压缩包内的文案。
 
 本次审计产生的临时目录为 `E:\project\CiteCiter\.refs\git-fetch-audit-20261007`（临时 Git、隔离 consumer、pnpm 工具和 store、未启动的 DSH home、打包摘要），以及 `E:\project\CiteCiter\packages\citeciter\.refs\git-fetch-audit-20261007\npm-artifact`（根 pack 的相对输出路径按内层包解析后生成的审计 tarball）。目录均仅属于本次审计，不含主会话或迁移备份。对第一个目录内临时旧 `lib` 的清理已完成绝对路径和非链接检查，但 `Remove-Item` 被自动审批以 `blocked by policy` 拒绝；未改用其他手段删除，以上审计目录仍待清理。未创建或提交临时测试脚本。
 
@@ -167,7 +171,7 @@ Desktop 仅指 DeepSeek 官方发行版。本轮不接受社区桌面的旧运�
 
 真实模型第一次尝试向 `E:/project/CiteCiter/.refs/official-approval-probe-20261007.txt` 写入时，Topic 4 的 seq 15 到 seq 16 间隔 7 ms，工具返回 `FsError / FS_SANDBOX_DENIED`；日志没有 `approval/asked` 或 `approval/decided`，目标文件不存在。模型停止该操作，没有换工具或重新尝试写入，来源日志 SHA-256 未改变。
 
-这是官方 RC.2 的正常只读拒绝行为，当前没有证据将其归为 CiteCiter 产品缺陷。它验证默认只读阻止写入，不验证人工审批卡。下一步已手动提交明确包含 `sandbox_permissions: workspace-write` 和 `justification` 的申请，正在等待真实审批卡；人工拒绝和仅允许一次两路径尚未判为通过，不预记审批结果。
+这是官方 RC.2 的正常只读拒绝行为，当前没有证据将其归为 CiteCiter 产品缺陷。它验证默认只读阻止写入，不验证人工审批卡。随后已手动提交明确包含 `sandbox_permissions: workspace-write` 和 `justification` 的申请，原生界面实际显示 write 审批卡及“拒绝／仅允许这次”按钮，等待用户亲自处理；人工拒绝和仅允许一次两路径尚未判为通过，不预记审批结果。
 
 ## 发布状态
 
