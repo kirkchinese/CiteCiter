@@ -1,3 +1,33 @@
+/** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
+export class TopicQuestionReplies {
+    replies = new WeakMap();
+    /**
+     * Bind the official answer service in a child of the Topic contribution scope.
+     * @param ctx - Topic-owned contribution context; its teardown releases this binding.
+     * @param agent - Exact live Agent receiving replies, never a Host list lookup.
+     */
+    async attach(ctx, agent) {
+        await ctx.plugin({
+            name: 'citeciter-question-replies',
+            inject: ['userQuestions'],
+            apply: (scope) => {
+                const reply = (callId, answer) => scope.userQuestions.answer(agent, callId, answer);
+                scope.effect(() => {
+                    this.replies.set(agent, reply);
+                    return () => { if (this.replies.get(agent) === reply)
+                        this.replies.delete(agent); };
+                }, 'citeciter: scoped question replies');
+            },
+        });
+    }
+    /** Route a continued answer through its live injected service; absence must never recreate the Agent. */
+    answer(agent, callId, answer) {
+        const reply = this.replies.get(agent);
+        if (reply === undefined)
+            throw new Error('这个 Topic 的提问服务已结束，请重新打开后重试');
+        return reply(callId, answer);
+    }
+}
 /** A named Host call keeps one answer identity across the foreground/continued boundary. */
 export function questionKey(sessionId, callId) {
     return `question:${sessionId}:${callId}`;

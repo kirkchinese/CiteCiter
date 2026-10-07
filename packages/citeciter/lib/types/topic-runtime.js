@@ -7,6 +7,7 @@ import { readNativeState } from "./native-session-read.js";
 import { readNativeAttachment } from "./native-attachment-read.js";
 import { toolCallRecord, toolResultRecord } from "./tool-events.js";
 import { contextMessage } from "./message-projection.js";
+import { readQuestionReply, questionReplyText } from "./question-reply.js";
 import { latestTopicSubmission, topicSubmissionTime } from "./topic-archive.js";
 import { resolveReadableDocument } from "./document-access.js";
 import { createDocumentReadTool, createDocumentSearchTool } from "./document-tools.js";
@@ -38,7 +39,7 @@ import UserQuestionService, { UserQuestionError, } from '@deepseek-ai/dsh-user-q
 import { BOARD_MAX_BATCH_OPS, applyBoardOps, boardBatchSchema, EMPTY_BOARD_STATE, } from "./board.js";
 import { fingerprintCitationRecord, resolveDocumentEvidence, resolveObserverCitation, resolveToolEvidence, validateObserverCitation, } from "./observer.js";
 import { DocumentStore } from "./documents.js";
-import { continuedQuestions, openQuestion, questionKey } from "./topic-questions.js";
+import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies } from "./topic-questions.js";
 import { BoardCaptureBroker } from "./board-capture.js";
 import { readSourceSession, hasSentSource } from "./source-session.js";
 import { HostSessionAdapter } from "./host-session-adapter.js";
@@ -352,6 +353,16 @@ export function topicMessages(log) {
             attemptByTurn.set(event.data.turn, (attemptByTurn.get(event.data.turn) ?? 0) + 1);
             continue;
         }
+        if (event.type === 'user/message' && event.data.source.kind === 'user-question-reply') {
+            const reply = readQuestionReply(textBlocks(event.data.content, 'text'), String(event.data.source.callId));
+            messages.push({ id: event.data.id, seq: event.seq, role: 'user', text: questionReplyText(reply), questionReply: reply });
+            const index = toolIndexes.get(reply.callId);
+            const call = index === undefined ? undefined : messages[index];
+            if (index !== undefined && call?.role === 'tool' && call.name === 'ask_user_question') {
+                messages[index] = { ...call, questionReply: reply };
+            }
+            continue;
+        }
         if (event.type === 'user/message' && event.data.source.kind === 'user') {
             const text = textBlocks(event.data.content, 'text');
             const attachments = event.data.content.flatMap(block => block.type === 'image' || block.type === 'file' ? [{ kind: block.type, id: String(block.attachment.attachmentId), name: block.attachment.name ?? (block.type === 'image' ? '图片' : '文件') }] : []);
@@ -428,6 +439,7 @@ export function topicMessages(log) {
                 result: toolResultText(toolResult.content),
                 attachments: toolResult.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []),
                 isError: toolResult.isError,
+                ...(toolResult.errorCode === undefined ? {} : { errorCode: toolResult.errorCode }),
                 running: false,
             };
             continue;
@@ -675,6 +687,7 @@ export class TopicRuntime {
     requests = new Set();
     cleanupFailures = [];
     pendingQuestions = new Map();
+    questionReplies = new TopicQuestionReplies();
     creations = new Map();
     asks = new Map();
     topicAdmissions = new Map();
@@ -1271,6 +1284,7 @@ export class TopicRuntime {
         return handle;
     }
     async setupHostedAgent(agentCtx, agent, metadata) {
+        await this.questionReplies.attach(agentCtx, agent);
         agentCtx.on('session/event', (session, event) => {
             if (session !== agent.session)
                 return;
@@ -1305,6 +1319,7 @@ export class TopicRuntime {
         agentCtx.on('user-questions/request', request => this.askUser(request));
     }
     async setupAgent(agentCtx, agent, metadata) {
+        await this.questionReplies.attach(agentCtx, agent);
         const stream = new TopicStreamProjection();
         this.streams.set(metadata.sessionId, stream);
         agentCtx.on('agent/assistant-stream', ({ frame }) => {
@@ -1813,7 +1828,7 @@ export class TopicRuntime {
             const continued = continuedQuestions(handle.agent).find(question => question.key === request.key);
             if (continued?.callId === undefined)
                 throw new Error('这个提问已结束或已被替换');
-            const accepted = handle.agent.ctx.userQuestions.answer(handle.agent, continued.callId, validatedQuestionAnswer(continued.questions, request.answer, true));
+            const accepted = this.questionReplies.answer(handle.agent, continued.callId, validatedQuestionAnswer(continued.questions, request.answer, true));
             if (!accepted)
                 throw new Error('这个提问已结束或已被替换');
         }

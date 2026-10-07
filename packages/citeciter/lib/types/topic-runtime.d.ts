@@ -306,6 +306,7 @@ export declare class TopicRuntime {
     private readonly requests;
     private readonly cleanupFailures;
     private readonly pendingQuestions;
+    private readonly questionReplies;
     private readonly creations;
     private readonly asks;
     private readonly topicAdmissions;

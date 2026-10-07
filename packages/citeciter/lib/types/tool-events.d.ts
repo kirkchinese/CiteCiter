@@ -1,5 +1,6 @@
 import type { ContentBlock } from '@deepseek-ai/dsh-llm';
 import type { SessionEvent } from '@deepseek-ai/dsh-session';
+import type { QuestionToolOutcomeCode } from './tool-outcome-contract.ts';
 /** One committed tool dispatch, independent of native or run_code transport. */
 export interface ToolCallRecord {
     readonly callId: string;
@@ -10,6 +11,7 @@ export interface ToolResultRecord {
     readonly callId: string;
     readonly content: readonly ContentBlock[];
     readonly isError: boolean;
+    readonly errorCode?: QuestionToolOutcomeCode;
     readonly meta?: SessionEvent<'tool/result'>['data']['meta'];
 }
 /** Normalize native and PTC starts using the actual child call identity. No synthetic model messages. */

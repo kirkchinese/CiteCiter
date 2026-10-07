@@ -7,6 +7,7 @@ import { readNativeState } from './native-session-read.ts'
 import { readNativeAttachment } from './native-attachment-read.ts'
 import { toolCallRecord, toolResultRecord } from './tool-events.ts'
 import { contextMessage } from './message-projection.ts'
+import { readQuestionReply, questionReplyText } from './question-reply.ts'
 import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
 import { resolveReadableDocument } from './document-access.ts'
 import { createDocumentReadTool, createDocumentSearchTool, type AuthorizedDocumentReader } from './document-tools.ts'
@@ -90,7 +91,7 @@ import {
   type ObserverSourceSnapshot,
 } from './observer.ts'
 import { DocumentStore } from './documents.ts'
-import { continuedQuestions, openQuestion, questionKey } from './topic-questions.ts'
+import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies } from './topic-questions.ts'
 import { BoardCaptureBroker } from './board-capture.ts'
 import { readSourceSession, hasSentSource } from './source-session.ts'
 import { HostSessionAdapter } from './host-session-adapter.ts'
@@ -473,6 +474,16 @@ export function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[],
       attemptByTurn.set(event.data.turn, (attemptByTurn.get(event.data.turn) ?? 0) + 1)
       continue
     }
+    if (event.type === 'user/message' && event.data.source.kind === 'user-question-reply') {
+      const reply = readQuestionReply(textBlocks(event.data.content, 'text'), String(event.data.source.callId))
+      messages.push({ id: event.data.id, seq: event.seq, role: 'user', text: questionReplyText(reply), questionReply: reply })
+      const index = toolIndexes.get(reply.callId)
+      const call = index === undefined ? undefined : messages[index]
+      if (index !== undefined && call?.role === 'tool' && call.name === 'ask_user_question') {
+        messages[index] = { ...call, questionReply: reply }
+      }
+      continue
+    }
     if (event.type === 'user/message' && event.data.source.kind === 'user') {
       const text = textBlocks(event.data.content, 'text')
       const attachments = event.data.content.flatMap(block => block.type === 'image' || block.type === 'file' ? [{ kind: block.type, id: String(block.attachment.attachmentId), name: block.attachment.name ?? (block.type === 'image' ? '图片' : '文件') }] : [])
@@ -543,6 +554,7 @@ export function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[],
         result: toolResultText(toolResult.content),
         attachments: toolResult.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []),
         isError: toolResult.isError,
+        ...(toolResult.errorCode === undefined ? {} : { errorCode: toolResult.errorCode }),
         running: false,
       }
       continue
@@ -795,6 +807,7 @@ export class TopicRuntime {
   private readonly requests = new Set<Promise<unknown>>()
   private readonly cleanupFailures: unknown[] = []
   private readonly pendingQuestions = new Map<string, RuntimePendingQuestion>()
+  private readonly questionReplies = new TopicQuestionReplies()
   private readonly creations = new Map<string, { readonly intent: string, readonly result: Promise<TopicSnapshot> }>()
   private readonly asks = new Map<string, { readonly question: string, readonly result: Promise<TopicSnapshot> }>()
   private readonly topicAdmissions = new Map<string, Promise<void>>()
@@ -1410,6 +1423,7 @@ export class TopicRuntime {
   }
 
   private async setupHostedAgent(agentCtx: Context, agent: Agent, metadata: TopicMetadata): Promise<void> {
+    await this.questionReplies.attach(agentCtx, agent)
     agentCtx.on('session/event', (session, event) => {
       if (session !== agent.session) return
       const submittedAt = topicSubmissionTime(event)
@@ -1441,6 +1455,7 @@ export class TopicRuntime {
   }
 
   private async setupAgent(agentCtx: Context, agent: Agent, metadata: TopicMetadata): Promise<void> {
+    await this.questionReplies.attach(agentCtx, agent)
     const stream = new TopicStreamProjection()
     this.streams.set(metadata.sessionId, stream)
     agentCtx.on('agent/assistant-stream', ({ frame }) => {
@@ -1947,7 +1962,7 @@ export class TopicRuntime {
       const handle = await this.ensureHandle(metadata, signal)
       const continued = continuedQuestions(handle.agent).find(question => question.key === request.key)
       if (continued?.callId === undefined) throw new Error('这个提问已结束或已被替换')
-      const accepted = handle.agent.ctx.userQuestions.answer(handle.agent, continued.callId as ToolCallId,
+      const accepted = this.questionReplies.answer(handle.agent, continued.callId as ToolCallId,
         validatedQuestionAnswer(continued.questions, request.answer, true))
       if (!accepted) throw new Error('这个提问已结束或已被替换')
     }

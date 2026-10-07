@@ -426,6 +426,15 @@ export declare const topicSummarySchema: z.ZodObject<{
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     role: z.ZodLiteral<"user">;
+    questionReply: z.ZodOptional<z.ZodObject<{
+        callId: z.ZodString;
+        items: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            question: z.ZodString;
+            header: z.ZodOptional<z.ZodString>;
+            values: z.ZodArray<z.ZodString>;
+        }, z.core.$strict>>;
+    }, z.core.$strict>>;
     attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
             file: "file";
@@ -453,6 +462,15 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     seq: z.ZodNumber;
 }, z.core.$strict>, z.ZodObject<{
     role: z.ZodLiteral<"tool">;
+    questionReply: z.ZodOptional<z.ZodObject<{
+        callId: z.ZodString;
+        items: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            question: z.ZodString;
+            header: z.ZodOptional<z.ZodString>;
+            values: z.ZodArray<z.ZodString>;
+        }, z.core.$strict>>;
+    }, z.core.$strict>>;
     attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
         kind: z.ZodEnum<{
             file: "file";
@@ -465,6 +483,10 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     arguments: z.ZodString;
     result: z.ZodNullable<z.ZodString>;
     isError: z.ZodBoolean;
+    errorCode: z.ZodOptional<z.ZodEnum<{
+        ASK_CANCELLED: "ASK_CANCELLED";
+        ASK_ABORTED: "ASK_ABORTED";
+    }>>;
     running: z.ZodBoolean;
     id: z.ZodString;
     seq: z.ZodNumber;
@@ -607,6 +629,15 @@ export declare const topicSnapshotSchema: z.ZodObject<{
     }, z.core.$strict>;
     messages: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
         role: z.ZodLiteral<"user">;
+        questionReply: z.ZodOptional<z.ZodObject<{
+            callId: z.ZodString;
+            items: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                question: z.ZodString;
+                header: z.ZodOptional<z.ZodString>;
+                values: z.ZodArray<z.ZodString>;
+            }, z.core.$strict>>;
+        }, z.core.$strict>>;
         attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
             kind: z.ZodEnum<{
                 file: "file";
@@ -634,6 +665,15 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         seq: z.ZodNumber;
     }, z.core.$strict>, z.ZodObject<{
         role: z.ZodLiteral<"tool">;
+        questionReply: z.ZodOptional<z.ZodObject<{
+            callId: z.ZodString;
+            items: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                question: z.ZodString;
+                header: z.ZodOptional<z.ZodString>;
+                values: z.ZodArray<z.ZodString>;
+            }, z.core.$strict>>;
+        }, z.core.$strict>>;
         attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
             kind: z.ZodEnum<{
                 file: "file";
@@ -646,6 +686,10 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         arguments: z.ZodString;
         result: z.ZodNullable<z.ZodString>;
         isError: z.ZodBoolean;
+        errorCode: z.ZodOptional<z.ZodEnum<{
+            ASK_CANCELLED: "ASK_CANCELLED";
+            ASK_ABORTED: "ASK_ABORTED";
+        }>>;
         running: z.ZodBoolean;
         id: z.ZodString;
         seq: z.ZodNumber;
@@ -1443,6 +1487,15 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }, z.core.$strict>;
         messages: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
             role: z.ZodLiteral<"user">;
+            questionReply: z.ZodOptional<z.ZodObject<{
+                callId: z.ZodString;
+                items: z.ZodArray<z.ZodObject<{
+                    id: z.ZodString;
+                    question: z.ZodString;
+                    header: z.ZodOptional<z.ZodString>;
+                    values: z.ZodArray<z.ZodString>;
+                }, z.core.$strict>>;
+            }, z.core.$strict>>;
             attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 kind: z.ZodEnum<{
                     file: "file";
@@ -1470,6 +1523,15 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             seq: z.ZodNumber;
         }, z.core.$strict>, z.ZodObject<{
             role: z.ZodLiteral<"tool">;
+            questionReply: z.ZodOptional<z.ZodObject<{
+                callId: z.ZodString;
+                items: z.ZodArray<z.ZodObject<{
+                    id: z.ZodString;
+                    question: z.ZodString;
+                    header: z.ZodOptional<z.ZodString>;
+                    values: z.ZodArray<z.ZodString>;
+                }, z.core.$strict>>;
+            }, z.core.$strict>>;
             attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 kind: z.ZodEnum<{
                     file: "file";
@@ -1482,6 +1544,10 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             arguments: z.ZodString;
             result: z.ZodNullable<z.ZodString>;
             isError: z.ZodBoolean;
+            errorCode: z.ZodOptional<z.ZodEnum<{
+                ASK_CANCELLED: "ASK_CANCELLED";
+                ASK_ABORTED: "ASK_ABORTED";
+            }>>;
             running: z.ZodBoolean;
             id: z.ZodString;
             seq: z.ZodNumber;

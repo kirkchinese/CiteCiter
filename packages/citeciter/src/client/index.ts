@@ -41,6 +41,7 @@ import { createBoardCaptureController } from './board-capture-controller.ts'
 import { BoardCaptureWorker } from './components/BoardCaptureWorker.tsx'
 import { createDraftController } from './draft-controller.ts'
 import { hostSettings, hostInteractions } from './host-ui-adapter.ts'
+import { createSourceChatReader } from './host-source-chat.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
 export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'remote.userQuestions', 'conversation']
@@ -51,14 +52,7 @@ export async function apply(ctx: Context): Promise<void> {
   ctx.effect(() => unmountRemote, 'citeciter: Remote contribution')
 
   ctx.inject(['remote.citeciter'], (remoteCtx) => {
-    const sessions = remoteCtx.sessions
-    const readChat = (sessionId: SessionId) => {
-      const source = sessions.binding(sessionId)
-      if (source === undefined) return undefined
-      const conversation = remoteCtx.uiConversation.binding(source)
-      conversation.activate('chat')
-      return conversation.target('chat').getSnapshot()
-    }
+    const readChat = createSourceChatReader(remoteCtx)
     const settingsBinder = hostSettings(remoteCtx)
     const interactions = hostInteractions(remoteCtx)
     const settings = settingsBinder.get<CiteCiterSettings>(CITECITER_SETTINGS_NAMESPACE)

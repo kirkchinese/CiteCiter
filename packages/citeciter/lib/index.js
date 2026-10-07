@@ -1,4 +1,4 @@
-import { A as EMPTY_BOARD_STATE, D as LEARNING_PROMPT, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as draftFileSchema, I as draftStateSchema, L as subtractSubmitted, M as boardBatchSchema, N as DRAFT_CHUNK_BYTES, O as learningCardsInputSchema, P as EMPTY_DRAFT_STATE, T as actionTarget, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as applyBoardOps, k as LEARNING_EXAMPLE_PARAMETER, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-BGWvQceD.js";
+import { A as learningCardsInputSchema, D as actionTarget, E as DEFAULT_WHEEL_SLOTS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_BOARD_STATE, N as applyBoardOps, O as LEARNING_CARD_FIELD_DESCRIPTIONS, P as boardBatchSchema, R as draftStateSchema, T as readQuestionReply, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as LEARNING_EXAMPLE_PARAMETER, k as LEARNING_PROMPT, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as questionReplyText, x as topicMetadataSchema, y as renderCitationContext, z as subtractSubmitted } from "./update-Bt_6cv5F.js";
 import { createRequire } from "node:module";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
@@ -393,6 +393,12 @@ function requireSelectedModel(metadata) {
 }
 //#endregion
 //#region lib/types/tool-events.js
+/** Read only the public structured error taxonomy, never infer a verdict from model-visible text. */
+function questionToolOutcomeCode(error) {
+	if (typeof error !== "object" || error === null || Array.isArray(error)) return void 0;
+	if (!("name" in error) || error.name !== "UserQuestionError" || !("code" in error)) return void 0;
+	return error.code === "ASK_CANCELLED" || error.code === "ASK_ABORTED" ? error.code : void 0;
+}
 /** Normalize native and PTC starts using the actual child call identity. No synthetic model messages. */
 function toolCallRecord(event) {
 	if (event.type === "tool/call") return {
@@ -412,18 +418,25 @@ function toolResultRecord(event) {
 		const message = event.data.message;
 		const result = message.toolCallId === void 0 ? message.content[0] : message;
 		if (result.toolCallId === void 0) throw new Error("DSH 工具结果缺少调用身份");
+		const errorCode = questionToolOutcomeCode(event.data.error);
 		return {
 			callId: result.toolCallId,
 			content: result.content,
 			isError: result.isError === true || event.data.error !== void 0,
+			...errorCode === void 0 ? {} : { errorCode },
 			...event.data.meta === void 0 ? {} : { meta: event.data.meta }
 		};
 	}
-	if (event.type === "tool/ptc-dispatch") return {
-		callId: event.data.subCallId,
-		content: event.data.content,
-		isError: event.data.isError || "error" in event.data && event.data.error !== void 0
-	};
+	if (event.type === "tool/ptc-dispatch") {
+		const error = "error" in event.data ? event.data.error : void 0;
+		const errorCode = questionToolOutcomeCode(error);
+		return {
+			callId: event.data.subCallId,
+			content: event.data.content,
+			isError: event.data.isError || error !== void 0,
+			...errorCode === void 0 ? {} : { errorCode }
+		};
+	}
 }
 //#endregion
 //#region lib/types/evidence-text.js
@@ -16660,6 +16673,36 @@ var DocumentStore = class {
 };
 //#endregion
 //#region lib/types/topic-questions.js
+/** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
+var TopicQuestionReplies = class {
+	replies = /* @__PURE__ */ new WeakMap();
+	/**
+	* Bind the official answer service in a child of the Topic contribution scope.
+	* @param ctx - Topic-owned contribution context; its teardown releases this binding.
+	* @param agent - Exact live Agent receiving replies, never a Host list lookup.
+	*/
+	async attach(ctx, agent) {
+		await ctx.plugin({
+			name: "citeciter-question-replies",
+			inject: ["userQuestions"],
+			apply: (scope) => {
+				const reply = (callId, answer) => scope.userQuestions.answer(agent, callId, answer);
+				scope.effect(() => {
+					this.replies.set(agent, reply);
+					return () => {
+						if (this.replies.get(agent) === reply) this.replies.delete(agent);
+					};
+				}, "citeciter: scoped question replies");
+			}
+		});
+	}
+	/** Route a continued answer through its live injected service; absence must never recreate the Agent. */
+	answer(agent, callId, answer) {
+		const reply = this.replies.get(agent);
+		if (reply === void 0) throw new Error("这个 Topic 的提问服务已结束，请重新打开后重试");
+		return reply(callId, answer);
+	}
+};
 /** A named Host call keeps one answer identity across the foreground/continued boundary. */
 function questionKey(sessionId, callId) {
 	return `question:${sessionId}:${callId}`;
@@ -17671,6 +17714,23 @@ function topicMessages(log) {
 			attemptByTurn.set(event.data.turn, (attemptByTurn.get(event.data.turn) ?? 0) + 1);
 			continue;
 		}
+		if (event.type === "user/message" && event.data.source.kind === "user-question-reply") {
+			const reply = readQuestionReply(textBlocks(event.data.content, "text"), String(event.data.source.callId));
+			messages.push({
+				id: event.data.id,
+				seq: event.seq,
+				role: "user",
+				text: questionReplyText(reply),
+				questionReply: reply
+			});
+			const index = toolIndexes.get(reply.callId);
+			const call = index === void 0 ? void 0 : messages[index];
+			if (index !== void 0 && call?.role === "tool" && call.name === "ask_user_question") messages[index] = {
+				...call,
+				questionReply: reply
+			};
+			continue;
+		}
 		if (event.type === "user/message" && event.data.source.kind === "user") {
 			const text = textBlocks(event.data.content, "text");
 			const attachments = event.data.content.flatMap((block) => block.type === "image" || block.type === "file" ? [{
@@ -17748,6 +17808,7 @@ function topicMessages(log) {
 					name: part.attachment.name ?? (part.type === "image" ? "工具图片" : "工具文件")
 				}] : []),
 				isError: toolResult.isError,
+				...toolResult.errorCode === void 0 ? {} : { errorCode: toolResult.errorCode },
 				running: false
 			};
 			continue;
@@ -17948,6 +18009,7 @@ var TopicRuntime = class {
 	requests = /* @__PURE__ */ new Set();
 	cleanupFailures = [];
 	pendingQuestions = /* @__PURE__ */ new Map();
+	questionReplies = new TopicQuestionReplies();
 	creations = /* @__PURE__ */ new Map();
 	asks = /* @__PURE__ */ new Map();
 	topicAdmissions = /* @__PURE__ */ new Map();
@@ -18552,6 +18614,7 @@ var TopicRuntime = class {
 		return handle;
 	}
 	async setupHostedAgent(agentCtx, agent, metadata) {
+		await this.questionReplies.attach(agentCtx, agent);
 		agentCtx.on("session/event", (session, event) => {
 			if (session !== agent.session) return;
 			const submittedAt = topicSubmissionTime(event);
@@ -18583,6 +18646,7 @@ var TopicRuntime = class {
 		agentCtx.on("user-questions/request", (request) => this.askUser(request));
 	}
 	async setupAgent(agentCtx, agent, metadata) {
+		await this.questionReplies.attach(agentCtx, agent);
 		const stream = new TopicStreamProjection();
 		this.streams.set(metadata.sessionId, stream);
 		agentCtx.on("agent/assistant-stream", ({ frame }) => {
@@ -19139,7 +19203,7 @@ var TopicRuntime = class {
 			const handle = await this.ensureHandle(metadata, signal);
 			const continued = continuedQuestions(handle.agent).find((question) => question.key === request.key);
 			if (continued?.callId === void 0) throw new Error("这个提问已结束或已被替换");
-			if (!handle.agent.ctx.userQuestions.answer(handle.agent, continued.callId, validatedQuestionAnswer(continued.questions, request.answer, true))) throw new Error("这个提问已结束或已被替换");
+			if (!this.questionReplies.answer(handle.agent, continued.callId, validatedQuestionAnswer(continued.questions, request.answer, true))) throw new Error("这个提问已结束或已被替换");
 		}
 		return this.snapshot(metadata, signal, true);
 	}

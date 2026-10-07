@@ -464,7 +464,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                       <MessageAttachments sessionId={active!.topic.sessionId} attachments={message.attachments ?? []} load={nativeComposer.attachment} />
                       {message.text.startsWith('【学习阶段：') ? <details className={learningCss.questionDetails}>
                         <summary>{message.text.split('\n')[0]}{message.text.includes('\n\n我的问题：') ? ` · ${message.text.split('\n\n我的问题：').slice(1).join('\n\n我的问题：')}` : ''}</summary><p>{message.text}</p>
-                      </details> : <UserMessageBody text={message.text} />}
+                      </details> : <UserMessageBody text={message.text} questionReply={message.questionReply} />}
                     </article>
                   )
                   if (message.role === 'error') return <ErrorTurn key={message.id} message={message} />

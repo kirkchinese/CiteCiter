@@ -92,7 +92,6 @@
     "build:lib": "tsc -p tsconfig.host.json && tsc -p tsconfig.client.json",
     "prebuild:bundle": "node scripts/clean-bundle.mjs",
     "build:bundle": "tsdown --env.DSH_BUILD_FACE client",
-    "postbuild:bundle": "node scripts/normalize-bundle.mjs",
     "prepack": "npm run build",
     "dev": "npm run build && node dev/watch.mjs",
     "typecheck": "tsc -p tsconfig.host.json --noEmit && tsc -p tsconfig.client.json --noEmit"

@@ -578,6 +578,76 @@ function actionTarget(action) {
 	if (action.target !== void 0) return action.target;
 	return action.label === "自由提问" && action.prompt === "" && action.ask && action.scenario === "qa" && action.presentation === "side" ? "current" : "new";
 }
+//#endregion
+//#region lib/types/tool-outcome-contract.js
+/** Recognized question outcomes shared by Host and Client without importing either service face. */
+const QUESTION_TOOL_OUTCOME_CODES = ["ASK_CANCELLED", "ASK_ABORTED"];
+//#endregion
+//#region lib/types/question-reply.js
+/** Client-safe presentation of a durable late answer; the original model payload stays in the Session log. */
+const questionReplySchema = z.object({
+	callId: z.string().min(1),
+	items: z.array(z.object({
+		id: z.string().min(1),
+		question: z.string(),
+		header: z.string().optional(),
+		values: z.array(z.string())
+	}).strict())
+}).strict();
+const payloadSchema = z.object({
+	kind: z.literal("answer_to_pending_question"),
+	tool: z.literal("ask_user_question"),
+	callId: z.string(),
+	questions: z.array(z.object({
+		id: z.string().min(1),
+		question: z.string(),
+		header: z.string().optional()
+	})).min(1),
+	answers: z.array(z.object({
+		id: z.string().min(1),
+		selected: z.array(z.string()),
+		custom: z.string().optional()
+	}))
+});
+/**
+* Read the official late-answer payload at the persisted-data boundary.
+* @param text - Text of one committed user-question-reply message.
+* @param callId - Identity from the message source, which the payload must match.
+* @returns Question/answer pairs, or an empty presentation for unreadable history; never raw internal JSON.
+*/
+function readQuestionReply(text, callId) {
+	const unreadable = {
+		callId,
+		items: []
+	};
+	let value;
+	try {
+		value = JSON.parse(text);
+	} catch {
+		return unreadable;
+	}
+	const parsed = payloadSchema.safeParse(value);
+	if (!parsed.success || parsed.data.callId !== callId) return unreadable;
+	const { questions, answers } = parsed.data;
+	const byId = new Map(answers.map((answer) => [answer.id, answer]));
+	if (new Set(questions.map((question) => question.id)).size !== questions.length || byId.size !== answers.length || questions.length !== answers.length || questions.some((question) => !byId.has(question.id))) return unreadable;
+	return {
+		callId,
+		items: questions.map((question) => {
+			const answer = byId.get(question.id);
+			const custom = answer.custom ?? "";
+			return {
+				...question,
+				values: [...answer.selected, ...custom.trim() === "" ? [] : [custom]]
+			};
+		})
+	};
+}
+/** Human-readable transcript text for copying and other plain-text consumers. */
+function questionReplyText(reply) {
+	if (reply.items.length === 0) return "已补答；这条历史回答的格式无法解析。";
+	return "补答\n\n" + reply.items.map((item) => `${item.question}\n${item.values.length === 0 ? "已跳过" : `回答：${item.values.join("、")}`}`).join("\n\n");
+}
 /** Host settings namespace mirrored by the browser settings scope. */
 const CITECITER_SETTINGS_NAMESPACE = "citeciter";
 /** Topic-scoped system prompt section. */
@@ -894,6 +964,7 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 	z.object({
 		...topicMessageIdentitySchema,
 		role: z.literal("user"),
+		questionReply: questionReplySchema.optional(),
 		attachments: z.array(messageAttachmentSchema).optional(),
 		text: z.string()
 	}).strict(),
@@ -914,11 +985,13 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 	z.object({
 		...topicMessageIdentitySchema,
 		role: z.literal("tool"),
+		questionReply: questionReplySchema.optional(),
 		attachments: z.array(messageAttachmentSchema).optional(),
 		name: z.string().min(1),
 		arguments: z.string(),
 		result: z.string().nullable(),
 		isError: z.boolean(),
+		errorCode: z.enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
 		running: z.boolean()
 	}).strict(),
 	z.object({
@@ -1518,4 +1591,4 @@ function waitForCaller(operation, signal) {
 	});
 }
 //#endregion
-export { EMPTY_BOARD_STATE as A, topicSummarySchema as C, LEARNING_PROMPT as D, LEARNING_CARD_FIELD_DESCRIPTIONS as E, draftFileSchema as F, draftStateSchema as I, subtractSubmitted as L, boardBatchSchema as M, DRAFT_CHUNK_BYTES as N, learningCardsInputSchema as O, EMPTY_DRAFT_STATE as P, topicSnapshotSchema as S, actionTarget as T, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, applyBoardOps as j, LEARNING_EXAMPLE_PARAMETER as k, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, DEFAULT_WHEEL_SLOTS as w, topicMetadataSchema as x, renderCitationContext as y };
+export { learningCardsInputSchema as A, topicSummarySchema as C, actionTarget as D, DEFAULT_WHEEL_SLOTS as E, DRAFT_CHUNK_BYTES as F, EMPTY_DRAFT_STATE as I, draftFileSchema as L, EMPTY_BOARD_STATE as M, applyBoardOps as N, LEARNING_CARD_FIELD_DESCRIPTIONS as O, boardBatchSchema as P, draftStateSchema as R, topicSnapshotSchema as S, readQuestionReply as T, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, LEARNING_EXAMPLE_PARAMETER as j, LEARNING_PROMPT as k, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, questionReplyText as w, topicMetadataSchema as x, renderCitationContext as y, subtractSubmitted as z };

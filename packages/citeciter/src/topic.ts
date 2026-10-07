@@ -4,6 +4,8 @@ import { nativeStateSchema, nativeAttachmentRefSchema } from './native-session-c
 import { boardSnapshotSchema } from './board.ts'
 import { boardCaptureJobSchema } from './board-capture-protocol.ts'
 import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from './actions.ts'
+import { QUESTION_TOOL_OUTCOME_CODES } from './tool-outcome-contract.ts'
+import { questionReplySchema } from './question-reply.ts'
 
 /** Durable Citation version used by Observer Topics. v4 adds the EvidenceRef entry discriminator. */
 export const CITATION_SCHEMA_VERSION = 4 as const
@@ -341,6 +343,7 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
   z.object({
     ...topicMessageIdentitySchema,
     role: z.literal('user'),
+    questionReply: questionReplySchema.optional(),
     attachments: z.array(messageAttachmentSchema).optional(),
     text: z.string(),
   }).strict(),
@@ -362,11 +365,13 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
   z.object({
     ...topicMessageIdentitySchema,
     role: z.literal('tool'),
+    questionReply: questionReplySchema.optional(),
     attachments: z.array(messageAttachmentSchema).optional(),
     name: z.string().min(1),
     arguments: z.string(),
     result: z.string().nullable(),
     isError: z.boolean(),
+    errorCode: z.enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
     running: z.boolean(),
   }).strict(),
   z.object({

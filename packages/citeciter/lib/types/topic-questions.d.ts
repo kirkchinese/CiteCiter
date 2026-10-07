@@ -1,6 +1,20 @@
+import type { Context } from '@deepseek-ai/cordis';
 import type { Agent } from '@deepseek-ai/dsh-agent';
-import type { AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions';
+import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand';
+import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions';
 import type { PendingQuestion } from './topic.ts';
+/** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
+export declare class TopicQuestionReplies {
+    private readonly replies;
+    /**
+     * Bind the official answer service in a child of the Topic contribution scope.
+     * @param ctx - Topic-owned contribution context; its teardown releases this binding.
+     * @param agent - Exact live Agent receiving replies, never a Host list lookup.
+     */
+    attach(ctx: Context, agent: Agent): Promise<void>;
+    /** Route a continued answer through its live injected service; absence must never recreate the Agent. */
+    answer(agent: Agent, callId: ToolCallId, answer: AskUserQuestionAnswer): boolean;
+}
 /** A named Host call keeps one answer identity across the foreground/continued boundary. */
 export declare function questionKey(sessionId: string, callId: string): string;
 /** Copy only the public question presentation, including supporting plan/detail text. */

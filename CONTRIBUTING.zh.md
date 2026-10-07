@@ -32,6 +32,7 @@ Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌�
 | 模块 | 责任 |
 | --- | --- |
 | host-settings-adapter.ts / typert-codec.ts / client/host-ui-adapter.ts / client/host-icons.ts | 独立适配两套固定宿主契约 |
+| client/host-source-chat.ts | 通过公开 Client Session/Conversation 接口读取投影，不持有或改写来源历史 |
 | session-format-guard.ts | 阻止旧宿主写入较新的原生日志，不重写日志格式 |
 | draft-contract.ts / draft-store.ts / client/draft-controller.ts | 草稿版本、附件字节存储、修订号比较保存及精确发送回执核对 |
 | model-admission.ts | 继承模型失效时保留 Topic 和草稿，阻止未选模型的发送 |
@@ -51,6 +52,7 @@ Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌�
 | board-capture-protocol.ts / client/board-capture-controller.ts | 按 Topic 与版本轮询待截图请求，独立于面板和导航生命周期 |
 | client/components/BoardCaptureWorker.tsx / BoardCaptureSurface.tsx | 复用真实板书组件渲染截图，不创建模型调用 |
 | tool-events.ts / document-access.ts | 原生与 PTC 工具事件适配、已发送文档地址授权 |
+| tool-outcome-contract.ts | 无依赖的共享问题状态码，不把 Host 事件类型声明带入 Client schema |
 | client/native-composer.ts | 适配公开 DSH 附件、发送与队列服务 |
 | client/draft-references.ts / selection-references.ts | 真实选文的待发送引用构造、去重和精确序列化 |
 | client/learning-route.ts | 学习请求约束与原生 todo 结果读取 |

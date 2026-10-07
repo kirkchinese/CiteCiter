@@ -5,6 +5,7 @@ import { jsonTreeLabels } from '../copy.ts'
 import type { TopicMessage } from '../../topic.ts'
 import type { NativeComposer } from '../native-composer.ts'
 import { MessageAttachments } from './MessageAttachments.tsx'
+import { questionReplySummary } from '../../question-reply.ts'
 import css from './CiteCiter.module.css'
 
 function compactPreview(text: string, limit = 120): string {
@@ -57,11 +58,15 @@ function FlowDisclosure({
 export function ToolRow({ message, sessionId, load }: { readonly message: Extract<TopicMessage, { role: 'tool' }>, readonly sessionId: string, readonly load: NativeComposer['attachment'] }) {
   const args = jsonObject(message.arguments)
   const result = message.result === null ? null : jsonObject(message.result)
+  const questionVerdict = message.name !== 'ask_user_question' || !message.isError ? null
+    : message.errorCode === 'ASK_CANCELLED' ? '已取消'
+      : message.errorCode === 'ASK_ABORTED' ? '已中断' : null
   const summary = message.running
     ? compactPreview(message.arguments)
-    : message.isError
+    : message.questionReply !== undefined ? compactPreview(questionReplySummary(message.questionReply))
+    : questionVerdict ?? (message.isError
       ? '调用失败'
-      : compactPreview(message.result || ((message.attachments?.length ?? 0) > 0 ? '附件已返回' : '完成'))
+      : compactPreview(message.result || ((message.attachments?.length ?? 0) > 0 ? '附件已返回' : '完成')))
   return (
     <div data-citeciter-message={message.id}>
       <FlowDisclosure
@@ -75,7 +80,7 @@ export function ToolRow({ message, sessionId, load }: { readonly message: Extrac
           {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label="工具参数" copyable={false} labels={jsonTreeLabels} />}
           {message.result !== null && (
             <>
-              <strong>{message.isError ? '错误' : '结果'}</strong>
+              <strong>{questionVerdict !== null ? '状态' : message.isError ? '错误' : '结果'}</strong>
               {result === null
                 ? <pre>{message.result}</pre>
                 : <JsonTree data={result} label="工具结果" copyable={false} labels={jsonTreeLabels} />}

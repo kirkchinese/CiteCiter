@@ -28,6 +28,7 @@ import { createBoardCaptureController } from "./board-capture-controller.js";
 import { BoardCaptureWorker } from "./components/BoardCaptureWorker.js";
 import { createDraftController } from "./draft-controller.js";
 import { hostSettings, hostInteractions } from "./host-ui-adapter.js";
+import { createSourceChatReader } from "./host-source-chat.js";
 export const name = '@kirkchinese/dsh-citeciter';
 export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'remote.userQuestions', 'conversation'];
 /** Register one root-scoped companion without entering DSH's Session list. */
@@ -35,15 +36,7 @@ export async function apply(ctx) {
     const unmountRemote = await ctx.remote.$mount(TYPERT_REMOTE);
     ctx.effect(() => unmountRemote, 'citeciter: Remote contribution');
     ctx.inject(['remote.citeciter'], (remoteCtx) => {
-        const sessions = remoteCtx.sessions;
-        const readChat = (sessionId) => {
-            const source = sessions.binding(sessionId);
-            if (source === undefined)
-                return undefined;
-            const conversation = remoteCtx.uiConversation.binding(source);
-            conversation.activate('chat');
-            return conversation.target('chat').getSnapshot();
-        };
+        const readChat = createSourceChatReader(remoteCtx);
         const settingsBinder = hostSettings(remoteCtx);
         const interactions = hostInteractions(remoteCtx);
         const settings = settingsBinder.get(CITECITER_SETTINGS_NAMESPACE);

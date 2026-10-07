@@ -1,6 +1,41 @@
+import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions'
+import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
+import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions'
 import type { PendingQuestion } from './topic.ts'
+
+type Reply = (callId: ToolCallId, answer: AskUserQuestionAnswer) => boolean
+
+/** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
+export class TopicQuestionReplies {
+  private readonly replies = new WeakMap<Agent, Reply>()
+
+  /**
+   * Bind the official answer service in a child of the Topic contribution scope.
+   * @param ctx - Topic-owned contribution context; its teardown releases this binding.
+   * @param agent - Exact live Agent receiving replies, never a Host list lookup.
+   */
+  async attach(ctx: Context, agent: Agent): Promise<void> {
+    await ctx.plugin({
+      name: 'citeciter-question-replies',
+      inject: ['userQuestions'],
+      apply: (scope: Context) => {
+        const reply: Reply = (callId, answer) => scope.userQuestions.answer(agent, callId, answer)
+        scope.effect(() => {
+          this.replies.set(agent, reply)
+          return () => { if (this.replies.get(agent) === reply) this.replies.delete(agent) }
+        }, 'citeciter: scoped question replies')
+      },
+    })
+  }
+
+  /** Route a continued answer through its live injected service; absence must never recreate the Agent. */
+  answer(agent: Agent, callId: ToolCallId, answer: AskUserQuestionAnswer): boolean {
+    const reply = this.replies.get(agent)
+    if (reply === undefined) throw new Error('这个 Topic 的提问服务已结束，请重新打开后重试')
+    return reply(callId, answer)
+  }
+}
 
 /** A named Host call keeps one answer identity across the foreground/continued boundary. */
 export function questionKey(sessionId: string, callId: string): string {

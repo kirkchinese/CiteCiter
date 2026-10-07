@@ -32,6 +32,7 @@ Follow the [DSH architecture](https://github.com/deepseek-ai/deepseek-harness/bl
 | Module | Responsibility |
 | --- | --- |
 | host-settings-adapter.ts / typert-codec.ts / client/host-ui-adapter.ts / client/host-icons.ts | Normalize the two pinned host contracts at isolated boundaries |
+| client/host-source-chat.ts | Read the public Client Session/Conversation projection without retaining or writing source history |
 | session-format-guard.ts | Refuse old-host writes to newer native logs without rewriting their format |
 | draft-contract.ts / draft-store.ts / client/draft-controller.ts | Versioned draft state, owned byte storage, CAS saves and exact admission reconciliation |
 | model-admission.ts | Recover a retired inherited model without losing the Topic or submitting its draft |
@@ -55,6 +56,7 @@ Follow the [DSH architecture](https://github.com/deepseek-ai/deepseek-harness/bl
 | client/draft-references.ts | Draft references and exact submission serialization |
 | client/action-executor.ts / client/selection-references.ts | Explicit append/create routing and references from actual selections |
 | tool-events.ts / document-access.ts | Native/PTC event normalization and submitted-document access |
+| tool-outcome-contract.ts | Dependency-free shared question outcome codes; does not import Host event declarations into Client schemas |
 | client/learning-route.ts | Learning request constraints and native todo result reading |
 | client/panel-drag.ts, host-dock.ts | Pointer and host layout lifecycles |
 | client/components/ | Controlled UI receiving snapshots and callbacks, without Cordis discovery |
