@@ -1,6 +1,6 @@
 # 0.9.0-alpha.3 输入回归验收
 
-基线：Windows、主 Web DSH 0.1.7-rc.2、Desktop 2.0.15 / DSH 0.1.7-rc.2、Codex Connect 4.52。此次检查输入法组合、自动保存、草稿恢复和手动发送，其他功能不因本次检查获得新的验收结论。
+基线：Windows、主 Web DSH 0.1.7-rc.2、Codex Connect 4.52。此次检查输入法组合、自动保存、草稿恢复和手动发送，其他功能不因本次检查获得新的验收结论。
 
 ## 原因与对照
 
@@ -23,12 +23,12 @@
 | 静默保存 | 界面和打包 Client 均不再包含保存中的提示；草稿 revision 持续递增，内容落盘；错误、冲突和待核对发送的 UI 代码保持原样 |
 | 切换和重启 | 切回旧 Topic，再返回 Topic 24，文本、模型和两条回答正确；重启主 Web 后中英两行草稿恢复，没有再次发送 |
 | 数据边界 | 来源 v3 / v4 日志 SHA-256 与改动前相同；旧 Topic 23 当前数字草稿及两份引用保留，验收未编辑或提交该草稿 |
-| 静态检查 | pnpm typecheck、pnpm typecheck:desktop 的 Host/Client、pack 内完整 build、git diff --check 通过 |
-| 安装产物 | 同一 tgz 由主 Web CLI 和 Desktop 管理 CLI 分时安装；145 个发布文件与两套已安装文件逐字节一致 |
+| 静态检查 | pnpm typecheck 的 Host/Client、pack 内完整 build、git diff --check 通过 |
+| 安装产物 | tgz 由主 Web CLI 安装；145 个发布文件与 Web 已安装文件逐字节一致 |
 
 最终候选包 904652 字节，SHA-256：5aa14ad6c64860875cb307bb9c4710084dd6552a8f299e46816b1591b4fa2928；SHA-1：601c8cd789ef787a737c8901947692ad2822f170。验收使用最终包，单变量定位包不发布。
 
-两次真实请求均由界面手动发送；没有人工模型、临时测试脚本或 DOM 状态注入。组合输入通过浏览器协议模拟实际 composition 生命周期，未声称覆盖每种 Windows 输入法候选窗。当前控制工具禁用原生应用 API，Desktop 本轮完成独立编译、管理 CLI 安装和字节核对，未新增原生窗口输入验收；不以 Web 结果替代。Linux/macOS 和独立 Desktop NEXT 仍未实机验收。
+两次真实请求均由界面手动发送；没有人工模型、临时测试脚本或 DOM 状态注入。组合输入通过浏览器协议模拟实际 composition 生命周期，未声称覆盖每种 Windows 输入法候选窗。Linux/macOS 仍未实机验收。
 
 用户已接受的 Windows 只读 PowerShell 宿主编码限制与本次输入回归无关。此次修改不更改 Host Loop、会话格式、权限、发送收据或草稿冲突策略。
 
@@ -38,4 +38,4 @@
 
 [GitHub prerelease](https://github.com/kirkchinese/CiteCiter/releases/tag/v0.9.0-alpha.3) 和 npm 均已发布。npm latest / next 均为 0.9.0-alpha.3；公开包 SHA-1、下载后的 SHA-256 及 GitHub 资产 digest 与本机验收包一致。npm 首次接受上传后异步处理，本次等待公开后再同步标签，没有重复上传。
 
-Web 与 Desktop 配置已安装同一发布产物，主 Web 已重启。单变量定位包、临时发布辅助文件和认证配置已清理；凭据未提交到仓库。原有未跟踪的视频制作笔记和 .vscode 配置保留。
+Web 配置已安装该发布产物，主 Web 已重启。单变量定位包、临时发布辅助文件和认证配置已清理；凭据未提交到仓库。原有未跟踪的视频制作笔记和 .vscode 配置保留。

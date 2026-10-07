@@ -1,6 +1,6 @@
 # Selection wheel, native preview and presentation
 
-Final scope: 0.7.0-beta.3 on DSH 0.1.5-rc.1 / Desktop 2.0.9. The installed top-level DSH resolves native document preview and workspace-path subpackages at 0.1.5-rc.2. Their public declarations are pinned as development dependencies; the optional documentPreviews service controls registration. No host Agent Loop patch or npm publication.
+Final scope: 0.7.0-beta.3 on DSH 0.1.5-rc.1. The installed top-level DSH resolves native document preview and workspace-path subpackages at 0.1.5-rc.2. Their public declarations are pinned as development dependencies; the optional documentPreviews service controls registration. No host Agent Loop patch or npm publication.
 
 ## Decisions
 
@@ -16,10 +16,8 @@ Side mode retains existing columns/rows space allocation. Floating is explicit, 
 
 ## Evidence and limits
 
-178 behaviour tests, separate Host/Client type checks, tracked bundle build and a disposable real Host snapshot/restart run passed. EventTarget tests exercise installed listeners, not real desktop input. No golden was re-recorded. Final packaging and CI evidence is maintained in docs/validation/2026-09-11-wheel.md.
+178 behaviour tests, separate Host/Client type checks, tracked bundle build and a disposable real Host snapshot/restart run passed. EventTarget tests exercise installed listeners, not real user input. No golden was re-recorded. Final packaging and CI evidence is maintained in docs/validation/2026-09-11-wheel.md.
 
-The in-app browser returned ERR_BLOCKED_BY_CLIENT for the local QA address; native app control is unavailable under the current tool contract. Real new UI gestures, visual scaling and Desktop/native-preview integration remain unverified. Historical beta.2 UI checks do not establish beta.3 acceptance. Keep the PR draft and the candidate unpublished; do not claim zero bugs.
-
-Desktop's embedded native-preview and workspace-path packages are rc.1. Its shipped bundle contains the same registry, keyed slot, bytes-complete and resource props used here. This establishes inspected contract compatibility, not interactive rendering acceptance.
+The in-app browser returned ERR_BLOCKED_BY_CLIENT for the local QA address; native app control is unavailable under the current tool contract. Real new UI gestures, visual scaling and native-preview integration remain unverified. Historical beta.2 UI checks do not establish beta.3 acceptance. Keep the PR draft and the candidate unpublished; do not claim zero bugs.
 
 Wheel settings synchronize drafts only when saved slot values change. Saving a trigger or default model can decode a fresh array with unchanged values; that refresh must not overwrite an unsaved slot draft.

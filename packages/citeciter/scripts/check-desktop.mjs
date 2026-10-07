@@ -11,10 +11,17 @@ const require = createRequire(contract)
 const manifest = JSON.parse(readFileSync(contract, 'utf8'))
 const paths = {}
 const visited = new Set()
-function collect(name, parentRequire) {
+function collect(name, parentRequire, optional = false) {
   if (visited.has(name) || !name.startsWith('@deepseek-ai/')) return
+  let manifestPath
+  try { manifestPath = realpathSync(parentRequire.resolve(`${name}/package.json`)) }
+  catch (error) {
+    // Optional host services are absent in a compile-only dependency closure.
+    // Required packages and filesystem errors must still fail the gate.
+    if (optional && error.code === 'MODULE_NOT_FOUND') return
+    throw error
+  }
   visited.add(name)
-  const manifestPath = realpathSync(parentRequire.resolve(`${name}/package.json`))
   const pkg = JSON.parse(readFileSync(manifestPath, 'utf8'))
   for (const [key, entry] of Object.entries(pkg.exports ?? {})) {
     const types = typeof entry === 'object' ? entry.types : undefined
@@ -23,12 +30,10 @@ function collect(name, parentRequire) {
   const nested = createRequire(manifestPath)
   for (const dependency of Object.keys({ ...pkg.dependencies, ...pkg.peerDependencies })) {
     if (Object.hasOwn(manifest.devDependencies, dependency)) collect(dependency, require)
-    else collect(dependency, nested)
+    else collect(dependency, nested, pkg.peerDependenciesMeta?.[dependency]?.optional === true)
   }
 }
 for (const name of Object.keys(manifest.devDependencies)) collect(name, require)
-// The preset service was renamed without changing its public mount contract.
-paths['@deepseek-ai/dsh-agent-preset-registry'] = paths['@deepseek-ai/dsh-agent-presets']
 let failed = false
 for (const face of ['host', 'client']) {
   const config = ts.readConfigFile(resolve(root, `tsconfig.${face}.json`), ts.sys.readFile)

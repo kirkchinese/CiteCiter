@@ -1,4 +1,4 @@
-import { A as EMPTY_BOARD_STATE, D as LEARNING_PROMPT, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as draftFileSchema, I as draftStateSchema, L as subtractSubmitted, M as boardBatchSchema, N as DRAFT_CHUNK_BYTES, O as learningCardsInputSchema, P as EMPTY_DRAFT_STATE, T as actionTarget, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as applyBoardOps, k as LEARNING_EXAMPLE_PARAMETER, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-CRD1jFLf.js";
+import { A as EMPTY_BOARD_STATE, D as LEARNING_PROMPT, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as draftFileSchema, I as draftStateSchema, L as subtractSubmitted, M as boardBatchSchema, N as DRAFT_CHUNK_BYTES, O as learningCardsInputSchema, P as EMPTY_DRAFT_STATE, T as actionTarget, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as applyBoardOps, k as LEARNING_EXAMPLE_PARAMETER, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as DEFAULT_WHEEL_SLOTS, x as topicMetadataSchema, y as renderCitationContext } from "./update-BGWvQceD.js";
 import { createRequire } from "node:module";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
@@ -40,26 +40,17 @@ var __exportAll = (all, no_symbols) => {
 };
 //#endregion
 //#region lib/types/host-settings-adapter.js
-/** Choose the schema mode without importing a Cordis export absent in Desktop's SDK. */
+/** Keep settings live through the official Cordis configuration contract. */
 function settingsConfig(schema) {
-	return schema.volatile?.() ?? schema;
+	return schema.volatile();
 }
-/** Bind settings through the public contract of the installed host; registrations belong to ctx. */
-function bindHostSettings(ctx, schema, config) {
-	let read = () => void 0;
+/** Bind settings to their owning plugin; registrations are released with ctx. */
+function bindHostSettings(ctx, config) {
 	ctx.inject(["settings"], (settingsCtx) => {
-		const service = settingsCtx.settings;
-		if ("configure" in service) {
-			if (typeof config?.get !== "function") throw new Error("DSH 未提供 Citer 配置读取器");
-			settingsCtx.effect(() => service.configure({ auto: false }, ctx.fiber));
-			read = () => config.get();
-		} else {
-			service.register(CITECITER_SETTINGS_NAMESPACE, schema);
-			read = () => service.get(CITECITER_SETTINGS_NAMESPACE);
-		}
+		settingsCtx.effect(() => settingsCtx.settings.configure({ auto: false }, ctx.fiber));
 	});
 	return () => {
-		const parsed = citeCiterSettingsSchema.safeParse(read());
+		const parsed = citeCiterSettingsSchema.safeParse(config.get());
 		return parsed.success ? parsed.data : DEFAULT_CITECITER_SETTINGS;
 	};
 }
@@ -3149,7 +3140,7 @@ function regexCheck(regex) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-factory-space@2.0.1/node_modules/micromark-factory-space/index.js
+//#region ../../node_modules/.pnpm/micromark-factory-space@2.1.0/node_modules/micromark-factory-space/index.js
 /**
 * @import {Effects, State, TokenType} from 'micromark-util-types'
 */
@@ -3179,14 +3170,14 @@ function regexCheck(regex) {
 * @param {State} ok
 *   State switched to when successful.
 * @param {TokenType} type
-*   Type (`' \t'`).
+*   Type of the whole whitespace.
 * @param {number | undefined} [max=Infinity]
 *   Max (exclusive).
 * @returns {State}
 *   Start state.
 */
 function factorySpace(effects, ok, type, max) {
-	const limit = max ? max - 1 : Number.POSITIVE_INFINITY;
+	const limit = max ? max - 1 : Infinity;
 	let size = 0;
 	return start;
 	/** @type {State} */
@@ -3207,8 +3198,56 @@ function factorySpace(effects, ok, type, max) {
 		return ok(code);
 	}
 }
+/**
+* Parse spaces and tabs, with a required minimum and maximum, matching
+* `markdown-rs`’s `space_or_tab_min_max`.
+*
+* Unlike `factorySpace`, this can fail: `nok` is used when fewer than
+* `min` spaces or tabs are found.
+*
+* @param {Effects} effects
+*   Context.
+* @param {State} ok
+*   State switched to when successful.
+* @param {State} nok
+*   State switched to when unsuccessful.
+* @param {TokenType} type
+*   Type of the whole whitespace.
+* @param {number} min
+*   Minimum allowed characters (inclusive).
+* @param {number} max
+*   Maximum allowed characters (inclusive).
+* @returns {State}
+*   Start state.
+*/
+function factorySpaceMinMax(effects, ok, nok, type, min, max) {
+	let size = 0;
+	return start;
+	/** @type {State} */
+	function start(code) {
+		if (max > 0 && markdownSpace(code)) {
+			effects.enter(type);
+			return prefix(code);
+		}
+		return after(code);
+	}
+	/** @type {State} */
+	function prefix(code) {
+		if (markdownSpace(code) && size < max) {
+			effects.consume(code);
+			size++;
+			return prefix;
+		}
+		effects.exit(type);
+		return after(code);
+	}
+	/** @type {State} */
+	function after(code) {
+		return size >= min ? ok(code) : nok(code);
+	}
+}
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/content.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/initialize/content.js
 /**
 * @import {
 *   InitialConstruct,
@@ -3275,7 +3314,153 @@ function initializeContent(effects) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/document.js
+//#region ../../node_modules/.pnpm/micromark-util-edit-map@1.0.0/node_modules/micromark-util-edit-map/index.js
+/**
+* @import {Event} from 'micromark-util-types'
+*/
+/**
+* @typedef {[number, number, Array<Event>]} Change
+* @typedef {[number, number, number]} Jump
+*/
+/**
+* Tracks a bunch of edits.
+*
+* Port of `edit_map.rs` from `markdown-rs`:
+* <https://github.com/wooorm/markdown-rs/blob/1506572f/src/util/edit_map.rs>.
+*
+* Deal with several changes in events, batching them together.
+*
+* Preferably, changes should be kept to a minimum.
+* Sometimes, it’s needed to change the list of events, because parsing can be
+* messy, and it helps to expose a cleaner interface of events to the compiler
+* and other users.
+* It can also help to merge many adjacent similar events.
+* And, in other cases, it’s needed to parse subcontent: pass some events
+* through another tokenizer and inject the result.
+*/
+var EditMap$1 = class {
+	/**
+	* Create a new edit map.
+	*
+	* @returns
+	*   New instance.
+	*/
+	constructor() {
+		/**
+		* Changes by index, so `add` does not need to scan `map` (which is
+		* quadratic for documents with many edits at different places).
+		*
+		* @type {Map<number, Change>}
+		*/
+		this.index = /* @__PURE__ */ new Map();
+		/**
+		* Record of changes.
+		*
+		* @type {Array<Change>}
+		*/
+		this.map = [];
+	}
+	/**
+	* Create an edit: a remove and/or add at a certain place.
+	*
+	* @param {number} index
+	*   Index at which to apply the edit.
+	* @param {number} remove
+	*   Count of items to remove at the index.
+	* @param {Array<Event>} add
+	*   Items to add at the index.
+	* @returns {undefined}
+	*   Nothing.
+	*/
+	add(index, remove, add) {
+		addImplementation$1(this, index, remove, add, false);
+	}
+	/**
+	* Create an edit: but insert `add` before existing additions, instead of
+	* after them.
+	*
+	* @param {number} index
+	*   Index at which to apply the edit.
+	* @param {number} remove
+	*   Count of items to remove at the index.
+	* @param {Array<Event>} add
+	*   Items to add at the index.
+	* @returns {undefined}
+	*   Nothing.
+	*/
+	addBefore(index, remove, add) {
+		addImplementation$1(this, index, remove, add, true);
+	}
+	/**
+	* Done, change the events.
+	*
+	* @param {Array<Event>} events
+	*   List of events to apply the edits to.
+	* @returns {undefined}
+	*   Nothing.
+	*/
+	consume(events) {
+		this.map.sort(function(a, b) {
+			return a[0] - b[0];
+		});
+		if (this.map.length === 0) return;
+		let index = this.map.length;
+		/** @type {Array<Array<Event>>} */
+		const vecs = [];
+		while (index > 0) {
+			index -= 1;
+			vecs.push(events.slice(this.map[index][0] + this.map[index][1]), this.map[index][2]);
+			events.length = this.map[index][0];
+		}
+		vecs.push(events.slice());
+		events.length = 0;
+		let slice = vecs.pop();
+		while (slice) {
+			for (const element of slice) events.push(element);
+			slice = vecs.pop();
+		}
+		this.map.length = 0;
+		this.index.clear();
+	}
+};
+/**
+* Create an edit.
+*
+* @param {EditMap} editMap
+*   Edit map to apply to.
+* @param {number} at
+*   Index at which to apply the edit.
+* @param {number} remove
+*   Count of items to remove at the index.
+* @param {Array<Event>} add
+*   Items to add at the index.
+* @param {boolean} before
+*   Insert `add` before existing additions at `at`, instead of after them.
+* @returns {undefined}
+*   Nothing.
+*/
+function addImplementation$1(editMap, at, remove, add, before) {
+	if (remove === 0 && add.length === 0) return;
+	const existing = editMap.index.get(at);
+	if (existing) {
+		existing[1] += remove;
+		if (before) {
+			add.push(...existing[2]);
+			existing[2] = add;
+		} else existing[2].push(...add);
+		return;
+	}
+	/** @type {Change} */
+	const change = [
+		at,
+		remove,
+		add
+	];
+	editMap.map.push(change);
+	editMap.index.set(at, change);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/initialize/document.js
 /**
 * @import {
 *   Construct,
@@ -3344,8 +3529,10 @@ function initializeDocument(effects) {
 				self.events[index][1].end = { ...point };
 				index++;
 			}
-			splice(self.events, indexBeforeFlow + 1, 0, self.events.slice(indexBeforeExits));
-			self.events.length = index;
+			const editMap = new EditMap$1();
+			editMap.add(indexBeforeFlow + 1, 0, self.events.slice(indexBeforeExits));
+			editMap.add(indexBeforeExits, index - indexBeforeExits, []);
+			editMap.consume(self.events);
 			return checkNewContainers(code);
 		}
 		return start(code);
@@ -3455,8 +3642,10 @@ function initializeDocument(effects) {
 				self.events[index][1].end = { ...point };
 				index++;
 			}
-			splice(self.events, indexBeforeFlow + 1, 0, self.events.slice(indexBeforeExits));
-			self.events.length = index;
+			const editMap = new EditMap$1();
+			editMap.add(indexBeforeFlow + 1, 0, self.events.slice(indexBeforeExits));
+			editMap.add(indexBeforeExits, index - indexBeforeExits, []);
+			editMap.consume(self.events);
 		}
 	}
 	/**
@@ -3544,7 +3733,7 @@ function resolveAll(constructs, events, context) {
 	return events;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/attention.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/attention.js
 /**
 * @import {
 *   Code,
@@ -3571,47 +3760,33 @@ const attention = {
 */
 function resolveAllAttention(events, context) {
 	let index = -1;
-	/** @type {number} */
-	let open;
-	/** @type {Token} */
-	let group;
-	/** @type {Token} */
-	let text;
-	/** @type {Token} */
-	let openingSequence;
-	/** @type {Token} */
-	let closingSequence;
-	/** @type {number} */
-	let use;
 	/** @type {Array<Event>} */
 	let nextEvents;
-	/** @type {number} */
-	let offset;
 	while (++index < events.length) if (events[index][0] === "enter" && events[index][1].type === "attentionSequence" && events[index][1]._close) {
-		open = index;
+		let open = index;
 		while (open--) if (events[open][0] === "exit" && events[open][1].type === "attentionSequence" && events[open][1]._open && context.sliceSerialize(events[open][1]).charCodeAt(0) === context.sliceSerialize(events[index][1]).charCodeAt(0)) {
 			if ((events[open][1]._close || events[index][1]._open) && (events[index][1].end.offset - events[index][1].start.offset) % 3 && !((events[open][1].end.offset - events[open][1].start.offset + events[index][1].end.offset - events[index][1].start.offset) % 3)) continue;
-			use = events[open][1].end.offset - events[open][1].start.offset > 1 && events[index][1].end.offset - events[index][1].start.offset > 1 ? 2 : 1;
+			const use = events[open][1].end.offset - events[open][1].start.offset > 1 && events[index][1].end.offset - events[index][1].start.offset > 1 ? 2 : 1;
 			const start = { ...events[open][1].end };
 			const end = { ...events[index][1].start };
 			movePoint(start, -use);
 			movePoint(end, use);
-			openingSequence = {
+			const openingSequence = {
 				type: use > 1 ? "strongSequence" : "emphasisSequence",
 				start,
 				end: { ...events[open][1].end }
 			};
-			closingSequence = {
+			const closingSequence = {
 				type: use > 1 ? "strongSequence" : "emphasisSequence",
 				start: { ...events[index][1].start },
 				end
 			};
-			text = {
+			const text = {
 				type: use > 1 ? "strongText" : "emphasisText",
 				start: { ...events[open][1].end },
 				end: { ...events[index][1].start }
 			};
-			group = {
+			const group = {
 				type: use > 1 ? "strong" : "emphasis",
 				start: { ...openingSequence.start },
 				end: { ...closingSequence.end }
@@ -3673,6 +3848,8 @@ function resolveAllAttention(events, context) {
 					context
 				]
 			]);
+			/** @type {number} */
+			let offset = 0;
 			if (events[index][1].end.offset - events[index][1].start.offset) {
 				offset = 2;
 				nextEvents = push(nextEvents, [[
@@ -3684,7 +3861,7 @@ function resolveAllAttention(events, context) {
 					events[index][1],
 					context
 				]]);
-			} else offset = 0;
+			}
 			splice(events, open - 1, index - open + 3, nextEvents);
 			index = open + nextEvents.length - offset - 2;
 			break;
@@ -3738,8 +3915,8 @@ function tokenizeAttention(effects, ok) {
 		}
 		const token = effects.exit("attentionSequence");
 		const after = classifyCharacter(code);
-		const open = !after || after === 2 && before || attentionMarkers.includes(code);
-		const close = !before || before === 2 && after || attentionMarkers.includes(previous);
+		const open = !after || after === 2 && before || attentionMarkers.includes(code) && code !== 42 && code !== 95;
+		const close = !before || before === 2 && after || attentionMarkers.includes(previous) && previous !== 42 && previous !== 95;
 		token._open = Boolean(marker === 42 ? open : open && (before || !close));
 		token._close = Boolean(marker === 42 ? close : close && (after || !open));
 		return ok(code);
@@ -3764,7 +3941,7 @@ function movePoint(point, offset) {
 	point._bufferIndex += offset;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/autolink.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/autolink.js
 /**
 * @import {
 *   Construct,
@@ -3975,7 +4152,7 @@ function tokenizeAutolink(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/blank-line.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/blank-line.js
 /**
 * @import {
 *   Construct,
@@ -4032,7 +4209,7 @@ function tokenizeBlankLine(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/block-quote.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/block-quote.js
 /**
 * @import {
 *   Construct,
@@ -4159,7 +4336,7 @@ function exit$1(effects) {
 	effects.exit("blockQuote");
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/character-escape.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/character-escape.js
 /**
 * @import {
 *   Construct,
@@ -4219,7 +4396,7 @@ function tokenizeCharacterEscape(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/character-reference.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/character-reference.js
 /**
 * @import {
 *   Code,
@@ -4357,7 +4534,55 @@ function tokenizeCharacterReference(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-fenced.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/partial-non-lazy-continuation.js
+/** @type {Construct} */
+const nonLazyContinuation = {
+	partial: true,
+	tokenize: tokenizeNonLazyContinuation
+};
+/**
+* @this {TokenizeContext}
+*   Context.
+* @type {Tokenizer}
+*/
+function tokenizeNonLazyContinuation(effects, ok, nok) {
+	const self = this;
+	return start;
+	/**
+	* At eol, before continuation.
+	*
+	* ```markdown
+	* > | * ```js
+	*            ^
+	*   | b
+	* ```
+	*
+	* @type {State}
+	*/
+	function start(code) {
+		if (code === null) return nok(code);
+		effects.enter("lineEnding");
+		effects.consume(code);
+		effects.exit("lineEnding");
+		return after;
+	}
+	/**
+	* A continuation.
+	*
+	* ```markdown
+	*   | * ```js
+	* > | b
+	*     ^
+	* ```
+	*
+	* @type {State}
+	*/
+	function after(code) {
+		return self.parser.lazy[self.now().line] ? nok(code) : ok(code);
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/code-fenced.js
 /**
 * @import {
 *   Code,
@@ -4367,11 +4592,6 @@ function tokenizeCharacterReference(effects, ok, nok) {
 *   Tokenizer
 * } from 'micromark-util-types'
 */
-/** @type {Construct} */
-const nonLazyContinuation = {
-	partial: true,
-	tokenize: tokenizeNonLazyContinuation
-};
 /** @type {Construct} */
 const codeFenced = {
 	concrete: true,
@@ -4742,37 +4962,8 @@ function tokenizeCodeFenced(effects, ok, nok) {
 		}
 	}
 }
-/**
-* @this {TokenizeContext}
-*   Context.
-* @type {Tokenizer}
-*/
-function tokenizeNonLazyContinuation(effects, ok, nok) {
-	const self = this;
-	return start;
-	/**
-	*
-	*
-	* @type {State}
-	*/
-	function start(code) {
-		if (code === null) return nok(code);
-		effects.enter("lineEnding");
-		effects.consume(code);
-		effects.exit("lineEnding");
-		return lineStart;
-	}
-	/**
-	*
-	*
-	* @type {State}
-	*/
-	function lineStart(code) {
-		return self.parser.lazy[self.now().line] ? nok(code) : ok(code);
-	}
-}
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-indented.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/code-indented.js
 /**
 * @import {
 *   Construct,
@@ -4797,7 +4988,6 @@ const furtherStart = {
 * @type {Tokenizer}
 */
 function tokenizeCodeIndented(effects, ok, nok) {
-	const self = this;
 	return start;
 	/**
 	* Start of code (indented).
@@ -4815,21 +5005,7 @@ function tokenizeCodeIndented(effects, ok, nok) {
 	*/
 	function start(code) {
 		effects.enter("codeIndented");
-		return factorySpace(effects, afterPrefix, "linePrefix", 5)(code);
-	}
-	/**
-	* At start, after 1 or 4 spaces.
-	*
-	* ```markdown
-	* > |     aaa
-	*         ^
-	* ```
-	*
-	* @type {State}
-	*/
-	function afterPrefix(code) {
-		const tail = self.events[self.events.length - 1];
-		return tail && tail[1].type === "linePrefix" && tail[2].sliceSerialize(tail[1], true).length >= 4 ? atBreak(code) : nok(code);
+		return factorySpaceMinMax(effects, atBreak, nok, "linePrefix", 4, 4)(code);
 	}
 	/**
 	* At a break.
@@ -4898,25 +5074,28 @@ function tokenizeFurtherStart(effects, ok, nok) {
 			effects.exit("lineEnding");
 			return furtherStart;
 		}
-		return factorySpace(effects, afterPrefix, "linePrefix", 5)(code);
+		return factorySpaceMinMax(effects, ok, onNotEnoughPrefix, "linePrefix", 4, 4)(code);
 	}
 	/**
-	* At start, after 1 or 4 spaces.
+	* After not enough of a prefix.
+	*
+	* A following line ending is another (potentially blank) line to try,
+	* anything else means this isn’t a continuation.
 	*
 	* ```markdown
 	* > |     aaa
-	*         ^
+	*
+	*   |     bbb
 	* ```
 	*
 	* @type {State}
 	*/
-	function afterPrefix(code) {
-		const tail = self.events[self.events.length - 1];
-		return tail && tail[1].type === "linePrefix" && tail[2].sliceSerialize(tail[1], true).length >= 4 ? ok(code) : markdownLineEnding(code) ? furtherStart(code) : nok(code);
+	function onNotEnoughPrefix(code) {
+		return markdownLineEnding(code) ? furtherStart(code) : nok(code);
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/code-text.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/code-text.js
 /**
 * @import {
 *   Construct,
@@ -5486,7 +5665,7 @@ function subcontent(events, eventIndex) {
 	return gaps;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/content.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/content.js
 /**
 * @import {
 *   Construct,
@@ -6122,7 +6301,7 @@ function factoryWhitespace(effects, ok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/definition.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/definition.js
 /**
 * @import {
 *   Construct,
@@ -6337,7 +6516,7 @@ function tokenizeTitleBefore(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/hard-break-escape.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/hard-break-escape.js
 /**
 * @import {
 *   Construct,
@@ -6394,7 +6573,7 @@ function tokenizeHardBreakEscape(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/heading-atx.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/heading-atx.js
 /**
 * @import {
 *   Construct,
@@ -6415,20 +6594,16 @@ const headingAtx = {
 function resolveHeadingAtx(events, context) {
 	let contentEnd = events.length - 2;
 	let contentStart = 3;
-	/** @type {Token} */
-	let content;
-	/** @type {Token} */
-	let text;
 	if (events[contentStart][1].type === "whitespace") contentStart += 2;
 	if (contentEnd - 2 > contentStart && events[contentEnd][1].type === "whitespace") contentEnd -= 2;
 	if (events[contentEnd][1].type === "atxHeadingSequence" && (contentStart === contentEnd - 1 || contentEnd - 4 > contentStart && events[contentEnd - 2][1].type === "whitespace")) contentEnd -= contentStart + 1 === contentEnd ? 2 : 4;
 	if (contentEnd > contentStart) {
-		content = {
+		const content = {
 			type: "atxHeadingText",
 			start: events[contentStart][1].start,
 			end: events[contentEnd][1].end
 		};
-		text = {
+		const text = {
 			type: "chunkText",
 			start: events[contentStart][1].start,
 			end: events[contentEnd][1].end,
@@ -6678,7 +6853,7 @@ const htmlRawNames = [
 	"textarea"
 ];
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/html-flow.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/html-flow.js
 /**
 * @import {
 *   Code,
@@ -6700,10 +6875,6 @@ const htmlFlow = {
 const blankLineBefore = {
 	partial: true,
 	tokenize: tokenizeBlankLineBefore
-};
-const nonLazyContinuationStart = {
-	partial: true,
-	tokenize: tokenizeNonLazyContinuationStart
 };
 /** @type {Resolver} */
 function resolveToHtmlFlow(events) {
@@ -7207,7 +7378,7 @@ function tokenizeHtmlFlow(effects, ok, nok) {
 	* @type {State}
 	*/
 	function continuationStart(code) {
-		return effects.check(nonLazyContinuationStart, continuationStartNonLazy, continuationAfter)(code);
+		return effects.check(nonLazyContinuation, continuationStartNonLazy, continuationAfter)(code);
 	}
 	/**
 	* In continuation, at eol, before non-lazy content.
@@ -7387,49 +7558,6 @@ function tokenizeHtmlFlow(effects, ok, nok) {
 *   Context.
 * @type {Tokenizer}
 */
-function tokenizeNonLazyContinuationStart(effects, ok, nok) {
-	const self = this;
-	return start;
-	/**
-	* At eol, before continuation.
-	*
-	* ```markdown
-	* > | * ```js
-	*            ^
-	*   | b
-	* ```
-	*
-	* @type {State}
-	*/
-	function start(code) {
-		if (markdownLineEnding(code)) {
-			effects.enter("lineEnding");
-			effects.consume(code);
-			effects.exit("lineEnding");
-			return after;
-		}
-		return nok(code);
-	}
-	/**
-	* A continuation.
-	*
-	* ```markdown
-	*   | * ```js
-	* > | b
-	*     ^
-	* ```
-	*
-	* @type {State}
-	*/
-	function after(code) {
-		return self.parser.lazy[self.now().line] ? nok(code) : ok(code);
-	}
-}
-/**
-* @this {TokenizeContext}
-*   Context.
-* @type {Tokenizer}
-*/
 function tokenizeBlankLineBefore(effects, ok, nok) {
 	return start;
 	/**
@@ -7451,7 +7579,7 @@ function tokenizeBlankLineBefore(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/html-text.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/html-text.js
 /**
 * @import {
 *   Code,
@@ -8065,7 +8193,7 @@ function tokenizeHtmlText(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-end.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/label-end.js
 /**
 * @import {
 *   Construct,
@@ -8111,8 +8239,6 @@ function resolveAllLabelEnd(events) {
 function resolveToLabelEnd(events, context) {
 	let index = events.length;
 	let offset = 0;
-	/** @type {Token} */
-	let token;
 	/** @type {number | undefined} */
 	let open;
 	/** @type {number | undefined} */
@@ -8120,7 +8246,7 @@ function resolveToLabelEnd(events, context) {
 	/** @type {Array<Event>} */
 	let media;
 	while (index--) {
-		token = events[index][1];
+		const token = events[index][1];
 		if (open) {
 			if (token.type === "link" || token.type === "labelLink" && token._inactive) break;
 			if (events[index][0] === "enter" && token.type === "labelLink") token._inactive = true;
@@ -8195,14 +8321,14 @@ function resolveToLabelEnd(events, context) {
 */
 function tokenizeLabelEnd(effects, ok, nok) {
 	const self = this;
-	let index = self.events.length;
+	const labelStarts = self._labelStarts;
 	/** @type {Token} */
 	let labelStart;
 	/** @type {boolean} */
 	let defined;
-	while (index--) if ((self.events[index][1].type === "labelImage" || self.events[index][1].type === "labelLink") && !self.events[index][1]._balanced) {
-		labelStart = self.events[index][1];
-		break;
+	if (labelStarts) {
+		while (labelStarts.length > 0 && labelStarts[labelStarts.length - 1]._balanced) labelStarts.pop();
+		labelStart = labelStarts[labelStarts.length - 1];
 	}
 	return start;
 	/**
@@ -8289,6 +8415,7 @@ function tokenizeLabelEnd(effects, ok, nok) {
 	* @type {State}
 	*/
 	function labelEndOk(code) {
+		labelStarts.pop();
 		return ok(code);
 	}
 	/**
@@ -8535,11 +8662,12 @@ function tokenizeReferenceCollapsed(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-start-image.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/label-start-image.js
 /**
 * @import {
 *   Construct,
 *   State,
+*   Token,
 *   TokenizeContext,
 *   Tokenizer
 * } from 'micromark-util-types'
@@ -8557,6 +8685,8 @@ const labelStartImage = {
 */
 function tokenizeLabelStartImage(effects, ok, nok) {
 	const self = this;
+	/** @type {Token} */
+	let labelImage;
 	return start;
 	/**
 	* Start of label (image) start.
@@ -8590,7 +8720,7 @@ function tokenizeLabelStartImage(effects, ok, nok) {
 			effects.enter("labelMarker");
 			effects.consume(code);
 			effects.exit("labelMarker");
-			effects.exit("labelImage");
+			labelImage = effects.exit("labelImage");
 			return after;
 		}
 		return nok(code);
@@ -8623,16 +8753,20 @@ function tokenizeLabelStartImage(effects, ok, nok) {
 	* @type {State}
 	*/
 	function after(code) {
-		/* c8 ignore next 3 */
-		return code === 94 && "_hiddenFootnoteSupport" in self.parser.constructs ? nok(code) : ok(code);
+		/* c8 ignore next 6 */
+		if (code === 94 && "_hiddenFootnoteSupport" in self.parser.constructs) return nok(code);
+		self._labelStarts = self._labelStarts || [];
+		self._labelStarts.push(labelImage);
+		return ok(code);
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/label-start-link.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/label-start-link.js
 /**
 * @import {
 *   Construct,
 *   State,
+*   Token,
 *   TokenizeContext,
 *   Tokenizer
 * } from 'micromark-util-types'
@@ -8650,6 +8784,8 @@ const labelStartLink = {
 */
 function tokenizeLabelStartLink(effects, ok, nok) {
 	const self = this;
+	/** @type {Token} */
+	let labelLink;
 	return start;
 	/**
 	* Start of label (link) start.
@@ -8666,17 +8802,20 @@ function tokenizeLabelStartLink(effects, ok, nok) {
 		effects.enter("labelMarker");
 		effects.consume(code);
 		effects.exit("labelMarker");
-		effects.exit("labelLink");
+		labelLink = effects.exit("labelLink");
 		return after;
 	}
 	/** @type {State} */
 	function after(code) {
-		/* c8 ignore next 3 */
-		return code === 94 && "_hiddenFootnoteSupport" in self.parser.constructs ? nok(code) : ok(code);
+		/* c8 ignore next 6 */
+		if (code === 94 && "_hiddenFootnoteSupport" in self.parser.constructs) return nok(code);
+		self._labelStarts = self._labelStarts || [];
+		self._labelStarts.push(labelLink);
+		return ok(code);
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/line-ending.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/line-ending.js
 /**
 * @import {
 *   Construct,
@@ -8706,7 +8845,7 @@ function tokenizeLineEnding(effects, ok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/thematic-break.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/thematic-break.js
 /**
 * @import {
 *   Code,
@@ -8801,7 +8940,7 @@ function tokenizeThematicBreak(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/list.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/list.js
 /**
 * @import {
 *   Code,
@@ -8973,7 +9112,7 @@ function tokenizeListItemPrefixWhitespace(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.3/node_modules/micromark-core-commonmark/lib/setext-underline.js
+//#region ../../node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark/lib/setext-underline.js
 /**
 * @import {
 *   Code,
@@ -8992,6 +9131,7 @@ const setextUnderline = {
 };
 /** @type {Resolver} */
 function resolveToSetextUnderline(events, context) {
+	const editMap = new EditMap$1();
 	let index = events.length;
 	/** @type {number | undefined} */
 	let content;
@@ -9006,7 +9146,7 @@ function resolveToSetextUnderline(events, context) {
 		}
 		if (events[index][1].type === "paragraph") text = index;
 	} else {
-		if (events[index][1].type === "content") events.splice(index, 1);
+		if (events[index][1].type === "content") editMap.add(index, 1, []);
 		if (!definition && events[index][1].type === "definition") definition = index;
 	}
 	const heading = {
@@ -9016,23 +9156,24 @@ function resolveToSetextUnderline(events, context) {
 	};
 	events[text][1].type = "setextHeadingText";
 	if (definition) {
-		events.splice(text, 0, [
+		editMap.add(text, 0, [[
 			"enter",
 			heading,
 			context
-		]);
-		events.splice(definition + 1, 0, [
+		]]);
+		editMap.add(definition + 1, 0, [[
 			"exit",
 			events[content][1],
 			context
-		]);
+		]]);
 		events[content][1].end = { ...events[definition][1].end };
 	} else events[content][1] = heading;
-	events.push([
+	editMap.add(events.length, 0, [[
 		"exit",
 		heading,
 		context
-	]);
+	]]);
+	editMap.consume(events);
 	return events;
 }
 /**
@@ -9125,7 +9266,7 @@ function tokenizeSetextUnderline(effects, ok, nok) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/flow.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/initialize/flow.js
 /**
 * @import {
 *   InitialConstruct,
@@ -9172,7 +9313,7 @@ function initializeFlow(effects) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/text.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/initialize/text.js
 /**
 * @import {
 *   Code,
@@ -9289,6 +9430,7 @@ function createResolver(extraResolver) {
 * @type {Resolver}
 */
 function resolveAllLineSuffixes(events, context) {
+	const editMap = new EditMap$1();
 	let eventIndex = 0;
 	while (++eventIndex <= events.length) if ((eventIndex === events.length || events[eventIndex][1].type === "lineEnding") && events[eventIndex - 1][1].type === "data") {
 		const data = events[eventIndex - 1][1];
@@ -9331,25 +9473,23 @@ function resolveAllLineSuffixes(events, context) {
 			};
 			data.end = { ...token.start };
 			if (data.start.offset === data.end.offset) Object.assign(data, token);
-			else {
-				events.splice(eventIndex, 0, [
-					"enter",
-					token,
-					context
-				], [
-					"exit",
-					token,
-					context
-				]);
-				eventIndex += 2;
-			}
+			else editMap.add(eventIndex, 0, [[
+				"enter",
+				token,
+				context
+			], [
+				"exit",
+				token,
+				context
+			]]);
 		}
 		eventIndex++;
 	}
+	editMap.consume(events);
 	return events;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/constructs.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/constructs.js
 /**
 * @import {Extension} from 'micromark-util-types'
 */
@@ -9427,7 +9567,7 @@ const attentionMarkers = { null: [42, 95] };
 /** @satisfies {Extension['disable']} */
 const disable = { null: [] };
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/create-tokenizer.js
 /**
 * @import {
 *   Chunk,
@@ -9583,12 +9723,10 @@ function createTokenizer(parser, initialize, from) {
 	*   Nothing.
 	*/
 	function main() {
-		/** @type {number} */
-		let chunkIndex;
 		while (point._index < chunks.length) {
 			const chunk = chunks[point._index];
 			if (typeof chunk === "string") {
-				chunkIndex = point._index;
+				const chunkIndex = point._index;
 				if (point._bufferIndex < 0) point._bufferIndex = 0;
 				while (point._index === chunkIndex && point._bufferIndex < chunk.length) go(chunk.charCodeAt(point._bufferIndex));
 			} else go(chunk);
@@ -9896,7 +10034,7 @@ function serializeChunks(chunks, expandTabs) {
 	return result.join("");
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/parse.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/parse.js
 /**
 * @import {
 *   Create,
@@ -9940,7 +10078,7 @@ function parse(options) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/postprocess.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/postprocess.js
 /**
 * @import {Event} from 'micromark-util-types'
 */
@@ -9955,7 +10093,7 @@ function postprocess(events) {
 	return events;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/preprocess.js
+//#region ../../node_modules/.pnpm/micromark@4.0.3/node_modules/micromark/lib/preprocess.js
 /**
 * @import {Chunk, Code, Encoding, Value} from 'micromark-util-types'
 */
@@ -9986,20 +10124,10 @@ function preprocess() {
 	return preprocessor;
 	/** @type {Preprocessor} */
 	function preprocessor(value, encoding, end) {
+		value = buffer + (typeof value === "string" ? value.toString() : new TextDecoder(encoding || void 0).decode(value));
 		/** @type {Array<Chunk>} */
 		const chunks = [];
-		/** @type {RegExpMatchArray | null} */
-		let match;
-		/** @type {number} */
-		let next;
-		/** @type {number} */
-		let startPosition;
-		/** @type {number} */
-		let endPosition;
-		/** @type {Code} */
-		let code;
-		value = buffer + (typeof value === "string" ? value.toString() : new TextDecoder(encoding || void 0).decode(value));
-		startPosition = 0;
+		let startPosition = 0;
 		buffer = "";
 		if (start) {
 			if (value.charCodeAt(0) === 65279) startPosition++;
@@ -10007,9 +10135,9 @@ function preprocess() {
 		}
 		while (startPosition < value.length) {
 			search.lastIndex = startPosition;
-			match = search.exec(value);
-			endPosition = match && match.index !== void 0 ? match.index : value.length;
-			code = value.charCodeAt(endPosition);
+			const match = search.exec(value);
+			const endPosition = match && match.index !== void 0 ? match.index : value.length;
+			const code = value.charCodeAt(endPosition);
 			if (!match) {
 				buffer = value.slice(startPosition);
 				break;
@@ -10031,11 +10159,12 @@ function preprocess() {
 						chunks.push(65533);
 						column++;
 						break;
-					case 9:
-						next = Math.ceil(column / 4) * 4;
+					case 9: {
+						const next = Math.ceil(column / 4) * 4;
 						chunks.push(-2);
 						while (column++ < next) chunks.push(-1);
 						break;
+					}
 					case 10:
 						chunks.push(-4);
 						column = 1;
@@ -11600,7 +11729,7 @@ function toResult(value) {
 	return value === null || value === void 0 ? empty : [value];
 }
 //#endregion
-//#region ../../node_modules/.pnpm/mdast-util-find-and-replace@3.0.2/node_modules/mdast-util-find-and-replace/lib/index.js
+//#region ../../node_modules/.pnpm/mdast-util-find-and-replace@3.0.3/node_modules/mdast-util-find-and-replace/lib/index.js
 /**
 * @import {Nodes, Parents, PhrasingContent, Root, Text} from 'mdast'
 * @import {BuildVisitor, Test, VisitorResult} from 'unist-util-visit-parents'
@@ -11677,7 +11806,11 @@ function findAndReplace(tree, list, options) {
 	const pairs = toPairs(list);
 	let pairIndex = -1;
 	while (++pairIndex < pairs.length) visitParents(tree, "text", visitor);
-	/** @type {BuildVisitor<Root, 'text'>} */
+	/**
+	* Visit a text node, and handle it if it is not in an ignored parent.
+	*
+	* @type {BuildVisitor<Root, 'text'>}
+	*/
 	function visitor(node, parents) {
 		let index = -1;
 		/** @type {Parents | undefined} */
@@ -11695,11 +11828,11 @@ function findAndReplace(tree, list, options) {
 	* Handle a text node which is not in an ignored parent.
 	*
 	* @param {Text} node
-	*   Text node.
+	*   Text node to search in.
 	* @param {Array<Parents>} parents
-	*   Parents.
+	*   Ancestors of `node`.
 	* @returns {VisitorResult}
-	*   Result.
+	*   Where to continue visiting.
 	*/
 	function handler(node, parents) {
 		const parent = parents[parents.length - 1];
@@ -11727,12 +11860,12 @@ function findAndReplace(tree, list, options) {
 			} : void 0;
 			if (value === false) find.lastIndex = position + 1;
 			else {
-				if (start !== position) nodes.push({
+				if (start !== position) add({
 					type: "text",
 					value: node.value.slice(start, position)
 				});
-				if (Array.isArray(value)) nodes.push(...value);
-				else if (value) nodes.push(value);
+				if (Array.isArray(value)) for (const child of value) add(child);
+				else if (value) add(value);
 				start = position + match[0].length;
 				change = true;
 			}
@@ -11740,13 +11873,26 @@ function findAndReplace(tree, list, options) {
 			match = find.exec(node.value);
 		}
 		if (change) {
-			if (start < node.value.length) nodes.push({
+			if (start < node.value.length) add({
 				type: "text",
 				value: node.value.slice(start)
 			});
 			parent.children.splice(index, 1, ...nodes);
 		} else nodes = [node];
 		return index + nodes.length;
+		/**
+		* Add a node.
+		*
+		* @param {PhrasingContent} child
+		*   Node to add.
+		* @returns {undefined}
+		*   Nothing.
+		*/
+		function add(child) {
+			const previous = nodes[nodes.length - 1];
+			if (previous && previous.type === "text" && child.type === "text") previous.value += child.value;
+			else nodes.push(child);
+		}
 	}
 }
 /**
@@ -11758,9 +11904,9 @@ function findAndReplace(tree, list, options) {
 *   Clean pairs.
 */
 function toPairs(tupleOrList) {
+	if (!Array.isArray(tupleOrList)) throw new TypeError("Expected find and replace tuple or list of tuples");
 	/** @type {Pairs} */
 	const result = [];
-	if (!Array.isArray(tupleOrList)) throw new TypeError("Expected find and replace tuple or list of tuples");
 	/** @type {FindAndReplaceList} */
 	const list = !tupleOrList[0] || Array.isArray(tupleOrList[0]) ? tupleOrList : [tupleOrList];
 	let index = -1;
@@ -11774,9 +11920,9 @@ function toPairs(tupleOrList) {
 * Turn a find into an expression.
 *
 * @param {Find} find
-*   Find.
+*   Pattern to find.
 * @returns {RegExp}
-*   Expression.
+*   Global expression.
 */
 function toExpression(find) {
 	return typeof find === "string" ? new RegExp(escapeStringRegexp(find), "g") : find;
@@ -11785,9 +11931,9 @@ function toExpression(find) {
 * Turn a replace into a function.
 *
 * @param {Replace} replace
-*   Replace.
+*   Thing to replace with.
 * @returns {ReplaceFunction}
-*   Function.
+*   Function that returns that thing.
 */
 function toFunction(replace) {
 	return typeof replace === "function" ? replace : function() {
@@ -12110,7 +12256,8 @@ function gfmFootnoteFromMarkdown() {
 	};
 }
 //#endregion
-//#region ../../node_modules/.pnpm/mdast-util-gfm-strikethrough@2.0.0/node_modules/mdast-util-gfm-strikethrough/lib/index.js
+//#region ../../node_modules/.pnpm/mdast-util-gfm-strikethrough@2.0.1/node_modules/mdast-util-gfm-strikethrough/lib/index.js
+handleDelete.attention = attentionDelete;
 handleDelete.peek = peekDelete;
 /**
 * Create an extension for `mdast-util-from-markdown` to enable GFM
@@ -12127,16 +12274,21 @@ function gfmStrikethroughFromMarkdown() {
 	};
 }
 /**
+* Enter strikethrough.
+*
 * @this {CompileContext}
 * @type {FromMarkdownHandle}
 */
 function enterStrikethrough(token) {
 	this.enter({
 		type: "delete",
-		children: []
+		children: [],
+		position: void 0
 	}, token);
 }
 /**
+* Exit strikethrough.
+*
 * @this {CompileContext}
 * @type {FromMarkdownHandle}
 */
@@ -12144,23 +12296,43 @@ function exitStrikethrough(token) {
 	this.exit(token);
 }
 /**
+* Serialize a delete node.
+*
 * @type {ToMarkdownHandle}
 * @param {Delete} node
+*   Node to serialize.
 */
 function handleDelete(node, _, state, info) {
 	const tracker = state.createTracker(info);
+	const sequence = state.stack.includes("strikethrough") ? "~" : "~~";
 	const exit = state.enter("strikethrough");
-	let value = tracker.move("~~");
+	let value = tracker.move(sequence);
 	value += state.containerPhrasing(node, {
 		...tracker.current(),
 		before: value,
 		after: "~"
 	});
-	value += tracker.move("~~");
+	value += tracker.move(sequence);
 	exit();
 	return value;
 }
-/** @type {ToMarkdownHandle} */
+/**
+* Serialize a delete node as attention.
+*
+* @type {Attention}
+*/
+function attentionDelete() {
+	return {
+		construct: "strikethrough",
+		markers: ["~"],
+		sizes: [2, 1]
+	};
+}
+/**
+* Peek the first character of a delete node.
+*
+* @type {ToMarkdownHandle}
+*/
 function peekDelete() {
 	return "~";
 }
@@ -13644,7 +13816,7 @@ function gfmStrikethrough(options) {
 	}
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/edit-map.js
+//#region ../../node_modules/.pnpm/micromark-extension-gfm-table@2.1.2/node_modules/micromark-extension-gfm-table/lib/edit-map.js
 /**
 * @import {Event} from 'micromark-util-types'
 */
@@ -13666,14 +13838,25 @@ var EditMap = class {
 		* @type {Array<Change>}
 		*/
 		this.map = [];
+		/**
+		* Changes by index, so `add` does not scan `map` (quadratic on
+		* table-heavy documents).
+		*
+		* @type {Map<number, Change>}
+		*/
+		this.index = /* @__PURE__ */ new Map();
 	}
 	/**
 	* Create an edit: a remove and/or add at a certain place.
 	*
 	* @param {number} index
+	*   Index at which to apply the edit.
 	* @param {number} remove
+	*   Count of items to remove at the index.
 	* @param {Array<Event>} add
+	*   Items to add at the index.
 	* @returns {undefined}
+	*   Nothing.
 	*/
 	add(index, remove, add) {
 		addImplementation(this, index, remove, add);
@@ -13682,7 +13865,9 @@ var EditMap = class {
 	* Done, change the events.
 	*
 	* @param {Array<Event>} events
+	*   List of events to apply the edits to.
 	* @returns {undefined}
+	*   Nothing.
 	*/
 	consume(events) {
 		this.map.sort(function(a, b) {
@@ -13706,37 +13891,43 @@ var EditMap = class {
 			slice = vecs.pop();
 		}
 		this.map.length = 0;
+		this.index.clear();
 	}
 };
 /**
 * Create an edit.
 *
 * @param {EditMap} editMap
+*   Edit map to apply to.
 * @param {number} at
+*   Index at which to apply the edit.
 * @param {number} remove
+*   Count of items to remove at the index.
 * @param {Array<Event>} add
+*   Items to add at the index.
 * @returns {undefined}
+*   Nothing.
 */
 function addImplementation(editMap, at, remove, add) {
-	let index = 0;
 	/* c8 ignore next 3 -- `resolve` is never called without tables, so without edits. */
 	if (remove === 0 && add.length === 0) return;
-	while (index < editMap.map.length) {
-		if (editMap.map[index][0] === at) {
-			editMap.map[index][1] += remove;
-			editMap.map[index][2].push(...add);
-			return;
-		}
-		index += 1;
+	const existing = editMap.index.get(at);
+	if (existing) {
+		existing[1] += remove;
+		existing[2].push(...add);
+		return;
 	}
-	editMap.map.push([
+	/** @type {Change} */
+	const change = [
 		at,
 		remove,
 		add
-	]);
+	];
+	editMap.map.push(change);
+	editMap.index.set(at, change);
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/infer.js
+//#region ../../node_modules/.pnpm/micromark-extension-gfm-table@2.1.2/node_modules/micromark-extension-gfm-table/lib/infer.js
 /**
 * @import {Event} from 'micromark-util-types'
 */
@@ -13774,7 +13965,7 @@ function gfmTableAlign(events, index) {
 	return align;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/micromark-extension-gfm-table@2.1.1/node_modules/micromark-extension-gfm-table/lib/syntax.js
+//#region ../../node_modules/.pnpm/micromark-extension-gfm-table@2.1.2/node_modules/micromark-extension-gfm-table/lib/syntax.js
 /**
 * @import {Event, Extension, Point, Resolver, State, Token, TokenizeContext, Tokenizer} from 'micromark-util-types'
 */
@@ -13800,6 +13991,8 @@ function gfmTable() {
 	} } };
 }
 /**
+* Tokenizer for GFM tables.
+*
 * @this {TokenizeContext}
 * @type {Tokenizer}
 */
@@ -13829,7 +14022,7 @@ function tokenizeTable(effects, ok, nok) {
 	function start(code) {
 		let index = self.events.length - 1;
 		while (index > -1) {
-			const type = self.events[index][1].type;
+			const { type } = self.events[index][1];
 			if (type === "lineEnding" || type === "linePrefix") index--;
 			else break;
 		}
@@ -14358,12 +14551,19 @@ function resolveTable(events, context) {
 * Generate a cell.
 *
 * @param {EditMap} map
+*   Edit map to apply to.
 * @param {Readonly<TokenizeContext>} context
+*   Tokenize context.
 * @param {Readonly<Range>} range
+*   Range of the cell within events.
 * @param {RowKind} rowKind
+*   Type of row.
 * @param {number | undefined} rowEnd
+*   Index of the end of the row, if known.
 * @param {Token | undefined} previousCell
+*   Previous cell token, if any.
 * @returns {Token | undefined}
+*   Current cell token after flushing, if any.
 */
 function flushCell(map, context, range, rowKind, rowEnd, previousCell) {
 	const groupName = rowKind === 1 ? "tableHeader" : rowKind === 2 ? "tableDelimiter" : "tableData";
@@ -14434,10 +14634,17 @@ function flushCell(map, context, range, rowKind, rowEnd, previousCell) {
 * Generate table end (and table body end).
 *
 * @param {Readonly<EditMap>} map
+*   Edit map to apply to.
 * @param {Readonly<TokenizeContext>} context
+*   Tokenize context.
 * @param {number} index
+*   Index within the events where the table end should be inserted.
 * @param {Token} table
+*   Table token.
 * @param {Token | undefined} tableBody
+*   Table body token, if any.
+* @returns {undefined}
+*   Nothing.
 */
 function flushTableEnd(map, context, index, table, tableBody) {
 	/** @type {Array<Event>} */
@@ -14460,9 +14667,14 @@ function flushTableEnd(map, context, index, table, tableBody) {
 	map.add(index + 1, 0, exits);
 }
 /**
+* Get the point (start or end) for a given event in the list of events.
+*
 * @param {Readonly<Array<Event>>} events
+*   List of events.
 * @param {number} index
+*   Index of the event to get the point for.
 * @returns {Readonly<Point>}
+*   Start point for enter and end point for exit.
 */
 function getPoint(events, index) {
 	const event = events[index];
@@ -15626,7 +15838,7 @@ function contextMessage(event) {
 //#region lib/types/topic-archive.js
 /** Return the admission time of a user inbox insertion; claims and canceled items do not qualify. */
 function topicSubmissionTime(event) {
-	return event.type === "agent/inbox/spliced" && event.data.inserted.some((message) => message.source.kind === "user") ? event.time : null;
+	return event.type === "agent/inbox/spliced" && event.data.inserted.some((message) => message.source.kind === "user" || message.source.kind === "user-question-reply") ? event.time : null;
 }
 /** Ignore inherited source history when repairing archive state after a restart. */
 function latestTopicSubmission(events, inheritedEventCount) {
@@ -16019,7 +16231,7 @@ async function rmdirOwnedIfEmpty(root, target) {
 }
 /**
 * Delete all JSONL generations of an already retired private Topic.
-* DSH 0.1.5 has no public delete/location API. This bounded disk adapter follows
+* The Host does not own Citer's nested logs. This bounded disk adapter follows
 * its project/Session directory layout and canonical generation filenames.
 * @param root - exclusively owned CiteCiter Session root, never a host Session root.
 * @param sessionId - generated CiteCiter identity; arbitrary path segments are refused.
@@ -16447,6 +16659,50 @@ var DocumentStore = class {
 	}
 };
 //#endregion
+//#region lib/types/topic-questions.js
+/** A named Host call keeps one answer identity across the foreground/continued boundary. */
+function questionKey(sessionId, callId) {
+	return `question:${sessionId}:${callId}`;
+}
+/** Copy only the public question presentation, including supporting plan/detail text. */
+function questionPresentation(questions) {
+	return questions.map((question) => ({
+		id: question.id,
+		question: question.question,
+		...question.header === void 0 ? {} : { header: question.header },
+		...question.detail === void 0 ? {} : { detail: question.detail },
+		...question.options === void 0 ? {} : { options: question.options.map((option) => ({ ...option })) },
+		...question.multiSelect === void 0 ? {} : { multiSelect: question.multiSelect }
+	}));
+}
+/** Project a live private waterfall without assuming that every question blocks indefinitely. */
+function openQuestion(key, questions, wait) {
+	return {
+		key,
+		questions: questionPresentation(questions),
+		state: "open",
+		...wait === void 0 ? {} : {
+			callId: String(wait.callId),
+			timed: wait.timed === true
+		}
+	};
+}
+/**
+* Read the Host's durable question projection for this exact owned Agent.
+* Replies already in its native Inbox are excluded until admitted/discarded.
+* No Session is registered in the Host list and no log format is rewritten.
+*/
+function continuedQuestions(agent) {
+	const state = agent.ctx.get("sessionProjections")?.stateOf(agent.session, "userQuestions");
+	const queued = [...agent.inbox.nextTurn, ...agent.inbox.nextStep];
+	return (state?.questions.active ?? []).filter((question) => question.state === "continued" && !queued.some((message) => message.source.kind === "user-question-reply" && message.source.callId === question.callId)).map((question) => ({
+		key: questionKey(String(agent.session.header.id), String(question.callId)),
+		callId: String(question.callId),
+		state: "continued",
+		questions: questionPresentation(question.questions)
+	}));
+}
+//#endregion
 //#region lib/types/board-capture.js
 /** Correlates one model-requested render with one client reply; bytes become a durable DSH attachment. */
 var BoardCaptureBroker = class {
@@ -16638,10 +16894,10 @@ var __rewriteRelativeImportExtension = function(path, preserveJsx) {
 	});
 	return path;
 };
-/** Keep Electron virtual paths intact; Windows Desktop may ship an unpacked app. */
+/** Resolve the official Desktop's bundled DSH runtime, keeping Electron virtual paths intact. */
 async function desktopModuleAnchor(resources) {
 	for (const name of ["app", "app.asar"]) {
-		const manifest = join(resources, name, "package.json");
+		const manifest = join(resources, name, "dsh", "package.json");
 		try {
 			await access(manifest);
 			return manifest;
@@ -16649,12 +16905,13 @@ async function desktopModuleAnchor(resources) {
 			if (error.code !== "ENOENT") throw error;
 		}
 	}
-	throw new Error("Citer 无法定位 Desktop 的 app.asar 或 app 运行模块");
+	throw new Error("Citer 无法定位官方 DSH Desktop 的内置运行模块，请更新官方桌面版");
 }
 /**
 * Resolve runtime modules from the host installation, not the plugin's dependencies.
 * CLI argv can name an npm/pnpm symlink; canonicalize it before walking node_modules.
-* Desktop accepts app.asar and unpacked app layouts without canonicalizing virtual paths.
+* Official Desktop carries its runtime inside app.asar/dsh (or app/dsh when unpacked).
+* The Electron shell's package.json is not a DSH module-resolution anchor.
 * @returns the host's AgentLoop, SessionStore, title service and scope factory.
 * @throws when the launcher cannot be located or its runtime exports are unavailable.
 */
@@ -17344,7 +17601,7 @@ function textBlocks(content, type) {
 function toolResultText(content) {
 	return textBlocks(content, "text");
 }
-function validatedQuestionAnswer(questions, answer) {
+function validatedQuestionAnswer(questions, answer, allowSkipped = false) {
 	if (answer.answers.length !== questions.length) throw new Error("每个问题都需要回答");
 	const byId = new Map(answer.answers.map((item) => [item.id, item]));
 	if (byId.size !== answer.answers.length) throw new Error("问题回答包含重复 id");
@@ -17356,6 +17613,10 @@ function validatedQuestionAnswer(questions, answer) {
 		const labels = new Set(question.options?.map((option) => option.label) ?? []);
 		if (selected.some((label) => !labels.has(label))) throw new Error(`问题 ${question.id} 包含未知选项`);
 		const custom = item.custom?.trim();
+		if (allowSkipped && selected.length === 0 && (custom === void 0 || custom === "")) return {
+			id: question.id,
+			selected: []
+		};
 		if (question.multiSelect !== true && selected.length + (custom === void 0 || custom === "" ? 0 : 1) !== 1) throw new Error(`问题 ${question.id} 只能选择一个答案`);
 		if (question.multiSelect === true && selected.length === 0 && (custom === void 0 || custom === "")) throw new Error(`问题 ${question.id} 尚未回答`);
 		return {
@@ -17836,6 +18097,10 @@ var TopicRuntime = class {
 			case "cancel-question": return {
 				kind: "topic",
 				topic: await this.queueTopicAdmission(request.topicSessionId, () => this.cancelQuestion(request.topicSessionId, request.key, signal), signal)
+			};
+			case "timeout-question": return {
+				kind: "topic",
+				topic: await this.queueTopicAdmission(request.topicSessionId, () => this.timeoutQuestion(request.topicSessionId, request.key, signal), signal)
 			};
 			case "rename": return {
 				kind: "topic",
@@ -18836,7 +19101,7 @@ var TopicRuntime = class {
 		if (sessionId === void 0 || !this.handles.has(sessionId)) throw new UserQuestionError("CiteCiter cannot identify the asking Topic", "CALLER_NOT_LIVE");
 		if (this.pendingQuestions.has(sessionId)) throw new UserQuestionError("this Topic already has a pending question", "DUPLICATE_QUESTION");
 		return new Promise((resolveAnswer, rejectAnswer) => {
-			const key = randomUUID();
+			const key = request.wait === void 0 ? randomUUID() : questionKey(sessionId, String(request.wait.callId));
 			const finish = () => {
 				if (this.pendingQuestions.get(sessionId)?.key === key) this.pendingQuestions.delete(sessionId);
 				request.signal?.removeEventListener("abort", onAbort);
@@ -18854,6 +19119,7 @@ var TopicRuntime = class {
 				key,
 				sessionId,
 				questions: request.questions,
+				wait: request.wait,
 				resolve,
 				reject,
 				signal: request.signal,
@@ -18868,8 +19134,13 @@ var TopicRuntime = class {
 		const metadata = await this.index.loadBySessionId(request.topicSessionId);
 		this.assertOpen(signal);
 		const pending = this.pendingQuestions.get(request.topicSessionId);
-		if (pending === void 0 || pending.key !== request.key) throw new Error("这个提问已结束或已被替换");
-		pending.resolve(validatedQuestionAnswer(pending.questions, request.answer));
+		if (pending?.key === request.key) pending.resolve(validatedQuestionAnswer(pending.questions, request.answer, pending.wait !== void 0));
+		else {
+			const handle = await this.ensureHandle(metadata, signal);
+			const continued = continuedQuestions(handle.agent).find((question) => question.key === request.key);
+			if (continued?.callId === void 0) throw new Error("这个提问已结束或已被替换");
+			if (!handle.agent.ctx.userQuestions.answer(handle.agent, continued.callId, validatedQuestionAnswer(continued.questions, request.answer, true))) throw new Error("这个提问已结束或已被替换");
+		}
 		return this.snapshot(metadata, signal, true);
 	}
 	async cancelQuestion(sessionId, key, signal) {
@@ -18878,6 +19149,13 @@ var TopicRuntime = class {
 		const pending = this.pendingQuestions.get(sessionId);
 		if (pending === void 0 || pending.key !== key) throw new Error("这个提问已结束或已被替换");
 		pending.reject(new UserQuestionError("the user cancelled ask_user_question", "ASK_CANCELLED"));
+		return this.snapshot(metadata, signal, true);
+	}
+	async timeoutQuestion(sessionId, key, signal) {
+		const metadata = await this.index.loadBySessionId(sessionId);
+		this.assertOpen(signal);
+		const pending = this.pendingQuestions.get(sessionId);
+		if (pending?.key === key && pending.wait?.timed === true) pending.reject(new UserQuestionError("ask_user_question timed out before the user answered", "ASK_TIMED_OUT"));
 		return this.snapshot(metadata, signal, true);
 	}
 	async stop(sessionId, signal) {
@@ -19307,6 +19585,8 @@ var TopicRuntime = class {
 		}, signal, admitted);
 		if (title === void 0 && current.hosted !== true) this.scheduleExactTitleRefresh(current, log);
 		const pending = this.pendingQuestions.get(current.sessionId);
+		const ownedAgent = this.handles.get(current.sessionId)?.agent;
+		const questions = [...pending === void 0 ? [] : [openQuestion(pending.key, pending.questions, pending.wait)], ...ownedAgent === void 0 ? [] : continuedQuestions(ownedAgent)];
 		const captureId = this.boardCapture.id(current.sessionId);
 		const document = current.documentId === null ? null : await this.documents.summary(current.documentId);
 		return {
@@ -19315,16 +19595,8 @@ var TopicRuntime = class {
 			topic: this.summaryFromMetadata(current),
 			...topicMessages(log),
 			board: projectBoardFromLog(log),
-			pendingQuestion: pending === void 0 ? null : {
-				key: pending.key,
-				questions: pending.questions.map((question) => ({
-					id: question.id,
-					question: question.question,
-					...question.header === void 0 ? {} : { header: question.header },
-					...question.options === void 0 ? {} : { options: question.options.map((option) => ({ ...option })) },
-					...question.multiSelect === void 0 ? {} : { multiSelect: question.multiSelect }
-				}))
-			}
+			pendingQuestion: questions[0] ?? null,
+			pendingQuestions: questions
 		};
 	}
 	async patchMetadata(metadata, patch, signal) {
@@ -19525,7 +19797,7 @@ let CiteCiterHost = (() => {
 		releaseService;
 		constructor(ctx, config) {
 			super(ctx, "citeciter");
-			this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, CITECITER_SETTINGS_SCHEMA, config));
+			this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, config));
 			this.service = {
 				create: async (request, signal) => this.topicSnapshot(request, signal),
 				ask: async (request, signal) => this.topicSnapshot(request, signal),
@@ -19581,10 +19853,10 @@ let CiteCiterHost = (() => {
 		/** Check npm for an installable stable version without changing this installation. */
 		async checkUpdate(signal) {
 			const result = await this.updates.check(signal);
-			const desktop = this.ctx.get("desktopProfiles");
-			return result.kind === "success" && desktop !== void 0 ? {
+			const profile = this.ctx.get("profileContext");
+			return result.kind === "success" && profile !== void 0 ? {
 				...result,
-				profile: desktop.current.name
+				profile: profile.name
 			} : result;
 		}
 	};

@@ -16,12 +16,12 @@ export declare const CITECITER_SETTINGS_SCHEMA: z<object>;
 /** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
 export declare class CiteCiterHost extends TypertRemoteService {
     static inject: readonly ["llm", "sessionQuery", "subprocess", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
-    static Config: z<object>;
+    static Config: z<object, object, "volatile">;
     private readonly topics;
     private readonly updates;
     private readonly service;
     private releaseService;
-    constructor(ctx: Context, config?: SettingsReader);
+    constructor(ctx: Context, config: SettingsReader);
     /** Do not publish the Remote service until its private runtime is ready. */
     [Service.init](): Promise<void>;
     /** Resolve one create/ask command into a committed Topic snapshot. */

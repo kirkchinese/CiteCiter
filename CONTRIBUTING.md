@@ -2,10 +2,12 @@
 
 [简体中文](CONTRIBUTING.zh.md)
 
-Use Node.js `^22.19.0 || >=24.0.0`, pnpm `11.21.0` and DSH `0.1.7-rc.2` for the 0.9 prerelease. Real-model acceptance and host limitations are recorded in docs/validation/2026-09-27-connect-450.md; the released 0.8 line retains its DSH `0.1.5-rc.1` / Desktop `2.0.9` baseline. The package lives in `packages/citeciter/`; Host and Client compile separately with strict TypeScript.
+Use Node.js `^22.19.0 || >=24.0.0` and pnpm `11.21.0`. The `0.9.0-alpha.4` candidate compiles against DSH `0.2.1-alpha.1`; `typecheck:desktop` checks the same Host/Client sources against the official Desktop SDK `0.2.0-rc.2`. Only the official DSH desktop application is a supported adaptation target; community desktop compatibility is no longer guaranteed. Real-model acceptance remains separate from these compile checks and is tracked in `docs/validation/2026-10-07-official-desktop.md`. The package lives in `packages/citeciter/`.
 
 ```powershell
 pnpm install --frozen-lockfile
+pnpm check:git-entry
+pnpm peers check
 pnpm typecheck
 pnpm typecheck:desktop
 pnpm build
@@ -14,6 +16,14 @@ git diff --check
 ```
 
 Tracked `lib/` is a release artifact and must be rebuilt after source changes. `pnpm --dir packages/citeciter dev` watches builds only; it neither starts models nor creates test instances. CI checks dependencies, types, build and packaging. Static success is not functional acceptance.
+
+## Repository Git entry
+
+`packages/citeciter/package.json` remains the canonical npm manifest. The root manifest is a private Git-install entry with the same package identity, version, runtime metadata and development pins; its exports and bundle patch point directly to the committed files under `packages/citeciter/`. pnpm's Git fetcher does not apply `publishConfig.directory`, so that setting alone cannot expose a monorepo plugin. Root `publishConfig.directory` still keeps `pnpm pack` pointed at the canonical npm artifact.
+
+After changing canonical metadata, run `pnpm sync:git-entry`, then `pnpm install` to refresh the lockfile. `pnpm check:git-entry` rejects drift and is a build/CI gate. Root scripts use `pnpm --dir packages/citeciter`; avoid selecting the package by name with `--filter`, because the root and inner package intentionally share that name. Keep host modules, including `dsh-util-values`, in the declared peer range and pin each compile gate to its own SDK; do not hide cross-version warnings with peer exemptions.
+
+Git installs use committed build output and do not need a root `prepare` hook, a nested `file:` dependency or a dependency on a previously published CiteCiter package. After the fix is pushed, the Web CLI accepts `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#<COMMIT_OR_TAG_WITH_FIX>"`, with the placeholder replaced by a real commit or tag containing the fix. The official desktop plugin page uses the same Git address; its installation and restart flow still require UI acceptance. The October 7 record covers a real local Git snapshot through pnpm `11.7.0` and the official CLI `0.2.0-rc.2`; it does not establish that the unpushed public repository or desktop UI has passed.
 
 ## Architecture boundaries
 
@@ -57,7 +67,7 @@ Use scoped injection, ctx.effect and ctx.on. Release event listeners, observers,
 
 This acceptance uses the main DSH home as requested. Before starting or restarting a host, confirm no other Web or Desktop writer uses that home. Preserve user Sessions. Identify development processes and directories individually before cleanup.
 
-Web uses the global CLI: `dsh plugin --profile web add <absolute package path>`. Desktop uses `dsh plugin add <absolute package path>` in its managed terminal, which selects the bundled CLI, desktop profile and home. The global CLI cannot replace management of Desktop's reserved profile.
+Use the official host's documented plugin installation flow and inspect the resolved repository package, entry files and dependencies. Git installation and packaged installation require separate acceptance; use the same final candidate bytes when comparing them. The global CLI does not update the official desktop application's embedded runtime. Current installation details and limits belong in the official-desktop audit and acceptance records.
 
 For the first Web visit, use the full login URL printed by the host, then its session cookie. Treat login parameters as credentials and exclude them from Git and documentation. Restart after Host updates and reload after Client updates.
 

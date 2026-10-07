@@ -10,10 +10,10 @@ import { access, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { isAbsolute, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-/** Keep Electron virtual paths intact; Windows Desktop may ship an unpacked app. */
+/** Resolve the official Desktop's bundled DSH runtime, keeping Electron virtual paths intact. */
 async function desktopModuleAnchor(resources) {
     for (const name of ['app', 'app.asar']) {
-        const manifest = join(resources, name, 'package.json');
+        const manifest = join(resources, name, 'dsh', 'package.json');
         try {
             await access(manifest);
             return manifest;
@@ -24,12 +24,13 @@ async function desktopModuleAnchor(resources) {
                 throw error;
         }
     }
-    throw new Error('Citer 无法定位 Desktop 的 app.asar 或 app 运行模块');
+    throw new Error('Citer 无法定位官方 DSH Desktop 的内置运行模块，请更新官方桌面版');
 }
 /**
  * Resolve runtime modules from the host installation, not the plugin's dependencies.
  * CLI argv can name an npm/pnpm symlink; canonicalize it before walking node_modules.
- * Desktop accepts app.asar and unpacked app layouts without canonicalizing virtual paths.
+ * Official Desktop carries its runtime inside app.asar/dsh (or app/dsh when unpacked).
+ * The Electron shell's package.json is not a DSH module-resolution anchor.
  * @returns the host's AgentLoop, SessionStore, title service and scope factory.
  * @throws when the launcher cannot be located or its runtime exports are unavailable.
  */

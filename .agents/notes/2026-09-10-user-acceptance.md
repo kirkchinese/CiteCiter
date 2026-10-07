@@ -1,6 +1,6 @@
 # Windows acceptance and latest-host migration
 
-The user requested remote review, local installation, functional acceptance and concise illustrated technical READMEs. Work began at codex/learning-workspace-0.7 commit 470cb74f4e002f33c634b080bb1ebdd0127d107c. The initial DSH 0.1.2-rc.1 / Desktop 2.0.5 pass is recorded separately. The later instruction “换成最新版” replaces that baseline with npm latest DSH 0.1.5-rc.1 and community Desktop 2.0.9. The candidate is 0.7.0-beta.2. Push is authorized; npm publication, tags and public releases are not.
+The user requested remote review, local installation, functional acceptance and concise illustrated technical READMEs. Work began at codex/learning-workspace-0.7 commit 470cb74f4e002f33c634b080bb1ebdd0127d107c. The initial DSH 0.1.2-rc.1 pass is recorded separately. The later instruction “换成最新版” replaces that baseline with npm latest DSH 0.1.5-rc.1. The candidate is 0.7.0-beta.2. Push is authorized; npm publication, tags and public releases are not.
 
 ## Product decisions
 
@@ -16,7 +16,7 @@ Scoped public slots own UI contributions. The existing host-dock exception remai
 
 ## Latest API decisions
 
-Before migration, the pinned upstream AGENTS, architecture and installed package declarations were inspected against Desktop 2.0.9 upstream commit 183f08e9c6dde7e36cd2318eaee70b0da08fb35e. The external guide at E:/project/DSH-Plugin-Development-Guide/11-dsh-0.1.5-desktop-2.0.9.md records this preflight. The community Electron shell and upstream first-party desktop are distinct products.
+Before migration, inspect the pinned upstream architecture and installed package declarations. Distinguish inspected source compatibility from actual Web runtime acceptance.
 
 Agent setup now receives Agent explicitly. One process-local stream projection per scoped Agent listens to agent/assistant-stream and is released with that scope. Snapshot rows detach from its mutable assembler; durable assistant/attempt streams retain failed output without inserting model-visible messages. Source and Topic logs remain separate.
 
@@ -30,8 +30,6 @@ The published dsh-client-store package imports zustand and immer while declaring
 
 165 behavior tests pass, with separate Host/Client typechecks and rebuilt tracked bundles. Real keyless tests exercise Observer and Exact Fork, five stages, board/card records, source-log invariance, model configuration, management, questions, long-document citations, live output, retained text on stop/failure and restart follow-ups. Tarballs are installed in clean profiles. See the latest acceptance record for the final installation, legacy data and UI results.
 
-Root/package Chinese and English READMEs share behavior tables and two purpose-made SVG diagrams, explicitly labelled as diagrams. Historical beta.1 release notes are preserved. Temporary homes, logs, screenshots, credentials and tarballs remain ignored. Native test actions affect only the disposable Desktop profile; another Web process is not stopped.
+Root/package Chinese and English READMEs share behavior tables and two purpose-made SVG diagrams, explicitly labelled as diagrams. Historical beta.1 release notes are preserved. Temporary homes, logs, screenshots, credentials and tarballs remain ignored.
 
 Browser automation failed to load its request-header policy. Native automation intermittently reported stale observations and user input; only observed successful actions count. Deterministic models validate program behavior and persistence, not teaching quality. No claim is made of zero bugs or exhaustive Linux/macOS/DPI coverage.
-
-Native Desktop 2.0.9 checks now include long-document second-page selection and successful auto-close, panel close/reopen, board citation with focused composer, actual Markdown download, optional recall, 120%/144% zoom and all three presentation modes at startup. The file-open dialog appears, but its coordinate targeting failed twice, so native import is not counted as complete. The delayed save dialog was subsequently observed and its saved output verified, not treated as an export defect. Both default profiles have the candidate installed; the test home remains separate from daily data.

@@ -1,13 +1,19 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from 'react';
+import { useNativeQuestionInteraction } from "../question-interaction.js";
 import { QuestionCard } from "./QuestionCard.js";
 import css from './NativeInteraction.module.css';
+/** Bind native question state without giving React access to a Cordis service. */
+function NativeQuestion({ pending }) {
+    const { interaction, surface } = useNativeQuestionInteraction(pending);
+    return _jsx("div", { className: css.questions, children: _jsx(QuestionCard, { pending: pending, interaction: interaction, surface: surface, onAnswer: answer => pending.answer(answer), onCancel: () => pending.dismiss() }) });
+}
 /** Present the Host's one-shot pending request. Decisions go to its existing waterfall; no second permission authority is created. Remount on pending.key. */
 export function NativeInteraction({ pending, messages }) {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState();
     if (pending.kind === 'question' || pending.kind === 'plan-review') {
-        return _jsx("div", { className: css.questions, children: _jsx(QuestionCard, { pending: pending, onAnswer: answer => pending.answer(answer), onCancel: () => pending.cancel() }) });
+        return _jsx(NativeQuestion, { pending: pending });
     }
     if (pending.kind !== 'approval')
         return _jsx("p", { role: "status", children: "\u5F53\u524D\u5DE5\u5177\u6B63\u5728\u7B49\u5F85\u5BBF\u4E3B\u4EA4\u4E92\u3002\u53EF\u505C\u6B62\u540E\u91CD\u8BD5\u3002" });

@@ -3,8 +3,6 @@
 .imageButton { display: block; max-width: 100%; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: zoom-in; }
 .imageButton img { display: block; max-width: 100%; max-height: 320px; object-fit: contain; border-radius: inherit; }
 .imageButton:focus-visible { outline: 2px solid var(--dsw-alias-link, #3478f6); outline-offset: 3px; }
-.legacyPreview { width: min(1100px, calc(100vw - 32px)); max-width: calc(100vw - 32px); }
-.previewImage { display: block; max-width: 100%; max-height: calc(100dvh - 160px); margin: auto; object-fit: contain; }
 .file { display: flex; flex-direction: column; gap: 4px; min-width: 0; max-width: 100%; }
 .download { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; max-width: 100%; padding: 4px 9px; border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); color: inherit; font: inherit; font-size: 13px; cursor: pointer; transition: background 120ms ease, border-color 120ms ease; }
 .download svg { flex: none; color: var(--dsw-alias-link, #3478f6); }

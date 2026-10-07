@@ -28,7 +28,7 @@ CiteCiter 是一个已经发布到 0.8.2、功能面远超其文档描述的成�
 
 依赖矩阵（`.github/workflows/ci.yml`）：Ubuntu + Node 22.19.0、Windows + Node 24，pnpm 11.21.0，步骤为 `install --frozen-lockfile`、`typecheck`、`build`、`pack`、`git diff --check`。**没有测试作业。**
 
-「实测」本机双 profile 均已从 npm 安装 0.8.2：`~/.dsh/profiles/web/package.json` 与 `~/.dsh/profiles/desktop/package.json` 都声明 `@kirkchinese/dsh-citeciter: 0.8.2`，并同时装有 `dsh-codex-connect 0.1.0-alpha.4.34`。
+「实测」本机 Web profile 已从 npm 安装 0.8.2，~/.dsh/profiles/web/package.json 声明 @kirkchinese/dsh-citeciter: 0.8.2，并装有 dsh-codex-connect 0.1.0-alpha.4.34。
 
 ## 四、运行环境实测与版本漂移
 
@@ -44,7 +44,7 @@ CiteCiter 是一个已经发布到 0.8.2、功能面远超其文档描述的成�
 - 宿主 AppFrame 仍以内联 `gridTemplateColumns: ${sidebar}px minmax(0, 1fr) ${rightbar}px` 渲染，与 `host-dock.ts` 的正则完全匹配；`[data-shell-overlay]` 仍在 overlay 层上，其 `parentElement` 仍是 frame。
 - 原生 composer 所依赖的 `sendSession`、`createDrafts`、`fileUploads`、`updateQueue`、`pendingInteractions`、`loadOlder`、`loadThrough`、`settingsScope`、`openSettingsDocument`、`documentPreviews`、`chat.assistant-actions` 在 rc.3 中全部仍可解析。
 
-结论：**两处宿主耦合例外目前对 rc.3 仍然成立**，但这只是当前快照的一致性，不是兼容承诺。Desktop 专有的 `dshDesktopWindowsCaptionRow`/`dshDesktopMacCaptionRow` 在 npm 宿主中不存在属正常，它们由 Electron 端注入，需要单独在 Desktop 上验证。
+结论：**两处宿主耦合例外目前对 rc.3 仍然成立**，但这只是当前快照的一致性，不是兼容承诺。
 
 ## 五、架构地图
 
@@ -59,7 +59,7 @@ CiteCiter 是一个已经发布到 0.8.2、功能面远超其文档描述的成�
 **三处被明确许可的宿主耦合例外**，是接手后最需要盯的代码：
 
 - `citer-session-access.ts`：用 `Object.defineProperty` 语义包装宿主根 `SessionStore` 的 `get` 与 `flush`，只把 CiteCiter 自有身份路由到自己的 store，`list` 不动，因此 Citer 成员不会出现在宿主列表；卸载时按保存的 descriptor 精确还原，且在还原前先 `drain()` 自有 Agent 的最后一次 flush。依赖宿主 `get`/`flush` 仍是普通自有属性。
-- `host-agent-modules.ts`：从 `process.resourcesPath/app.asar/package.json`（Desktop）或 `realpath(process.argv[1])`（CLI）解析宿主的 `dsh-agent-loop`/`dsh-scope`/`dsh-session`。0.8.1 修的就是 CLI 符号链接导致 `MODULE_NOT_FOUND` 的问题。
+- `host-agent-modules.ts`：从 CLI 的 `realpath(process.argv[1])` 解析宿主的 `dsh-agent-loop`/`dsh-scope`/`dsh-session`。0.8.1 修的就是 CLI 符号链接导致 `MODULE_NOT_FOUND` 的问题。
 - `src/client/host-dock.ts` 及其 CSS：唯一修改宿主 AppFrame 布局的地方，向 frame 写入 5 个自定义属性并临时替换 `grid-template-columns`，把原 details 列平移出视野而非关闭它。
 
 模型可见的工具按场景授权（`topic-runtime.ts:125-137`）：`read_source_session`、`ask_user_question`、`blackboard_apply`、`learning_cards` 恒可用；`read`/`glob`/`grep` 在 `allowSourceFiles` 下可用；`read` 场景额外有 `read_document`、`search_document`。`blackboard_view`（截图返回视觉模型）只在原生路径注册。
@@ -107,9 +107,9 @@ CiteCiter 是一个已经发布到 0.8.2、功能面远超其文档描述的成�
 | 工作树污染 | 无，构建前后 `git status` 相同 |
 | 宿主 DOM 契约（rc.3） | 5 个关键标记与 AppFrame grid 形状仍匹配 |
 | 原生 composer API（rc.3） | 全部仍可解析 |
-| 已安装插件版本 | web 与 desktop profile 均为 0.8.2，与 npm latest 相同 |
+| 已安装插件版本 | Web profile 为 0.8.2，与 npm latest 相同 |
 
-未做（需要真实模型和 UI，属功能验收）：任何一次真实对话、轮盘手感、布局组合、Desktop 三模式、重启恢复。本报告不声称这些通过。
+未做（需要真实模型和 UI，属功能验收）：任何一次真实对话、轮盘手感、布局组合、重启恢复。本报告不声称这些通过。
 
 ## 七、风险清单
 
@@ -123,7 +123,7 @@ CiteCiter 是一个已经发布到 0.8.2、功能面远超其文档描述的成�
 
 **高：文档与已交付功能脱节。** `product-strategy.zh.md` 的「明确不做」仍写着不做学习卡片；其 Verify/Trace/Evidence Map 路线全部未建且被新主张推迟。`docs/design/learning-workspace.zh.md` 整个文件被 `.gitignore:6` 忽略，不在版本控制内——一份关键设计文档随时可能丢失。
 
-**中高：0.7 功能没有独立发布记录，UI 验收从未关闭。** 轮盘真实按住/拖动/松开手感、原生预览查看方式与选文、设置页交互、完整玻璃视觉、明暗主题、缩放/DPI、窄窗口与最大比例、原生详情全屏及其余 Desktop 模式，都在 `docs/validation/2026-09-11-wheel.md:36` 明确列为未完成。
+**中高：0.7 功能没有独立发布记录，UI 验收从未关闭。** 轮盘真实按住/拖动/松开手感、原生预览查看方式与选文、设置页交互、完整玻璃视觉、明暗主题、缩放/DPI、窄窗口与最大比例、原生详情全屏，都在 `docs/validation/2026-09-11-wheel.md:36` 明确列为未完成。
 
 **中：中英文 README 不对齐，违反 `AGENTS.md` 自己的规定。** 「权限、输入与队列」一节中文版多一段审批卡说明（`README.md:75`），英文版没有，导致 140 行对 138 行；`CONTRIBUTING.md` 表格 17 行对 `CONTRIBUTING.zh.md` 16 行。
 
@@ -157,7 +157,7 @@ CiteCiter 是一个已经发布到 0.8.2、功能面远超其文档描述的成�
 
 ## 九、必须遵守的流程约束
 
-摘自 `AGENTS.md` 与 `CONTRIBUTING.md`，接手后不可自行放宽：CiteCiter 是外部插件，DSH 架构文档只是设计参考且必须对照实际安装的产物核版本，不得声称本仓库跑过 DSH monorepo 专有门禁。行为放在插件和公开服务/事件里，**不得修改宿主 Agent Loop**。`.dsh/sessions/<工作区>/<来源Session>/citeciter/` 归 Citer 所有，来源日志与迁移备份必须保留，Citer 成员不得出现在宿主列表。不得把 Topic 工作追加到来源 Session，不得用隐藏 seed 泄漏已移除的草稿引用。模型可见输入必须能从 Topic 日志重建。新 Topic 默认只读，写权限必须来自用户显式选择或改过的默认值。创建 Topic 或选择动作只准备草稿，模型请求必须手动提交。迁移必须比对完整原始日志、保留原副本、永不扩大权限。注册即 effect，用 `ctx.effect()`/`ctx.on()` 并在 owner 释放时回收监听器、观察者、控制器和私有运行时。在读取处校验外部 JSON 与持久化数据，同进程类型化调用不重复解码。静态检查不等于功能验收，验收要用真实模型、真实来源分支和主安装 DSH 的实际 UI，并分别覆盖宽/窄布局、最大比例、原生详情、关闭重开与各 Desktop 模式。保留主 DSH home 与既有会话，同一 home 不得同时运行两个写入进程。`lib/` 是发布的一部分，改源码后必须重建；构建候选包不等于发布。非平凡改动要写 `.agents/notes/` 笔记，归档笔记冻结。中英文 README 保持对齐，一段一行，文件末尾一个换行。绝不提交凭据、`.env`、`.npmrc`、临时 home、会话、截图或 tarball。
+摘自 `AGENTS.md` 与 `CONTRIBUTING.md`，接手后不可自行放宽：CiteCiter 是外部插件，DSH 架构文档只是设计参考且必须对照实际安装的产物核版本，不得声称本仓库跑过 DSH monorepo 专有门禁。行为放在插件和公开服务/事件里，**不得修改宿主 Agent Loop**。`.dsh/sessions/<工作区>/<来源Session>/citeciter/` 归 Citer 所有，来源日志与迁移备份必须保留，Citer 成员不得出现在宿主列表。不得把 Topic 工作追加到来源 Session，不得用隐藏 seed 泄漏已移除的草稿引用。模型可见输入必须能从 Topic 日志重建。新 Topic 默认只读，写权限必须来自用户显式选择或改过的默认值。创建 Topic 或选择动作只准备草稿，模型请求必须手动提交。迁移必须比对完整原始日志、保留原副本、永不扩大权限。注册即 effect，用 `ctx.effect()`/`ctx.on()` 并在 owner 释放时回收监听器、观察者、控制器和私有运行时。在读取处校验外部 JSON 与持久化数据，同进程类型化调用不重复解码。静态检查不等于功能验收，验收要用真实模型、真实来源分支和主安装 DSH 的实际 UI，并分别覆盖宽/窄布局、最大比例、原生详情、关闭重开。保留主 DSH home 与既有会话，同一 home 不得同时运行两个写入进程。`lib/` 是发布的一部分，改源码后必须重建；构建候选包不等于发布。非平凡改动要写 `.agents/notes/` 笔记，归档笔记冻结。中英文 README 保持对齐，一段一行，文件末尾一个换行。绝不提交凭据、`.env`、`.npmrc`、临时 home、会话、截图或 tarball。
 
 ## 十、建议的接手第一步
 
@@ -171,7 +171,7 @@ CiteCiter 是一个已经发布到 0.8.2、功能面远超其文档描述的成�
 
 ## 十一、证据来源
 
-实测命令：`pnpm typecheck`、`pnpm build` 与构建前后的 `git status`/`git diff --check`；对已安装 `dsh` 包的版本与字符串检索；对 `~/.dsh/sessions/**/citeciter/**`、`~/.dsh/settings.yaml`、`~/.dsh/profiles/{web,desktop}/package.json`、`~/.dsh/compat/**` 的读取；对 `127.0.0.1:29182` 的可达性探测；`git log`/`ls-files`/`check-ignore`/历史删除文件枚举。
+实测命令：`pnpm typecheck`、`pnpm build` 与构建前后的 `git status`/`git diff --check`；对已安装 `dsh` 包的版本与字符串检索；对 `~/.dsh/sessions/**/citeciter/**`、`~/.dsh/settings.yaml`、`~/.dsh/profiles/web/package.json`、`~/.dsh/compat/**` 的读取；对 `127.0.0.1:29182` 的可达性探测；`git log`/`ls-files`/`check-ignore`/历史删除文件枚举。
 
 代码阅读：`packages/citeciter/src/**` 全部 Host 与 Client 源文件，重点为 `topic-runtime.ts`、`topic.ts`、`topic-index.ts`、`observer.ts`、`source-read-tool.ts`、`source-storage.ts`、`host-session-adapter.ts`、`citer-session-*.ts`、`host-agent-modules.ts`、`client/index.ts`、`client/companion-controller.ts`、`client/host-dock.ts`、`client/components/CitePanel.tsx`、`scripts/tsdown.client.ts`。
 

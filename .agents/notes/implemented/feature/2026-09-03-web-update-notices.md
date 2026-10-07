@@ -28,4 +28,4 @@ An available version renders as a non-modal `shell.overlay` card with exactly th
 
 Users receive a low-interruption Web notice and a copyable exact package version without granting the plugin package-management authority. The default command names the standard `web` Profile; users of a custom Web Profile replace that name before running it. The notice compares package versions rather than asserting DSH compatibility, so users check the newer release's host requirement before installing. A successful manual install takes effect only after DSH Web restarts.
 
-The release that first contains this checker cannot notify installations that still run an older build without it. Those users require one manual upgrade; later stable npm releases can be discovered by the included checker. Desktop installation and supervision remain outside this decision.
+The release that first contains this checker cannot notify installations that still run an older build without it. Those users require one manual upgrade; later stable npm releases can be discovered by the included checker.

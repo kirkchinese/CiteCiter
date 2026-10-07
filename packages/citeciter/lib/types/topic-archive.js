@@ -1,7 +1,7 @@
 /** Return the admission time of a user inbox insertion; claims and canceled items do not qualify. */
 export function topicSubmissionTime(event) {
     return event.type === 'agent/inbox/spliced'
-        && event.data.inserted.some(message => message.source.kind === 'user')
+        && event.data.inserted.some(message => message.source.kind === 'user' || message.source.kind === 'user-question-reply')
         ? event.time
         : null;
 }

@@ -1,18 +1,13 @@
 /** Call only public preference services. The selected service owns binding teardown. */
 export function hostSettings(ctx) {
-    const modern = ctx.get('configForms');
-    if (modern !== undefined)
-        return modern;
-    const legacy = ctx.get('settingsScope');
-    if (legacy === undefined)
+    const forms = ctx.get('configForms');
+    if (forms === undefined)
         throw new Error('当前 DSH 未提供 Citer 所需的设置接口');
-    return { get: (namespace) => legacy.bind({ namespace }), describe: () => legacy.describe() };
+    return forms;
 }
-/** Normalize the renamed UI status source without creating another approval authority. */
+/** Project native UI status without creating another approval authority. */
 export function hostInteractions(ctx) {
     const service = ctx.uiSession;
-    if (service.pendingInteractions !== undefined)
-        return service.pendingInteractions;
     const source = service.sessionStatus;
     if (source === undefined)
         throw new Error('当前 DSH 未提供 Citer 所需的审批展示接口');

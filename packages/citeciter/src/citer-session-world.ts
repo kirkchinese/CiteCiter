@@ -52,7 +52,7 @@ export class CiterSessionWorld {
           await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
           // Title writes require membership in the service's own SessionStore.
           // Resolve the class from this host so shared projection definitions
-          // have exactly its schema versions, including the older Desktop SDK.
+          // have exactly the installed official host's schema versions.
           await ctx.plugin(modules.SessionTitleService, {
             fallbackMaxWords: 5,
             fallbackMaxBytes: 40,

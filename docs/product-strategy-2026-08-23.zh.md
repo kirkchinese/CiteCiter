@@ -39,7 +39,7 @@ CiteCiter 不再以“更完整的学习侧聊”为产品终局。它应成为 
 | 3 | 阅读陌生代码或新技术的学习者 | 解释需求高频，但普通聊天缺少精确来源，长追问又污染主任务 | Explain 绑定原文并保留独立 Topic；必要时升级到 Verify/Trace |
 | 4 | PR、Issue 与团队协作者 | 需要分享“为什么相信或不相信这条结论”，而不是分享整段私密 Session | 预览并导出经过脱敏的调查证据包 |
 
-当前不把“所有 DSH 用户”作为目标。交互式 Web/Desktop、长任务、代码审阅和排障用户最可能形成复用；纯 TUI、headless 和自动化用户只有在稳定调查 API 出现后才自然进入覆盖范围。
+当前不把“所有 DSH 用户”作为目标。交互式 Web、长任务、代码审阅和排障用户最可能形成复用；纯 TUI、headless 和自动化用户只有在稳定调查 API 出现后才自然进入覆盖范围。
 
 ## 竞争差异与可占据位置
 
@@ -125,7 +125,7 @@ CiteCiter 不再以“更完整的学习侧聊”为产品终局。它应成为 
 
 复用已有 `conversation.chat.assistant-actions` 作为整条消息入口，并与上游协作获得任意 Tool 行的公共 action contribution，然后加入 tool-result / terminal-output；稳定后再加入 diff-hunk / file-range。到第二种来源适配器真正交付时，再提炼内部 `SourceRef` discriminated union 和 adapter registry，并一次性迁移所有引用，不为尚未实现的图片、审批或 Goal 预留空字段。
 
-退出条件：每种来源都能由 Host 重新解析和复验，刷新与 Session 恢复后保持同一身份；来源内容变化时显示 stale 或 unavailable 而不是错误绑定；每个适配器至少有 20 个真实样本和一条 assembled Web/Desktop 浏览器回归；实现不读取其他插件的私有 store，也不新增 renderer DOM 选择器。
+退出条件：每种来源都能由 Host 重新解析和复验，刷新与 Session 恢复后保持同一身份；来源内容变化时显示 stale 或 unavailable 而不是错误绑定；每个适配器至少有 20 个真实样本和一条 assembled Web 浏览器回归；实现不读取其他插件的私有 store，也不新增 renderer DOM 选择器。
 
 ### 阶段 4：生态调查服务
 

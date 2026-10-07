@@ -2,16 +2,25 @@ import { useState } from 'react'
 import type { SessionPendingInteraction } from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-approval/client'
 import type {} from '@deepseek-ai/dsh-client-ui-user-questions/client'
+import type { PendingQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 import type { TopicMessage } from '../../topic.ts'
+import { useNativeQuestionInteraction } from '../question-interaction.ts'
 import { QuestionCard } from './QuestionCard.tsx'
 import css from './NativeInteraction.module.css'
+
+/** Bind native question state without giving React access to a Cordis service. */
+function NativeQuestion({ pending }: { readonly pending: PendingQuestion }) {
+  const { interaction, surface } = useNativeQuestionInteraction(pending)
+  return <div className={css.questions}><QuestionCard pending={pending} interaction={interaction} surface={surface}
+    onAnswer={answer => pending.answer(answer)} onCancel={() => pending.dismiss()} /></div>
+}
 
 /** Present the Host's one-shot pending request. Decisions go to its existing waterfall; no second permission authority is created. Remount on pending.key. */
 export function NativeInteraction({ pending, messages }: { readonly pending: SessionPendingInteraction, readonly messages: readonly TopicMessage[] }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   if (pending.kind === 'question' || pending.kind === 'plan-review') {
-    return <div className={css.questions}><QuestionCard pending={pending} onAnswer={answer => pending.answer(answer)} onCancel={() => pending.cancel()} /></div>
+    return <NativeQuestion pending={pending} />
   }
   if (pending.kind !== 'approval') return <p role="status">当前工具正在等待宿主交互。可停止后重试。</p>
   const call = messages.find(message => message.role === 'tool' && message.id === pending.callId)

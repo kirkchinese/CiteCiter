@@ -3,12 +3,17 @@ import type { ComposerAttachment, DraftAttachmentId, DraftFileUploads } from '@d
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store';
 import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client';
 import { type CiterSessionSnapshot } from './citer-session-face.ts';
+import type { PendingQuestion } from '../topic.ts';
+import { TopicQuestionController } from './topic-question-controller.ts';
 export type DeliveryMode = 'queue' | 'steer';
 /** A lost transport response is not proof that the host rejected a submission. */
 export declare class UncertainSubmissionError extends Error {
 }
 export interface NativeComposer {
     readonly uploads: ObservableSnapshot<DraftFileUploads>;
+    /** Controllers stay alive across hidden/unmounted cards, like native DSH question carriers. */
+    question(sessionId: string, pending: PendingQuestion): TopicQuestionController;
+    syncQuestions(sessionId: string, questions: readonly PendingQuestion[]): void;
     retry(sessionId: string, id: DraftAttachmentId): void;
     watch(sessionId: string, listener: (snapshot: CiterSessionSnapshot) => void): () => void;
     queue(sessionId: string, id: Parameters<SessionFace['updateQueue']>[0], action: Parameters<SessionFace['updateQueue']>[1]): Promise<void>;

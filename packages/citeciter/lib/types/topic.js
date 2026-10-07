@@ -334,6 +334,7 @@ export const questionItemSchema = z.object({
     id: z.string().min(1),
     question: z.string().min(1),
     header: z.string().optional(),
+    detail: z.string().optional(),
     options: z.array(questionOptionSchema).optional(),
     multiSelect: z.boolean().optional(),
 }).strict();
@@ -347,6 +348,9 @@ export const questionAnswerSchema = z.object({
 export const pendingQuestionSchema = z.object({
     key: z.string().min(1),
     questions: z.array(questionItemSchema).min(1),
+    state: z.enum(['open', 'continued']).optional(),
+    callId: z.string().min(1).optional(),
+    timed: z.boolean().optional(),
 }).strict();
 export const topicSnapshotSchema = z.object({
     captureId: z.string().optional(),
@@ -354,6 +358,7 @@ export const topicSnapshotSchema = z.object({
     topic: topicSummarySchema,
     messages: z.array(topicMessageSchema),
     pendingQuestion: pendingQuestionSchema.nullable(),
+    pendingQuestions: z.array(pendingQuestionSchema).optional(),
     error: z.string().nullable(),
     board: boardSnapshotSchema.optional(),
 }).strict();
@@ -488,6 +493,11 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
         }).strict(),
         z.object({
             action: z.literal('cancel-question'),
+            topicSessionId: topicSessionIdSchema,
+            key: z.string().min(1),
+        }).strict(),
+        z.object({
+            action: z.literal('timeout-question'),
             topicSessionId: topicSessionIdSchema,
             key: z.string().min(1),
         }).strict(),

@@ -489,6 +489,7 @@ export declare const questionItemSchema: z.ZodObject<{
     id: z.ZodString;
     question: z.ZodString;
     header: z.ZodOptional<z.ZodString>;
+    detail: z.ZodOptional<z.ZodString>;
     options: z.ZodOptional<z.ZodArray<z.ZodObject<{
         label: z.ZodString;
         description: z.ZodOptional<z.ZodString>;
@@ -509,12 +510,19 @@ export declare const pendingQuestionSchema: z.ZodObject<{
         id: z.ZodString;
         question: z.ZodString;
         header: z.ZodOptional<z.ZodString>;
+        detail: z.ZodOptional<z.ZodString>;
         options: z.ZodOptional<z.ZodArray<z.ZodObject<{
             label: z.ZodString;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>>;
         multiSelect: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strict>>;
+    state: z.ZodOptional<z.ZodEnum<{
+        open: "open";
+        continued: "continued";
+    }>>;
+    callId: z.ZodOptional<z.ZodString>;
+    timed: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strict>;
 export type PendingQuestion = z.infer<typeof pendingQuestionSchema>;
 export declare const topicSnapshotSchema: z.ZodObject<{
@@ -659,13 +667,40 @@ export declare const topicSnapshotSchema: z.ZodObject<{
             id: z.ZodString;
             question: z.ZodString;
             header: z.ZodOptional<z.ZodString>;
+            detail: z.ZodOptional<z.ZodString>;
             options: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 label: z.ZodString;
                 description: z.ZodOptional<z.ZodString>;
             }, z.core.$strict>>>;
             multiSelect: z.ZodOptional<z.ZodBoolean>;
         }, z.core.$strict>>;
+        state: z.ZodOptional<z.ZodEnum<{
+            open: "open";
+            continued: "continued";
+        }>>;
+        callId: z.ZodOptional<z.ZodString>;
+        timed: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strict>>;
+    pendingQuestions: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        questions: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            question: z.ZodString;
+            header: z.ZodOptional<z.ZodString>;
+            detail: z.ZodOptional<z.ZodString>;
+            options: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                label: z.ZodString;
+                description: z.ZodOptional<z.ZodString>;
+            }, z.core.$strict>>>;
+            multiSelect: z.ZodOptional<z.ZodBoolean>;
+        }, z.core.$strict>>;
+        state: z.ZodOptional<z.ZodEnum<{
+            open: "open";
+            continued: "continued";
+        }>>;
+        callId: z.ZodOptional<z.ZodString>;
+        timed: z.ZodOptional<z.ZodBoolean>;
+    }, z.core.$strict>>>;
     error: z.ZodNullable<z.ZodString>;
     board: z.ZodOptional<z.ZodObject<{
         version: z.ZodLiteral<4>;
@@ -1028,6 +1063,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     }, z.core.$strict>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"cancel-question">;
+    topicSessionId: z.ZodString;
+    key: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"timeout-question">;
     topicSessionId: z.ZodString;
     key: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{
@@ -1464,13 +1503,40 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 id: z.ZodString;
                 question: z.ZodString;
                 header: z.ZodOptional<z.ZodString>;
+                detail: z.ZodOptional<z.ZodString>;
                 options: z.ZodOptional<z.ZodArray<z.ZodObject<{
                     label: z.ZodString;
                     description: z.ZodOptional<z.ZodString>;
                 }, z.core.$strict>>>;
                 multiSelect: z.ZodOptional<z.ZodBoolean>;
             }, z.core.$strict>>;
+            state: z.ZodOptional<z.ZodEnum<{
+                open: "open";
+                continued: "continued";
+            }>>;
+            callId: z.ZodOptional<z.ZodString>;
+            timed: z.ZodOptional<z.ZodBoolean>;
         }, z.core.$strict>>;
+        pendingQuestions: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            key: z.ZodString;
+            questions: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                question: z.ZodString;
+                header: z.ZodOptional<z.ZodString>;
+                detail: z.ZodOptional<z.ZodString>;
+                options: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    label: z.ZodString;
+                    description: z.ZodOptional<z.ZodString>;
+                }, z.core.$strict>>>;
+                multiSelect: z.ZodOptional<z.ZodBoolean>;
+            }, z.core.$strict>>;
+            state: z.ZodOptional<z.ZodEnum<{
+                open: "open";
+                continued: "continued";
+            }>>;
+            callId: z.ZodOptional<z.ZodString>;
+            timed: z.ZodOptional<z.ZodBoolean>;
+        }, z.core.$strict>>>;
         error: z.ZodNullable<z.ZodString>;
         board: z.ZodOptional<z.ZodObject<{
             version: z.ZodLiteral<4>;

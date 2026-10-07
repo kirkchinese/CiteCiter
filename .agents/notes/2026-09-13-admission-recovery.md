@@ -1,6 +1,6 @@
 # 已接纳发送与状态读取分离
 
-本轮沿用 DSH 0.1.5-rc.1、Desktop 2.0.9 和真实来源分支，未增加模型替身、独立 DSH home 或宿主循环补丁。补充验收针对 Topic 草稿切换、附件拒收、发送后断线及视觉教学组合。
+本轮沿用 DSH 0.1.5-rc.1 和真实来源分支，未增加模型替身、独立 DSH home 或宿主循环补丁。补充验收针对 Topic 草稿切换、附件拒收、发送后断线及视觉教学组合。
 
 代码检查发现 CompanionController 在同一 try/catch 内先调用 nativeComposer.send，再读取 Topic 状态。后者失败时返回 false，使已经被宿主接纳的消息仍留在输入框，并把读取错误保存为粘滞的操作错误。主要 Web 的 source-world-27 已通过真实 DeepSeek 请求复现：仅在 session/prompt 回执 ok 后中断一次 citeciter get，模型完成回答，但原稿和错误仍在。
 
@@ -8,7 +8,7 @@
 
 损坏 PNG 的真实宿主回执为 session/attachment-invalid / INVALID_IMAGE。NativeComposer 现在读取 SessionFace.promptError，给出移除或更换附件的说明；其他错误优先保留宿主消息。两次旧包拒收与新包拒收均保留草稿。正常图片的文件选择和剪贴板粘贴已在 Web 观察到独立附件，真实视觉模型组合验收另行记录在验证文档。
 
-原生文件对话框截图可读，但 Computer Use 返回非目标窗口和索引不可用，属于工具控制限制。已停止 Desktop 后切换主要 Web，未并发使用同一 home。文件拖放需要另行实际确认，不能用文件选择器成功替代拖放结论。
+文件拖放需要实际确认，不能用文件选择器成功替代拖放结论。
 
 真实图片教学进一步复现窄屏截图空白：同一 Topic 的三个板书 revision 返回完全相同的 485×588 PNG。DOM 检查确认实际画布存在三个元素，但继承 visibility:hidden，仍有非零宽高；旧选择器只检查宽度，因而误选被独立页面覆盖的主区画布。新 board-capture-target 模块仅负责同身份、同版本与可见性判断，排除隐藏/透明祖先及视口外节点，交给既有 BoardView 离屏渲染。未修改窄屏导航规则或宿主样式。
 
@@ -20,4 +20,4 @@ source-world-29 的真实 blackboard_view 在窄屏返回 1000×680 的有内容
 
 附件错误文案只将 INVALID_IMAGE / IMAGE_TYPE_MISMATCH 解释为损坏或格式错误；模型不支持图片、大小或数量超限等错误保留宿主具体消息，不误报为图片损坏。
 
-最终包 source-world-31 已在主要 Web 通过混合图文真实请求、窄屏真实截图、损坏附件拒收及移除后恢复发送，已同步安装 Desktop。两个 profile 的客户端哈希与构建相同，来源日志哈希未变。Desktop 本轮原生窗口检查被工具 foreground window did not report a process id 阻断，重选和激活一次后仍失败，未改用私有 Electron 接口规避限制。继续等待人工拖放结果，不能声称最终 Desktop UI 全部通过。
+最终包 source-world-31 已在主要 Web 通过混合图文真实请求、窄屏真实截图、损坏附件拒收及移除后恢复发送。Web 客户端哈希与构建相同，来源日志哈希未变；没有据此扩展其他宿主的验收结论。

@@ -71,9 +71,9 @@ export class CiteCiterHost extends TypertRemoteService {
   private readonly service: CiteCiterService
   private releaseService: (() => void) | undefined
 
-  constructor(ctx: Context, config?: SettingsReader) {
+  constructor(ctx: Context, config: SettingsReader) {
     super(ctx, 'citeciter')
-    this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, CITECITER_SETTINGS_SCHEMA, config))
+    this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, config))
     this.service = {
       create: async (request, signal) => this.topicSnapshot(request, signal),
       ask: async (request, signal) => this.topicSnapshot(request, signal),
@@ -137,10 +137,10 @@ export class CiteCiterHost extends TypertRemoteService {
   @Remote('checkUpdate')
   async checkUpdate(signal: AbortSignal): Promise<UpdateCheckResponse> {
     const result = await this.updates.check(signal)
-    // Desktop 2.x exports this immutable Host service; it never crosses into browser props.
-    const desktop = this.ctx.get('desktopProfiles') as { readonly current: { readonly name: string } } | undefined
-    return result.kind === 'success' && desktop !== undefined
-      ? { ...result, profile: desktop.current.name }
+    // Official Web and Desktop launchers expose the active profile through app-boot.
+    const profile = this.ctx.get('profileContext') as { readonly name: string } | undefined
+    return result.kind === 'success' && profile !== undefined
+      ? { ...result, profile: profile.name }
       : result
   }
 }

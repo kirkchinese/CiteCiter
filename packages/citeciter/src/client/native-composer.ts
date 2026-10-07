@@ -1,17 +1,24 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
+import type {} from '@deepseek-ai/dsh-user-questions/remote'
 import type { ComposerAttachment, ConversationController, DraftAttachmentId, DraftFileUploads } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import { CiterSessionFace, type CiterSessionSnapshot } from './citer-session-face.ts'
 import { requireSelectedModel } from '../model-admission.ts'
+import type { CiteCiterRequest, PendingQuestion } from '../topic.ts'
+import { TopicQuestionController } from './topic-question-controller.ts'
 
 export type DeliveryMode = 'queue' | 'steer'
 /** A lost transport response is not proof that the host rejected a submission. */
 export class UncertainSubmissionError extends Error {}
 export interface NativeComposer {
   readonly uploads: ObservableSnapshot<DraftFileUploads>
+  /** Controllers stay alive across hidden/unmounted cards, like native DSH question carriers. */
+  question(sessionId: string, pending: PendingQuestion): TopicQuestionController
+  syncQuestions(sessionId: string, questions: readonly PendingQuestion[]): void
   retry(sessionId: string, id: DraftAttachmentId): void
   watch(sessionId: string, listener: (snapshot: CiterSessionSnapshot) => void): () => void
   queue(sessionId: string, id: Parameters<SessionFace['updateQueue']>[0], action: Parameters<SessionFace['updateQueue']>[1]): Promise<void>
@@ -27,8 +34,9 @@ export function createNativeComposer(ctx: Context): NativeComposer {
   const conversation = ctx.conversation as ConversationController
   const owned = new Set<DraftAttachmentId>()
   const sessions = new Map<string, CiterSessionFace>()
+  const questions = new Map<string, Map<string, TopicQuestionController>>()
   let disposed = false
-  ctx.effect(() => () => { disposed = true; for (const session of sessions.values()) session.dispose(); sessions.clear(); for (const id of owned) conversation.releaseDraftAttachment(id); owned.clear() }, 'citeciter: native attachment drafts')
+  ctx.effect(() => () => { disposed = true; for (const session of sessions.values()) session.dispose(); sessions.clear(); for (const group of questions.values()) for (const question of group.values()) question.dispose(); questions.clear(); for (const id of owned) conversation.releaseDraftAttachment(id); owned.clear() }, 'citeciter: native attachment drafts')
   if (typeof conversation.sendSession !== 'function' || typeof conversation.createDrafts !== 'function') {
     throw new Error('当前 DSH 不提供 Citer 所需的原生附件发送接口')
   }
@@ -43,8 +51,37 @@ export function createNativeComposer(ctx: Context): NativeComposer {
     await session.ready()
     return { session }
   }
+  const questionRequest = async (request: CiteCiterRequest) => {
+    const response = await ctx.remote.citeciter.request(request)
+    if (!response.ok) throw new Error(response.error.message)
+  }
   return {
     uploads: conversation.fileUploads,
+    question: (sessionId, pending) => {
+      let group = questions.get(sessionId)
+      if (group === undefined) { group = new Map(); questions.set(sessionId, group) }
+      let controller = group.get(pending.key)
+      if (controller === undefined) {
+        controller = new TopicQuestionController(pending, {
+          claim: (callId, signal) => ctx.remote.userQuestions.attachWait(sessionId as SessionId, callId as ToolCallId, signal),
+          answer: (key, answer) => questionRequest({ action: 'answer-question', topicSessionId: sessionId, key, answer }),
+          cancel: key => questionRequest({ action: 'cancel-question', topicSessionId: sessionId, key }),
+          timeout: key => questionRequest({ action: 'timeout-question', topicSessionId: sessionId, key }),
+        })
+        group.set(pending.key, controller)
+      }
+      return controller
+    },
+    syncQuestions: (sessionId, pending) => {
+      const group = questions.get(sessionId)
+      if (group === undefined) return
+      for (const [key, controller] of group) {
+        const current = pending.find(question => question.key === key)
+        if (current === undefined) { controller.dispose(); group.delete(key) }
+        else controller.sync(current)
+      }
+      if (group.size === 0) questions.delete(sessionId)
+    },
     retry: (id, attachment) => conversation.retryFileUpload(id as SessionId, attachment),
     watch: (id, listener) => {
       const session = face(id)

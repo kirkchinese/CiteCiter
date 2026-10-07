@@ -1,5 +1,6 @@
 import { CiterSessionFace } from "./citer-session-face.js";
 import { requireSelectedModel } from "../model-admission.js";
+import { TopicQuestionController } from "./topic-question-controller.js";
 /** A lost transport response is not proof that the host rejected a submission. */
 export class UncertainSubmissionError extends Error {
 }
@@ -8,9 +9,12 @@ export function createNativeComposer(ctx) {
     const conversation = ctx.conversation;
     const owned = new Set();
     const sessions = new Map();
+    const questions = new Map();
     let disposed = false;
     ctx.effect(() => () => { disposed = true; for (const session of sessions.values())
-        session.dispose(); sessions.clear(); for (const id of owned)
+        session.dispose(); sessions.clear(); for (const group of questions.values())
+        for (const question of group.values())
+            question.dispose(); questions.clear(); for (const id of owned)
         conversation.releaseDraftAttachment(id); owned.clear(); }, 'citeciter: native attachment drafts');
     if (typeof conversation.sendSession !== 'function' || typeof conversation.createDrafts !== 'function') {
         throw new Error('当前 DSH 不提供 Citer 所需的原生附件发送接口');
@@ -30,8 +34,47 @@ export function createNativeComposer(ctx) {
         await session.ready();
         return { session };
     };
+    const questionRequest = async (request) => {
+        const response = await ctx.remote.citeciter.request(request);
+        if (!response.ok)
+            throw new Error(response.error.message);
+    };
     return {
         uploads: conversation.fileUploads,
+        question: (sessionId, pending) => {
+            let group = questions.get(sessionId);
+            if (group === undefined) {
+                group = new Map();
+                questions.set(sessionId, group);
+            }
+            let controller = group.get(pending.key);
+            if (controller === undefined) {
+                controller = new TopicQuestionController(pending, {
+                    claim: (callId, signal) => ctx.remote.userQuestions.attachWait(sessionId, callId, signal),
+                    answer: (key, answer) => questionRequest({ action: 'answer-question', topicSessionId: sessionId, key, answer }),
+                    cancel: key => questionRequest({ action: 'cancel-question', topicSessionId: sessionId, key }),
+                    timeout: key => questionRequest({ action: 'timeout-question', topicSessionId: sessionId, key }),
+                });
+                group.set(pending.key, controller);
+            }
+            return controller;
+        },
+        syncQuestions: (sessionId, pending) => {
+            const group = questions.get(sessionId);
+            if (group === undefined)
+                return;
+            for (const [key, controller] of group) {
+                const current = pending.find(question => question.key === key);
+                if (current === undefined) {
+                    controller.dispose();
+                    group.delete(key);
+                }
+                else
+                    controller.sync(current);
+            }
+            if (group.size === 0)
+                questions.delete(sessionId);
+        },
         retry: (id, attachment) => conversation.retryFileUpload(id, attachment),
         watch: (id, listener) => {
             const session = face(id);

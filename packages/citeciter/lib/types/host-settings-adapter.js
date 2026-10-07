@@ -1,27 +1,15 @@
-import { CITECITER_SETTINGS_NAMESPACE, DEFAULT_CITECITER_SETTINGS, citeCiterSettingsSchema } from "./topic.js";
-/** Choose the schema mode without importing a Cordis export absent in Desktop's SDK. */
+import { DEFAULT_CITECITER_SETTINGS, citeCiterSettingsSchema } from "./topic.js";
+/** Keep settings live through the official Cordis configuration contract. */
 export function settingsConfig(schema) {
-    const modern = schema;
-    return modern.volatile?.() ?? schema;
+    return schema.volatile();
 }
-/** Bind settings through the public contract of the installed host; registrations belong to ctx. */
-export function bindHostSettings(ctx, schema, config) {
-    let read = () => undefined;
+/** Bind settings to their owning plugin; registrations are released with ctx. */
+export function bindHostSettings(ctx, config) {
     ctx.inject(['settings'], settingsCtx => {
-        const service = settingsCtx.settings;
-        if ('configure' in service) {
-            if (typeof config?.get !== 'function')
-                throw new Error('DSH 未提供 Citer 配置读取器');
-            settingsCtx.effect(() => service.configure({ auto: false }, ctx.fiber));
-            read = () => config.get();
-        }
-        else {
-            service.register(CITECITER_SETTINGS_NAMESPACE, schema);
-            read = () => service.get(CITECITER_SETTINGS_NAMESPACE);
-        }
+        settingsCtx.effect(() => settingsCtx.settings.configure({ auto: false }, ctx.fiber));
     });
     return () => {
-        const parsed = citeCiterSettingsSchema.safeParse(read());
+        const parsed = citeCiterSettingsSchema.safeParse(config.get());
         return parsed.success ? parsed.data : DEFAULT_CITECITER_SETTINGS;
     };
 }

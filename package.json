@@ -1,10 +1,199 @@
 {
-  "name": "citeciter-workspace",
   "private": true,
   "packageManager": "pnpm@11.21.0",
   "scripts": {
-    "build": "pnpm --filter @kirkchinese/dsh-citeciter build",
-    "typecheck": "pnpm --filter @kirkchinese/dsh-citeciter typecheck",
-    "typecheck:desktop": "node packages/citeciter/scripts/check-desktop.mjs"
-  }
+    "build": "pnpm check:git-entry && pnpm --dir packages/citeciter build",
+    "typecheck": "pnpm --dir packages/citeciter typecheck",
+    "typecheck:desktop": "node packages/citeciter/scripts/check-desktop.mjs",
+    "sync:git-entry": "node packages/citeciter/scripts/sync-git-entry.mjs",
+    "check:git-entry": "node packages/citeciter/scripts/sync-git-entry.mjs --check"
+  },
+  "publishConfig": {
+    "directory": "packages/citeciter"
+  },
+  "exports": {
+    ".": {
+      "types": "./packages/citeciter/lib/types/index.d.ts",
+      "default": "./packages/citeciter/lib/index.js"
+    },
+    "./client": {
+      "types": "./packages/citeciter/lib/types/client/index.d.ts",
+      "default": "./packages/citeciter/lib/client.js"
+    },
+    "./typert": {
+      "types": "./packages/citeciter/lib/types/typert.host.d.ts",
+      "default": "./packages/citeciter/lib/typert.host.js"
+    },
+    "./remote": {
+      "types": "./packages/citeciter/lib/types/typert.remote-client.d.ts",
+      "default": "./packages/citeciter/lib/typert.remote-client.js"
+    },
+    "./cordis.patch.yml": "./packages/citeciter/cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./packages/citeciter/cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-api-settings-controller",
+        "@deepseek-ai/dsh-api-remotes"
+      ],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "packages/citeciter/package.json",
+    "packages/citeciter/lib/*.js",
+    "packages/citeciter/lib/types/**/*.d.ts",
+    "packages/citeciter/cordis.patch.yml",
+    "packages/citeciter/README.zh.md"
+  ],
+  "name": "@kirkchinese/dsh-citeciter",
+  "version": "0.9.0-alpha.4",
+  "description": "Source-aware native DSH Topics with manual drafts, permissions, visual boards and learning cards",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "citation",
+    "source-bound",
+    "verification",
+    "evidence",
+    "investigation",
+    "context-management",
+    "read-only",
+    "explanation",
+    "observer",
+    "topic"
+  ],
+  "homepage": "https://github.com/kirkchinese/CiteCiter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kirkchinese/CiteCiter.git",
+    "directory": "packages/citeciter"
+  },
+  "bugs": {
+    "url": "https://github.com/kirkchinese/CiteCiter/issues"
+  },
+  "license": "MIT",
+  "author": "kirkchinese",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "html-to-image": "1.11.13",
+    "katex": "^0.18.4",
+    "semver": "7.8.5"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.5-alpha.1",
+    "@deepseek-ai/dsh-agent": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-agent-loop": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-agent-preset-registry": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-api-gateway": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-api-session-controller": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-api-settings-controller": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-attachment": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-connection": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-store": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-approval": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-chat": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-session": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-user-questions": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-commands": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-fs": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-home-paths": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-llm": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-output-retention": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-sandbox-policy": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-projection": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-query": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-title": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-title-llm": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-settings": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-spill": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-subprocess": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tool-ask-user": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tool-fs": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tool-fs-search": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tools": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-typert-registry": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-user-questions": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-util-workspace-path": "0.2.1-alpha.1",
+    "@deepseek-ai/schemastery": "3.18.5-alpha.1",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^24.10.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "~18.3.1",
+    "@types/semver": "7.8.0",
+    "lightningcss": "^1.32.0",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-gfm": "^3.1.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "micromark-util-decode-string": "^2.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.6-alpha.1",
+    "@deepseek-ai/cordis-plugin-include": "1.0.10-alpha.1",
+    "@deepseek-ai/cordis-plugin-group": "1.0.5-alpha.1",
+    "@deepseek-ai/dsh-util-values": "0.2.1-alpha.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.4 || 4.0.5-alpha.1",
+    "@deepseek-ai/dsh-agent": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-agent-loop": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-attachment": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-fs": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-home-paths": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-output-retention": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-sandbox-policy": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-projection": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-query": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-title": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session-title-llm": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-settings": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-spill": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tool-ask-user": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tool-fs": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tool-fs-search": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/dsh-user-questions": "0.2.0-rc.2 || 0.2.1-alpha.1",
+    "@deepseek-ai/schemastery": "3.18.4 || 3.18.5-alpha.1",
+    "zod": "^4.1.12",
+    "@deepseek-ai/dsh-util-values": "0.2.0-rc.2 || 0.2.1-alpha.1"
+  },
+  "main": "./packages/citeciter/lib/index.js",
+  "types": "./packages/citeciter/lib/types/index.d.ts"
 }

@@ -91,7 +91,7 @@ export async function removeOwnedJsonlArtifact(root, artifact) {
 }
 /**
  * Delete all JSONL generations of an already retired private Topic.
- * DSH 0.1.5 has no public delete/location API. This bounded disk adapter follows
+ * The Host does not own Citer's nested logs. This bounded disk adapter follows
  * its project/Session directory layout and canonical generation filenames.
  * @param root - exclusively owned CiteCiter Session root, never a host Session root.
  * @param sessionId - generated CiteCiter identity; arbitrary path segments are refused.

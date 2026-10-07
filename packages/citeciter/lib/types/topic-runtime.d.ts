@@ -376,6 +376,7 @@ export declare class TopicRuntime {
     private askUser;
     private answerQuestion;
     private cancelQuestion;
+    private timeoutQuestion;
     private stop;
     private rename;
     private archive;

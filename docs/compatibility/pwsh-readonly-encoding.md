@@ -1,12 +1,12 @@
 # Windows 只读 PowerShell 编码问题
 
-状态：已定位，未修复。此项阻止当前候选版获得完整验收批准。
+历史状态：已定位，未在 CiteCiter 中修改宿主执行器。用户于 2026-09-28 接受此项为旧宿主限制；该决定不表示修复，也不代表更新宿主的验收结果。
 
 上游已有同类[Discussion #4924](https://github.com/deepseek-ai/deepseek-harness/discussions/4924)。报告者提供的 FullLanguage guard 避免在受限模式执行编码初始化，并报告了真实 ACL 沙箱验证；这不是已合入或已发布的修复。本机另有 Windows PowerShell 5.1 中文编码问题，不能仅以 stderr 变空判定通过。当前安装的 RC2 仍使用无条件初始化，未安装讨论中的第三方分支。
 
 ## 环境与复现
 
-2026-09-24，Web DSH 0.1.7-rc.1 与 Desktop 2.0.13 / DSH 0.1.5-rc.2 的真实 Topic 均在默认只读模式调用 pwsh。Desktop 请求只计算 `23*17`，stdout 为 391；stderr 同时包含 CannotCreateTypeConstrainedLanguage，部分中文显示为替换字符。Citer 中调用、参数和原始结果可见。
+2026-09-24，Web DSH 0.1.7-rc.1 的真实 Topic 在默认只读模式调用 pwsh 时出现受限语言错误。后续复现如下。
 
 2026-09-27，主 Web DSH 0.1.7-rc.2、Citer 候选包 2a10a0ba878c 与 DeepSeek-V41-Flash 再次复现：真实 pwsh 调用输出 391，但“中文输出 OK”显示为替换字符，stderr 出现两次 `InvalidOperation: Cannot create type. Only core types are supported in this language mode.`。模型保留错误并停止，没有提升权限或重复调用。
 

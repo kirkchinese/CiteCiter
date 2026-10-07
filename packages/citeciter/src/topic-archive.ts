@@ -1,11 +1,12 @@
 /** Archive recovery follows accepted user submissions, not later model/tool activity. */
 import type {} from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-user-questions/types'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 
 /** Return the admission time of a user inbox insertion; claims and canceled items do not qualify. */
 export function topicSubmissionTime(event: SessionEvent): number | null {
   return event.type === 'agent/inbox/spliced'
-    && event.data.inserted.some(message => message.source.kind === 'user')
+    && event.data.inserted.some(message => message.source.kind === 'user' || message.source.kind === 'user-question-reply')
     ? event.time
     : null
 }

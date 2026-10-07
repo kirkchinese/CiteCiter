@@ -101,7 +101,7 @@ let CiteCiterHost = (() => {
         releaseService;
         constructor(ctx, config) {
             super(ctx, 'citeciter');
-            this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, CITECITER_SETTINGS_SCHEMA, config));
+            this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, config));
             this.service = {
                 create: async (request, signal) => this.topicSnapshot(request, signal),
                 ask: async (request, signal) => this.topicSnapshot(request, signal),
@@ -158,10 +158,10 @@ let CiteCiterHost = (() => {
         /** Check npm for an installable stable version without changing this installation. */
         async checkUpdate(signal) {
             const result = await this.updates.check(signal);
-            // Desktop 2.x exports this immutable Host service; it never crosses into browser props.
-            const desktop = this.ctx.get('desktopProfiles');
-            return result.kind === 'success' && desktop !== undefined
-                ? { ...result, profile: desktop.current.name }
+            // Official Web and Desktop launchers expose the active profile through app-boot.
+            const profile = this.ctx.get('profileContext');
+            return result.kind === 'success' && profile !== undefined
+                ? { ...result, profile: profile.name }
                 : result;
         }
     };

@@ -29,7 +29,7 @@ import { BoardCaptureWorker } from "./components/BoardCaptureWorker.js";
 import { createDraftController } from "./draft-controller.js";
 import { hostSettings, hostInteractions } from "./host-ui-adapter.js";
 export const name = '@kirkchinese/dsh-citeciter';
-export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'conversation'];
+export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'remote.userQuestions', 'conversation'];
 /** Register one root-scoped companion without entering DSH's Session list. */
 export async function apply(ctx) {
     const unmountRemote = await ctx.remote.$mount(TYPERT_REMOTE);

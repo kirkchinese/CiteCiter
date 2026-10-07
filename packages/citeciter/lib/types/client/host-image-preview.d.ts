@@ -3,6 +3,6 @@ interface PreviewProps {
     readonly alt: string;
     readonly onClose: () => void;
 }
-/** Preview an existing authorized object URL in the host UI; the caller retains URL ownership. */
+/** Preview an authorized object URL in the official host UI; the caller retains URL ownership. */
 export declare function HostImagePreview({ src, alt, onClose }: PreviewProps): import("react").JSX.Element;
 export {};

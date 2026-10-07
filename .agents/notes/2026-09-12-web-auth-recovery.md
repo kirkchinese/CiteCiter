@@ -4,7 +4,7 @@
 
 ## 决策
 
-首次打开临时 DSH Web 服务时必须使用该进程打印的完整登录链接；认证后再使用不含 token 的地址。不能依据浏览器的 ERR_BLOCKED_BY_CLIENT 或同时出现的会话路由警告直接断言 localhost 被策略禁止或 Codex 连接损坏。当时未使用 Windows 专用原生接口；后续排查与验证见[原生控制入口修正](2026-09-12-native-control-recovery.md)。
+首次打开临时 DSH Web 服务时必须使用该进程打印的完整登录链接；认证后再使用不含 token 的地址。不能依据浏览器的 ERR_BLOCKED_BY_CLIENT 或同时出现的会话路由警告直接断言 localhost 被策略禁止或 Codex 连接损坏。
 
 ## 证据
 
@@ -14,4 +14,4 @@
 
 ## 交付与限制
 
-根目录及包内四份 README、两份贡献指南、beta.3 Release 和验收记录同步修正。此次为文档和验收流程变更，未重新运行此前已通过的类型检查、178 项测试、构建或快照测试；检查文档一致性与 git diff --check。原生 Desktop、轮盘手感及完整视觉验收仍需继续。没有发布 npm、创建 tag 或发布 GitHub Release。
+根目录及包内四份 README、两份贡献指南、beta.3 Release 和验收记录同步修正。此次为文档和验收流程变更，未重新运行此前已通过的类型检查、178 项测试、构建或快照测试；检查文档一致性与 git diff --check。轮盘手感及完整视觉验收仍需继续。没有发布 npm、创建 tag 或发布 GitHub Release。

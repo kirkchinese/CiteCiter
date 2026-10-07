@@ -43,7 +43,7 @@ import { createDraftController } from './draft-controller.ts'
 import { hostSettings, hostInteractions } from './host-ui-adapter.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
-export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'conversation']
+export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'remote.userQuestions', 'conversation']
 
 /** Register one root-scoped companion without entering DSH's Session list. */
 export async function apply(ctx: Context): Promise<void> {

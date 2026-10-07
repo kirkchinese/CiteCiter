@@ -32,12 +32,12 @@ import {
   Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CompanionPhase } from '../companion-controller.ts'
-import type { TopicMessage } from '../../topic.ts'
+import type { PendingQuestion, TopicMessage } from '../../topic.ts'
 import { parseNextQuestions } from '../prompt.ts'
 import { isTopicMessageVisible } from '../topic-presentation.ts'
 import collapseArrowUrl from '../assets/collapse-arrow.svg'
 import mascotUrl from '../assets/citeciter-mascot.png'
-import { QuestionCard } from './QuestionCard.tsx'
+import { TopicQuestions } from './TopicQuestions.tsx'
 import { OverlayPortal } from './OverlayPortal.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
 import { ReasoningDisclosure } from './ReasoningDisclosure.tsx'
@@ -55,6 +55,8 @@ import { TopicSettingsDialog } from './TopicSettingsDialog.tsx'
 import { TopicNavigation } from './TopicNavigation.tsx'
 import { TopicTitle } from './TopicTitle.tsx'
 import learningCss from './LearningWorkspace.module.css'
+
+const EMPTY_QUESTIONS: readonly PendingQuestion[] = []
 
 const PHASE_LABEL: Record<CompanionPhase, string> = {
   idle: '新建或选择 Topic',
@@ -403,7 +405,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
         <img src={collapseArrowUrl} alt="" />
       </button>}
 
-      {!floating && dock === null && <p className={css.layoutNotice} role="status">当前宿主布局暂不支持学习栏。请切换到标准 Web 布局或 Desktop 兼容模式。</p>}
+      {!floating && dock === null && <p className={css.layoutNotice} role="status">当前布局暂不支持学习栏。请使用受支持的官方 DSH 版本，关闭全屏详情后重试。</p>}
 
       <div className={css.dockBody}>
         <section className={css.learningWorkspace}>
@@ -500,9 +502,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
 
               {active?.topic.hosted === true && <NativeQueue sessionId={active.topic.sessionId} native={nativeComposer} />}
               {pendingInteraction !== undefined && <NativeInteraction key={pendingInteraction.key} pending={pendingInteraction} messages={active?.messages ?? []} />}
-              {active?.pendingQuestion !== null && active?.pendingQuestion !== undefined
-                ? <QuestionCard key={active.pendingQuestion.key} pending={active.pendingQuestion} onAnswer={answer => companion.answerQuestion(active.pendingQuestion!.key, answer)} onCancel={() => companion.cancelQuestion(active.pendingQuestion!.key)} />
-                : (
+              <TopicQuestions sessionId={active?.topic.sessionId ?? ''} native={nativeComposer}
+                pending={active?.pendingQuestions ?? (active?.pendingQuestion == null ? EMPTY_QUESTIONS : [active.pendingQuestion])}>
                   <TopicComposer permission={active?.topic.permission ?? 'read-only'} onPermission={mode => { void companion.setPermission(mode) }} delivery={delivery} onDelivery={setDelivery}
                     onFiles={addFiles} question={question} route={draft.ready ? active?.topic.modelConfig : undefined} providers={snapshot.providers}
                     phase={snapshot.phase} canSend={canAsk && draft.ready && !draft.sending && !draft.pending && !draft.conflict && active !== null && (question.trim() !== '' || draft.content.references.length > 0 || draft.content.files.length > 0)}
@@ -526,7 +527,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                     onModel={(provider, model) => { void companion.setModelRoute(provider, model) }}
                     onReasoning={effort => { void companion.setReasoningEffort(effort) }}
                   />
-                )}
+              </TopicQuestions>
             </>
           )}
         </section>

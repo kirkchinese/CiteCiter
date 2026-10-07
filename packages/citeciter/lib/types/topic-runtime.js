@@ -38,6 +38,7 @@ import UserQuestionService, { UserQuestionError, } from '@deepseek-ai/dsh-user-q
 import { BOARD_MAX_BATCH_OPS, applyBoardOps, boardBatchSchema, EMPTY_BOARD_STATE, } from "./board.js";
 import { fingerprintCitationRecord, resolveDocumentEvidence, resolveObserverCitation, resolveToolEvidence, validateObserverCitation, } from "./observer.js";
 import { DocumentStore } from "./documents.js";
+import { continuedQuestions, openQuestion, questionKey } from "./topic-questions.js";
 import { BoardCaptureBroker } from "./board-capture.js";
 import { readSourceSession, hasSentSource } from "./source-session.js";
 import { HostSessionAdapter } from "./host-session-adapter.js";
@@ -266,7 +267,7 @@ function textBlocks(content, type) {
 function toolResultText(content) {
     return textBlocks(content, 'text');
 }
-function validatedQuestionAnswer(questions, answer) {
+function validatedQuestionAnswer(questions, answer, allowSkipped = false) {
     if (answer.answers.length !== questions.length)
         throw new Error('每个问题都需要回答');
     const byId = new Map(answer.answers.map((item) => [item.id, item]));
@@ -284,6 +285,8 @@ function validatedQuestionAnswer(questions, answer) {
             if (selected.some((label) => !labels.has(label)))
                 throw new Error(`问题 ${question.id} 包含未知选项`);
             const custom = item.custom?.trim();
+            if (allowSkipped && selected.length === 0 && (custom === undefined || custom === ''))
+                return { id: question.id, selected: [] };
             if (question.multiSelect !== true && selected.length + (custom === undefined || custom === '' ? 0 : 1) !== 1) {
                 throw new Error(`问题 ${question.id} 只能选择一个答案`);
             }
@@ -798,6 +801,8 @@ export class TopicRuntime {
                 return { kind: 'topic', topic: await this.queueTopicAdmission(request.topicSessionId, () => this.answerQuestion(request, signal), signal) };
             case 'cancel-question':
                 return { kind: 'topic', topic: await this.queueTopicAdmission(request.topicSessionId, () => this.cancelQuestion(request.topicSessionId, request.key, signal), signal) };
+            case 'timeout-question':
+                return { kind: 'topic', topic: await this.queueTopicAdmission(request.topicSessionId, () => this.timeoutQuestion(request.topicSessionId, request.key, signal), signal) };
             case 'rename':
                 return { kind: 'topic', topic: await this.queueTopicAdmission(request.topicSessionId, () => this.rename(request.topicSessionId, request.title, signal), signal) };
             case 'archive':
@@ -1764,7 +1769,7 @@ export class TopicRuntime {
             throw new UserQuestionError('this Topic already has a pending question', 'DUPLICATE_QUESTION');
         }
         return new Promise((resolveAnswer, rejectAnswer) => {
-            const key = randomUUID();
+            const key = request.wait === undefined ? randomUUID() : questionKey(sessionId, String(request.wait.callId));
             const finish = () => {
                 const pending = this.pendingQuestions.get(sessionId);
                 if (pending?.key === key)
@@ -1784,6 +1789,7 @@ export class TopicRuntime {
                 key,
                 sessionId,
                 questions: request.questions,
+                wait: request.wait,
                 resolve,
                 reject,
                 signal: request.signal,
@@ -1799,9 +1805,18 @@ export class TopicRuntime {
         const metadata = await this.index.loadBySessionId(request.topicSessionId);
         this.assertOpen(signal);
         const pending = this.pendingQuestions.get(request.topicSessionId);
-        if (pending === undefined || pending.key !== request.key)
-            throw new Error('这个提问已结束或已被替换');
-        pending.resolve(validatedQuestionAnswer(pending.questions, request.answer));
+        if (pending?.key === request.key) {
+            pending.resolve(validatedQuestionAnswer(pending.questions, request.answer, pending.wait !== undefined));
+        }
+        else {
+            const handle = await this.ensureHandle(metadata, signal);
+            const continued = continuedQuestions(handle.agent).find(question => question.key === request.key);
+            if (continued?.callId === undefined)
+                throw new Error('这个提问已结束或已被替换');
+            const accepted = handle.agent.ctx.userQuestions.answer(handle.agent, continued.callId, validatedQuestionAnswer(continued.questions, request.answer, true));
+            if (!accepted)
+                throw new Error('这个提问已结束或已被替换');
+        }
         return this.snapshot(metadata, signal, true);
     }
     async cancelQuestion(sessionId, key, signal) {
@@ -1811,6 +1826,16 @@ export class TopicRuntime {
         if (pending === undefined || pending.key !== key)
             throw new Error('这个提问已结束或已被替换');
         pending.reject(new UserQuestionError('the user cancelled ask_user_question', 'ASK_CANCELLED'));
+        return this.snapshot(metadata, signal, true);
+    }
+    async timeoutQuestion(sessionId, key, signal) {
+        const metadata = await this.index.loadBySessionId(sessionId);
+        this.assertOpen(signal);
+        const pending = this.pendingQuestions.get(sessionId);
+        // A stale countdown cannot cancel the replacement question or an ordinary blocking request.
+        if (pending?.key === key && pending.wait?.timed === true) {
+            pending.reject(new UserQuestionError('ask_user_question timed out before the user answered', 'ASK_TIMED_OUT'));
+        }
         return this.snapshot(metadata, signal, true);
     }
     async stop(sessionId, signal) {
@@ -2256,6 +2281,11 @@ export class TopicRuntime {
         if (title === undefined && current.hosted !== true)
             this.scheduleExactTitleRefresh(current, log);
         const pending = this.pendingQuestions.get(current.sessionId);
+        const ownedAgent = this.handles.get(current.sessionId)?.agent;
+        const questions = [
+            ...(pending === undefined ? [] : [openQuestion(pending.key, pending.questions, pending.wait)]),
+            ...(ownedAgent === undefined ? [] : continuedQuestions(ownedAgent)),
+        ];
         const captureId = this.boardCapture.id(current.sessionId);
         const document = current.documentId === null ? null : await this.documents.summary(current.documentId);
         return {
@@ -2264,20 +2294,8 @@ export class TopicRuntime {
             topic: this.summaryFromMetadata(current),
             ...topicMessages(log),
             board: projectBoardFromLog(log),
-            pendingQuestion: pending === undefined
-                ? null
-                : {
-                    key: pending.key,
-                    questions: pending.questions.map((question) => ({
-                        id: question.id,
-                        question: question.question,
-                        ...(question.header === undefined ? {} : { header: question.header }),
-                        ...(question.options === undefined
-                            ? {}
-                            : { options: question.options.map((option) => ({ ...option })) }),
-                        ...(question.multiSelect === undefined ? {} : { multiSelect: question.multiSelect }),
-                    })),
-                },
+            pendingQuestion: questions[0] ?? null,
+            pendingQuestions: questions,
         };
     }
     async patchMetadata(metadata, patch, signal) {

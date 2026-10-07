@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">CiteCiter — learn from your agent's work, in context</title>
+  <desc id="desc">Promotional concept graphic, not a product screenshot. My AI agent finished the task. I still wanted to understand. A workflow connects selecting a passage, asking in a separate Topic, and returning to the work. CiteCiter is an open-source plugin for DeepSeek Harness.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8faf7"/><stop offset="1" stop-color="#e4efeb"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity=".6"/></linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <circle cx="1090" cy="98" r="220" fill="#d6e9dd" opacity=".48"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="64" y="48" width="28" height="28" rx="8" fill="#20745f"/>
+    <path d="M73 59h6m-6 6h10" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="106" y="70" fill="#18362f" font-size="25" font-weight="700">CiteCiter</text>
+    <text x="256" y="69" fill="#59776c" font-size="17" letter-spacing="2">OPEN SOURCE</text>
+    <text x="64" y="182" fill="#172e29" font-size="58" font-weight="650" letter-spacing="-1.6">My AI agent</text>
+    <text x="64" y="252" fill="#172e29" font-size="58" font-weight="650" letter-spacing="-1.6">finished the task.</text>
+    <text x="64" y="351" fill="#247660" font-size="58" font-weight="650" letter-spacing="-1.6">I still wanted</text>
+    <text x="64" y="421" fill="#247660" font-size="58" font-weight="650" letter-spacing="-1.6">to understand.</text>
+    <rect x="708" y="119" width="428" height="373" rx="30" fill="url(#card)" stroke="#fff" stroke-width="2"/>
+    <text x="740" y="159" fill="#567569" font-size="17" letter-spacing="1.5">WORKFLOW CONCEPT</text>
+    <path d="M760 226v172" fill="none" stroke="#abc5ba" stroke-width="2"/>
+    <circle cx="760" cy="222" r="19" fill="#dcece5"/>
+    <path d="M753 218h13m-13 7h9" stroke="#247660" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="798" y="231" fill="#244238" font-size="25" font-weight="600">Select a passage</text>
+    <circle cx="760" cy="314" r="19" fill="#247660"/>
+    <text x="760" y="323" fill="#fff" font-size="27" text-anchor="middle">?</text>
+    <text x="798" y="323" fill="#244238" font-size="25" font-weight="600">Ask in a Topic</text>
+    <circle cx="760" cy="406" r="19" fill="#dcece5"/>
+    <path d="M752 406h15m-5-5 5 5-5 5" fill="none" stroke="#247660" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="798" y="415" fill="#244238" font-size="25" font-weight="600">Return to your work</text>
+    <text x="64" y="560" fill="#244238" font-size="28" font-weight="500">Learn from your agent's work, in context.</text>
+    <path d="M64 587H1136" stroke="#b5cbc0"/>
+    <text x="64" y="626" fill="#526d62" font-size="21">A plugin for DeepSeek Harness (DSH)</text>
+    <text x="1136" y="626" fill="#526d62" font-size="21" text-anchor="end">kirkchinese/CiteCiter</text>
+  </g>
+</svg>

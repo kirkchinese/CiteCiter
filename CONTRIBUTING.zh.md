@@ -2,10 +2,12 @@
 
 [English](CONTRIBUTING.md)
 
-本预发布分支使用 Node.js `^22.19.0 || >=24.0.0`、pnpm `11.21.0`、DSH `0.1.7-rc.2`。双端真实模型验收范围与宿主限制见 docs/validation/2026-09-27-connect-450.md。已发布的 0.8 系列保留 DSH `0.1.5-rc.1` / Desktop `2.0.9` 基线。安装包位于 `packages/citeciter/`，Host / Client 分别通过严格 TypeScript 编译。
+使用 Node.js `^22.19.0 || >=24.0.0` 和 pnpm `11.21.0`。`0.9.0-alpha.4` 候选版以 DSH `0.2.1-alpha.1` 为主 SDK；`typecheck:desktop` 使用官方桌面 SDK `0.2.0-rc.2` 检查同一套 Host / Client 源码。桌面适配只以 DSH 官方应用为目标，不再保证社区桌面版兼容。编译检查与真实模型验收分开记录，实际状态见 `docs/validation/2026-10-07-official-desktop.md`。安装包位于 `packages/citeciter/`。
 
 ```powershell
 pnpm install --frozen-lockfile
+pnpm check:git-entry
+pnpm peers check
 pnpm typecheck
 pnpm typecheck:desktop
 pnpm build
@@ -14,6 +16,14 @@ git diff --check
 ```
 
 `lib/` 是受版本控制的发布产物，源代码修改后必须重建。`pnpm --dir packages/citeciter dev` 仅监听构建，不启动模型或创建测试实例。CI 只检查依赖、类型、构建与打包；不要将静态成功称为功能验收通过。
+
+## 仓库 Git 安装入口
+
+`packages/citeciter/package.json` 仍是 npm 包的权威 manifest。根 manifest 是私有的 Git 安装入口，与内层保持相同包名、版本、运行时元数据和开发依赖，导出与 bundle patch 直接指向 `packages/citeciter/` 内已提交的文件。pnpm 的 Git fetcher 不应用 `publishConfig.directory`，仅增加该字段无法修复 monorepo 插件安装；根目录保留该字段，使 `pnpm pack` 仍输出内层 npm 产物。
+
+修改权威 manifest 后，运行 `pnpm sync:git-entry`，再运行 `pnpm install` 更新锁文件。`pnpm check:git-entry` 检查漂移，并作为构建与 CI 门禁。根命令使用 `pnpm --dir packages/citeciter`；根和内层有意使用相同包名，不要改用按包名 `--filter`，以免递归执行。包括 `dsh-util-values` 在内的宿主模块使用声明的 peer 范围，各编译门分别固定自己的 SDK；不要通过忽略 peer 错误掩盖跨版本冲突。
+
+Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌套 `file:` 依赖或依赖某个已发布的 CiteCiter 包。修复推送后，Web CLI 可使用 `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#<COMMIT_OR_TAG_WITH_FIX>"`，将占位符替换为包含修复的真实提交或标签。官方桌面插件页使用同一 Git 地址，安装和重启流程仍需界面验收。10 月 7 日记录覆盖 pnpm `11.7.0` 与官方 CLI `0.2.0-rc.2` 的真实本地 Git 快照，不代表尚未推送的公开仓库或桌面 UI 已通过。
 
 ## 架构边界
 
@@ -55,7 +65,7 @@ git diff --check
 
 本轮按用户要求在主要 DSH home 验收。先确认没有另一个 Web / Desktop 进程使用同一 home，再启动或重启目标宿主。不要删除用户会话或通过批量清理扩大范围。开发实例的进程和目录必须逐项确认归属。
 
-Web 使用全局 CLI：`dsh plugin --profile web add <安装包绝对路径>`。Desktop 使用管理终端中的 `dsh plugin add <安装包绝对路径>`，它选择内置 CLI、desktop profile 和 home。全局 CLI 不能替代 Desktop 的保留 profile 管理。
+使用官方宿主公开的插件安装流程，核对仓库中的实际包位置、入口与依赖。Git 安装与打包安装应分别验收，比较时使用同一最终候选产物。全局 CLI 不会更新官方桌面应用内置的运行时；当前安装方法与限制以官方桌面审计和验收记录为准。
 
 首次打开 Web 使用宿主输出的完整登录地址，成功后通过会话 cookie 访问。登录参数属于凭据，不放进文档或 Git。宿主代码更新后重启，客户端代码更新后刷新。
 
