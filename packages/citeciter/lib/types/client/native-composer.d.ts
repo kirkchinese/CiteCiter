@@ -14,6 +14,12 @@ export interface NativeComposer {
     /** Controllers stay alive across hidden/unmounted cards, like native DSH question carriers. */
     question(sessionId: string, pending: PendingQuestion): TopicQuestionController;
     syncQuestions(sessionId: string, questions: readonly PendingQuestion[]): void;
+    /**
+     * Release one confirmed deleted Topic's local carriers and reject their later reuse.
+     * @param sessionId - identity validated against the successful Host deletion response.
+     * Idempotent; a missing list row or a failed read is not proof of deletion.
+     */
+    retire(sessionId: string): void;
     retry(sessionId: string, id: DraftAttachmentId): void;
     watch(sessionId: string, listener: (snapshot: CiterSessionSnapshot) => void): () => void;
     queue(sessionId: string, id: Parameters<SessionFace['updateQueue']>[0], action: Parameters<SessionFace['updateQueue']>[1]): Promise<void>;

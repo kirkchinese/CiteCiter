@@ -960,7 +960,7 @@ export function createCompanionController(
         || response.sourceSessionId !== sourceSessionId
         || response.topicId !== topicId
       ) throw new Error('CiteCiter 返回的删除对象与当前 Topic 不一致')
-      nativeComposer.syncQuestions(sessionId, [])
+      nativeComposer.retire(sessionId)
       clearLastTopic(sourceSessionId, sessionId)
       const current = store.getSnapshot()
       update((draft) => {

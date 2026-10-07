@@ -19,6 +19,12 @@ export interface NativeComposer {
   /** Controllers stay alive across hidden/unmounted cards, like native DSH question carriers. */
   question(sessionId: string, pending: PendingQuestion): TopicQuestionController
   syncQuestions(sessionId: string, questions: readonly PendingQuestion[]): void
+  /**
+   * Release one confirmed deleted Topic's local carriers and reject their later reuse.
+   * @param sessionId - identity validated against the successful Host deletion response.
+   * Idempotent; a missing list row or a failed read is not proof of deletion.
+   */
+  retire(sessionId: string): void
   retry(sessionId: string, id: DraftAttachmentId): void
   watch(sessionId: string, listener: (snapshot: CiterSessionSnapshot) => void): () => void
   queue(sessionId: string, id: Parameters<SessionFace['updateQueue']>[0], action: Parameters<SessionFace['updateQueue']>[1]): Promise<void>
@@ -35,13 +41,16 @@ export function createNativeComposer(ctx: Context): NativeComposer {
   const owned = new Set<DraftAttachmentId>()
   const sessions = new Map<string, CiterSessionFace>()
   const questions = new Map<string, Map<string, TopicQuestionController>>()
+  // Only identities whose deletion this Client has authoritatively confirmed.
+  const retired = new Set<string>()
   let disposed = false
-  ctx.effect(() => () => { disposed = true; for (const session of sessions.values()) session.dispose(); sessions.clear(); for (const group of questions.values()) for (const question of group.values()) question.dispose(); questions.clear(); for (const id of owned) conversation.releaseDraftAttachment(id); owned.clear() }, 'citeciter: native attachment drafts')
+  ctx.effect(() => () => { disposed = true; for (const session of sessions.values()) session.dispose(); sessions.clear(); for (const group of questions.values()) for (const question of group.values()) question.dispose(); questions.clear(); for (const id of owned) conversation.releaseDraftAttachment(id); owned.clear(); retired.clear() }, 'citeciter: native attachment drafts')
   if (typeof conversation.sendSession !== 'function' || typeof conversation.createDrafts !== 'function') {
     throw new Error('当前 DSH 不提供 Citer 所需的原生附件发送接口')
   }
   const face = (id: string) => {
     if (disposed) throw new Error('Citer 已关闭')
+    if (retired.has(id)) throw new Error('这个 Topic 已永久删除')
     let session = sessions.get(id)
     if (session === undefined) { session = new CiterSessionFace(ctx, id as SessionId); sessions.set(id, session) }
     return session
@@ -58,6 +67,7 @@ export function createNativeComposer(ctx: Context): NativeComposer {
   return {
     uploads: conversation.fileUploads,
     question: (sessionId, pending) => {
+      if (disposed || retired.has(sessionId)) throw new Error('这个 Topic 的提问服务已结束')
       let group = questions.get(sessionId)
       if (group === undefined) { group = new Map(); questions.set(sessionId, group) }
       let controller = group.get(pending.key)
@@ -82,7 +92,21 @@ export function createNativeComposer(ctx: Context): NativeComposer {
       }
       if (group.size === 0) questions.delete(sessionId)
     },
-    retry: (id, attachment) => conversation.retryFileUpload(id as SessionId, attachment),
+    retire: sessionId => {
+      if (retired.has(sessionId)) return
+      retired.add(sessionId)
+      const session = sessions.get(sessionId)
+      sessions.delete(sessionId)
+      session?.dispose()
+      const group = questions.get(sessionId)
+      questions.delete(sessionId)
+      if (group !== undefined) for (const question of group.values()) question.dispose()
+    },
+    retry: (id, attachment) => {
+      // A stale button can outlive its Topic for the final React commit.
+      if (disposed || retired.has(id)) return
+      conversation.retryFileUpload(id as SessionId, attachment)
+    },
     watch: (id, listener) => {
       const session = face(id)
       const update = () => listener(session.getSnapshot())
@@ -103,6 +127,7 @@ export function createNativeComposer(ctx: Context): NativeComposer {
     add: async (id, files) => {
       await binding(id)
       if (disposed) throw new Error('Citer 已关闭，未创建附件')
+      if (retired.has(id)) throw new Error('这个 Topic 已永久删除，未创建附件')
       const drafts = conversation.createDrafts(id as SessionId, files)
       for (const draft of drafts) owned.add(draft.id)
       return drafts

@@ -6985,11 +6985,19 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}).catch(() => {});
 				return operation;
 			}
-			/** Stop polling and settle each owned submission exactly once when its plugin closes. */
+			/** Stop polling and settle each owned submission exactly once when its owner closes or confirms deletion. */
 			dispose() {
+				if (this.lifetime.signal.aborted) return;
 				this.lifetime.abort();
 				clearTimeout(this.timer);
+				this.timer = void 0;
+				this.nextRequestId = void 0;
 				for (const id of this.pending.keys()) this.retire(id, { reason: "failed" });
+				this.patch({
+					removed: true,
+					running: false,
+					queue: []
+				});
 			}
 		};
 		//#endregion
@@ -7197,6 +7205,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const owned = /* @__PURE__ */ new Set();
 			const sessions = /* @__PURE__ */ new Map();
 			const questions = /* @__PURE__ */ new Map();
+			const retired = /* @__PURE__ */ new Set();
 			let disposed = false;
 			ctx.effect(() => () => {
 				disposed = true;
@@ -7206,10 +7215,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				questions.clear();
 				for (const id of owned) conversation.releaseDraftAttachment(id);
 				owned.clear();
+				retired.clear();
 			}, "citeciter: native attachment drafts");
 			if (typeof conversation.sendSession !== "function" || typeof conversation.createDrafts !== "function") throw new Error("当前 DSH 不提供 Citer 所需的原生附件发送接口");
 			const face = (id) => {
 				if (disposed) throw new Error("Citer 已关闭");
+				if (retired.has(id)) throw new Error("这个 Topic 已永久删除");
 				let session = sessions.get(id);
 				if (session === void 0) {
 					session = new CiterSessionFace(ctx, id);
@@ -7229,6 +7240,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return {
 				uploads: conversation.fileUploads,
 				question: (sessionId, pending) => {
+					if (disposed || retired.has(sessionId)) throw new Error("这个 Topic 的提问服务已结束");
 					let group = questions.get(sessionId);
 					if (group === void 0) {
 						group = /* @__PURE__ */ new Map();
@@ -7271,7 +7283,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					}
 					if (group.size === 0) questions.delete(sessionId);
 				},
-				retry: (id, attachment) => conversation.retryFileUpload(id, attachment),
+				retire: (sessionId) => {
+					if (retired.has(sessionId)) return;
+					retired.add(sessionId);
+					const session = sessions.get(sessionId);
+					sessions.delete(sessionId);
+					session?.dispose();
+					const group = questions.get(sessionId);
+					questions.delete(sessionId);
+					if (group !== void 0) for (const question of group.values()) question.dispose();
+				},
+				retry: (id, attachment) => {
+					if (disposed || retired.has(id)) return;
+					conversation.retryFileUpload(id, attachment);
+				},
 				watch: (id, listener) => {
 					const session = face(id);
 					const update = () => listener(session.getSnapshot());
@@ -7291,6 +7316,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				add: async (id, files) => {
 					await binding(id);
 					if (disposed) throw new Error("Citer 已关闭，未创建附件");
+					if (retired.has(id)) throw new Error("这个 Topic 已永久删除，未创建附件");
 					const drafts = conversation.createDrafts(id, files);
 					for (const draft of drafts) owned.add(draft.id);
 					return drafts;
@@ -8452,7 +8478,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					});
 					if (response.kind !== "deleted") throw new Error("CiteCiter 返回了错误的删除响应");
 					if (response.sessionId !== sessionId || response.sourceSessionId !== sourceSessionId || response.topicId !== topicId) throw new Error("CiteCiter 返回的删除对象与当前 Topic 不一致");
-					nativeComposer.syncQuestions(sessionId, []);
+					nativeComposer.retire(sessionId);
 					clearLastTopic(sourceSessionId, sessionId);
 					const current = store.getSnapshot();
 					update((draft) => {

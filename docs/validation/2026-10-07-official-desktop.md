@@ -264,4 +264,8 @@ Profile 的实际依赖规格为 `github:kirkchinese/CiteCiter#f0c30dd99299e4c05
 
 ## 发布状态
 
+Git 安装验收后的源码审阅发现另一个生命周期缺口：本窗口收到永久删除成功响应后，仅释放了问题卡，仍将 `CiterSessionFace` 留在 Map 中。若已接收发送尚未观察到回执，pending 状态还会驱动约 350 ms 的重试。该路径有源码可达证据，尚未用真实 UI 删除重现。新的独立 `NativeComposer.retire()` 仅在核对成功删除对象身份后释放会话、轮询、待提交回调和问题控制器，阻止晚到的附件操作复用该 Topic；临时读取失败不作删除依据。跨窗口删除及断线重连后的权威删除确认仍未修复，不能判为完整删除生命周期通过。
+
+该后续修复通过两套 SDK 类型检查、构建与 `git diff --check`。另行打包的 `.refs/artifacts/retirement-20261007/kirkchinese-dsh-citeciter-0.9.0-alpha.4.tgz` 为 905,574 字节，SHA-256 `6D94DD2AA25A25E7256A0ECFD6C0A60927386CE0D21296E07970FB7D0598940A`，154 个文件与当前包逐字节一致；Client SHA-256 为 `A8B576CFED8F5281EBBC686F65069B1E17D2347F08A9254F1DE513A16BC7BDFF`，Host 入口未变。它尚未安装，主官方 Desktop 仍运行前述 `f0c30dd`；不得把此前安装与 UI 结果归入新 Client。详见[删除后客户端释放记录](../../.agents/notes/2026-10-07-deleted-topic-client-retirement.md)。
+
 本记录对应候选准备阶段。只有最终安装产物的必测项全部完成、产品缺陷处理完毕并核对发布材料后，才重新判断是否具备发布条件。当前不执行发布，不把未观察的功能记为通过。

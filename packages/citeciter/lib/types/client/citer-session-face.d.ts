@@ -69,7 +69,7 @@ export declare class CiterSessionFace implements SessionFace {
     loadThrough: () => Promise<void>;
     private schedule;
     private refresh;
-    /** Stop polling and settle each owned submission exactly once when its plugin closes. */
+    /** Stop polling and settle each owned submission exactly once when its owner closes or confirms deletion. */
     dispose(): void;
 }
 export {};

@@ -10,18 +10,22 @@ export function createNativeComposer(ctx) {
     const owned = new Set();
     const sessions = new Map();
     const questions = new Map();
+    // Only identities whose deletion this Client has authoritatively confirmed.
+    const retired = new Set();
     let disposed = false;
     ctx.effect(() => () => { disposed = true; for (const session of sessions.values())
         session.dispose(); sessions.clear(); for (const group of questions.values())
         for (const question of group.values())
             question.dispose(); questions.clear(); for (const id of owned)
-        conversation.releaseDraftAttachment(id); owned.clear(); }, 'citeciter: native attachment drafts');
+        conversation.releaseDraftAttachment(id); owned.clear(); retired.clear(); }, 'citeciter: native attachment drafts');
     if (typeof conversation.sendSession !== 'function' || typeof conversation.createDrafts !== 'function') {
         throw new Error('当前 DSH 不提供 Citer 所需的原生附件发送接口');
     }
     const face = (id) => {
         if (disposed)
             throw new Error('Citer 已关闭');
+        if (retired.has(id))
+            throw new Error('这个 Topic 已永久删除');
         let session = sessions.get(id);
         if (session === undefined) {
             session = new CiterSessionFace(ctx, id);
@@ -42,6 +46,8 @@ export function createNativeComposer(ctx) {
     return {
         uploads: conversation.fileUploads,
         question: (sessionId, pending) => {
+            if (disposed || retired.has(sessionId))
+                throw new Error('这个 Topic 的提问服务已结束');
             let group = questions.get(sessionId);
             if (group === undefined) {
                 group = new Map();
@@ -75,7 +81,25 @@ export function createNativeComposer(ctx) {
             if (group.size === 0)
                 questions.delete(sessionId);
         },
-        retry: (id, attachment) => conversation.retryFileUpload(id, attachment),
+        retire: sessionId => {
+            if (retired.has(sessionId))
+                return;
+            retired.add(sessionId);
+            const session = sessions.get(sessionId);
+            sessions.delete(sessionId);
+            session?.dispose();
+            const group = questions.get(sessionId);
+            questions.delete(sessionId);
+            if (group !== undefined)
+                for (const question of group.values())
+                    question.dispose();
+        },
+        retry: (id, attachment) => {
+            // A stale button can outlive its Topic for the final React commit.
+            if (disposed || retired.has(id))
+                return;
+            conversation.retryFileUpload(id, attachment);
+        },
         watch: (id, listener) => {
             const session = face(id);
             const update = () => listener(session.getSnapshot());
@@ -99,6 +123,8 @@ export function createNativeComposer(ctx) {
             await binding(id);
             if (disposed)
                 throw new Error('Citer 已关闭，未创建附件');
+            if (retired.has(id))
+                throw new Error('这个 Topic 已永久删除，未创建附件');
             const drafts = conversation.createDrafts(id, files);
             for (const draft of drafts)
                 owned.add(draft.id);

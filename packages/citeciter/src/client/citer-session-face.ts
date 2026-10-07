@@ -170,10 +170,14 @@ export class CiterSessionFace implements SessionFace {
     return operation
   }
 
-  /** Stop polling and settle each owned submission exactly once when its plugin closes. */
+  /** Stop polling and settle each owned submission exactly once when its owner closes or confirms deletion. */
   dispose(): void {
+    if (this.lifetime.signal.aborted) return
     this.lifetime.abort()
     clearTimeout(this.timer)
+    this.timer = undefined
+    this.nextRequestId = undefined
     for (const id of this.pending.keys()) this.retire(id, { reason: 'failed' })
+    this.patch({ removed: true, running: false, queue: [] })
   }
 }
