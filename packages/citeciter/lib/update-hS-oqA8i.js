@@ -992,6 +992,7 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 		result: z.string().nullable(),
 		isError: z.boolean(),
 		errorCode: z.enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
+		approvalOutcome: z.literal("rejected").optional(),
 		running: z.boolean()
 	}).strict(),
 	z.object({

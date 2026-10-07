@@ -23,7 +23,9 @@ git diff --check
 
 修改权威 manifest 后，运行 `pnpm sync:git-entry`，再运行 `pnpm install` 更新锁文件。`pnpm check:git-entry` 检查漂移，并作为构建与 CI 门禁。根命令使用 `pnpm --dir packages/citeciter`；根和内层有意使用相同包名，不要改用按包名 `--filter`，以免递归执行。包括 `dsh-util-values` 在内的宿主模块使用声明的 peer 范围，各编译门分别固定自己的 SDK；不要通过忽略 peer 错误掩盖跨版本冲突。
 
-Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌套 `file:` 依赖或依赖某个已发布的 CiteCiter 包。修复推送后，Web CLI 可使用 `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#<COMMIT_OR_TAG_WITH_FIX>"`，将占位符替换为包含修复的真实提交或标签。官方桌面插件页使用同一 Git 地址，安装和重启流程仍需界面验收。10 月 7 日记录覆盖 pnpm `11.7.0` 与官方 CLI `0.2.0-rc.2` 的真实本地 Git 快照，不代表尚未推送的公开仓库或桌面 UI 已通过。
+Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌套 `file:` 依赖或依赖某个已发布的 CiteCiter 包。修复提交 `f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea` 已公开在 `codex/official-desktop-october` 分支，尚未合并 `main` 或发布新的 Release/npm 包。仅供候选复测的命令为 `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea"`；这不是已完成完整功能验收的推荐版本。
+
+10 月 7 日记录包括 pnpm `11.7.0` 的真实本地 Git 快照安装，以及官方 CLI `0.2.0-rc.2` 使用 pnpm `11.21.0` 从上述固定提交完成的公开 GitHub 安装。公开 CLI 成功退出，bundle 登记、四个模块入口和实际 Typert 描述均在未启动的隔离 home 中通过核验。官方桌面插件页使用同一固定 Git 地址，但该 UI 安装和重启流程仍未通过验收；CLI 成功不代表这些界面结果或完整功能矩阵已通过。
 
 ## 架构边界
 
@@ -53,6 +55,7 @@ Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌�
 | client/components/BoardCaptureWorker.tsx / BoardCaptureSurface.tsx | 复用真实板书组件渲染截图，不创建模型调用 |
 | tool-events.ts / document-access.ts | 原生与 PTC 工具事件适配、已发送文档地址授权 |
 | tool-outcome-contract.ts | 无依赖的共享问题状态码，不把 Host 事件类型声明带入 Client schema |
+| tool-approval-projection.ts | 仅从唯一明确的工具调用 → 审批请求 → 拒绝决定 → 失败结果关联派生“已拒绝”展示；不改变权限、日志或原始结果 |
 | client/native-composer.ts | 适配公开 DSH 附件、发送与队列服务 |
 | client/draft-references.ts / selection-references.ts | 真实选文的待发送引用构造、去重和精确序列化 |
 | client/learning-route.ts | 学习请求约束与原生 todo 结果读取 |

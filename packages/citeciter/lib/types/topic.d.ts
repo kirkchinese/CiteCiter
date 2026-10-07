@@ -487,6 +487,7 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         ASK_CANCELLED: "ASK_CANCELLED";
         ASK_ABORTED: "ASK_ABORTED";
     }>>;
+    approvalOutcome: z.ZodOptional<z.ZodLiteral<"rejected">>;
     running: z.ZodBoolean;
     id: z.ZodString;
     seq: z.ZodNumber;
@@ -690,6 +691,7 @@ export declare const topicSnapshotSchema: z.ZodObject<{
             ASK_CANCELLED: "ASK_CANCELLED";
             ASK_ABORTED: "ASK_ABORTED";
         }>>;
+        approvalOutcome: z.ZodOptional<z.ZodLiteral<"rejected">>;
         running: z.ZodBoolean;
         id: z.ZodString;
         seq: z.ZodNumber;
@@ -1548,6 +1550,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 ASK_CANCELLED: "ASK_CANCELLED";
                 ASK_ABORTED: "ASK_ABORTED";
             }>>;
+            approvalOutcome: z.ZodOptional<z.ZodLiteral<"rejected">>;
             running: z.ZodBoolean;
             id: z.ZodString;
             seq: z.ZodNumber;

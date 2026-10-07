@@ -61,10 +61,11 @@ export function ToolRow({ message, sessionId, load }: { readonly message: Extrac
   const questionVerdict = message.name !== 'ask_user_question' || !message.isError ? null
     : message.errorCode === 'ASK_CANCELLED' ? '已取消'
       : message.errorCode === 'ASK_ABORTED' ? '已中断' : null
+  const verdict = message.isError && message.approvalOutcome === 'rejected' ? '已拒绝' : questionVerdict
   const summary = message.running
     ? compactPreview(message.arguments)
     : message.questionReply !== undefined ? compactPreview(questionReplySummary(message.questionReply))
-    : questionVerdict ?? (message.isError
+    : verdict ?? (message.isError
       ? '调用失败'
       : compactPreview(message.result || ((message.attachments?.length ?? 0) > 0 ? '附件已返回' : '完成')))
   return (
@@ -80,7 +81,7 @@ export function ToolRow({ message, sessionId, load }: { readonly message: Extrac
           {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label="工具参数" copyable={false} labels={jsonTreeLabels} />}
           {message.result !== null && (
             <>
-              <strong>{questionVerdict !== null ? '状态' : message.isError ? '错误' : '结果'}</strong>
+              <strong>{verdict !== null ? '状态' : message.isError ? '错误' : '结果'}</strong>
               {result === null
                 ? <pre>{message.result}</pre>
                 : <JsonTree data={result} label="工具结果" copyable={false} labels={jsonTreeLabels} />}

@@ -703,6 +703,7 @@ export declare const citeCiterRequestDescriptor: {
                         ASK_CANCELLED: "ASK_CANCELLED";
                         ASK_ABORTED: "ASK_ABORTED";
                     }>>;
+                    approvalOutcome: import("zod").ZodOptional<import("zod").ZodLiteral<"rejected">>;
                     running: import("zod").ZodBoolean;
                     id: import("zod").ZodString;
                     seq: import("zod").ZodNumber;

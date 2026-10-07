@@ -5967,6 +5967,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				result: string().nullable(),
 				isError: boolean(),
 				errorCode: _enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
+				approvalOutcome: literal("rejected").optional(),
 				running: boolean()
 			}).strict(),
 			object({
@@ -35719,7 +35720,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const args = jsonObject(message.arguments);
 			const result = message.result === null ? null : jsonObject(message.result);
 			const questionVerdict = message.name !== "ask_user_question" || !message.isError ? null : message.errorCode === "ASK_CANCELLED" ? "已取消" : message.errorCode === "ASK_ABORTED" ? "已中断" : null;
-			const summary = message.running ? compactPreview$1(message.arguments) : message.questionReply !== void 0 ? compactPreview$1(questionReplySummary(message.questionReply)) : questionVerdict ?? (message.isError ? "调用失败" : compactPreview$1(message.result || ((message.attachments?.length ?? 0) > 0 ? "附件已返回" : "完成")));
+			const verdict = message.isError && message.approvalOutcome === "rejected" ? "已拒绝" : questionVerdict;
+			const summary = message.running ? compactPreview$1(message.arguments) : message.questionReply !== void 0 ? compactPreview$1(questionReplySummary(message.questionReply)) : verdict ?? (message.isError ? "调用失败" : compactPreview$1(message.result || ((message.attachments?.length ?? 0) > 0 ? "附件已返回" : "完成")));
 			return (0, react_jsx_runtime.jsxs)("div", {
 				"data-citeciter-message": message.id,
 				children: [(0, react_jsx_runtime.jsx)(FlowDisclosure, {
@@ -35737,7 +35739,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								copyable: false,
 								labels: jsonTreeLabels
 							}),
-							message.result !== null && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("strong", { children: questionVerdict !== null ? "状态" : message.isError ? "错误" : "结果" }), result === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.result }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
+							message.result !== null && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("strong", { children: verdict !== null ? "状态" : message.isError ? "错误" : "结果" }), result === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.result }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
 								data: result,
 								label: "工具结果",
 								copyable: false,

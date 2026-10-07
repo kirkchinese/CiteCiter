@@ -6,6 +6,7 @@ import { composeHostedTopicPrompt, FIRST_ANSWER_FOLLOWUPS } from './topic-prompt
 import { readNativeState } from './native-session-read.ts'
 import { readNativeAttachment } from './native-attachment-read.ts'
 import { toolCallRecord, toolResultRecord } from './tool-events.ts'
+import { projectRejectedToolApprovals } from './tool-approval-projection.ts'
 import { contextMessage } from './message-projection.ts'
 import { readQuestionReply, questionReplyText } from './question-reply.ts'
 import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
@@ -462,10 +463,12 @@ export function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[],
   const messages: TopicMessage[] = []
   const toolIndexes = new Map<string, number>()
   const start = log.inheritedEventCount
+  const events = log.events.slice(start)
+  const rejectedToolApprovals = projectRejectedToolApprovals(events)
   let error: string | null = null
   const attemptByTurn = new Map<number, number>()
   const bodyByTurn = new Set<number>()
-  for (const event of log.events.slice(start)) {
+  for (const event of events) {
     if (event.type === 'turn/start') {
       error = null
       continue
@@ -555,6 +558,7 @@ export function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[],
         attachments: toolResult.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []),
         isError: toolResult.isError,
         ...(toolResult.errorCode === undefined ? {} : { errorCode: toolResult.errorCode }),
+        ...(rejectedToolApprovals.has(callId) ? { approvalOutcome: 'rejected' as const } : {}),
         running: false,
       }
       continue

@@ -23,7 +23,9 @@ Tracked `lib/` is a release artifact and must be rebuilt after source changes. `
 
 After changing canonical metadata, run `pnpm sync:git-entry`, then `pnpm install` to refresh the lockfile. `pnpm check:git-entry` rejects drift and is a build/CI gate. Root scripts use `pnpm --dir packages/citeciter`; avoid selecting the package by name with `--filter`, because the root and inner package intentionally share that name. Keep host modules, including `dsh-util-values`, in the declared peer range and pin each compile gate to its own SDK; do not hide cross-version warnings with peer exemptions.
 
-Git installs use committed build output and do not need a root `prepare` hook, a nested `file:` dependency or a dependency on a previously published CiteCiter package. After the fix is pushed, the Web CLI accepts `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#<COMMIT_OR_TAG_WITH_FIX>"`, with the placeholder replaced by a real commit or tag containing the fix. The official desktop plugin page uses the same Git address; its installation and restart flow still require UI acceptance. The October 7 record covers a real local Git snapshot through pnpm `11.7.0` and the official CLI `0.2.0-rc.2`; it does not establish that the unpushed public repository or desktop UI has passed.
+Git installs use committed build output and do not need a root `prepare` hook, a nested `file:` dependency or a dependency on a previously published CiteCiter package. Fix commit `f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea` is public on `codex/official-desktop-october`, without a merge into `main` or a new Release/npm publication. For candidate retesting only, use `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f8825a68ac80f2f26a4d4f8bdd2e7fd2ba3a2aea"`; this is not a recommended version with complete functional acceptance.
+
+The October 7 record includes a real local Git snapshot installation using pnpm `11.7.0` and a separate public GitHub installation of the pinned commit through official CLI `0.2.0-rc.2` with pnpm `11.21.0`. The public CLI exited successfully and its bundle registration, four module entries and real Typert manifest passed verification in an isolated home that was not started. The official desktop plugin page uses the same pinned Git address, but that UI installation and restart flow remain unverified; CLI success does not establish those results or complete functional acceptance.
 
 ## Architecture boundaries
 
@@ -57,6 +59,7 @@ Follow the [DSH architecture](https://github.com/deepseek-ai/deepseek-harness/bl
 | client/action-executor.ts / client/selection-references.ts | Explicit append/create routing and references from actual selections |
 | tool-events.ts / document-access.ts | Native/PTC event normalization and submitted-document access |
 | tool-outcome-contract.ts | Dependency-free shared question outcome codes; does not import Host event declarations into Client schemas |
+| tool-approval-projection.ts | Derives a rejected presentation only from one unambiguous call → approval request → rejected decision → failed result chain; leaves permissions, logs and original results unchanged |
 | client/learning-route.ts | Learning request constraints and native todo result reading |
 | client/panel-drag.ts, host-dock.ts | Pointer and host layout lifecycles |
 | client/components/ | Controlled UI receiving snapshots and callbacks, without Cordis discovery |

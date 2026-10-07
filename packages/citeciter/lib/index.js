@@ -1,4 +1,4 @@
-import { A as learningCardsInputSchema, D as actionTarget, E as DEFAULT_WHEEL_SLOTS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_BOARD_STATE, N as applyBoardOps, O as LEARNING_CARD_FIELD_DESCRIPTIONS, P as boardBatchSchema, R as draftStateSchema, T as readQuestionReply, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as LEARNING_EXAMPLE_PARAMETER, k as LEARNING_PROMPT, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as questionReplyText, x as topicMetadataSchema, y as renderCitationContext, z as subtractSubmitted } from "./update-Bt_6cv5F.js";
+import { A as learningCardsInputSchema, D as actionTarget, E as DEFAULT_WHEEL_SLOTS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_BOARD_STATE, N as applyBoardOps, O as LEARNING_CARD_FIELD_DESCRIPTIONS, P as boardBatchSchema, R as draftStateSchema, T as readQuestionReply, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as LEARNING_EXAMPLE_PARAMETER, k as LEARNING_PROMPT, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as questionReplyText, x as topicMetadataSchema, y as renderCitationContext, z as subtractSubmitted } from "./update-hS-oqA8i.js";
 import { createRequire } from "node:module";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
@@ -15834,6 +15834,91 @@ async function readNativeAttachment(ctx, session, id, signal) {
 	throw new Error("此附件未被当前 Citer 会话引用");
 }
 //#endregion
+//#region lib/types/tool-approval-projection.js
+function record(value) {
+	return typeof value === "object" && value !== null && !Array.isArray(value) ? value : void 0;
+}
+function identifier(value) {
+	return typeof value === "string" && value.length > 0 ? value : void 0;
+}
+/**
+* Identify failed tools whose one exact approval request was explicitly rejected.
+* @param events - ordered events from one private Topic, excluding its inherited seed.
+* @returns call IDs with an unambiguous call → ask → rejection → failed-result chain.
+* This is presentation only: original results and permission decisions remain unchanged.
+* Missing identities, duplicate calls/results/approval IDs, multiple approvals, unknown
+* outcomes and successful results produce no verdict. PTC children retain their own IDs.
+*/
+function projectRejectedToolApprovals(events) {
+	const calls = /* @__PURE__ */ new Map();
+	const results = /* @__PURE__ */ new Map();
+	const asks = /* @__PURE__ */ new Map();
+	const askCounts = /* @__PURE__ */ new Map();
+	const decisions = /* @__PURE__ */ new Map();
+	for (const event of events) {
+		const call = toolCallRecord(event);
+		if (call !== void 0) {
+			const previous = calls.get(call.callId);
+			if (previous !== void 0) previous.duplicate = true;
+			else calls.set(call.callId, {
+				name: call.name,
+				seq: event.seq,
+				duplicate: false
+			});
+			continue;
+		}
+		const result = toolResultRecord(event);
+		if (result !== void 0) {
+			const previous = results.get(result.callId);
+			if (previous !== void 0) previous.duplicate = true;
+			else results.set(result.callId, {
+				seq: event.seq,
+				isError: result.isError,
+				duplicate: false
+			});
+			continue;
+		}
+		const type = event.type;
+		if (type !== "approval/asked" && type !== "approval/decided") continue;
+		const data = record(event.data);
+		if (data === void 0) continue;
+		const id = identifier(data.id);
+		if (type === "approval/asked") {
+			if (id !== void 0) askCounts.set(id, (askCounts.get(id) ?? 0) + 1);
+			const callId = identifier(data.callId);
+			if (callId === void 0) continue;
+			const list = asks.get(callId) ?? [];
+			list.push({
+				id,
+				toolName: identifier(data.toolName),
+				seq: event.seq
+			});
+			asks.set(callId, list);
+		} else if (id !== void 0) {
+			const list = decisions.get(id) ?? [];
+			list.push({
+				outcome: data.outcome,
+				seq: event.seq
+			});
+			decisions.set(id, list);
+		}
+	}
+	const rejected = /* @__PURE__ */ new Set();
+	for (const [callId, result] of results) {
+		const call = calls.get(callId);
+		const requests = asks.get(callId);
+		if (call === void 0 || call.duplicate || result.duplicate || !result.isError || requests?.length !== 1) continue;
+		const ask = requests[0];
+		if (ask.id === void 0 || ask.toolName !== call.name || askCounts.get(ask.id) !== 1) continue;
+		const outcomes = decisions.get(ask.id);
+		if (outcomes?.length !== 1) continue;
+		const decision = outcomes[0];
+		if (decision.outcome !== "rejected" || !(call.seq < ask.seq && ask.seq < decision.seq && decision.seq < result.seq)) continue;
+		rejected.add(callId);
+	}
+	return rejected;
+}
+//#endregion
 //#region lib/types/message-projection.js
 /** Project the installed SDK's validated log. 0.1.7 split plugin context into developer/message. */
 function contextMessage(event) {
@@ -17702,10 +17787,12 @@ function topicMessages(log) {
 	const messages = [];
 	const toolIndexes = /* @__PURE__ */ new Map();
 	const start = log.inheritedEventCount;
+	const events = log.events.slice(start);
+	const rejectedToolApprovals = projectRejectedToolApprovals(events);
 	let error = null;
 	const attemptByTurn = /* @__PURE__ */ new Map();
 	const bodyByTurn = /* @__PURE__ */ new Set();
-	for (const event of log.events.slice(start)) {
+	for (const event of events) {
 		if (event.type === "turn/start") {
 			error = null;
 			continue;
@@ -17809,6 +17896,7 @@ function topicMessages(log) {
 				}] : []),
 				isError: toolResult.isError,
 				...toolResult.errorCode === void 0 ? {} : { errorCode: toolResult.errorCode },
+				...rejectedToolApprovals.has(callId) ? { approvalOutcome: "rejected" } : {},
 				running: false
 			};
 			continue;

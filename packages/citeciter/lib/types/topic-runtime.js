@@ -6,6 +6,7 @@ import { composeHostedTopicPrompt, FIRST_ANSWER_FOLLOWUPS } from "./topic-prompt
 import { readNativeState } from "./native-session-read.js";
 import { readNativeAttachment } from "./native-attachment-read.js";
 import { toolCallRecord, toolResultRecord } from "./tool-events.js";
+import { projectRejectedToolApprovals } from "./tool-approval-projection.js";
 import { contextMessage } from "./message-projection.js";
 import { readQuestionReply, questionReplyText } from "./question-reply.js";
 import { latestTopicSubmission, topicSubmissionTime } from "./topic-archive.js";
@@ -341,10 +342,12 @@ export function topicMessages(log) {
     const messages = [];
     const toolIndexes = new Map();
     const start = log.inheritedEventCount;
+    const events = log.events.slice(start);
+    const rejectedToolApprovals = projectRejectedToolApprovals(events);
     let error = null;
     const attemptByTurn = new Map();
     const bodyByTurn = new Set();
-    for (const event of log.events.slice(start)) {
+    for (const event of events) {
         if (event.type === 'turn/start') {
             error = null;
             continue;
@@ -440,6 +443,7 @@ export function topicMessages(log) {
                 attachments: toolResult.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []),
                 isError: toolResult.isError,
                 ...(toolResult.errorCode === undefined ? {} : { errorCode: toolResult.errorCode }),
+                ...(rejectedToolApprovals.has(callId) ? { approvalOutcome: 'rejected' } : {}),
                 running: false,
             };
             continue;
