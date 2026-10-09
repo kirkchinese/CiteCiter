@@ -35,6 +35,8 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - name: Committed lib/ matches the build
-        run: git diff --exit-code --stat -- packages/citeciter/lib
+        run: |
+          git diff --stat -- packages/citeciter/lib
+          git diff --exit-code -- packages/citeciter/lib
       - run: pnpm --dir packages/citeciter pack --pack-destination "${{ github.workspace }}/.refs/artifacts"
       - run: git diff --check
