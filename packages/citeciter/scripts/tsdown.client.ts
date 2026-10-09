@@ -57,8 +57,8 @@ const CLIENT_EXTERNALS: readonly string[] = PLATFORM_MODULES
 
 const PACKAGE_ROOT = fileURLToPath(new URL('..', import.meta.url))
 
+/** Use forward slashes in module ids and CSS hash inputs so Windows and POSIX builds match. */
 function browserSourcePath(source: string): string {
-  if (!source.startsWith('.')) return source
   return source.replaceAll(sep, '/')
 }
 
@@ -140,7 +140,8 @@ function clientConfig(id: string, entry: string): UserConfig {
         this.addWatchFile(fileId)
         const source = await readFile(fileId)
         const { code, exports: cssExports } = transform({
-          filename: fileId,
+          // Class hashes derive from the filename; a package-relative path keeps builds reproducible across checkouts.
+          filename: browserSourcePath(relative(PACKAGE_ROOT, fileId)),
           code: source,
           cssModules: { pattern: '[hash]_[local]' },
           minify: true,
