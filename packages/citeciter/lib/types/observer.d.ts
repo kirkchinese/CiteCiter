@@ -41,8 +41,6 @@ export interface SourceReadResult {
     readonly requestedThroughSeq: number | null;
     /** Last scanned sequence; filtered records can advance this without adding evidence. */
     readonly capturedThroughSeq: number | null;
-    /** Legacy upper-bound marker; may precede fromSeq and is not the source horizon. */
-    readonly availableThroughSeq: number | null;
     /** A byte-budget stop within the requested range, not a source exhaustion flag. */
     readonly truncated: boolean;
     readonly hasMore: boolean;

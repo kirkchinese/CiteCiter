@@ -377,7 +377,7 @@ test('source reads format useful evidence, omit chunks, and gate reasoning', () 
   assert.equal(withReasoning.events.find((event) => event.type === 'assistant/message').reasoning, 'Need the source file.')
   assert.equal(withReasoning.events.find((event) => event.type === 'tool/result').content[0].text, 'file contents')
   assert.equal(withReasoning.capturedThroughSeq, 9)
-  assert.equal(withReasoning.availableThroughSeq, 9)
+  assert.equal('availableThroughSeq' in withReasoning, false)
   assert.equal(withReasoning.truncated, false)
 
   const withoutReasoning = formatSourceSessionRead(source, {
@@ -389,7 +389,6 @@ test('source reads format useful evidence, omit chunks, and gate reasoning', () 
   const answer = withoutReasoning.events.find((event) => event.type === 'assistant/message')
   assert.equal('reasoning' in answer, false)
   assert.equal(withoutReasoning.capturedThroughSeq, 6)
-  assert.equal(withoutReasoning.availableThroughSeq, 6)
   assert.equal(withoutReasoning.truncated, false)
 })
 
@@ -411,7 +410,6 @@ test('source-read byte limits stop before the first event that does not fit', ()
   assert.deepEqual(bounded.events, [complete.events[0]])
   assert.equal(Buffer.byteLength(JSON.stringify(bounded.events), 'utf8') <= oneEventBytes, true)
   assert.equal(bounded.capturedThroughSeq, 0)
-  assert.equal(bounded.availableThroughSeq, 9)
   assert.equal(bounded.truncated, true)
 })
 
@@ -434,7 +432,6 @@ test('oversized source events become bounded placeholders that preserve progress
   })
   assert.deepEqual(first.events, [placeholder])
   assert.equal(first.capturedThroughSeq, 430)
-  assert.equal(first.availableThroughSeq, 432)
   assert.equal(first.truncated, true)
   assert.equal(Buffer.byteLength(JSON.stringify(first.events), 'utf8') <= Buffer.byteLength(JSON.stringify([placeholder, firstNormal]), 'utf8'), true)
 
@@ -557,7 +554,6 @@ test('fixed boundaries hide later source growth while Observer pages can advance
     maxBytes: 100_000,
   })
   assert.deepEqual(exact.events.map((event) => event.seq), [1, 2])
-  assert.equal(exact.availableThroughSeq, 2)
 
   const observer = formatSourceSessionRead(grown, {
     fromSeq: 3,
@@ -565,5 +561,4 @@ test('fixed boundaries hide later source growth while Observer pages can advance
     maxBytes: 100_000,
   })
   assert.deepEqual(observer.events.map((event) => event.seq), [3])
-  assert.equal(observer.availableThroughSeq, 3)
 })

@@ -75,8 +75,6 @@ export interface SourceReadResult {
   readonly requestedThroughSeq: number | null
   /** Last scanned sequence; filtered records can advance this without adding evidence. */
   readonly capturedThroughSeq: number | null
-  /** Legacy upper-bound marker; may precede fromSeq and is not the source horizon. */
-  readonly availableThroughSeq: number | null
   /** A byte-budget stop within the requested range, not a source exhaustion flag. */
   readonly truncated: boolean
   readonly hasMore: boolean
@@ -349,11 +347,6 @@ export function formatSourceSessionRead(
     throw new Error('maxBytes must be a safe integer of at least 2')
   }
 
-  let availableThroughSeq: number | null = null
-  for (const event of source.events) {
-    if (options.throughSeq !== undefined && event.seq > options.throughSeq) break
-    availableThroughSeq = event.seq
-  }
   const events: SourceEvidenceEvent[] = []
   let bytesUsed = 2 // JSON array brackets.
   let capturedThroughSeq: number | null = null
@@ -409,7 +402,6 @@ export function formatSourceSessionRead(
     requestedFromSeq: fromSeq,
     requestedThroughSeq: options.throughSeq ?? null,
     capturedThroughSeq,
-    availableThroughSeq,
     truncated,
     hasMore: nextFromSeq !== null,
     nextFromSeq,

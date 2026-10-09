@@ -43,7 +43,7 @@ export class TopicDeletionReceipts {
 
   /**
    * Read one exact receipt from a known Citer-owned source root.
-   * @param root - canonical source/citeciter root, or the existing legacy Citer source index.
+   * @param root - canonical source/citeciter root.
    * @param sourceSessionId - source identity supplied by the owner, never derived from receipt data.
    * @param sessionId - exact generated Topic identity; no arbitrary path segments are accepted.
    * @returns verified evidence, or undefined only when the receipt does not exist.
