@@ -161,7 +161,7 @@ DE935AC3 包为 932,794 字节、162 个文件；主 Web 与官方 Desktop 两�
 | 真实文件跨窗口拖放 | 已请求用户将 README 拖到官方 Citer 面板，尚无结果；不能用 filechooser 或粘贴冒充拖放。 |
 | 实际缩放组合 | 宿主会话字号 14→18 已在官方原生窗口与辅助浏览器实际生效，两栏及输入可用，随后恢复 14；浏览器/系统整体缩放尚无有效观察，不能把字号设置等同于它。 |
 | 当前失败状态的重复告警 | 已检查成功恢复后的真实长历史与失败子工具；当前回合错误卡和底部告警的去重分支仍缺新包实际故障观察。 |
-| 最终 Git 提交安装 | 公开 f0c30dd 安装证据仍仅对应早期产物，需核对本次最终提交。 |
+| 最终代码 Git 提交安装 | cfcdac8 已通过官方 CLI 安装、冷启动、草稿恢复及真实问答；文件核对范围与 manifest 差异见下节。 |
 | 清理 | 自动审批拒绝清理本轮误建的空目录 `packages/citeciter/.refs/artifacts/board-citation-20261009/`，仅返回 blocked by policy；目录为空且被忽略，不在包内，未改用其他工具删除。 |
 
 以上缺口未消除前不创建 Release 或发布 npm。独立 Web 已停止；官方 Desktop 是主目录唯一运行中的 Host。Linux/macOS 不在本轮已验收范围。
@@ -173,3 +173,17 @@ DE935AC3 包为 932,794 字节、162 个文件；主 Web 与官方 Desktop 两�
 README 更新后重新打包至 `.refs/artifacts/release-docs-20261009/kirkchinese-dsh-citeciter-0.9.0-alpha.4.tgz`，933,913 字节、163 文件，SHA-256 `2DC7E02A361B5E3D5423376D22DFCCCFA4B5DB9B2F6003D136DE2C19DB23B1E9`。Host 与 Client 分别仍为 D701E7F3 和 1CBCC37F，运行代码与前述 23BBF511 包一致；没有测试脚本、假模型、截图、凭证或 .refs 内容入包。该文档包的安装与最终 Git 提交验收在后续记录，不以打包成功代替。
 
 通过宿主通用设置将字号由 14 调到 18，辅助浏览器 1440×900 与官方原生 1283×823 均实际放大来源和 Citer 历史文字。55% 比例下两栏换行正常，输入、附件与发送按钮仍可见；设置恢复为 14。此项是宿主字号缩放证据，不是浏览器页面或系统 DPI 整体缩放证据。
+
+## 当前代码的公开 Git 安装与冷启动
+
+代码及上述 README 已提交并推送为 `cfcdac8befc9e140d95d79f1fb45effe47372cf1`，分支仍为 `codex/official-desktop-october`，没有合并 main、创建 Release 或发布 npm。提交信息明确官方 Desktop 是适配目标、社区桌面不再保证可用，已清除的旧社区材料不作为证据，Git 历史保留。
+
+辅助页面离开 DSH 后，从官方应用菜单正常退出，确认两个端口和官方进程均停止。官方内置 CLI 通过 `plugin --profile desktop add git+https://github.com/kirkchinese/CiteCiter.git#cfcdac8befc9e140d95d79f1fb45effe47372cf1` 安装成功，pnpm 11.7.0 用时 9.3 秒；Profile 记录同一完整 SHA。已有的 peer 提示仍单列，没有掩盖或改动依赖策略。Web profile 则安装 2DC7E02A tarball，其全部 163 文件逐字节匹配。
+
+Git 产物核对中，共享文件与当前包一致，仓库根 README 与当前中文版一致；内层 package.json 与 Git 源码逐字节一致。它与 tarball 的唯一语义差异是 pnpm pack 从发布 manifest 删除了 prepack 脚本，其他字段一致；这不是运行代码差异，未错误宣称两个 manifest 字节相同。根 exports/dsh 元数据与当前源码相同。安装期间来源目录的 85 个既有文件摘要全部未变。
+
+官方冷启动窗口 528346 实际恢复 Topic 18 的两行中英混合草稿、两份引用、GPT-6-Sol Low 与只读权限；没有自动发送。Topic 13、14 目录仍不存在。随后辅助页面在既有空 Topic 16（`citeciter-2bfcc2c9-197a-471d-9fd7-ee3cd80dbbf6`）手动发送两句解释请求，真实 GPT-6-Sol 于 seq 15 回答同步输入与异步保存的区别，seq 17 completed；没有工具、卡片或路线。草稿 revision 3 为空且 pending=null，界面显示完整回答，没有重复提交。截图仅保存在忽略目录 `.refs/git-cfcdac8-real-answer-20261009.png`。
+
+额外尝试了浏览器 CDP 的 pageScaleFactor=1.25，实际 visual viewport 缩为 1152×720、scale=1.25，但浏览器 zoom 仍为 1，表现为局部放大裁切。已恢复 scale=1；该操作不计为浏览器重排缩放或原生 DPI 验收。官方窗口保持 Topic 18，等待真实跨窗口文件拖放结果。
+
+主 Desktop 仍保留 `@local/citeciter-timed-qa` 临时预设，因为已有验收 Topic 2 依赖它恢复。它不在 Git/npm 产物中；该 Topic 的保留或清理与此前已确认的 13、14 删除不同，不在本轮擅自移除其运行依赖。历史开发目录的自动审批清理阻塞仍按 10 月 7 日记录保留，不宣称本机所有临时内容已清零。
