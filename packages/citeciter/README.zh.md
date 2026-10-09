@@ -1,171 +1,118 @@
 # CiteCiter
 
-[English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
+[English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [更新记录](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/CHANGELOG.md) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
+
+![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.1/assets/hero/citeciter-hero.png)
 
 **AI 已经完成了任务，我还想弄明白它是怎么做的。**
 
-CiteCiter 帮助你从 Agent 的真实工作中学习。选中对话、工具结果或文档中的一段内容，在保留来源的独立 Topic 中追问，用板书理解关键关系，再回到原来的工作。
+CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 的插件，帮助你从 Agent 的真实工作中学习。选中对话、工具结果或文档中的一段内容，在保留来源的独立 Topic 里追问，用小黑板理解关键关系，再回到原来的工作。主对话不会被改动。
 
-如果你已经用 Agent 写出了代码或完成了分析，却还讲不清关键选择、不敢维护结果，或不知道该检查什么，这个插件希望帮你跨过其中一个具体障碍。它是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 插件，需要 DSH 和可用模型；不是独立聊天应用。
+[![CiteCiter 演示](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.1/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
-[![CiteCiter 演示：从 Agent 的工作中学习](https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
+[在 B 站观看演示](https://www.bilibili.com/video/BV1tqeA65EJ8/)（早期版本录制，界面与当前版本略有不同）。
 
-[在 B 站观看演示](https://www.bilibili.com/video/BV1tqeA65EJ8/)。这是早期已发布版本的中文演示，展示引用、独立讨论与板书；界面与当前版本可能不同，不代表最新官方桌面版已经通过验收。
+## 安装
 
-## 从眼前的一个疑问开始
+CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主版本，请按 DSH 版本选择对应的 CiteCiter：
 
-例如，Agent 修改了程序，你想知道：“为什么这段异步保存逻辑会影响输入？”
-
-1. 在原对话、工具结果或文档中选中相关内容，右键选择“自由提问”或“解释这段”。
-2. Citer 打开草稿，来源地址和选文作为可移除的附件保留。写下问题，选择模型，再手动发送。
-3. 围绕这段实际材料继续追问；需要时让模型画出流程、比较两种方案，或整理成学习卡。
-4. 回到原任务，对照代码、工具结果或一次小实验检查自己的理解。主对话与 Topic 分开保存。
-
-不用先组织一节课，也不必开启完整学习路线。相比另开一个聊天窗口，Citer 把来源、追问和相关记录留在同一个工作现场，减少反复复制上下文的步骤。解释和漂亮的板书仍可能有错；它们帮助你理解和检查，不代替事实证据。
-
-## 安装与兼容
-
-**桌面适配现以 DSH 官方桌面版为准，不再保证社区桌面版可用。** 当前官方 Windows 下载为 DSH `0.2.0-rc.2`，已核对安装程序签名和版本。官方下载：[Windows x64 安装程序](https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe)。
-
-| 宿主 | 截至 2026-10-09 的验证范围 |
+| DSH 版本 | CiteCiter 版本 |
 | --- | --- |
-| 官方 DSH Desktop `0.2.0-rc.2` | Git 安装、真实问答与审批、草稿恢复、文件图片、下载、删除恢复边界、窄屏和轮盘聚焦已按项验证；最终候选仍在验收 |
-| npm DSH `0.2.0-rc.2`（`latest` / `next`） | 当前适配目标，尚未完成验收 |
-| DSH `0.2.1-alpha.1`（`alpha`） | 独立 Web 已验证真实 PTC、草稿恢复、排队与插话、长文分页、学习卡和图像编辑；完整矩阵仍未完成 |
+| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1`、`0.2.1-alpha.2` | `0.9.0-beta.1` |
+| `0.1.7-rc.2` | `0.9.0-alpha.3` |
+| `0.1.5-rc.1` | `0.8.2` |
+| `0.1.2-rc.1` | `0.6.0` |
 
-本轮候选为 **0.9.0-alpha.4**，适配与验收仍在进行，尚未发布。当前已发布 CiteCiter 包为 **0.9.0-alpha.3**，是以 DSH `0.1.7-rc.2` 为基线的预发布版。不能把它安装到新宿主就视为兼容；不要绕过宿主的版本检查强行加载旧插件。
+**官方桌面版：** 在插件页安装 npm 包 `@kirkchinese/dsh-citeciter`，或在 Git 地址一栏填写 `https://github.com/kirkchinese/CiteCiter.git`，然后按提示重启。
 
-### Git 安装：官方桌面插件页安装与重启已核验
-
-仓库根目录已提供插件入口，官方 Desktop 的 Git 安装、启用和完整重启已实际验证。最新修复位于 `codex/official-desktop-october` 开发分支；该分支仍是候选，未合并 `main` 或发布到 npm。每次安装的确切提交及验收范围以记录为准。
-
-以下命令安装开发分支，**仅供候选复测，完整验收尚未完成**。需要复现某次结果时，将分支名替换为验收记录中的完整提交 SHA：
+**命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#codex/official-desktop-october"
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.1
 ```
 
-官方桌面插件页的 Git 地址也使用上述仓库地址。该入口直接使用仓库内已构建的插件，不需要填写 `#path:packages/citeciter`、运行安装时构建或跳转到已发布 npm 包。检查范围与限制见[最新验收记录](https://github.com/kirkchinese/CiteCiter/blob/codex/official-desktop-october/docs/validation/2026-10-09-draft-merge.md)。
+也可以从仓库安装某个发布标签，仓库内已包含构建好的插件，安装时无需构建：
 
-安装兼容插件后，在 DSH 中配置可用模型。全局 CLI 与桌面应用的内置运行时分别管理；不要让两个进程同时写入同一个 DSH home。Linux 与 macOS 本轮没有实机验收结论。
+```sh
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.1"
+```
 
-**0.8.0 已弃用。** Linux 符号链接启动 DSH 时可能无法创建或恢复 Topic，报找不到 `@deepseek-ai/dsh-agent-loop`。0.8.1 修复了启动路径，0.8.2 仅保留给旧 DSH `0.1.5-rc.1` 基线。**不要在 DSH 0.1.7 或更新版本上使用 0.8.2：** 旧包的 peer 版本与 Typert 工厂接口不匹配，见 [Issue #9](https://github.com/kirkchinese/CiteCiter/issues/9)。alpha.1 / alpha.2 的组合输入回归已在 alpha.3 修复。完整变化见 [Releases](https://github.com/kirkchinese/CiteCiter/releases)。
+安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件。同一个 DSH 主目录不要同时运行两个宿主进程。
 
-## 已有能力
+## 从一个疑问开始
+
+例如，Agent 修改了程序，你想知道"为什么这段异步保存逻辑会影响输入？"
+
+1. 在主对话、工具结果或文档中选中相关内容，按住右键打开轮盘，选择"自由提问"或"解释这段"。
+2. Citer 打开草稿，来源地址和选文作为可移除的附件。写下问题、选择模型，再手动发送。
+3. 围绕这段材料继续追问；需要时让模型在小黑板上画出流程，或整理成学习卡。
+4. 回到原任务，用代码、工具结果或一次小实验检查自己的理解。
+
+创建 Topic 或选择轮盘动作只会准备草稿，模型只在你手动发送后运行。解释和板书仍可能出错；它们帮助你理解和检查，不代替事实证据。
+
+## 功能
 
 | 你想做什么 | CiteCiter 提供什么 |
 | --- | --- |
-| 理解一段回答、代码或工具结果 | 带来源引用的独立 Topic，继续追问且不把讨论写入主 Session |
-| 看懂关系与过程 | 支持 Markdown、公式、表格、SVG、图片和隔离 HTML 的小黑板 |
-| 留下可回看的理解 | 可导出、修订的学习卡；文字与代码示例分别展示 |
-| 围绕真实文件讨论 | 普通文件与图片附件、文档选文、可选原生文件预览入口 |
-| 从理解继续动手 | 复用 DSH 模型、工具、审批、权限、排队和插话；新 Topic 默认只读 |
-| 暂停后继续 | 自动保存普通消息草稿、附件与引用；切换 Topic、刷新或重启后恢复，不自动发送 |
+| 理解一段回答、代码或工具结果 | 带来源引用的独立 Topic，追问不会写入主对话 |
+| 看懂关系与过程 | 支持 Markdown、公式、表格、SVG、图片和隔离 HTML 的小黑板；支持视觉的模型可以查看渲染后的板书并自行修正 |
+| 留下可回看的理解 | 可导出、可修订的学习卡，文字与代码示例分开展示 |
+| 围绕真实文件讨论 | 文件与图片附件、`.txt` / `.md` 文档阅读器、原生文件预览中的"CiteCiter 学习"入口 |
+| 从理解继续动手 | 复用 DSH 的模型、工具、审批、权限、排队和插话；新 Topic 默认只读 |
+| 暂停后继续 | 草稿（文字、引用、附件）和未提交的问答自动保存，切换、刷新或重启后恢复，不会自动发送 |
 
-这些是插件已有的功能；新宿主上的可用性仍须以上方兼容验收为准。模型返回的思考内容、工具参数与结果可在 Topic 中查看；没有返回思考内容时不显示空的思考行。兼容的宿主插件可以提供图像生成和查看工具，Citer 不代替它们的账户配置，也不会因安装插件自动开启相关能力。
+## 使用说明
 
-## 引用、草稿与操作
+**轮盘与引用。** 选中文字后按住右键打开八格轮盘，移向动作后松开；短按右键可点击选择，Shift + 右键保留浏览器菜单，方向键、数字 1–8 和 Enter 也可选择，Esc 取消。"自由提问"把选文加入当前选中的未归档 Topic，没有可用 Topic 时新建；其他动作默认新建。轮盘的八个槽位、提示词、默认模型和打开位置都可以在设置中修改。
 
-“自由提问”把真实选文追加到**当前来源中选中的未归档 Topic**；未选中或已归档时新建。其他内置动作默认新建，自定义动作可设置目标。追加保留已有草稿、模型与权限；加号只选择实际文件，不制造来源引用。
+**输入。** 输入框依次提供附件、权限模式、模型与思考强度、发送。Enter 发送，Shift + Enter 换行，输入法组词时 Enter 不会发送。生成过程中 Enter 跟随 DSH 的排队／插话设置，Ctrl + Enter 临时使用另一种方式。可以从附件菜单选择文件、粘贴图片，或把文件拖到 Citer 面板上。
 
-创建 Topic、选择轮盘动作、切换模型和引用板书都只准备草稿。引用可在发送前移除；未发送草稿不写入模型日志，也不授予来源读取权限。已发送引用属于历史上下文，删除后续草稿中的副本不会撤回历史消息。
+**草稿。** 草稿在后台静默保存。多个窗口编辑同一个 Topic 时，各自的修改会自动合并；同一处有冲突时，以正在输入的窗口为准。发送成功后只清除已发送的部分，发送期间新写的内容会保留。
 
-输入框依次提供附件、权限模式、模型与思考强度、发送。Enter 发送，Shift + Enter 换行；输入法组词期间 Enter 不发送。生成过程中，Enter 跟随 DSH 的排队／插话偏好，Ctrl + Enter 临时使用另一方式。手动发送成功后跳到最新消息；模型继续输出时尊重用户向上阅读的位置。
+**学习路线与学习卡。** 学习路线默认关闭；开启后，模型会根据问题用 DSH 待办安排讲解步骤。学习卡可以随时单独请求，生成前模型会核对结论、条件和计算，但自查不能保证正确。主动回忆默认关闭，开启后学习卡先显示自测问题。
 
-草稿静默保存。多窗口的独立文字修改、引用和附件自动合并；同一处内容冲突时，以正在操作的窗口为准，不显示保存进度或版本选择按钮。中文输入法组词期间不会被远端保存结果打断。宿主确认接收后只清除本次提交，保留发送期间新增的编辑；发送或附件恢复失败时保留可恢复内容并提示。
+**图像。** 生成和查看图片的工具由 [Codex Connect](https://github.com/franksong2702/dsh-codex-connect) 等宿主插件提供，需要在对应的 Profile 中单独开启。
 
-本轮候选为限时问答和普通阻塞问答独立保存问题卡草稿，包括未编辑的空卡。选项、自填原文（含空白与缩进）、当前题页及“等我回答”状态保存在所属 Topic。宿主退出后，问题卡与草稿恢复，由用户手动补答继续，不自动启动模型；明确取消问题或停止执行后不再恢复。保存与多窗口合并静默进行，同一处修改以正在操作的窗口为准。排队、超时待补答、关闭面板和断线不等于回答已被接纳。
+## 权限与数据
 
-普通卡与 PTC 子问题的重启恢复、手动补答、接纳后清理，以及取消／停止后不复活已有真实模型和界面证据。问题卡草稿删除、来源及其他 Topic 不变也已核对。各候选的包身份与通过范围单独记录；这些证据不代表完整矩阵通过，上方历史 Git 提交也不包含全部后续修复。
+新 Topic 默认**只读**，即使来源会话拥有更高权限。只有你在输入框中选择其他权限模式，或在设置里修改新 Topic 的默认权限后，Topic 才能修改工作区；DSH 的审批和沙箱规则照常生效。
 
-从附件菜单选择文件、向输入框粘贴图片，或把文件拖到整个 Citer 面板。拖放提示标明接收的 Topic，不向主对话复制附件。混合粘贴保留图片和文字；发送后的普通文件可下载，图片可在宿主内预览。草稿图片无法解码时显示“无法预览”，原文件仍保留，可移除后重新添加。
+Topic 只出现在 Citer 的列表里，不会出现在 DSH 的会话列表中。双击标题或按 F2 重命名；归档的 Topic 在你再次发送消息后自动恢复。永久删除需要输入完整的 Session ID，只删除这个 Topic 自己的记录、草稿和附件。
 
-Citer 图片预览的关闭按钮避开官方桌面标题栏，保留原生 Escape、焦点和图片生命周期。官方窗口已复查普通文件与图片的分类、未发送草稿完整重启恢复、真实模型组合读取、预览关闭及下载字节一致；拖放、粘贴和其他布局组合仍按各自验收记录核对。
-
-在设置中编辑轮盘八个槽位、默认模型、提示词与引用目标，修改后保存。短按右键保留可点击轮盘，Shift + 右键使用原生菜单；方向键、数字 1–8 和 Enter 也可选择。Esc、空槽、来源切换或轮盘失焦取消动作。
-
-## 学习与板书
-
-**学习路线默认关闭。** 单次解释、板书或卡片请求不自动开启教学计划。开启后，模型通过 DSH 待办选择合适的讲解阶段；用户要求的范围、篇幅、工具限制和卡片数量优先。主动回忆也默认关闭，不提供间隔复习、提醒或打卡。
-
-原生 Topic 首答默认提供三条建议追问，可在设置中关闭。用户要求只给结果、严格限制格式或不附建议时，提示词要求省略。点击建议只填入草稿，仍需手动发送。
-
-小黑板只有一个功能入口。板书引用进入可移除的草稿附件，公式按数学内容解析，SVG 和 HTML 图示提取可读文字；图片与图形关系仍需实际回看。刷新或重开后可以继续添加引用。学习卡示例明确区分文字与代码，代码保留语言、缩进和复制按钮；导出保留代码围栏。生成卡片前要求模型核对结论、条件和计算，但自查不能保证正确。
-
-支持视觉输入的模型可通过 `blackboard_view` 查看实际渲染的板书截图，检查遮挡、箭头与布局。切换 Topic 或关闭面板后仍可离屏渲染，但需要 DSH 页面保持连接。截图不包含主对话；沙箱 HTML iframe 暂不能截图，需要视觉检查的图示可使用 SVG。
-
-图像工具由 [Codex Connect](https://github.com/franksong2702/dsh-codex-connect) 等兼容宿主插件提供。图像生成与 `view_image` 分别启用，各 Profile 单独配置。安装提供方本身不会开启这些工具；新的提供方版本需要单独联调。
-
-## 权限、会话与布局
-
-新 Topic 默认**只读**，即使来源会话拥有完全权限。只有用户主动选择其他模式或更改默认值，才允许对应修改；DSH 的审批、沙箱和工具限制继续生效。
-
-Topic 只出现在 Citer 列表。双击标题或按 F2 重命名；归档保留记录，在归档 Topic 中手动发送且被宿主接受后恢复到活动列表。永久删除需要输入完整 Session ID，只删除所属 Topic，不删除主 Session、其他 Topic 或迁移备份。
-
-永久删除只清理所属 Topic 的日志、普通草稿、问题草稿和附件。其他窗口会释放该 Topic 的等待与监听，重启不会恢复已删除内容；来源、其他 Topic 和迁移备份保持不变。删除回执仅保存精确身份与清理状态，不保存正文或附件；普通读取失败不视为删除。目录如下：
+CiteCiter 的数据保存在每个来源会话的目录中：
 
 ```text
 .dsh/sessions/<workspace>/<sourceSession>/
-├── session.v4.jsonl[.zstd]       DSH 管理的主会话
+├── session.v4.jsonl[.zstd]   DSH 管理的主会话（Citer 不会改动）
 └── citeciter/
-    ├── owner.json              来源与目录归属
+    ├── owner.json            目录归属
     ├── <topicNumber>/
-    │   ├── topic.json          Topic 信息
-    │   ├── draft/              未发送文字、引用与附件
-    │   ├── question-drafts/    独立问答草稿与已结束标记（新增）
-    │   └── sessions/…          Citer 自己的会话日志
-    ├── deleted/               仅身份与清理状态的删除回执（新增）
-    └── migration-backups/      迁移原始副本
+    │   ├── topic.json        Topic 信息
+    │   ├── draft/            未发送的文字、引用和附件
+    │   ├── question-drafts/  未提交的问答
+    │   └── sessions/         Topic 自己的会话日志
+    └── deleted/              删除记录（只含身份，不含内容）
 ```
 
-迁移通过 DSH 公开持久化接口读取和写入，核验日志后才切换索引，并保留原副本。会话格式由 DSH 管理；不手工降级日志，也不改写事件序号或 `seedLength`。遇到不支持的新格式时拒绝有损写入。
+0.8 之前版本创建的 Topic 会在启动时自动迁移到这个目录，原始日志保留不动。
 
-宽窗口并排显示来源与 Citer，可调整比例或拖动标题栏悬浮、停靠；窄窗口使用带返回键的独立页面。空间不足时，原生文件详情优先，Citer 暂时收起并保留草稿。布局适配集中在独立模块，未知宿主结构不会强制覆盖主界面。
+## 已知问题
 
-## 文档与已知边界
-
-通过 Citer 的“…”菜单进入文档阅读，支持 `.txt`、`.md`、`.markdown`。导入上限为 2,000,000 字符，每页最多 500 KiB UTF-8 文本。文档地址与选文是可独立删除的引用；不同文档可加入同一 Topic。
-
-宿主提供可选 `documentPreviews` 服务时，可从原生文件预览进入“CiteCiter 学习”。引用时保存完整快照，后续文件变化不会覆盖它；单个快照上限为 8 MiB / 2,000,000 字符。此阅读功能不提供 PDF 文本提取、Word 解析或 OCR。
-
-来源与文档工具支持分页和明确的续读位置。来源读取使用 `sourceMaxSeq` 判断快照边界，`hasMore` / `nextFromSeq` 决定续读；文档偏移按 UTF-16 计数并返回实际读取区间，见[来源读取修复](https://github.com/kirkchinese/CiteCiter/blob/main/docs/releases/v0.8.2.md)与[文档偏移说明](https://github.com/kirkchinese/CiteCiter/blob/main/docs/compatibility/document-unicode-offsets.md)。空页或预算截断不等于来源不存在。
-
-完整宿主输入组件尚无跨会话嵌入接口，Citer 复用公开会话接口，但不能自动继承所有第三方输入扩展。另一个模型表示赞同、工具调用成功或生成一张卡片，都不能单独证明解释正确。
-
-官方 Desktop 后台重启时，连接它的另一个浏览器页面可能原位重连白屏，刷新后可恢复；停用 Citer 的对照中同样复现。本轮将它记录为外部宿主限制，没有宣称已修复。独立 Web alpha 的原位重连结果分别记录，不能互相替代。
+- Windows 上，只读模式下的 PowerShell 可能报语言模式错误或输出中文乱码。这是 DSH 执行器在只读沙箱中的限制，CiteCiter 不会为此放宽权限。
+- 官方桌面版重启后，仍连接着旧后台的其他浏览器标签页可能白屏，刷新即可恢复；停用 CiteCiter 时同样会出现。
+- 在同一个浏览器地址上先后使用不同版本的 DSH，宿主自己保存的草稿格式可能不兼容，导致主对话无法显示；不同版本请使用不同的地址或端口。
+- 插件主要在 Windows 上测试；Linux 与 macOS 未经系统测试，遇到问题欢迎反馈。
 
 ## 为什么做 CiteCiter
 
-实践通常同时产生两样东西：成果和能力。我们通过尝试、犯错、比较方案和验证，逐渐形成判断。AI 可以接手越来越多的执行，却不会自动把相应的理解交给使用者。任务完成与人的成长，可能因此更容易分离。
+实践通常同时产生两样东西：成果和能力。我们通过尝试、犯错、比较方案和验证，逐渐形成判断。AI 可以接手越来越多的执行，却不会自动把相应的理解交给使用者，任务完成与人的成长可能因此分离。
 
-AI 也可能降低实践门槛，让更多人做出以前做不了的东西。我们想探索的是：这些新增的实践，如何转化成人的能力？即使把执行交给 Agent，人仍需要提出目标、理解关键条件、判断结果是否适用，并在异常时质疑或接管。
+CiteCiter 尝试把真实的 AI 工作过程变成可引用、可追问、可检验的学习材料。从眼前的一个疑问出发，理解原理、查看证据，再带着新的认识继续工作。即使把执行交给 Agent，人仍需要提出目标、理解关键条件、判断结果是否适用，并在出现异常时接管。
 
-CiteCiter 尝试把真实的 AI 工作过程变成可引用、可追问、可检验的学习材料。用户从眼前的一个疑问出发，理解原理、查看证据，再带着新的认识继续工作。我们希望人在享受 AI 效率的同时，仍能获得理解世界、判断结果和独立行动的机会。
+## 反馈
 
-## 下一步与参与
+欢迎带着"Agent 已经完成了，但我还讲不清"的任务来[反馈](https://github.com/kirkchinese/CiteCiter/issues)。请写明 DSH 和插件版本，以及卡在安装、引用追问还是理解回答。贴材料前请移除密钥和私人内容。
 
-以下是探索方向，**不是已经实现的功能或发布日期承诺**。
-
-- **真实任务试用：** 优先观察用 Agent 完成任务后，难以解释、维护或验收结果的人；记录首次使用阻碍、后续是否回来，以及能否解释一个关键选择。
-- **Super 模式：** 研究由用户主动开启、默认关闭的深入核验流程，包括证据对照、反例和小实验；明确额外时间与调用成本。日常模式继续保持轻便，并如实表达不确定性。
-- **案例与传播：** 用真实问题制作中英文演示；只有经使用者同意、能够说明依据的收获，才作为案例分享。
-- **宿主适配：** 持续核对 DSH 官方扩展接口与官方桌面；其他宿主需求由真实使用反馈决定。
-
-欢迎带一个“Agent 已经完成，但我还讲不清”的任务来[反馈](https://github.com/kirkchinese/CiteCiter/issues)。请说明 DSH 与插件版本、之前是否用过 DSH，以及卡在安装、首次引用追问还是理解回答。如果用完后能够解释一个关键选择、发现一个问题，或在相似任务中作出更好的判断，也欢迎描述具体经过；没有帮助的情况同样有价值。贴材料前移除密钥和私人内容；未经同意，我们不会把反馈改成宣传案例。
-
-## 开发与验收
-
-[开发规范](https://github.com/kirkchinese/CiteCiter/blob/main/CONTRIBUTING.zh.md) · [产品规则](https://github.com/kirkchinese/CiteCiter/blob/main/docs/product-strategy.zh.md) · [alpha.3 输入修复](https://github.com/kirkchinese/CiteCiter/blob/main/docs/releases/v0.9.0-alpha.3.md)
-
-```sh
-pnpm install --frozen-lockfile
-pnpm typecheck
-pnpm typecheck:desktop
-pnpm build
-```
-
-Host 与 Client 分别编译；原生会话适配、来源读取、存储、附件、发送队列、板书截图和 UI 独立实现，不修改 DSH Agent Loop。静态检查不能代替功能验收；验收使用真实模型、真实来源分支及实际 UI，安装最终打包产物后记录通过项和限制。不保留人工模型提供者或临时测试脚本。
-
-同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于迁移和复用 Claude Code 与 DSH 之间的会话及资产；CiteCiter 关注从这些真实工作材料中继续理解与学习。
+开发说明见 [CONTRIBUTING.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/CONTRIBUTING.zh.md)，产品规则见 [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/docs/product.zh.md)。同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于在 Claude Code 与 DSH 之间迁移会话和资产。
 
 MIT License.

@@ -2,12 +2,14 @@
   "private": true,
   "packageManager": "pnpm@11.21.0",
   "scripts": {
-    "build": "pnpm check:git-entry && pnpm --dir packages/citeciter build",
+    "build": "pnpm check:git-entry && pnpm check:readme && pnpm --dir packages/citeciter build",
     "typecheck": "pnpm --dir packages/citeciter typecheck",
     "typecheck:desktop": "node packages/citeciter/scripts/check-desktop.mjs",
     "test": "pnpm --dir packages/citeciter test",
     "sync:git-entry": "node packages/citeciter/scripts/sync-git-entry.mjs",
-    "check:git-entry": "node packages/citeciter/scripts/sync-git-entry.mjs --check"
+    "check:git-entry": "node packages/citeciter/scripts/sync-git-entry.mjs --check",
+    "sync:readme": "node packages/citeciter/scripts/sync-readme.mjs",
+    "check:readme": "node packages/citeciter/scripts/sync-readme.mjs --check"
   },
   "publishConfig": {
     "directory": "packages/citeciter"
@@ -60,7 +62,7 @@
     "packages/citeciter/README.zh.md"
   ],
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.9.0-alpha.4",
+  "version": "0.9.0-beta.1",
   "description": "Source-aware native DSH Topics with manual drafts, permissions, visual boards and learning cards",
   "keywords": [
     "deepseek-harness",

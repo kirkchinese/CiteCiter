@@ -4,11 +4,11 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 
 ## Unreleased — 0.9.0-beta.1
 
-Targets the official DSH Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1`. Includes everything from the unpublished 0.9.0-alpha.4 candidate.
+Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` and `0.2.1-alpha.2`. Includes everything from the unpublished 0.9.0-alpha.4 candidate.
 
 ### Host support
 
-- Support the official DeepSeek Harness Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1`. Earlier npm versions are refused by these hosts' compatibility gate ([#13](https://github.com/kirkchinese/CiteCiter/issues/13)). Community desktop builds are no longer supported.
+- Support the official DeepSeek Harness Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1` / `0.2.1-alpha.2`. Earlier npm versions are refused by these hosts' compatibility gate ([#13](https://github.com/kirkchinese/CiteCiter/issues/13)). Community desktop builds are no longer supported.
 - The repository root is now an installable plugin entry, so `dsh plugin add git+https://github.com/kirkchinese/CiteCiter.git#<ref>` and the Desktop plugin page's Git field work without a build step.
 - Load shared DSH modules through the host's profile resolution. This fixes Topics that failed to restore on some official Desktop launch paths.
 
@@ -32,6 +32,7 @@ Targets the official DSH Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1`. Includes 
 - The private Topic runtime used by versions before 0.8, together with Exact Fork mode. Every Topic is now a native DSH Session in its source's `citeciter/` directory. Topics still stored in the pre-0.8 layout are migrated automatically at startup when their source is available; the original logs are kept.
 - Settings that no longer had an effect: default Topic mode, "allow investigating the source workspace" (applied only to pre-0.8 Topics), prompt templates and the wheel slot's content type. Values saved by earlier versions are ignored, and an invalid saved value now falls back to its default without resetting the other settings.
 - The `select-model` request and the 0.3.1 `citation` create request.
+- The `availableThroughSeq` field of `read_source_session`; `sourceMaxSeq`, `hasMore` and `nextFromSeq` describe paging.
 - Nine DSH peer dependencies that only the private runtime used, so the host compatibility check has fewer packages to match.
 
 ## 0.9.0-alpha.3 — 2026-09-28
