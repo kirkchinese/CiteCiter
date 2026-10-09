@@ -1,6 +1,7 @@
 import { type SessionHeader } from '@deepseek-ai/dsh-session';
 import { z } from 'zod';
 import { type TopicMetadata } from './topic.ts';
+import { type TopicDeletionReceipt } from './topic-deletion-receipts.ts';
 export declare function errorCode(error: unknown): string | undefined;
 export declare function unlinkIfPresent(path: string): Promise<void>;
 export declare function rmdirIfEmpty(path: string): Promise<void>;
@@ -44,6 +45,7 @@ export type TopicDeletionMarker = Omit<z.infer<typeof topicDeletionMarkerSchema>
 export declare class TopicIndex {
     private readonly root;
     private readonly sourceRoots;
+    private readonly deletionReceipts;
     /** Bind a canonical source-owned root resolved by SourceStorage. */
     bindSource(sourceSessionId: string, root: string): void;
     /** Return the owned metadata directory for one source-backed Topic. */
@@ -58,12 +60,21 @@ export declare class TopicIndex {
     }>;
     save(metadata: TopicMetadata): Promise<void>;
     loadBySessionId(sessionId: string): Promise<TopicMetadata>;
+    /** Return owned metadata when present; malformed or unreadable storage still throws. */
+    findBySessionId(sessionId: string): Promise<TopicMetadata | undefined>;
+    /**
+     * Find authoritative committed deletion evidence without inferring it from missing metadata.
+     * @param sessionId - exact generated Citer Session identity.
+     * @returns a verified pending marker or completed receipt, including after Host restart;
+     * old deletions whose markers were already removed have no recoverable evidence.
+     */
+    findDeleted(sessionId: string): Promise<TopicDeletionReceipt | undefined>;
     list(sourceSessionId: string): Promise<TopicMetadata[]>;
     /** Commit a minimal deletion marker before making Topic metadata unreachable. */
     markDeleting(metadata: TopicMetadata, sessionHeader: SessionHeader): Promise<TopicDeletionMarker>;
     /** Discover committed deletion markers without following linked directories. */
     listDeleting(): Promise<TopicDeletionMarker[]>;
-    /** Remove the marker and its now-empty Topic directory after artifact cleanup. */
+    /** Commit the deletion identity, then remove the marker and empty Topic directory after artifact cleanup. */
     finishDeleting(marker: TopicDeletionMarker): Promise<void>;
     /** Forget only a superseded plugin index after an owned copy was committed; original logs remain intact. */
     forgetLegacy(metadata: Pick<TopicMetadata, 'sessionId' | 'sourceSessionId' | 'topicId'>): Promise<void>;

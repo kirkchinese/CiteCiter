@@ -1,8 +1,9 @@
 import { DRAFT_CHUNK_BYTES, EMPTY_DRAFT, EMPTY_DRAFT_STATE, subtractSubmitted } from "../draft-contract.js";
 import { mergeDraftReferences } from "./draft-references.js";
-export const EMPTY_DRAFT_VIEW = { content: EMPTY_DRAFT, files: [], missing: [], ready: false, saving: false, sending: false, conflict: false, pending: false, error: null };
+import { mergeDraftContent } from "./draft-merge.js";
+export const EMPTY_DRAFT_VIEW = { content: EMPTY_DRAFT, files: [], missing: [], ready: false, sending: false, pending: false, error: null };
 /** Own draft persistence and attachment lifetimes independently of panel mounting and Topic navigation. */
-export function createDraftController(request, native) {
+export function createDraftController(request, native, isOperating) {
     const entries = new Map();
     const listeners = new Set();
     let snapshot = {};
@@ -23,14 +24,54 @@ export function createDraftController(request, native) {
     const entryOf = (id) => {
         let entry = entries.get(id);
         if (entry === undefined) {
-            entry = { state: EMPTY_DRAFT_STATE, files: new Map(), generation: 0, saved: 0, view: EMPTY_DRAFT_VIEW };
+            entry = { state: EMPTY_DRAFT_STATE, base: EMPTY_DRAFT_STATE, composing: false, files: new Map(), generation: 0, saved: 0, view: EMPTY_DRAFT_VIEW };
             entries.set(id, entry);
         }
         return entry;
     };
     const fail = (id, entry, error) => emit(id, entry, { error: error instanceof Error ? error.message : String(error) });
-    const ensure = async (id) => {
-        const entry = entryOf(id);
+    const restoreFiles = async (id, entry) => {
+        const files = new Map([...entry.state.content.files, ...(entry.state.pending?.content.files ?? [])].map(file => [file.id, file]));
+        for (const meta of files.values()) {
+            if (!current(id, entry))
+                return;
+            if (entry.files.has(meta.id))
+                continue;
+            try {
+                const chunks = [];
+                for (let offset = 0; offset < meta.size; offset += DRAFT_CHUNK_BYTES) {
+                    const chunk = await request({ action: 'draft-file-get', topicSessionId: id, fileId: meta.id, offset });
+                    if (!current(id, entry))
+                        return;
+                    if (chunk.kind !== 'draft-file')
+                        throw new Error('草稿附件响应类型不匹配');
+                    const bytes = Uint8Array.from(atob(chunk.data), char => char.charCodeAt(0));
+                    if (bytes.length !== Math.min(DRAFT_CHUNK_BYTES, meta.size - offset))
+                        throw new Error('草稿附件读取不完整');
+                    chunks.push(bytes);
+                }
+                const file = new File(chunks, meta.name, { type: meta.type, lastModified: meta.lastModified });
+                const [attachment] = await native.add(id, [file]);
+                if (attachment === undefined)
+                    throw new Error('DSH 未恢复附件');
+                if (!current(id, entry)) {
+                    native.remove(attachment.id);
+                    return;
+                }
+                if (![...entry.state.content.files, ...(entry.state.pending?.content.files ?? [])].some(item => item.id === meta.id)) {
+                    native.remove(attachment.id);
+                    continue;
+                }
+                entry.files.set(meta.id, { meta, native: attachment, saved: true });
+            }
+            catch (error) {
+                fail(id, entry, `无法恢复 ${meta.name}：${String(error)}；请移除或重新添加`);
+            }
+        }
+    };
+    const ensureEntry = async (id, entry) => {
+        if (!current(id, entry))
+            return;
         if (entry.view.ready)
             return;
         if (entry.loading !== undefined)
@@ -42,122 +83,159 @@ export function createDraftController(request, native) {
             if (!current(id, entry))
                 return;
             entry.state = response.state;
-            const files = new Map([...entry.state.content.files, ...(entry.state.pending?.content.files ?? [])].map(file => [file.id, file]));
-            for (const meta of files.values()) {
-                try {
-                    const chunks = [];
-                    for (let offset = 0; offset < meta.size; offset += DRAFT_CHUNK_BYTES) {
-                        const chunk = await request({ action: 'draft-file-get', topicSessionId: id, fileId: meta.id, offset });
-                        if (chunk.kind !== 'draft-file')
-                            throw new Error('草稿附件响应类型不匹配');
-                        const bytes = Uint8Array.from(atob(chunk.data), char => char.charCodeAt(0));
-                        if (bytes.length !== Math.min(DRAFT_CHUNK_BYTES, meta.size - offset))
-                            throw new Error('草稿附件读取不完整');
-                        chunks.push(bytes);
-                    }
-                    const file = new File(chunks, meta.name, { type: meta.type, lastModified: meta.lastModified });
-                    const [attachment] = await native.add(id, [file]);
-                    if (attachment === undefined)
-                        throw new Error('DSH 未恢复附件');
-                    if (!current(id, entry)) {
-                        native.remove(attachment.id);
-                        return;
-                    }
-                    entry.files.set(meta.id, { meta, native: attachment, saved: true });
-                }
-                catch (error) {
-                    fail(id, entry, `无法恢复 ${meta.name}：${String(error)}；请移除或重新添加`);
-                }
-            }
+            entry.base = response.state;
+            await restoreFiles(id, entry);
             emit(id, entry, { ready: true });
         })().catch(error => { fail(id, entry, error); throw error; }).finally(() => { delete entry.loading; });
         return entry.loading;
     };
-    const persistFile = async (id, item) => {
+    const ensure = async (id) => {
+        if (disposed)
+            return;
+        return ensureEntry(id, entryOf(id));
+    };
+    const persistFile = async (id, entry, item) => {
         if (item.saved)
             return;
         for (let offset = 0; offset < item.meta.size || offset === 0; offset += DRAFT_CHUNK_BYTES) {
+            if (!current(id, entry))
+                return;
             const bytes = new Uint8Array(await item.native.file.slice(offset, offset + DRAFT_CHUNK_BYTES).arrayBuffer());
+            if (!current(id, entry))
+                return;
             let binary = '';
             for (let start = 0; start < bytes.length; start += 8192)
                 binary += String.fromCharCode(...bytes.subarray(start, start + 8192));
             await request({ action: 'draft-file-put', topicSessionId: id, file: item.meta, offset, data: btoa(binary) });
-            if (disposed)
-                throw new Error('Citer 已关闭，未完成草稿保存');
+            if (!current(id, entry))
+                return;
         }
         item.saved = true;
     };
-    const flush = async (id) => {
-        await ensure(id);
-        const entry = entryOf(id);
+    const rebase = (id, entry, remote) => {
+        const pendingChanged = JSON.stringify(entry.state.pending) !== JSON.stringify(entry.base.pending);
+        const remotePendingChanged = JSON.stringify(remote.pending) !== JSON.stringify(entry.base.pending);
+        const pending = pendingChanged && !(remotePendingChanged && remote.pending !== null) ? entry.state.pending : remote.pending;
+        entry.state = { ...remote, content: mergeDraftContent(entry.base.content, entry.state.content, remote.content, isOperating()), pending };
+        entry.base = remote;
+        delete entry.remote;
+        const retained = new Set([...remote.content.files, ...(remote.pending?.content.files ?? [])].map(file => file.id));
+        const wanted = new Set([...entry.state.content.files, ...(pending?.content.files ?? [])].map(file => file.id));
+        for (const [key, file] of entry.files) {
+            if (!wanted.has(key)) {
+                native.remove(file.native.id);
+                entry.files.delete(key);
+            }
+            else if (!retained.has(key))
+                file.saved = false;
+        }
+        emit(id, entry);
+    };
+    // Every continuation keeps the captured entry. A forgotten/reloaded identity
+    // must never be recreated by a late save, upload or timer from its old entry.
+    const flushEntry = async (id, entry) => {
+        await ensureEntry(id, entry);
+        if (!current(id, entry))
+            return;
         if (entry.timer !== undefined) {
             clearTimeout(entry.timer);
             delete entry.timer;
         }
         if (entry.saving !== undefined) {
             await entry.saving;
-            if (entry.saved < entry.generation)
-                return flush(id);
+            if (current(id, entry) && entry.saved < entry.generation)
+                return flushEntry(id, entry);
             return;
         }
-        if (entry.view.conflict)
-            throw new Error('草稿已在另一窗口更改，请先选择保留哪个版本');
+        if (entry.composing)
+            return;
         entry.saving = (async () => {
-            emit(id, entry, { saving: true, error: null });
+            let collisions = 0;
+            if (entry.view.error !== null)
+                emit(id, entry, { error: null });
             while (entry.saved < entry.generation) {
                 if (!current(id, entry))
                     return;
+                if (entry.composing)
+                    return;
+                if (entry.remote !== undefined) {
+                    rebase(id, entry, entry.remote);
+                    await restoreFiles(id, entry);
+                    if (!current(id, entry))
+                        return;
+                    emit(id, entry);
+                }
                 for (const item of entry.files.values())
-                    await persistFile(id, item);
+                    await persistFile(id, entry, item);
                 if (!current(id, entry))
                     return;
+                if (entry.composing)
+                    return;
                 const generation = entry.generation;
-                const response = await request({ action: 'draft-save', topicSessionId: id, state: entry.state });
+                const outgoing = entry.state;
+                const response = await request({ action: 'draft-save', topicSessionId: id, state: outgoing });
+                if (!current(id, entry))
+                    return;
                 if (response.kind !== 'draft')
                     throw new Error('草稿保存响应类型不匹配');
                 if (response.conflict) {
-                    emit(id, entry, { conflict: true });
-                    throw new Error('草稿已在另一窗口更改；本窗口内容仍保留');
+                    entry.remote = response.state;
+                    // Yield after repeated competing writes; keep unsaved work and retry quietly.
+                    if (++collisions >= 4) {
+                        entry.timer = setTimeout(() => { void flushEntry(id, entry).catch(() => { }); }, 250);
+                        return;
+                    }
+                    continue;
                 }
+                entry.base = response.state;
                 entry.state = { ...entry.state, revision: response.state.revision };
                 entry.saved = generation;
             }
-        })().catch(error => { fail(id, entry, error); throw error; }).finally(() => { delete entry.saving; emit(id, entry, { saving: false }); });
+        })().catch(error => { fail(id, entry, error); throw error; }).finally(() => { delete entry.saving; });
         return entry.saving;
     };
+    const flush = async (id) => {
+        if (disposed)
+            return;
+        return flushEntry(id, entryOf(id));
+    };
     const changed = (id, entry) => {
+        if (!current(id, entry))
+            return;
         entry.generation++;
         emit(id, entry);
         clearTimeout(entry.timer);
-        entry.timer = setTimeout(() => { void flush(id).catch(() => { }); }, 150);
+        entry.timer = setTimeout(() => { void flushEntry(id, entry).catch(() => { }); }, 150);
     };
     const mutate = async (id, change) => {
         // Controlled input values must be echoed before the React event returns.
         // Yielding even for a ready draft restores the previous value and ends IME composition.
-        if (!entryOf(id).view.ready)
-            await ensure(id);
         if (disposed)
             return;
         const entry = entryOf(id);
+        if (!entry.view.ready)
+            await ensureEntry(id, entry);
+        if (!current(id, entry))
+            return;
         change(entry);
         changed(id, entry);
-    };
-    const reload = async (id) => {
-        const old = entryOf(id);
-        clearTimeout(old.timer);
-        await old.saving?.catch(() => { });
-        for (const item of old.files.values())
-            native.remove(item.native.id);
-        entries.delete(id);
-        await ensure(id);
     };
     return {
         getSnapshot: () => snapshot,
         subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
         /** Pending receipts are already durable; only unflushed local edits need a navigation warning. */
         hasUnsavedChanges: () => [...entries.values()].some(entry => entry.generation !== entry.saved),
-        flushAll: () => Promise.allSettled([...entries.keys()].filter(id => entryOf(id).view.ready).map(flush)),
+        flushAll: () => Promise.allSettled([...entries].filter(([, entry]) => entry.view.ready).map(([id, entry]) => flushEntry(id, entry))),
         ensure, flush,
+        /** Defer remote text reconciliation until the input method commits its candidate. */
+        setComposing: (id, composing) => {
+            if (disposed)
+                return;
+            const entry = entryOf(id);
+            entry.composing = composing;
+            if (!composing && entry.saved < entry.generation)
+                changed(id, entry);
+        },
         /** Publish ready-draft edits synchronously; the returned promise only waits for an initial load when needed. */
         setText: (id, text) => mutate(id, entry => { entry.state = { ...entry.state, content: { ...entry.state.content, text } }; }),
         append: (id, text, references) => mutate(id, entry => {
@@ -169,8 +247,12 @@ export function createDraftController(request, native) {
             entry.state = { ...entry.state, content: { ...entry.state.content, references: entry.state.content.references.filter(item => item.id !== referenceId) } };
         }),
         addFiles: async (id, files) => {
-            await ensure(id);
+            if (disposed)
+                return;
             const entry = entryOf(id);
+            await ensureEntry(id, entry);
+            if (!current(id, entry))
+                return;
             if (entry.state.content.files.length + files.length > 32 || files.some(file => file.size > 100 * 1024 * 1024))
                 throw new Error('草稿最多保留 32 个附件，每个附件不超过 100 MiB');
             const added = await native.add(id, files);
@@ -197,15 +279,19 @@ export function createDraftController(request, native) {
         }),
         /** Persist the exact outgoing snapshot and identity before native submission begins. */
         submit: async (id, send, retry = false) => {
+            if (disposed)
+                return false;
             const entry = entryOf(id);
             if (!entry.view.ready)
-                await ensure(id);
+                await ensureEntry(id, entry);
             if (!current(id, entry))
                 return false;
             if (entry.view.sending)
                 return false;
             emit(id, entry, { sending: true });
             try {
+                if (entry.composing)
+                    return false;
                 if (entry.view.missing.length !== 0)
                     throw new Error('请先移除或重新添加无法恢复的附件');
                 if (entry.state.pending !== null && !retry)
@@ -219,10 +305,14 @@ export function createDraftController(request, native) {
                 const requestId = entry.state.pending?.requestId ?? crypto.randomUUID();
                 entry.state = { ...entry.state, pending: { requestId, content } };
                 entry.generation++;
-                await flush(id);
+                await flushEntry(id, entry);
                 if (!current(id, entry))
                     return false;
+                if (entry.state.pending?.requestId !== requestId || entry.base.pending?.requestId !== requestId)
+                    throw new Error('草稿尚未保存，未发送；请稍后重试');
                 const sent = await send(content, outgoingFiles, requestId);
+                if (!current(id, entry))
+                    return false;
                 if (sent) {
                     entry.state = { ...entry.state, content: subtractSubmitted(entry.state.content, content), pending: null };
                     for (const file of content.files)
@@ -231,7 +321,7 @@ export function createDraftController(request, native) {
                 else
                     entry.state = { ...entry.state, pending: null };
                 changed(id, entry);
-                await flush(id);
+                await flushEntry(id, entry);
                 return sent;
             }
             catch (error) {
@@ -242,53 +332,24 @@ export function createDraftController(request, native) {
                 emit(id, entry, { sending: false });
             }
         },
-        reload,
         /** Check a lost send response without replacing edits made while the check is in flight. */
         reconcile: async (id) => {
-            await flush(id);
+            if (disposed)
+                return;
             const entry = entryOf(id);
-            const before = entry.state;
+            await flushEntry(id, entry);
+            if (!current(id, entry))
+                return;
             const response = await request({ action: 'draft-get', topicSessionId: id });
             if (response.kind !== 'draft')
                 throw new Error('草稿响应类型不匹配');
             if (!current(id, entry))
                 return;
-            if (response.state.revision === entry.state.revision)
+            if (response.state.revision <= entry.state.revision)
                 return;
-            if (entry.state.revision === before.revision && before.pending !== null && response.state.pending === null && response.state.revision === before.revision + 1) {
-                entry.state = { ...entry.state, revision: response.state.revision, content: subtractSubmitted(entry.state.content, before.pending.content), pending: null };
-                changed(id, entry);
-                await flush(id);
-            }
-            else {
-                emit(id, entry, { conflict: true });
-                throw new Error('核对期间草稿已被另一窗口更改；本窗口内容仍保留');
-            }
-        },
-        /** Explicit conflict resolution: restore locally retained bytes removed by a peer, then CAS the latest revision. */
-        keepLocal: async (id) => {
-            const entry = entryOf(id);
-            const response = await request({ action: 'draft-get', topicSessionId: id });
-            if (response.kind !== 'draft')
-                throw new Error('草稿响应类型不匹配');
-            if (!current(id, entry))
-                return;
-            // A peer may have released the durable file while this window still owns its native File.
-            // Include pending submissions: their bytes remain pinned until admission is reconciled.
-            const retained = new Set([...response.state.content.files, ...(response.state.pending?.content.files ?? [])].map(file => file.id));
-            for (const item of entry.files.values())
-                if (!retained.has(item.meta.id))
-                    item.saved = false;
-            entry.state = { ...entry.state, revision: response.state.revision };
-            emit(id, entry, { conflict: false });
+            entry.remote = response.state;
             changed(id, entry);
-            try {
-                await flush(id);
-            }
-            catch (error) {
-                emit(id, entry, { conflict: true });
-                throw error;
-            }
+            await flushEntry(id, entry);
         },
         forget: (id) => {
             const entry = entries.get(id);
@@ -304,7 +365,7 @@ export function createDraftController(request, native) {
                 listener();
         },
         dispose: async () => {
-            await Promise.allSettled([...entries.keys()].filter(id => entryOf(id).view.ready).map(flush));
+            await Promise.allSettled([...entries].filter(([, entry]) => entry.view.ready).map(([id, entry]) => flushEntry(id, entry)));
             disposed = true;
             for (const entry of entries.values())
                 clearTimeout(entry.timer);

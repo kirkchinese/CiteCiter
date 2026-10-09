@@ -13,12 +13,11 @@ export interface HostAgentModules {
     readonly createScope: (ctx: Context, key: object) => HostScope;
 }
 /**
- * Resolve runtime modules from the host installation, not the plugin's dependencies.
- * CLI argv can name an npm/pnpm symlink; canonicalize it before walking node_modules.
- * Official Desktop carries its runtime inside app.asar/dsh (or app/dsh when unpacked).
- * The Electron shell's package.json is not a DSH module-resolution anchor.
+ * Load the declared SDK peers through DSH's active profile resolver.
+ * File URLs bypass peer routing and can create a second private scope identity,
+ * particularly when Electron ASAR paths use different casing on Windows.
+ * Bare imports also leave CLI symlinks and Desktop packaging to the host resolver.
  * @returns the host's AgentLoop, SessionStore, title service and scope factory.
- * @throws when the launcher cannot be located or its runtime exports are unavailable.
  */
 export declare function loadHostAgentModules(): Promise<HostAgentModules>;
 export {};

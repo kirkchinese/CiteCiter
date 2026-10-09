@@ -20,6 +20,10 @@ export interface NativeComposer {
      * Idempotent; a missing list row or a failed read is not proof of deletion.
      */
     retire(sessionId: string): void;
+    /** Observe a confirmed retirement; unsubscribe with the owning controller. */
+    onRetired(listener: (sessionId: string) => void): () => void;
+    hasUnsavedQuestionDrafts(): boolean;
+    flushQuestionDrafts(): Promise<PromiseSettledResult<void>[]>;
     retry(sessionId: string, id: DraftAttachmentId): void;
     watch(sessionId: string, listener: (snapshot: CiterSessionSnapshot) => void): () => void;
     queue(sessionId: string, id: Parameters<SessionFace['updateQueue']>[0], action: Parameters<SessionFace['updateQueue']>[1]): Promise<void>;

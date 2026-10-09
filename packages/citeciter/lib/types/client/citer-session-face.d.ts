@@ -20,6 +20,7 @@ type Submission = Parameters<SessionFace['beginSubmission']>[0];
 export declare class CiterSessionFace implements SessionFace {
     private readonly ctx;
     readonly sessionId: SessionId;
+    private readonly onDeleted?;
     private readonly store;
     private readonly pending;
     private readonly lifetime;
@@ -33,7 +34,7 @@ export declare class CiterSessionFace implements SessionFace {
     private nextRequestId;
     /** Use the draft's durable identity for this explicit send, including retries after restart. */
     prepareSubmission(requestId: string): void;
-    constructor(ctx: Context, sessionId: SessionId);
+    constructor(ctx: Context, sessionId: SessionId, onDeleted?: (() => void) | undefined);
     getSnapshot: () => CiterSessionSnapshot;
     subscribe: (listener: () => void) => (() => void);
     /** Establish ownership and obtain a real baseline before accepting composer work. */

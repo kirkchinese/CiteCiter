@@ -4,6 +4,7 @@ import type { CompanionActions, OverlayActions } from '../view-actions.ts'
 import { useEffect } from 'react'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { BoardElementState } from '../../board.ts'
+import { boardCitationPrompt } from '../board-citation.ts'
 import { BoardView } from './BoardView.tsx'
 import css from './BoardView.module.css'
 
@@ -16,16 +17,6 @@ export interface BlackboardWorkspaceInjected {
 }
 
 export type BlackboardWorkspaceProps = ConvViewProps & BlackboardWorkspaceInjected
-
-function citationPrompt(element: BoardElementState): string {
-  if (element.kind === 'math') return `$$\n${element.content}\n$$`
-  if (['text', 'markdown', 'table'].includes(element.kind)) return element.content
-  const compact = element.content.replaceAll(/\s+/gu, ' ').trim()
-  const label = ['text', 'markdown', 'math', 'table'].includes(element.kind) && compact !== ''
-    ? compact.slice(0, 80)
-    : `黑板元素 ${element.id}`
-  return `关于黑板上的「${label}」：`
-}
 
 /**
  * Render the session-scoped blackboard registered through conversation.view.
@@ -43,7 +34,7 @@ export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, o
     : null
   const quote = (element: BoardElementState) => {
     if (active === null) return
-    bus.requestBoardCitation(active.topic.sessionId, citationPrompt(element))
+    bus.requestBoardCitation(active.topic.sessionId, boardCitationPrompt(element))
     openPanel()
   }
 

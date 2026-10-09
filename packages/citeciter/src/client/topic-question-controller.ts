@@ -1,6 +1,7 @@
 import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import type { PendingQuestion as HostQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 import type { PendingQuestion } from '../topic.ts'
+import type { QuestionDraftController, QuestionDraftResult } from './question-draft-controller.ts'
 
 export interface QuestionDraftAnswer { readonly selected: readonly string[]; readonly custom: string }
 export type QuestionDraft = Readonly<Record<string, QuestionDraftAnswer>>
@@ -9,7 +10,7 @@ export type TopicQuestionSnapshot = HostSnapshot & { readonly hidden: boolean; r
 interface WaitClaim extends AsyncIterable<{ remainingMs: number }> { dispose(): void }
 export interface TopicQuestionChannel {
   claim(callId: string, signal: AbortSignal): WaitClaim
-  answer(key: string, answer: AskUserQuestionAnswer): Promise<void>
+  answer(key: string, answer: AskUserQuestionAnswer, draftRevision: number): Promise<QuestionDraftResult | undefined>
   cancel(key: string): Promise<void>
   timeout(key: string): Promise<void>
 }
@@ -21,7 +22,6 @@ export interface TopicQuestionChannel {
  */
 export class TopicQuestionController {
   readonly review = undefined
-  readonly dismissal: 'hide' | 'cancel'
   private pending: PendingQuestion
   private readonly lifetime = new AbortController()
   private readonly listeners = new Set<() => void>()
@@ -37,13 +37,24 @@ export class TopicQuestionController {
   private closed = false
   private hidden = false
   private failure: string | undefined
-  private draft: QuestionDraft = {}
+  private readonly releaseDraft: () => void
   private snapshot: TopicQuestionSnapshot
 
-  constructor(pending: PendingQuestion, private readonly channel: TopicQuestionChannel) {
+  constructor(pending: PendingQuestion, private readonly channel: TopicQuestionChannel, readonly drafts: QuestionDraftController) {
     this.pending = pending
-    this.dismissal = pending.callId === undefined ? 'cancel' : 'hide'
     this.snapshot = this.read()
+    this.releaseDraft = drafts.subscribe(() => {
+      if (this.lifetime.signal.aborted || this.closed) return
+      const draft = drafts.getSnapshot()
+      if (draft.closed) { this.close(); return }
+      if (draft.ready) {
+        // Recover editing intent, never an old foreground claim or a submission.
+        this.edited ||= draft.content.edited
+        this.held ||= draft.content.held
+        if (this.edited || this.held) { this.focused = false; this.deadline = undefined }
+        this.sync(this.pending)
+      }
+    })
   }
 
   readonly subscribe = (listener: () => void): (() => void) => {
@@ -51,14 +62,22 @@ export class TopicQuestionController {
     return () => { this.listeners.delete(listener) }
   }
   readonly getSnapshot = (): TopicQuestionSnapshot => this.snapshot
+  get dismissal(): 'hide' | 'cancel' { return this.pending.state !== 'continued' && (this.pending.blocking === true || this.pending.callId === undefined) ? 'cancel' : 'hide' }
   get callId(): string | undefined { return this.pending.callId }
-  getDraft(): QuestionDraft { return this.draft }
-  setDraft(draft: QuestionDraft): void { this.draft = draft }
+  get allowSkip(): boolean { return this.pending.blocking !== true && this.pending.callId !== undefined }
+  get interrupted(): boolean { return this.pending.blocking === true && this.pending.state === 'continued' }
+  getDraft(): QuestionDraft { return this.drafts.getSnapshot().content.answers }
+  setDraft(draft: QuestionDraft): void { this.drafts.setAnswers(draft) }
 
   /** Reconcile the private Host snapshot; an older open frame cannot undo continuation. */
   sync(pending: PendingQuestion): void {
     if (this.closed || this.lifetime.signal.aborted) return
     this.pending = this.pending.state === 'continued' ? { ...pending, state: 'continued' } : pending
+    if (!this.drafts.getSnapshot().ready) {
+      void this.drafts.ensure().catch(() => { /* The question form shows the recovery error and retry action. */ })
+      this.publish()
+      return
+    }
     if (this.pending.state === 'continued') {
       this.deadline = undefined
       this.ended = true
@@ -128,7 +147,7 @@ export class TopicQuestionController {
   releaseFocus(): void {
     if (!this.focused) return
     this.focused = false
-    if (!this.ended && this.pending.timed === true && this.remaining !== undefined) this.deadline = Date.now() + this.remaining
+    if (!this.ended && !this.edited && !this.held && this.pending.timed === true && this.remaining !== undefined) this.deadline = Date.now() + this.remaining
     this.publish()
   }
   /** The first actual edit keeps this Client's answerable foreground wait open. */
@@ -138,12 +157,14 @@ export class TopicQuestionController {
     this.edited = true
     this.focused = false
     this.deadline = undefined
+    this.drafts.setWaitState({ edited: true })
     this.publish()
   }
   takeTime(): void {
     this.held = true
     this.focused = false
     this.deadline = undefined
+    this.drafts.setWaitState({ held: true })
     this.publish()
   }
 
@@ -161,8 +182,19 @@ export class TopicQuestionController {
   }
 
   async answer(answer: AskUserQuestionAnswer): Promise<void> {
-    await this.channel.answer(this.pending.key, answer)
-    this.close()
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const revision = await this.drafts.prepareSubmission()
+      if (this.drafts.getSnapshot().closed || this.closed || this.lifetime.signal.aborted) throw new Error('这个提问已结束，未重复提交回答')
+      const conflict = await this.channel.answer(this.pending.key, answer, revision)
+      if (conflict === undefined) {
+        // A queued reply is cleaned up only after actual Host admission.
+        this.close()
+        return
+      }
+      await this.drafts.rejectSubmission(conflict)
+      if (conflict.closed) throw new Error('这个提问已结束，未重复提交回答')
+    }
+    throw new Error('回答未发送，请稍后重试')
   }
   async dismiss(): Promise<void> {
     if (this.dismissal === 'hide') { this.hidden = true; this.releaseFocus(); this.publish(); return }
@@ -174,16 +206,18 @@ export class TopicQuestionController {
   private close(): void {
     this.closed = true
     this.deadline = undefined
-    this.draft = {}
     this.publish()
     // The Host closes the claim after accepting the answer; do not release it
     // ahead of the RPC and accidentally turn an on-time answer into a timeout.
     this.claim?.dispose()
   }
-  /** Called when the native composer is disposed or a fresh Host snapshot drops this call. */
-  dispose(): void {
+  /** Release a carrier without deleting its draft; only a confirmed Topic deletion may discard it here. */
+  async dispose(deleted = false): Promise<void> {
     this.lifetime.abort()
     this.close()
+    this.releaseDraft()
     this.listeners.clear()
+    if (deleted) this.drafts.finish()
+    await this.drafts.dispose()
   }
 }

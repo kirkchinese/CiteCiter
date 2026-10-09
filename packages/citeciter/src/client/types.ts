@@ -36,7 +36,7 @@ export type CiteSelection = AssistantCiteSelection | ToolCiteSelection
 
 /** One explicit request to append a blackboard reference to the Topic composer. */
 export interface BoardCitationRequest {
-  readonly id: number
+  readonly id: string
   readonly topicSessionId: string
   readonly prompt: string
 }
@@ -53,7 +53,6 @@ export interface CiteOverlaySnapshot {
 export class CiteBus {
   private snapshot: CiteOverlaySnapshot = { panelOpen: false, activation: 0, presentation: 'side', boardCitation: null }
   private readonly listeners = new Set<() => void>()
-  private nextCitationId = 1
 
   /** @param reportListenerError - contains one failed browser subscriber. */
   constructor(private readonly reportListenerError: (error: unknown) => void) {}
@@ -91,16 +90,16 @@ export class CiteBus {
   requestBoardCitation(topicSessionId: string, prompt: string): void {
     this.snapshot = {
       ...this.snapshot,
-      boardCitation: { id: this.nextCitationId++, topicSessionId, prompt },
+      boardCitation: { id: crypto.randomUUID(), topicSessionId, prompt },
     }
     this.notify()
   }
 
   /**
    * Clear the citation only when the matching consumer handled it.
-   * @param id - monotonically assigned citation request identity.
+   * @param id - exact request identity, unique across windows and draft restoration.
    */
-  clearBoardCitation(id: number): void {
+  clearBoardCitation(id: string): void {
     if (this.snapshot.boardCitation?.id !== id) return
     this.snapshot = { ...this.snapshot, boardCitation: null }
     this.notify()

@@ -58,13 +58,15 @@ function FlowDisclosure({
 export function ToolRow({ message, sessionId, load }: { readonly message: Extract<TopicMessage, { role: 'tool' }>, readonly sessionId: string, readonly load: NativeComposer['attachment'] }) {
   const args = jsonObject(message.arguments)
   const result = message.result === null ? null : jsonObject(message.result)
-  const questionVerdict = message.name !== 'ask_user_question' || !message.isError ? null
-    : message.errorCode === 'ASK_CANCELLED' ? '已取消'
-      : message.errorCode === 'ASK_ABORTED' ? '已中断' : null
+  const questionVerdict = message.name !== 'ask_user_question' ? null
+    : message.interruptionOutcome === 'interrupted' ? '已中断'
+      : !message.isError ? null
+        : message.errorCode === 'ASK_CANCELLED' ? '已取消'
+          : message.errorCode === 'ASK_ABORTED' ? '已中断' : null
   const verdict = message.isError && message.approvalOutcome === 'rejected' ? '已拒绝' : questionVerdict
-  const summary = message.running
-    ? compactPreview(message.arguments)
-    : message.questionReply !== undefined ? compactPreview(questionReplySummary(message.questionReply))
+  const running = message.running && message.questionReply === undefined && message.interruptionOutcome === undefined
+  const summary = message.questionReply !== undefined ? compactPreview(questionReplySummary(message.questionReply))
+    : running ? compactPreview(message.arguments)
     : verdict ?? (message.isError
       ? '调用失败'
       : compactPreview(message.result || ((message.attachments?.length ?? 0) > 0 ? '附件已返回' : '完成')))
@@ -74,7 +76,7 @@ export function ToolRow({ message, sessionId, load }: { readonly message: Extrac
         icon={message.name === 'ask_user_question' ? <IconQuestionOutlineMedium /> : <IconSparkleMedium />}
         title={message.name}
         summary={summary}
-        running={message.running}
+        running={running}
       >
         <div className={css.toolPreview}>
           <strong>参数</strong>

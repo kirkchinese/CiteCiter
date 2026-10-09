@@ -54,6 +54,45 @@ function subtractSubmitted(current, submitted) {
 	};
 }
 //#endregion
+//#region lib/types/question-draft-contract.js
+/** Question identities are opaque values, never filesystem paths. */
+const questionDraftKeySchema = z.string().min(1).max(2e3);
+/** Partial answers preserve custom text verbatim, including whitespace and code indentation. */
+const questionDraftAnswerSchema = z.object({
+	selected: z.array(z.string().max(4e3)).max(128),
+	custom: z.string().max(1e5)
+}).strict();
+const questionDraftContentSchema = z.object({
+	answers: z.record(z.string().min(1).max(1e3), questionDraftAnswerSchema).refine((answers) => Object.keys(answers).length <= 128, "Too many question drafts"),
+	page: z.number().int().nonnegative().max(127),
+	edited: z.boolean(),
+	held: z.boolean()
+}).strict();
+/** A per-question CAS revision, independent from the ordinary message draft. */
+const questionDraftStateSchema = z.object({
+	version: z.literal(1),
+	revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 1),
+	content: questionDraftContentSchema
+}).strict();
+const EMPTY_QUESTION_DRAFT_STATE = {
+	version: 1,
+	revision: 0,
+	content: {
+		answers: {},
+		page: 0,
+		edited: false,
+		held: false
+	}
+};
+/** Closed tombstones prevent delayed saves from recreating an accepted or ended question. */
+const questionDraftRecordSchema = z.object({
+	key: questionDraftKeySchema,
+	closed: z.boolean(),
+	/** Set only by the owning Host while observing a legacy blocking ask invocation. */
+	blocking: z.boolean().optional(),
+	state: questionDraftStateSchema
+}).strict().refine((record) => !record.closed || Object.keys(record.state.content.answers).length === 0 && record.state.content.page === 0 && !record.state.content.edited && !record.state.content.held, "Closed question drafts must be empty");
+//#endregion
 //#region lib/types/native-session-contract.js
 const attachmentId = z.string().min(1).transform((value) => value);
 const nativeImageSchema = z.object({
@@ -993,6 +1032,7 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 		isError: z.boolean(),
 		errorCode: z.enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
 		approvalOutcome: z.literal("rejected").optional(),
+		interruptionOutcome: z.literal("interrupted").optional(),
 		running: z.boolean()
 	}).strict(),
 	z.object({
@@ -1026,7 +1066,8 @@ const pendingQuestionSchema = z.object({
 	questions: z.array(questionItemSchema).min(1),
 	state: z.enum(["open", "continued"]).optional(),
 	callId: z.string().min(1).optional(),
-	timed: z.boolean().optional()
+	timed: z.boolean().optional(),
+	blocking: z.boolean().optional()
 }).strict();
 const topicSnapshotSchema = z.object({
 	captureId: z.string().optional(),
@@ -1149,6 +1190,17 @@ const createRequestSchema = z.union([
 /** One strict direct-RPC command for the private CiteCiter runtime. */
 const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnion("action", [
 	z.object({
+		action: z.literal("question-draft-get"),
+		topicSessionId: topicSessionIdSchema,
+		key: questionDraftKeySchema
+	}).strict(),
+	z.object({
+		action: z.literal("question-draft-save"),
+		topicSessionId: topicSessionIdSchema,
+		key: questionDraftKeySchema,
+		state: questionDraftStateSchema
+	}).strict(),
+	z.object({
 		action: z.literal("draft-get"),
 		topicSessionId: topicSessionIdSchema
 	}).strict(),
@@ -1211,7 +1263,8 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 		action: z.literal("answer-question"),
 		topicSessionId: topicSessionIdSchema,
 		key: z.string().min(1),
-		answer: questionAnswerSchema
+		answer: questionAnswerSchema,
+		draftRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 1).optional()
 	}).strict(),
 	z.object({
 		action: z.literal("cancel-question"),
@@ -1278,6 +1331,12 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 ])]);
 /** Strict response union returned by the single Remote command endpoint. */
 const citeCiterResponseSchema = z.discriminatedUnion("kind", [
+	z.object({
+		kind: z.literal("question-draft"),
+		state: questionDraftStateSchema,
+		conflict: z.boolean(),
+		closed: z.boolean()
+	}).strict(),
 	z.object({
 		kind: z.literal("draft"),
 		state: draftStateSchema,
@@ -1592,4 +1651,4 @@ function waitForCaller(operation, signal) {
 	});
 }
 //#endregion
-export { learningCardsInputSchema as A, topicSummarySchema as C, actionTarget as D, DEFAULT_WHEEL_SLOTS as E, DRAFT_CHUNK_BYTES as F, EMPTY_DRAFT_STATE as I, draftFileSchema as L, EMPTY_BOARD_STATE as M, applyBoardOps as N, LEARNING_CARD_FIELD_DESCRIPTIONS as O, boardBatchSchema as P, draftStateSchema as R, topicSnapshotSchema as S, readQuestionReply as T, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, LEARNING_EXAMPLE_PARAMETER as j, LEARNING_PROMPT as k, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, questionReplyText as w, topicMetadataSchema as x, renderCitationContext as y, subtractSubmitted as z };
+export { learningCardsInputSchema as A, draftFileSchema as B, topicSummarySchema as C, actionTarget as D, DEFAULT_WHEEL_SLOTS as E, EMPTY_QUESTION_DRAFT_STATE as F, subtractSubmitted as H, questionDraftKeySchema as I, questionDraftRecordSchema as L, EMPTY_BOARD_STATE as M, applyBoardOps as N, LEARNING_CARD_FIELD_DESCRIPTIONS as O, boardBatchSchema as P, DRAFT_CHUNK_BYTES as R, topicSnapshotSchema as S, readQuestionReply as T, draftStateSchema as V, documentSummarySchema as _, CITECITER_SETTINGS_NAMESPACE as a, toolEvidenceClaimSchema as b, canonicalCitationIdentity as c, citationSelectionClaimSchema as d, citeCiterRequestSchema as f, documentEvidenceClaimSchema as g, documentContentSchema as h, CITATION_CONTEXT_NAME as i, LEARNING_EXAMPLE_PARAMETER as j, LEARNING_PROMPT as k, citationDraftSchema as l, citeCiterSettingsSchema as m, updateCheckErrorCodeSchema as n, DEFAULT_CITECITER_SETTINGS as o, citeCiterResponseSchema as p, updateCheckResponseSchema as r, TUTOR_SECTION_NAME as s, UpdateChecker as t, citationRecordSchema as u, parseTopicMetadataFile as v, questionReplyText as w, topicMetadataSchema as x, renderCitationContext as y, EMPTY_DRAFT_STATE as z };

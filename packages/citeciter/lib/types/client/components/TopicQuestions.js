@@ -5,7 +5,7 @@ import { QuestionCard } from "./QuestionCard.js";
 function TopicQuestion({ pending, controller }) {
     const { interaction, surface } = useNativeQuestionInteraction(controller);
     const failure = controller.getSnapshot().error;
-    return _jsxs(_Fragment, { children: [failure !== undefined && _jsx("p", { role: "alert", children: failure }), _jsx(QuestionCard, { pending: pending, interaction: interaction, surface: surface, draftStore: controller, onAnswer: answer => controller.answer(answer), onCancel: () => controller.dismiss() })] });
+    return _jsxs(_Fragment, { children: [failure !== undefined && _jsx("p", { role: "alert", children: failure }), _jsx(QuestionCard, { pending: pending, interaction: interaction, surface: surface, draftStore: controller.drafts, onAnswer: answer => controller.answer(answer), onCancel: () => controller.dismiss() })] });
 }
 /** Private Topic questions share native wait semantics without joining the Host's Session list. */
 export function TopicQuestions({ sessionId, pending, native, children }) {

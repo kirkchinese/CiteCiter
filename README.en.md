@@ -27,27 +27,25 @@ You do not need to plan a lesson or enable a learning route. Compared with start
 
 **Desktop compatibility now targets the official DSH desktop application. Community desktop builds are no longer guaranteed to work.** The current official Windows download is DSH `0.2.0-rc.2`; its installer signature and version have been checked. Official installer: [Windows x64](https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe).
 
-| Host | Status as of October 7, 2026 |
+| Host | Verified scope as of October 9, 2026 |
 | --- | --- |
-| Official DSH Desktop `0.2.0-rc.2` | Pinned Git installation through the plugin page and a complete app restart verified; full functional matrix incomplete |
+| Official DSH Desktop `0.2.0-rc.2` | Git installation, real Q&A and approvals, draft recovery, files/images, downloads, deletion/restart boundaries, narrow layout and wheel focus verified individually; final candidate acceptance continues |
 | npm DSH `0.2.0-rc.2` (`latest` / `next`) | Current adaptation target; not yet accepted |
-| DSH `0.2.1-alpha.1` (`alpha`) | Source review in progress; not yet accepted |
+| DSH `0.2.1-alpha.1` (`alpha`) | Independent Web verified real PTC, draft recovery, queue/steer, long-document paging, learning cards and image editing; full matrix incomplete |
 
 The current candidate is **0.9.0-alpha.4**, with adaptation and acceptance still in progress; it has not been published. The published CiteCiter package is **0.9.0-alpha.3**, a prerelease built for DSH `0.1.7-rc.2`. Do not assume that installing it on the new host establishes compatibility or bypass host compatibility checks to force an older plugin to load.
 
 ### Git installation: official desktop plugin-page install and restart verified
 
-This branch exposes the plugin from the repository root. Official Desktop `0.2.0-rc.2` installed the pinned GitHub commit below through its plugin page, activated it, and successfully loaded it after a complete app exit and restart. All 156 published files, including 149 lib files, matched the commit byte for byte; the source session, five Topics, five ordinary message drafts and attachments remained intact. Earlier public CLI and real local Git installation checks are recorded separately. Tested commit `f0c30dd` is public on `codex/official-desktop-october`, without a merge into `main` or a new Release/npm publication. The full functional matrix remains incomplete, and the default branch is not a verified installation source.
+The repository root exposes the plugin. Git installation, activation and a complete restart have been verified in official Desktop. The latest fixes are on the `codex/official-desktop-october` development branch, which remains a candidate and has not been merged into `main` or published to npm. Acceptance records identify the exact commits and tested scope.
 
-This command pins the verified development commit **for candidate retesting only; it is not a recommended version with complete functional acceptance**:
+The following command installs the development branch **for candidate retesting only; complete acceptance is still pending**. To reproduce a particular result, replace the branch name with the full commit SHA from its acceptance record:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f0c30dd99299e4c054f1951a014489364ee7713e"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#codex/official-desktop-october"
 ```
 
-Use the same pinned repository address in the official desktop plugin page's Git field; installation, activation and a complete app restart have been observed for this commit. The entry uses prebuilt files committed to the repository, without a `#path:packages/citeciter` suffix, an install-time build or a redirect to a published npm package. See the [acceptance record](docs/validation/2026-10-07-official-desktop.md) for the exact scope and limits.
-
-This is a follow-up record of the completed installation. The pinned commit's README predates this documentation update and may differ in wording; the verified build files are unchanged.
+Use the same repository address in the official desktop plugin page's Git field. The entry uses committed prebuilt files, without a `#path:packages/citeciter` suffix, an install-time build or a redirect to a published npm package. See the [latest acceptance record](docs/validation/2026-10-09-draft-merge.md) for the exact scope and limits.
 
 Configure models in DSH after installing a compatible plugin. The global CLI and the desktop application's embedded runtime are managed separately; do not run two writers against the same DSH home. Linux and macOS have no native acceptance conclusion in this round.
 
@@ -62,7 +60,7 @@ Configure models in DSH after installing a compatible plugin. The global CLI and
 | Keep something to revisit | Exportable, editable learning cards with distinct text and code examples |
 | Discuss real files | File and image attachments, document selections and an optional native preview entry |
 | Continue from understanding to action | DSH models, tools, approvals, permissions, queuing and steering; new Topics start read-only |
-| Pause and return later | Saved drafts, references and attachments restored after Topic changes, reloads or restarts, without automatic sending |
+| Pause and return later | Saved ordinary message drafts, references and attachments restored after Topic changes, reloads or restarts, without automatic sending |
 
 These describe the existing plugin's features; support on a newly released host still requires the compatibility checks above. Topics display model-provided reasoning, tool arguments and results. Models that return no reasoning do not produce an empty thinking row. Compatible host plugins can provide image generation and viewing tools; CiteCiter does not configure their accounts or automatically enable those capabilities.
 
@@ -74,9 +72,15 @@ Creating a Topic, choosing a wheel action, changing models and quoting a board o
 
 The composer provides attachments, permission mode, model and reasoning level, then Send. Enter sends and Shift + Enter inserts a newline; Enter during IME composition does not submit. While a reply runs, Enter follows DSH's queuing or steering preference and Ctrl + Enter temporarily uses the other mode. Accepted manual submissions scroll to the latest message; streaming alone respects your position when reading earlier messages.
 
-Drafts save silently in the background. Only the contents accepted by the host are cleared; edits made during submission survive. Failures retain the draft. Lost responses, multi-window conflicts and attachment recovery failures show explicit notices. Choosing to keep this window's draft restores attachment bytes that it still holds.
+Drafts save silently. Independent text edits, references and attachments merge across windows; overlapping changes use the window you are operating, without save progress or version-selection controls. Remote saves do not interrupt input-method composition. Only the contents accepted by the host are cleared; edits made during submission survive. Failed submissions or attachment recovery retain recoverable content and explain the failure.
 
-Select files from the attachment menu, paste images into the composer or drop files anywhere on the Citer panel. The drop hint names the receiving Topic and does not copy the files into the source conversation. Mixed paste keeps images and text. Submitted generic files can be downloaded; images open in the host preview.
+This candidate saves question-card drafts separately for timed and ordinary blocking questions, including untouched empty cards. Selections, verbatim custom text with whitespace and indentation, the current page and explicit hold state remain in the owning Topic. After Host exit, cards and drafts return for manual continuation without starting the model. Explicit cancellation or stopping execution prevents restoration. Saving and merging remain silent; overlapping edits use the window you are operating. Queuing, a pending timeout, panel closure and disconnection do not establish acceptance of an answer.
+
+Real models and UI checks cover restart recovery of ordinary cards and PTC child questions, manual continuation, cleanup after acceptance, and no revival after cancellation or stopping. Question-draft deletion and preservation of the source and other Topics are also verified. Each candidate's package identity and verified scope are recorded separately; these results do not establish full-matrix acceptance, and the historical Git commit above does not include all subsequent fixes.
+
+Select files from the attachment menu, paste images into the composer or drop files anywhere on the Citer panel. The drop hint names the receiving Topic and does not copy the files into the source conversation. Mixed paste keeps images and text. Submitted generic files can be downloaded; images open in the host preview. If a draft image cannot be decoded, its chip reports that the preview is unavailable; the original file stays attached and can be removed and added again.
+
+The Citer image-preview close button sits below the official Desktop title bar, retaining native Escape, focus and image lifetimes. Official-window checks verified file/image classification, unsent mixed-attachment recovery after a complete restart, combined real-model reading, preview closing and byte-identical downloads. Drop, paste and other layout combinations retain their separate acceptance records.
 
 Configure eight wheel slots, default models, prompts and reference destinations in settings, then save. A short right-click keeps the wheel open; Shift + right-click opens the native menu. Arrow keys, digits 1–8 and Enter also select actions. Escape, empty slots, source changes or wheel blur cancel.
 
@@ -86,7 +90,7 @@ Configure eight wheel slots, default models, prompts and reference destinations 
 
 Native Topics offer three suggested questions after their first answer by default; disable them in settings. The prompt asks the model to omit suggestions when you request only a result, impose a strict format or exclude suggestions. Clicking a suggestion fills the draft and still requires manual submission.
 
-There is one board feature. Board quotations become draft attachments, and math renders as math. Card examples explicitly distinguish text from code; code retains language, indentation and a copy button, including code fences in exports. Card generation asks the model to check conclusions, conditions and calculations, but self-review does not ensure correctness.
+There is one board feature. Board quotations become removable draft attachments: math renders as math, and SVG or HTML diagrams supply readable text; images and spatial relationships still need visual inspection. You can keep adding quotations after a refresh or restart. Card examples explicitly distinguish text from code; code retains language, indentation and a copy button, including code fences in exports. Card generation asks the model to check conclusions, conditions and calculations, but self-review does not ensure correctness.
 
 An image-capable model can use `blackboard_view` to inspect the board's actual rendered image for clipping, arrows and layout. Offscreen rendering continues after Topic switches or panel closure, but the DSH page must stay connected. Captures exclude the source conversation. Sandboxed HTML iframes cannot currently be captured; use SVG for diagrams that need visual inspection.
 
@@ -98,6 +102,8 @@ New Topics start **read-only**, even when the source Session has full access. Mo
 
 Topics appear only in Citer navigation. Double-click a title or press F2 to rename. Archiving keeps the records; an archived Topic returns to the active list when the host accepts a new manually submitted message. Permanent deletion requires the complete Session ID and removes only the owned Topic, leaving the source, other Topics and migration backups intact.
 
+Permanent deletion removes only the owning Topic's log, message draft, question drafts and attachments. Other windows release that Topic's pending work and listeners, and restarting does not restore deleted content. The source, other Topics and migration backups remain intact. A deletion receipt retains only exact identities and cleanup state, without message or attachment content; an ordinary read failure does not imply deletion. The directories are:
+
 ```text
 .dsh/sessions/<workspace>/<sourceSession>/
 ├── session.v4.jsonl[.zstd]       DSH-owned source
@@ -106,7 +112,9 @@ Topics appear only in Citer navigation. Double-click a title or press F2 to rena
     ├── <topicNumber>/
     │   ├── topic.json          Topic information
     │   ├── draft/              Unsent text, references and attachments
+    │   ├── question-drafts/    Separate question drafts and closed markers (new)
     │   └── sessions/…          Citer-owned session logs
+    ├── deleted/               Identity and cleanup-only deletion receipts (new)
     └── migration-backups/      Original migration copies
 ```
 
@@ -123,6 +131,8 @@ When the host provides the optional `documentPreviews` service, choose “CiteCi
 Source and document tools provide pagination and explicit continuation positions. Source reads use `sourceMaxSeq` for the snapshot horizon and `hasMore` / `nextFromSeq` for continuation. Document offsets use UTF-16 and return the actual read range. See the [source-read fix](docs/releases/v0.8.2.md) and [document offset notes](docs/compatibility/document-unicode-offsets.md). An empty or budget-limited page does not prove that the source is missing.
 
 The full host composer lacks a cross-session embedding interface: Citer reuses public session APIs but does not automatically inherit every third-party composer extension. A model's agreement, a successful tool call or a generated card is not proof that an explanation is correct.
+
+When the official Desktop backend restarts, another browser page connected to it may turn blank during same-page reconnection; refreshing restores it. This also reproduced with Citer disabled and remains a recorded external Host limitation, not a claimed fix. Independent Web-alpha reconnection results are recorded separately and cannot substitute for that path.
 
 ## Why CiteCiter exists
 
@@ -141,7 +151,7 @@ These are directions to explore, **not shipped features or promised release date
 - **Cases and communication:** Build Chinese and English demos around actual problems. Share user outcomes only with permission and a clear account of the evidence.
 - **Host compatibility:** Track public DSH extension APIs and the official desktop application. Let actual usage inform demand for other hosts.
 
-Bring a task that “the agent finished, but I still cannot explain” to [Issues](https://github.com/kirkchinese/CiteCiter/issues). Include DSH and plugin versions, what you wanted to understand and where you got stuck. Remove credentials, private conversations and other sensitive material before sharing. Cases where the plugin did not help are valuable too.
+Bring a task that “the agent finished, but I still cannot explain” to [Issues](https://github.com/kirkchinese/CiteCiter/issues). Include DSH and plugin versions, whether you already used DSH, and whether the obstacle was installation, your first source-based question or understanding the answer. If you could explain a key choice, discover a problem or judge a similar task better afterward, describe what happened; cases where it did not help matter too. Remove credentials and private content before sharing. We will not turn feedback into a promotional case without permission.
 
 ## Development and acceptance
 

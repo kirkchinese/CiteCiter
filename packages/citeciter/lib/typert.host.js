@@ -1,5 +1,5 @@
-import { C as topicSummarySchema, S as topicSnapshotSchema, f as citeCiterRequestSchema, l as citationDraftSchema, p as citeCiterResponseSchema, r as updateCheckResponseSchema, u as citationRecordSchema } from "./update-hS-oqA8i.js";
-import { n as updateCheckDescriptor, r as namedSchema, t as citeCiterRequestDescriptor } from "./typert-common-CLSP6Nq0.js";
+import { C as topicSummarySchema, S as topicSnapshotSchema, f as citeCiterRequestSchema, l as citationDraftSchema, p as citeCiterResponseSchema, r as updateCheckResponseSchema, u as citationRecordSchema } from "./update-DKX-XCwo.js";
+import { n as updateCheckDescriptor, r as namedSchema, t as citeCiterRequestDescriptor } from "./typert-common-OxwnC-io.js";
 //#region lib/types/typert.host.js
 /** Handwritten strict Host contribution matching the single Remote decorator. */
 const TYPERT = {

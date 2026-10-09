@@ -123,6 +123,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     const drag = usePanelDrag(panelRef, floating, bus.setPresentation);
     const floatPosition = drag.position;
     const docked = !floating && dock?.mode === 'columns';
+    const composerVisible = open && (floating || docked || compact);
     const composerFolded = false;
     useEffect(() => open ? companion.retainVisible() : undefined, [companion, open]);
     useEffect(() => { if (active !== null)
@@ -144,25 +145,37 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     }, [active?.topic.sessionId, deleteTarget]);
     useEffect(() => {
         const citation = overlay.boardCitation;
-        if (citation === null || active?.topic.sessionId !== citation.topicSessionId)
+        if (!composerVisible || !draft.ready || citation === null || active?.topic.sessionId !== citation.topicSessionId)
             return;
+        let cancelled = false;
+        const focusOrigin = document.activeElement;
         void drafts.append(citation.topicSessionId, '', [{ id: `board-${citation.id}`, kind: 'board', label: '板书引用', content: citation.prompt }]).then(() => {
             setViews(current => ({ ...current, [citation.topicSessionId]: 'explain' }));
             bus.clearBoardCitation(citation.id);
-            requestAnimationFrame(() => composerRef.current?.focus());
+            if (!cancelled && document.activeElement === focusOrigin)
+                composerRef.current?.focus();
         }).catch(error => setAttachmentError(String(error)));
-    }, [active?.topic.sessionId, bus, overlay.boardCitation, drafts]);
+        return () => { cancelled = true; };
+    }, [active?.topic.sessionId, bus, overlay.boardCitation, drafts, composerVisible, draft.ready]);
     useEffect(() => {
+        // A reopened dock first measures its host while its body is hidden. Focus
+        // only after that layout is committed, never from an earlier animation frame.
+        if (!composerVisible || !draft.ready)
+            return;
+        let cancelled = false;
+        const focusOrigin = document.activeElement;
         for (const seed of snapshot.composeSeeds) {
             if (active?.topic.sessionId !== seed.sessionId || consumedSeeds.current.has(seed.id))
                 continue;
             consumedSeeds.current.add(seed.id);
             void drafts.append(seed.sessionId, seed.question, seed.references).then(() => {
                 companion.consumeComposeSeed(seed.id);
-                requestAnimationFrame(() => composerRef.current?.focus());
+                if (!cancelled && document.activeElement === focusOrigin)
+                    composerRef.current?.focus();
             }).catch(error => { consumedSeeds.current.delete(seed.id); setAttachmentError(String(error)); });
         }
-    }, [snapshot.composeSeeds, active?.topic.sessionId, companion, drafts]);
+        return () => { cancelled = true; };
+    }, [snapshot.composeSeeds, active?.topic.sessionId, companion, drafts, composerVisible, draft.ready]);
     const modalTitle = deleteTarget !== null ? '永久删除 Topic' : topicSettingsOpen ? 'Topic 设置' : null;
     useEffect(() => {
         if (modalTitle === null)
@@ -219,6 +232,9 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
         };
     }, [modalTitle]);
     const visibleMessages = active?.messages.filter((message) => isTopicMessageVisible(message, active.messages)) ?? [];
+    // The projected turn already retains the failure details and retry context.
+    // Keep standalone action errors visible, but announce an identical failure only once.
+    const transcriptError = snapshot.error !== null && !visibleMessages.some(message => message.role === 'error' && message.text === snapshot.error) ? snapshot.error : null;
     if (!open)
         return null;
     const submit = (event, mode = delivery, retry = false) => {
@@ -301,11 +317,11 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                                                                 setQuestion(current => current.trim() === '' ? value : `${current}\n${value}`);
                                                                 requestAnimationFrame(() => composerRef.current?.focus());
                                                             }, reportParseError: reportParseError }, message.renderKey ?? message.id));
-                                                    }), snapshot.phase === 'creating' && _jsx("div", { className: css.loadingCard, children: PHASE_LABEL.creating }), snapshot.error !== null && (_jsx("p", { className: css.panelError, "data-citeciter-error": true, role: "alert", children: friendlyFailure(snapshot.error) }))] }), view === 'cards' && active !== null && _jsx("div", { className: learningCss.content, children: _jsx(LearningCards, { projection: cards, recall: snapshot.settings.activeRecall ?? false, setRecall: value => { void companion.setSetting('activeRecall', value); }, disabled: snapshot.settingsSaveStatus === 'saving', topicTitle: active.topic.title, topicId: active.topic.sessionId, source: active.topic.citation?.displayText ?? '无引用 · 自由讨论', onRevise: () => {
+                                                    }), snapshot.phase === 'creating' && _jsx("div", { className: css.loadingCard, children: PHASE_LABEL.creating }), transcriptError !== null && (_jsx("p", { className: css.panelError, "data-citeciter-error": true, role: "alert", children: friendlyFailure(transcriptError) }))] }), view === 'cards' && active !== null && _jsx("div", { className: learningCss.content, children: _jsx(LearningCards, { projection: cards, recall: snapshot.settings.activeRecall ?? false, setRecall: value => { void companion.setSetting('activeRecall', value); }, disabled: snapshot.settingsSaveStatus === 'saving', topicTitle: active.topic.title, topicId: active.topic.sessionId, source: active.topic.citation?.displayText ?? '无引用 · 自由讨论', onRevise: () => {
                                                         setQuestion('请先核对本 Topic 的结论，纠正错误并标明未核实内容，再生成总结学习卡片。');
                                                         setView('explain');
                                                         requestAnimationFrame(() => composerRef.current?.focus());
-                                                    } }, active.topic.sessionId) }), view !== 'explain' && snapshot.error !== null && _jsx("p", { className: css.panelError, role: "alert", children: friendlyFailure(snapshot.error) }), active?.topic.hosted === true && _jsx(NativeQueue, { sessionId: active.topic.sessionId, native: nativeComposer }), pendingInteraction !== undefined && _jsx(NativeInteraction, { pending: pendingInteraction, messages: active?.messages ?? [] }, pendingInteraction.key), _jsx(TopicQuestions, { sessionId: active?.topic.sessionId ?? '', native: nativeComposer, pending: active?.pendingQuestions ?? (active?.pendingQuestion == null ? EMPTY_QUESTIONS : [active.pendingQuestion]), children: _jsx(TopicComposer, { permission: active?.topic.permission ?? 'read-only', onPermission: mode => { void companion.setPermission(mode); }, delivery: delivery, onDelivery: setDelivery, onFiles: addFiles, question: question, route: draft.ready ? active?.topic.modelConfig : undefined, providers: snapshot.providers, phase: snapshot.phase, canSend: canAsk && draft.ready && !draft.sending && !draft.pending && !draft.conflict && active !== null && (question.trim() !== '' || draft.content.references.length > 0 || draft.content.files.length > 0), routeSaving: snapshot.modelRouteSaving || snapshot.reasoningEffortSaving, folded: composerFolded, inputRef: composerRef, onQuestion: setQuestion, onSubmit: submit, placeholder: "\u8F93\u5165\u95EE\u9898 \u00B7 Enter \u53D1\u9001\uFF0CShift + Enter \u6362\u884C", attachments: _jsxs(_Fragment, { children: [active?.topic.modelSelectionRequired === true && _jsx("p", { role: "status", children: "\u6765\u6E90\u6A21\u578B\u5DF2\u4E0D\u53EF\u7528\u3002\u8349\u7A3F\u5DF2\u4FDD\u7559\uFF0C\u8BF7\u9009\u62E9\u53EF\u7528\u6A21\u578B\u540E\u53D1\u9001\u3002" }), (attachmentError || draft.error) && _jsx("p", { role: "alert", children: attachmentError || draft.error }), draft.conflict && _jsxs("div", { children: [_jsx("button", { type: "button", onClick: () => runDraft(drafts.keepLocal(draftKey)), children: "\u4FDD\u7559\u672C\u7A97\u53E3\u8349\u7A3F" }), _jsx("button", { type: "button", onClick: () => runDraft(drafts.reload(draftKey)), children: "\u8F7D\u5165\u5DF2\u4FDD\u5B58\u8349\u7A3F" })] }), draft.pending && !draft.sending && _jsxs("p", { role: "status", children: ["\u4E0A\u6B21\u53D1\u9001\u72B6\u6001\u5F85\u6838\u5BF9\u3002", _jsx("button", { type: "button", onClick: () => runDraft(drafts.reconcile(draftKey)), children: "\u6838\u5BF9\u53D1\u9001\u72B6\u6001" }), _jsx("button", { type: "button", onClick: event => submit(event, delivery, true), children: "\u91CD\u8BD5\u4E0A\u6B21\u53D1\u9001" })] }), !draft.ready && draft.error && _jsx("button", { type: "button", onClick: () => runDraft(drafts.ensure(draftKey)), children: "\u91CD\u65B0\u8BFB\u53D6\u8349\u7A3F" }), draft.missing.map(file => _jsxs("button", { type: "button", onClick: () => runDraft(drafts.removeFile(draftKey, file.id)), children: ["\u79FB\u9664\u5931\u6548\u9644\u4EF6\uFF1A", file.name] }, file.id)), _jsx(FileAttachments, { native: nativeComposer, sessionId: draftKey, files: draft.files, remove: id => runDraft(drafts.removeFile(draftKey, id)) }), _jsx(ReferenceAttachments, { references: draft.content.references, onRemove: id => runDraft(drafts.removeReference(draftKey, id)) })] }), onExpand: () => {
+                                                    } }, active.topic.sessionId) }), view !== 'explain' && snapshot.error !== null && _jsx("p", { className: css.panelError, role: "alert", children: friendlyFailure(snapshot.error) }), active?.topic.hosted === true && _jsx(NativeQueue, { sessionId: active.topic.sessionId, native: nativeComposer }), pendingInteraction !== undefined && _jsx(NativeInteraction, { pending: pendingInteraction, messages: active?.messages ?? [] }, pendingInteraction.key), _jsx(TopicQuestions, { sessionId: active?.topic.sessionId ?? '', native: nativeComposer, pending: active?.pendingQuestions ?? (active?.pendingQuestion == null ? EMPTY_QUESTIONS : [active.pendingQuestion]), children: _jsx(TopicComposer, { permission: active?.topic.permission ?? 'read-only', onPermission: mode => { void companion.setPermission(mode); }, delivery: delivery, onDelivery: setDelivery, onFiles: addFiles, question: question, route: draft.ready ? active?.topic.modelConfig : undefined, providers: snapshot.providers, phase: snapshot.phase, canSend: canAsk && draft.ready && !draft.sending && !draft.pending && active !== null && (question.trim() !== '' || draft.content.references.length > 0 || draft.content.files.length > 0), routeSaving: snapshot.modelRouteSaving || snapshot.reasoningEffortSaving, folded: composerFolded, inputRef: composerRef, onQuestion: setQuestion, onSubmit: submit, onComposition: value => drafts.setComposing(draftKey, value), placeholder: "\u8F93\u5165\u95EE\u9898 \u00B7 Enter \u53D1\u9001\uFF0CShift + Enter \u6362\u884C", attachments: _jsxs(_Fragment, { children: [active?.topic.modelSelectionRequired === true && _jsx("p", { role: "status", children: "\u6765\u6E90\u6A21\u578B\u5DF2\u4E0D\u53EF\u7528\u3002\u8349\u7A3F\u5DF2\u4FDD\u7559\uFF0C\u8BF7\u9009\u62E9\u53EF\u7528\u6A21\u578B\u540E\u53D1\u9001\u3002" }), (attachmentError || draft.error) && _jsx("p", { role: "alert", children: attachmentError || draft.error }), draft.pending && !draft.sending && _jsxs("p", { role: "status", children: ["\u4E0A\u6B21\u53D1\u9001\u72B6\u6001\u5F85\u6838\u5BF9\u3002", _jsx("button", { type: "button", onClick: () => runDraft(drafts.reconcile(draftKey)), children: "\u6838\u5BF9\u53D1\u9001\u72B6\u6001" }), _jsx("button", { type: "button", onClick: event => submit(event, delivery, true), children: "\u91CD\u8BD5\u4E0A\u6B21\u53D1\u9001" })] }), !draft.ready && draft.error && _jsx("button", { type: "button", onClick: () => runDraft(drafts.ensure(draftKey)), children: "\u91CD\u65B0\u8BFB\u53D6\u8349\u7A3F" }), draft.missing.map(file => _jsxs("button", { type: "button", onClick: () => runDraft(drafts.removeFile(draftKey, file.id)), children: ["\u79FB\u9664\u5931\u6548\u9644\u4EF6\uFF1A", file.name] }, file.id)), _jsx(FileAttachments, { native: nativeComposer, sessionId: draftKey, files: draft.files, remove: id => runDraft(drafts.removeFile(draftKey, id)) }), _jsx(ReferenceAttachments, { references: draft.content.references, onRemove: id => runDraft(drafts.removeReference(draftKey, id)) })] }), onExpand: () => {
                                                         requestAnimationFrame(() => composerRef.current?.focus());
                                                     }, onStop: () => { void companion.stop(); }, onModel: (provider, model) => { void companion.setModelRoute(provider, model); }, onReasoning: effort => { void companion.setReasoningEffort(effort); } }) })] }))] }) })] }) }), !floating && _jsx(OverlayPortal, { children: _jsxs("div", { className: css.fullscreenNotice, role: "status", children: ["\u5B66\u4E60\u680F\u5DF2\u6253\u5F00\u3002\u9000\u51FA\u6587\u4EF6\u5168\u5C4F\u67E5\u770B\uFF0C\u6216 ", _jsx("button", { type: "button", onClick: () => bus.setPresentation('floating'), children: "\u60AC\u6D6E\u67E5\u770B" })] }) }), _jsx(TopicSettingsDialog, { open: topicSettingsOpen, topic: active?.topic, archiving: snapshot.archiving, deleting: snapshot.deleting, error: snapshot.error === null ? null : friendlyFailure(snapshot.error), onClose: () => setTopicSettingsOpen(false), onArchive: companion.archive, onDelete: () => {
                     if (active === null)

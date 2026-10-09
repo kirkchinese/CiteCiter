@@ -1,0 +1,5 @@
+/* The host lightbox portals to body and exposes no inset prop. Scope the override
+   to our public dialog label; the host token handles Desktop and fullscreen. */
+:global([role="dialog"][aria-label^="CiteCiter 图片预览："] button[aria-label="关闭图片预览"]) {
+  top: var(--dsh-frame-overlay-top, 20px);
+}

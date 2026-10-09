@@ -33,7 +33,7 @@ export class CiterSessionFace implements SessionFace {
   /** Use the draft's durable identity for this explicit send, including retries after restart. */
   prepareSubmission(requestId: string): void { this.nextRequestId = requestId as SessionRequestId }
 
-  constructor(private readonly ctx: Context, readonly sessionId: SessionId) {
+  constructor(private readonly ctx: Context, readonly sessionId: SessionId, private readonly onDeleted?: () => void) {
     this.store = createSnapshotStore<CiterSessionSnapshot>({
       sessionId, queue: [], pendingSubmissions: [], running: false, subagent: null, removed: false,
       openState: 'cold', openError: null, hasMore: false, loadingOlder: false, promptError: null,
@@ -101,6 +101,12 @@ export class CiterSessionFace implements SessionFace {
   readCiterAttachment = async (attachmentId: string) => {
     const result = await this.ctx.remote.citeciter.request({ action: 'native-attachment', topicSessionId: this.sessionId, attachmentId }, this.lifetime.signal)
     if (!result.ok) return result
+    if (result.value.kind === 'deleted') {
+      if (result.value.sessionId !== this.sessionId) throw new Error('Citer 删除回执与当前会话不一致')
+      this.dispose()
+      this.onDeleted?.()
+      throw new Error('这个 Topic 已永久删除，附件已不可用')
+    }
     if (result.value.kind !== 'native-attachment') throw new Error('Citer 附件响应类型不匹配')
     return { ok: true as const, value: { attachment: result.value.attachment, data: Uint8Array.from(atob(result.value.data), char => char.charCodeAt(0)) } }
   }
@@ -153,6 +159,12 @@ export class CiterSessionFace implements SessionFace {
     const operation = (async () => {
       const result = await this.ctx.remote.citeciter.request({ action: 'native-state', topicSessionId: this.sessionId, requestIds: [...this.pending.keys()].slice(0, 32) }, this.lifetime.signal)
       if (!result.ok) throw new Error(result.error.message)
+      if (result.value.kind === 'deleted') {
+        if (result.value.sessionId !== this.sessionId) throw new Error('Citer 删除回执与当前会话不一致')
+        this.dispose()
+        this.onDeleted?.()
+        return
+      }
       if (result.value.kind !== 'native-state') throw new Error('Citer 会话状态响应类型不匹配')
       if (this.lifetime.signal.aborted) return
       const state = result.value.state

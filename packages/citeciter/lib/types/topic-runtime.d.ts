@@ -374,6 +374,10 @@ export declare class TopicRuntime {
     private askIdempotent;
     private queueAsk;
     private queueTopicAdmission;
+    /** Validate partial selections against the exact Host question, without normalizing unsent text. */
+    private validateQuestionDraft;
+    /** Commit cleanup through the same admission queue as saves and permanent deletion. */
+    private trackQuestionDraftReceipts;
     private askUser;
     private answerQuestion;
     private cancelQuestion;
@@ -402,11 +406,14 @@ export declare class TopicRuntime {
     private list;
     private summary;
     private summaryFromMetadata;
-    private get;
+    /** Serialize reads/saves with deletion and report only durable, exact deletion evidence. */
+    private withOwnedTopic;
     private readLog;
     private scheduleSourceAvailabilityCheck;
     private rememberSourceAvailability;
     private snapshot;
+    /** Recover persisted blocking cards only; rendering never enqueues a model request. */
+    private recoveredBlockingQuestions;
     private patchMetadata;
     private patchMetadataSerialized;
     private scheduleExactTitleRefresh;

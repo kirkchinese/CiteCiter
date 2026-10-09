@@ -6,6 +6,7 @@ import { dshHomePath } from '@deepseek-ai/dsh-home-paths';
 import { z } from 'zod';
 import { topicMetadataSchema, parseTopicMetadataFile } from "./topic.js";
 import { atomicReplace } from "./atomic-replace.js";
+import { TopicDeletionReceipts } from "./topic-deletion-receipts.js";
 const TOPIC_INDEX_ROOT = dshHomePath('citeciter', 'workspaces');
 export function errorCode(error) {
     return typeof error === 'object' && error !== null && 'code' in error
@@ -153,12 +154,16 @@ const topicDeletionMarkerSchema = z.object({
     }).strict(),
 }).strict();
 function parseTopicDeletionMarker(raw) {
-    return topicDeletionMarkerSchema.parse(raw);
+    const marker = topicDeletionMarkerSchema.parse(raw);
+    if (marker.sessionHeader.id !== marker.sessionId)
+        throw new Error('Citer 删除标记与 Session 身份不匹配');
+    return marker;
 }
 /** Minimal on-disk navigation index; Session history stays in standard DSH JSONL. */
 export class TopicIndex {
     root;
     sourceRoots = new Map();
+    deletionReceipts = new TopicDeletionReceipts(atomicWriteJson);
     /** Bind a canonical source-owned root resolved by SourceStorage. */
     bindSource(sourceSessionId, root) { this.sourceRoots.set(sourceSessionId, root); }
     /** Return the owned metadata directory for one source-backed Topic. */
@@ -253,10 +258,56 @@ export class TopicIndex {
         await atomicWriteJson(resolve(directory, 'topic.json'), validated);
     }
     async loadBySessionId(sessionId) {
-        const metadata = (await this.all()).find(item => item.sessionId === sessionId);
+        const metadata = await this.findBySessionId(sessionId);
         if (metadata !== undefined)
             return metadata;
         throw new Error(`CiteCiter Topic "${sessionId}" does not exist`);
+    }
+    /** Return owned metadata when present; malformed or unreadable storage still throws. */
+    async findBySessionId(sessionId) {
+        return (await this.all()).find(item => item.sessionId === sessionId);
+    }
+    /**
+     * Find authoritative committed deletion evidence without inferring it from missing metadata.
+     * @param sessionId - exact generated Citer Session identity.
+     * @returns a verified pending marker or completed receipt, including after Host restart;
+     * old deletions whose markers were already removed have no recoverable evidence.
+     */
+    async findDeleted(sessionId) {
+        let result;
+        const accept = (receipt) => {
+            if (result !== undefined && (result.sourceSessionId !== receipt.sourceSessionId || result.topicId !== receipt.topicId)) {
+                throw new Error('Citer 删除记录包含冲突的 Topic 身份');
+            }
+            // An existing recovery marker still owns cleanup, even if its final receipt
+            // was committed just before a crash interrupted marker removal.
+            if (result === undefined || receipt.cleanup === 'pending')
+                result = receipt;
+        };
+        for (const marker of await this.listDeleting())
+            if (marker.sessionId === sessionId) {
+                accept({ version: 1, sessionId, sourceSessionId: marker.sourceSessionId, topicId: marker.topicId, cleanup: 'pending' });
+            }
+        const sources = await readdir(this.root, { withFileTypes: true }).catch(error => {
+            if (errorCode(error) === 'ENOENT')
+                return [];
+            throw error;
+        });
+        const candidates = [...this.sourceRoots].map(([sourceSessionId, root]) => ({ sourceSessionId, root }));
+        for (const source of sources) {
+            if (!source.isDirectory() || source.isSymbolicLink())
+                continue;
+            const sourceSessionId = Buffer.from(source.name, 'base64url').toString('utf8');
+            if (sourceSessionId === '' || sourceDirectoryName(sourceSessionId) !== source.name)
+                continue;
+            candidates.push({ sourceSessionId, root: resolve(this.root, source.name) });
+        }
+        for (const { sourceSessionId, root } of candidates) {
+            const receipt = await this.deletionReceipts.read(root, sourceSessionId, sessionId);
+            if (receipt !== undefined)
+                accept(receipt);
+        }
+        return result;
     }
     async list(sourceSessionId) {
         return (await this.all()).filter(item => item.sourceSessionId === sourceSessionId).sort((a, b) => a.topicId - b.topicId);
@@ -303,18 +354,30 @@ export class TopicIndex {
                 if (!topic.isDirectory() || topic.isSymbolicLink() || !/^\d+$/.test(topic.name))
                     continue;
                 const marker = await this.deletionMarkerIfPresent(resolve(sourceDirectory, topic.name));
-                if (marker !== undefined && marker.topicId === Number(topic.name) && (source === undefined ? marker.storage === undefined : marker.storage === 'source' && marker.sourceSessionId === source))
+                if (marker !== undefined && marker.topicId === Number(topic.name) && (source === undefined
+                    ? marker.storage === undefined && sourceDirectoryName(marker.sourceSessionId) === basename(sourceDirectory)
+                    : marker.storage === 'source' && marker.sourceSessionId === source))
                     markers.push(marker);
             }
         }
         return markers;
     }
-    /** Remove the marker and its now-empty Topic directory after artifact cleanup. */
+    /** Commit the deletion identity, then remove the marker and empty Topic directory after artifact cleanup. */
     async finishDeleting(marker) {
         const owned = marker.storage === 'source';
         const directory = this.directory(marker.sourceSessionId, marker.topicId, owned);
         const root = owned ? this.sourceRoots.get(marker.sourceSessionId) : this.root;
         await unlinkOwnedFileIfPresent(root, resolve(directory, 'topic.json'));
+        // Preserve only the deletion identity outside the numeric Topic directory.
+        // Publication precedes marker removal, so restart cannot lose both forms.
+        const sourceRoot = this.sourceRoots.get(marker.sourceSessionId);
+        if (owned && sourceRoot === undefined)
+            throw new Error('Citer 来源目录不可用，未移除删除恢复标记');
+        const receiptRoot = sourceRoot ?? resolve(this.root, sourceDirectoryName(marker.sourceSessionId));
+        await this.deletionReceipts.complete(receiptRoot, {
+            version: 1, sourceSessionId: marker.sourceSessionId, topicId: marker.topicId,
+            sessionId: marker.sessionId, cleanup: 'complete',
+        });
         await unlinkOwnedFileIfPresent(root, resolve(directory, 'deleting.json'));
         await rmdirOwnedIfEmpty(root, directory);
     }
@@ -351,7 +414,11 @@ export class TopicIndex {
     }
     async deletionMarkerIfPresent(directory) {
         try {
-            return parseTopicDeletionMarker(JSON.parse(await readFile(resolve(directory, 'deleting.json'), 'utf8')));
+            const path = resolve(directory, 'deleting.json');
+            const info = await lstat(path);
+            if (!info.isFile() || info.isSymbolicLink())
+                throw new Error('Citer 删除标记必须是普通文件');
+            return parseTopicDeletionMarker(JSON.parse(await readFile(path, 'utf8')));
         }
         catch (error) {
             if (errorCode(error) === 'ENOENT')

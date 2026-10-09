@@ -10,7 +10,7 @@ function TopicQuestion({ pending, controller }: { readonly pending: PendingQuest
   const failure = controller.getSnapshot().error
   return <>
     {failure !== undefined && <p role="alert">{failure}</p>}
-    <QuestionCard pending={pending} interaction={interaction} surface={surface} draftStore={controller}
+    <QuestionCard pending={pending} interaction={interaction} surface={surface} draftStore={controller.drafts}
       onAnswer={answer => controller.answer(answer)} onCancel={() => controller.dismiss()} />
   </>
 }

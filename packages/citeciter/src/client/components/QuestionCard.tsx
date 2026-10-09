@@ -1,9 +1,9 @@
-import { type FormEvent, type RefObject, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, type RefObject, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { IconQuestionOutlineMedium } from '../host-icons.ts'
 import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import type { PendingQuestion } from '../../topic.ts'
 import type { QuestionInteraction } from '../question-interaction.ts'
-import type { QuestionDraft } from '../topic-question-controller.ts'
+import type { QuestionDraftController } from '../question-draft-controller.ts'
 import { RichAnswer } from './RichAnswer.tsx'
 import css from './CiteCiter.module.css'
 
@@ -12,23 +12,38 @@ interface DraftAnswer {
   readonly custom: string
 }
 
+const noSubscription = () => () => {}
+const noSnapshot = () => undefined
+
 export interface QuestionCardProps {
   readonly pending: { readonly key: string, readonly questions: readonly PendingQuestion['questions'][number][] }
   readonly onAnswer: (answer: AskUserQuestionAnswer) => Promise<unknown>
   readonly onCancel: () => Promise<unknown>
   readonly interaction?: QuestionInteraction
   readonly surface?: RefObject<HTMLFormElement>
-  readonly draftStore?: { getDraft(): QuestionDraft; setDraft(draft: QuestionDraft): void }
+  readonly draftStore?: QuestionDraftController | undefined
 }
 
 /** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
 export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface, draftStore }: QuestionCardProps) {
-  const [page, setPage] = useState(0)
+  const [localPage, setLocalPage] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const sentVia = useRef<'waterfall' | 'rpc' | undefined>(undefined)
   const readonly = interaction?.review !== undefined
-  const locked = busy || readonly
+  // Native review cards stay read-only and never load or write a question draft.
+  const store = readonly ? undefined : draftStore
+  const stored = useSyncExternalStore(store?.subscribe ?? noSubscription, store?.getSnapshot ?? noSnapshot, store?.getSnapshot ?? noSnapshot)
+  const draftReady = stored?.ready ?? true
+  const locked = busy || readonly || !draftReady || stored?.closed === true
+  const visibleError = stored?.error ?? error
+  const reportActionError = (failure: unknown) => {
+    // Draft failures already have an authoritative, recoverable controller message.
+    setError(store?.getSnapshot().error != null ? undefined : failure instanceof Error ? failure.message : String(failure))
+  }
+  useEffect(() => {
+    void store?.ensure().catch(() => { /* The controller exposes recovery errors in the card. */ })
+  }, [store])
   useEffect(() => {
     // An answer sent at the deadline may lose the Host's waterfall race.
     // Keep the text and re-enable the same form when the late-reply channel opens.
@@ -41,11 +56,18 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
     if (busy) return
     setBusy(true)
     setError(undefined)
-    void action().catch(error => { setError(String(error)); setBusy(false) })
+    void action().catch(error => { reportActionError(error); setBusy(false) })
   }
-  const [drafts, setDrafts] = useState<Readonly<Record<string, DraftAnswer>>>(() => draftStore?.getDraft() ?? Object.fromEntries(
+  const [localDrafts, setLocalDrafts] = useState<Readonly<Record<string, DraftAnswer>>>(() => Object.fromEntries(
     (interaction?.review ?? []).map(answer => [answer.id, { selected: [...answer.selected], custom: answer.custom ?? '' }]),
   ))
+  const drafts = stored?.content.answers ?? localDrafts
+  const page = Math.min(stored?.content.page ?? localPage, Math.max(0, pending.questions.length - 1))
+  const setPage = (next: number) => {
+    if (busy || (!readonly && !draftReady)) return
+    if (store === undefined) setLocalPage(next)
+    else store.setPage(next)
+  }
   const question = pending.questions[page]
   const complete = useMemo(() => pending.questions.every((item) => {
     const draft = drafts[item.id]
@@ -57,8 +79,8 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
     if (locked) return
     interaction?.edit()
     const value = { ...drafts, [question.id]: next }
-    draftStore?.setDraft(value)
-    setDrafts(value)
+    if (store === undefined) setLocalDrafts(value)
+    else store.setAnswers(value)
   }
   const choose = (label: string) => {
     if (question.multiSelect === true) {
@@ -78,16 +100,23 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
     const answer: AskUserQuestionAnswer = {
       answers: pending.questions.map((item) => {
         const value = drafts[item.id] ?? { selected: [], custom: '' }
-        const custom = value.custom.trim()
         return {
           id: item.id,
           selected: [...value.selected],
-          ...(custom === '' ? {} : { custom }),
+          ...(value.custom.trim() === '' ? {} : { custom: value.custom }),
         }
       }),
     }
     sentVia.current = interaction?.channel
-    run(() => onAnswer(answer))
+    run(async () => {
+      await store?.flush()
+      if (store?.getSnapshot().closed) throw new Error('这条提问已结束，未发送回答。')
+      return onAnswer(answer)
+    })
+  }
+
+  const recover = (action: () => Promise<void>) => {
+    void action().then(() => { setError(undefined) }, reportActionError)
   }
 
   return (
@@ -104,7 +133,10 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
       </div>
       {question.detail !== undefined && <RichAnswer text={question.detail} streaming={false} />}
       {interaction?.status !== undefined && <p role="status">{interaction.status}</p>}
-      {error !== undefined && <p role="alert">{error}</p>}
+      {visibleError !== undefined && <p role="alert">{visibleError}</p>}
+      {stored?.error !== null && stored?.error !== undefined && store !== undefined && !stored.closed
+          ? <div className={css.questionFooter}><button type="button" disabled={busy} onClick={() => recover(stored.ready ? store.flush : store.ensure)}>{stored.ready ? '重试保存' : '重新加载'}</button></div>
+          : null}
       {(question.options ?? []).length > 0 && (
         <div className={css.questionOptions}>
           {question.options?.map((option, index) => {
@@ -131,6 +163,8 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
         value={draft.custom}
         placeholder={(question.options ?? []).length === 0 ? '输入回答…' : '其他（可填写）'}
         aria-label="自定义回答"
+        onCompositionStart={() => store?.setComposing(true)} onCompositionEnd={() => store?.setComposing(false)}
+        onBlur={() => store?.setComposing(false)}
         onChange={(event) => update({
           selected: question.multiSelect === true ? draft.selected : [],
           custom: event.currentTarget.value,
@@ -138,16 +172,16 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
       />
       <div className={css.questionFooter}>
         <button type="button" disabled={busy} onClick={() => run(onCancel)}>{interaction?.dismissLabel ?? '取消'}</button>
-        {interaction?.canTakeTime && <button type="button" disabled={busy} onClick={() => interaction.takeTime()}>等我回答</button>}
-        {interaction?.allowSkip && !readonly && <button type="button" disabled={busy} onClick={() => {
+        {interaction?.canTakeTime && <button type="button" disabled={locked} onClick={() => interaction.takeTime()}>等我回答</button>}
+        {interaction?.allowSkip && !readonly && <button type="button" disabled={locked} onClick={() => {
           update({ selected: [], custom: '' })
           if (page + 1 < pending.questions.length) setPage(page + 1)
         }}>跳过此题</button>}
         <span />
-        {page > 0 && <button type="button" onClick={() => setPage(page - 1)}>上一个</button>}
+        {page > 0 && <button type="button" disabled={busy || (!readonly && !draftReady)} onClick={() => setPage(page - 1)}>上一个</button>}
         {page + 1 < pending.questions.length
-          ? <button type="button" disabled={!readonly && (drafts[question.id] === undefined || (!interaction?.allowSkip && draft.selected.length === 0 && draft.custom.trim() === ''))} onClick={() => setPage(page + 1)}>下一个</button>
-          : !readonly && <button type="submit" disabled={!complete || busy || interaction?.channel === 'none'}>{busy ? '提交中…' : '提交回答'}</button>}
+          ? <button key="next" type="button" disabled={busy || (!readonly && (!draftReady || drafts[question.id] === undefined || (!interaction?.allowSkip && draft.selected.length === 0 && draft.custom.trim() === '')))} onClick={event => { event.preventDefault(); setPage(page + 1) }}>下一个</button>
+          : !readonly && <button key="submit" type="submit" disabled={!complete || locked || interaction?.channel === 'none'}>{busy ? '提交中…' : '提交回答'}</button>}
       </div>
     </form>
   )

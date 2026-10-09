@@ -1,5 +1,8 @@
 import { SourceStorage } from './source-storage.ts'
 import { DraftStore } from './draft-store.ts'
+import { QuestionDraftStore } from './question-draft-store.ts'
+import { questionDraftLogStatus, questionDraftReceiptKey } from './question-draft-lifecycle.ts'
+import type { QuestionDraftContent } from './question-draft-contract.ts'
 import { requireSelectedModel, selectInitialModel } from './model-admission.ts'
 import { createSourceReadTool, sourceReadPrompt, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
 import { composeHostedTopicPrompt, FIRST_ANSWER_FOLLOWUPS } from './topic-prompts.ts'
@@ -93,6 +96,8 @@ import {
 } from './observer.ts'
 import { DocumentStore } from './documents.ts'
 import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies } from './topic-questions.ts'
+import { bindTopicQuestionBridge } from './topic-question-bridge.ts'
+import { hasInterruptedPtcParent, recoverBlockingQuestion } from './blocking-question-recovery.ts'
 import { BoardCaptureBroker } from './board-capture.ts'
 import { readSourceSession, hasSentSource } from './source-session.ts'
 import { HostSessionAdapter } from './host-session-adapter.ts'
@@ -114,6 +119,7 @@ import {
   type CitationRecord,
   type DocumentSummary,
   type ProviderOption,
+  type PendingQuestion,
   type QuestionAnswer,
   type TopicMessage,
   type TopicMetadata,
@@ -380,6 +386,7 @@ export interface RuntimeTopicLog {
 
 interface RuntimePendingQuestion {
   readonly key: string
+  readonly callId: string
   readonly sessionId: string
   readonly questions: readonly AskUserQuestionItem[]
   readonly wait: AskUserQuestionRequest['wait']
@@ -413,18 +420,19 @@ function validatedQuestionAnswer(
       if (selected.length !== item.selected.length) throw new Error(`问题 ${question.id} 包含重复选项`)
       const labels = new Set(question.options?.map((option) => option.label) ?? [])
       if (selected.some((label) => !labels.has(label))) throw new Error(`问题 ${question.id} 包含未知选项`)
-      const custom = item.custom?.trim()
-      if (allowSkipped && selected.length === 0 && (custom === undefined || custom === '')) return { id: question.id, selected: [] }
-      if (question.multiSelect !== true && selected.length + (custom === undefined || custom === '' ? 0 : 1) !== 1) {
+      const custom = item.custom
+      const hasCustom = custom !== undefined && custom.trim() !== ''
+      if (allowSkipped && selected.length === 0 && !hasCustom) return { id: question.id, selected: [] }
+      if (question.multiSelect !== true && selected.length + (hasCustom ? 1 : 0) !== 1) {
         throw new Error(`问题 ${question.id} 只能选择一个答案`)
       }
-      if (question.multiSelect === true && selected.length === 0 && (custom === undefined || custom === '')) {
+      if (question.multiSelect === true && selected.length === 0 && !hasCustom) {
         throw new Error(`问题 ${question.id} 尚未回答`)
       }
       return {
         id: question.id,
         selected,
-        ...(custom === undefined || custom === '' ? {} : { custom }),
+        ...(hasCustom ? { custom } : {}),
       }
     }),
   }
@@ -483,7 +491,7 @@ export function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[],
       const index = toolIndexes.get(reply.callId)
       const call = index === undefined ? undefined : messages[index]
       if (index !== undefined && call?.role === 'tool' && call.name === 'ask_user_question') {
-        messages[index] = { ...call, questionReply: reply }
+        messages[index] = { ...call, questionReply: reply, running: false }
       }
       continue
     }
@@ -582,6 +590,15 @@ export function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[],
       continue
     }
     if (event.type === 'turn/end') error = null
+  }
+  // A repaired PTC parent may have no child result. Mark only the proved
+  // interruption as presentation state; never invent the missing tool output.
+  for (const [callId, index] of toolIndexes) {
+    const call = messages[index]
+    if (call?.role === 'tool' && call.name === 'ask_user_question' && call.result === null
+      && call.questionReply === undefined && hasInterruptedPtcParent(callId, events)) {
+      messages[index] = { ...call, interruptionOutcome: 'interrupted', running: false }
+    }
   }
   if (log.liveMessage !== undefined) messages.push(log.liveMessage)
   return { messages, error }
@@ -888,12 +905,40 @@ export class TopicRuntime {
   private async executeRequest(request: CiteCiterRequest, signal: AbortSignal): Promise<CiteCiterResponse> {
     this.assertOpen(signal)
     switch (request.action) {
+      case 'question-draft-get':
+      case 'question-draft-save':
+        return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
+          if (metadata.storage !== 'source') throw new Error('请先将旧 Topic 迁移到来源目录，再保存问题草稿')
+          const drafts = new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId))
+          let current = await drafts.read(request.key)
+          if (current.closed) return { kind: 'question-draft', state: current.state, closed: true, conflict: request.action === 'question-draft-save' }
+          const handle = await this.ensureHandle(metadata, signal)
+          const live = this.pendingQuestions.get(metadata.sessionId)
+          // Recovery must include a displayed card that has not been edited yet.
+          // A failed eager registration is retried here and surfaces in its form.
+          if (live?.key === request.key && live.wait === undefined) current = await drafts.registerBlocking(request.key)
+          const status = questionDraftLogStatus(metadata.sessionId, request.key, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount, current.blocking)
+          if (status === 'closed') {
+            const closed = await drafts.close(request.key)
+            return { kind: 'question-draft', state: closed.state, closed: true, conflict: request.action === 'question-draft-save' }
+          }
+          const projection = handle.agent.ctx.get('sessionProjections')?.stateOf(handle.agent.session, 'userQuestions')
+          const questions = live?.key === request.key ? live.questions
+            : projection?.questions.active.find(question => questionKey(metadata.sessionId, question.callId) === request.key)?.questions
+              ?? recoverBlockingQuestion(metadata.sessionId, current, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount)?.questions
+          if (request.action === 'question-draft-save') {
+            if (questions === undefined) throw new Error('尚不能确认此问题仍可回答，已保留草稿，请重新打开后重试')
+            this.validateQuestionDraft(request.state.content, questions)
+            return { kind: 'question-draft', ...await drafts.save(request.key, request.state, live?.key === request.key ? live.wait === undefined : current.blocking) }
+          }
+          if (questions === undefined && status === 'unknown' && current.state.revision === 0) throw new Error('这个 Topic 中没有可确认的问题草稿身份')
+          return { kind: 'question-draft', state: current.state, closed: false, conflict: false }
+        }, signal)
       case 'draft-get':
       case 'draft-save':
       case 'draft-file-put':
       case 'draft-file-get':
-        return this.queueTopicAdmission(request.topicSessionId, async () => {
-          const metadata = await this.index.loadBySessionId(request.topicSessionId)
+        return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
           if (metadata.storage !== 'source') throw new Error('请先将旧 Topic 迁移到来源目录，再保存草稿')
           const drafts = new DraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId))
           if (request.action === 'draft-file-put') {
@@ -924,15 +969,18 @@ export class TopicRuntime {
         return { kind: 'board-capture-accepted' }
       }
       case 'get':
-        return { kind: 'topic', topic: await this.get(request.topicSessionId, signal) }
+        return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
+          if (metadata.hosted === true) await this.ensureHandle(metadata, signal)
+          return { kind: 'topic', topic: await this.snapshot(metadata, signal, true) }
+        }, signal)
       case 'native-state':
-      case 'native-attachment': {
-        const metadata = await this.index.loadBySessionId(request.topicSessionId)
-        const handle = await this.ensureHandle(metadata, signal)
-        return request.action === 'native-state'
-          ? { kind: 'native-state', state: { ...readNativeState(handle.agent, request.requestIds), modelSelectionRequired: metadata.modelSelectionRequired === true } }
-          : { kind: 'native-attachment', ...await readNativeAttachment(handle.agent.ctx, handle.agent.session, request.attachmentId, signal) }
-      }
+      case 'native-attachment':
+        return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
+          const handle = await this.ensureHandle(metadata, signal)
+          return request.action === 'native-state'
+            ? { kind: 'native-state', state: { ...readNativeState(handle.agent, request.requestIds), modelSelectionRequired: metadata.modelSelectionRequired === true } }
+            : { kind: 'native-attachment', ...await readNativeAttachment(handle.agent.ctx, handle.agent.session, request.attachmentId, signal) }
+        }, signal)
       case 'ask':
         return { kind: 'topic', topic: await this.askIdempotent(request, signal) }
       case 'stop':
@@ -942,11 +990,24 @@ export class TopicRuntime {
           signal,
         ) }
       case 'answer-question':
-        return { kind: 'topic', topic: await this.queueTopicAdmission(
+        return this.queueTopicAdmission(
           request.topicSessionId,
-          () => this.answerQuestion(request, signal),
+          async () => {
+            // Check and accept within one admission slot: another window cannot
+            // save a newer revision between this comparison and Host submission.
+            const metadata = await this.index.loadBySessionId(request.topicSessionId)
+            if (metadata.storage === 'source') {
+              const drafts = new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId))
+              const conflict = await drafts.checkSubmission(request.key, request.draftRevision)
+              if (conflict !== undefined && request.draftRevision === undefined) throw new Error(conflict.closed
+                ? '此提问已结束，未重复提交回答'
+                : '此问题已有持久化回答草稿，请刷新界面后再提交；原草稿已保留')
+              if (conflict !== undefined) return { kind: 'question-draft', ...conflict }
+            } else if (request.draftRevision !== undefined) throw new Error('此 Topic 尚不支持持久化回答草稿，请先迁移')
+            return { kind: 'topic', topic: await this.answerQuestion(request, signal) }
+          },
           signal,
-        ) }
+        )
       case 'cancel-question':
         return { kind: 'topic', topic: await this.queueTopicAdmission(
           request.topicSessionId,
@@ -975,14 +1036,15 @@ export class TopicRuntime {
         return this.delete(request.topicSessionId, request.confirmSessionId, signal)
       case 'models':
         return { kind: 'models', providers: await this.models(signal) }
-      case 'set-permission': {
-        const metadata = await this.index.loadBySessionId(request.topicSessionId)
-        if (metadata.hosted !== true && request.mode !== 'read-only') throw new Error('旧 Topic 保持只读。请新建 Topic 使用 DSH 编程权限。')
-        const handle = await this.ensureHandle(metadata, signal)
-        setSandboxMode(handle.agent.session, request.mode)
-        await handle.agent.ctx.sessions.flush(handle.agent.session)
-        return { kind: 'topic', topic: await this.snapshot(metadata, signal) }
-      }
+      case 'set-permission':
+        return this.queueTopicAdmission(request.topicSessionId, async () => {
+          const metadata = await this.index.loadBySessionId(request.topicSessionId)
+          if (metadata.hosted !== true && request.mode !== 'read-only') throw new Error('旧 Topic 保持只读。请新建 Topic 使用 DSH 编程权限。')
+          const handle = await this.ensureHandle(metadata, signal)
+          setSandboxMode(handle.agent.session, request.mode)
+          await handle.agent.ctx.sessions.flush(handle.agent.session)
+          return { kind: 'topic', topic: await this.snapshot(metadata, signal, true) }
+        }, signal)
       case 'set-model-route':
         return { kind: 'topic', topic: await this.setModelRoute(request, signal) }
       case 'set-reasoning-effort':
@@ -1428,6 +1490,10 @@ export class TopicRuntime {
 
   private async setupHostedAgent(agentCtx: Context, agent: Agent, metadata: TopicMetadata): Promise<void> {
     await this.questionReplies.attach(agentCtx, agent)
+    this.trackQuestionDraftReceipts(agentCtx, agent, metadata)
+    // The owned Session's event carrier belongs to its factory service view, not
+    // the Agent child scope. Public global observation still filters the exact
+    // owned object and is disposed with this contribution.
     agentCtx.on('session/event', (session, event) => {
       if (session !== agent.session) return
       const submittedAt = topicSubmissionTime(event)
@@ -1436,7 +1502,7 @@ export class TopicRuntime {
       void this.restoreSubmittedTopic(metadata, submittedAt).catch((error: unknown) => {
         if (!this.closed && !this.deleting.has(metadata.sessionId)) this.host.logger.warn('CiteCiter could not restore a submitted Topic', error)
       })
-    })
+    }, { global: true })
     const stream = new TopicStreamProjection()
     this.streams.set(metadata.sessionId, stream)
     agentCtx.on('agent/assistant-stream', ({ frame }) => stream.accept(frame, agent.session.snapshotEvents().length))
@@ -1455,11 +1521,12 @@ export class TopicRuntime {
       header: current.session.header, events: current.session.snapshotEvents(), inheritedEventCount: current.session.inheritedEventCount,
     })))
     agentCtx.tools.register(this.learningCardsTool())
-    agentCtx.on('user-questions/request', request => this.askUser(request))
+    bindTopicQuestionBridge(agentCtx, agent, (request, callId) => this.askUser(request, callId))
   }
 
   private async setupAgent(agentCtx: Context, agent: Agent, metadata: TopicMetadata): Promise<void> {
     await this.questionReplies.attach(agentCtx, agent)
+    this.trackQuestionDraftReceipts(agentCtx, agent, metadata)
     const stream = new TopicStreamProjection()
     this.streams.set(metadata.sessionId, stream)
     agentCtx.on('agent/assistant-stream', ({ frame }) => {
@@ -1525,7 +1592,7 @@ export class TopicRuntime {
         if (policyCtx.sandboxPolicy.overrideOf(agent.session) !== 'read-only') setSandboxMode(agent.session, 'read-only')
       },
     })
-    agentCtx.on('user-questions/request', (request) => this.askUser(request))
+    bindTopicQuestionBridge(agentCtx, agent, (request, callId) => this.askUser(request, callId))
   }
 
   private globTool() {
@@ -1912,7 +1979,59 @@ export class TopicRuntime {
     return result
   }
 
-  private askUser(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer> {
+  /** Validate partial selections against the exact Host question, without normalizing unsent text. */
+  private validateQuestionDraft(content: QuestionDraftContent, questions: readonly { readonly id: string; readonly options?: readonly { readonly label: string }[] | undefined }[]): void {
+    if (content.page >= questions.length) throw new Error('问题草稿页码超出当前问题范围')
+    const byId = new Map(questions.map(question => [question.id, question]))
+    for (const [id, answer] of Object.entries(content.answers)) {
+      const question = byId.get(id)
+      if (question === undefined) throw new Error('问题草稿包含不属于当前提问的答案')
+      const labels = new Set(question.options?.map(option => option.label) ?? [])
+      if (new Set(answer.selected).size !== answer.selected.length || answer.selected.some(label => !labels.has(label))) throw new Error('问题草稿包含未知或重复选项')
+    }
+  }
+
+  /** Commit cleanup through the same admission queue as saves and permanent deletion. */
+  private trackQuestionDraftReceipts(agentCtx: Context, agent: Agent, metadata: TopicMetadata): void {
+    if (metadata.storage !== 'source') return
+    const questionKeys = new Set(agent.session.snapshotEvents().slice(agent.session.inheritedEventCount).flatMap(event => {
+      const call = toolCallRecord(event)
+      return call?.name === 'ask_user_question' ? [questionKey(metadata.sessionId, call.callId)] : []
+    }))
+    // Reconcile receipts committed just before a crash; never infer completion from a missing live card.
+    void this.queueTopicAdmission(metadata.sessionId, async () => {
+      const latest = await this.index.loadBySessionId(metadata.sessionId)
+      if (latest.storage !== 'source') return
+      const drafts = new QuestionDraftStore(this.index.ownedDirectory(latest.sourceSessionId, latest.topicId))
+      for (const record of await drafts.records()) {
+        if (!record.closed && questionDraftLogStatus(metadata.sessionId, record.key, agent.session.snapshotEvents(), agent.session.inheritedEventCount, record.blocking) === 'closed') await drafts.close(record.key, true)
+      }
+    }, this.lifecycleAbort.signal).catch((error: unknown) => {
+      if (!this.closed && !this.deleting.has(metadata.sessionId)) this.host.logger.warn('CiteCiter could not reconcile question drafts after reopening', error)
+    })
+    // See setupHostedAgent: the owned Session store has a distinct event scope.
+    agentCtx.on('session/event', (session, event) => {
+      if (session !== agent.session) return
+      const call = toolCallRecord(event)
+      if (call?.name === 'ask_user_question') questionKeys.add(questionKey(metadata.sessionId, call.callId))
+      const key = questionDraftReceiptKey(metadata.sessionId, event)
+      if (event.type !== 'turn/end' && (key === undefined || !questionKeys.has(key))) return
+      // The Host dispatches synchronously; awaiting our admission queue here would deadlock submission.
+      void this.queueTopicAdmission(metadata.sessionId, async () => {
+        const latest = await this.index.loadBySessionId(metadata.sessionId)
+        if (latest.storage !== 'source') return
+        const drafts = new QuestionDraftStore(this.index.ownedDirectory(latest.sourceSessionId, latest.topicId))
+        const records = key === undefined ? await drafts.records() : [await drafts.read(key)]
+        for (const record of records) {
+          if (!record.closed && questionDraftLogStatus(metadata.sessionId, record.key, session.snapshotEvents(), session.inheritedEventCount, record.blocking) === 'closed') await drafts.close(record.key, true)
+        }
+      }, this.lifecycleAbort.signal).catch((error: unknown) => {
+        if (!this.closed && !this.deleting.has(metadata.sessionId)) this.host.logger.warn('CiteCiter could not retire a completed question draft', error)
+      })
+    }, { global: true })
+  }
+
+  private askUser(request: AskUserQuestionRequest, callId: string): Promise<AskUserQuestionAnswer> {
     if (this.closed) throw new UserQuestionError(CITECITER_SHUTTING_DOWN, 'ASK_ABORTED')
     const sessionId = request.agent === undefined ? undefined : String(request.agent.session.header.id)
     if (sessionId === undefined || !this.handles.has(sessionId)) {
@@ -1922,7 +2041,7 @@ export class TopicRuntime {
       throw new UserQuestionError('this Topic already has a pending question', 'DUPLICATE_QUESTION')
     }
     return new Promise((resolveAnswer, rejectAnswer) => {
-      const key = request.wait === undefined ? randomUUID() : questionKey(sessionId, String(request.wait.callId))
+      const key = questionKey(sessionId, callId)
       const finish = () => {
         const pending = this.pendingQuestions.get(sessionId)
         if (pending?.key === key) this.pendingQuestions.delete(sessionId)
@@ -1939,6 +2058,7 @@ export class TopicRuntime {
       const onAbort = () => reject(new UserQuestionError('ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
       const pending: RuntimePendingQuestion = {
         key,
+        callId,
         sessionId,
         questions: request.questions,
         wait: request.wait,
@@ -1948,6 +2068,20 @@ export class TopicRuntime {
         onAbort,
       }
       this.pendingQuestions.set(sessionId, pending)
+      if (request.wait === undefined) {
+        // A live ask can begin during another admission. Enqueue only the short
+        // identity write; never hold admission while waiting for the user's answer.
+        void this.queueTopicAdmission(sessionId, async () => {
+          const metadata = await this.index.loadBySessionId(sessionId)
+          if (metadata.storage !== 'source') return
+          const drafts = new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId))
+          const record = await drafts.registerBlocking(key)
+          const session = request.agent!.session
+          if (!record.closed && questionDraftLogStatus(sessionId, key, session.snapshotEvents(), session.inheritedEventCount, true) === 'closed') await drafts.close(key, true)
+        }, this.lifecycleAbort.signal).catch((error: unknown) => {
+          if (!this.closed && !this.deleting.has(sessionId)) this.host.logger.warn('CiteCiter could not register a blocking question draft', error)
+        })
+      }
       request.signal?.addEventListener('abort', onAbort, { once: true })
       if (request.signal?.aborted === true) onAbort()
     })
@@ -1964,11 +2098,11 @@ export class TopicRuntime {
       pending.resolve(validatedQuestionAnswer(pending.questions, request.answer, pending.wait !== undefined))
     } else {
       const handle = await this.ensureHandle(metadata, signal)
-      const continued = continuedQuestions(handle.agent).find(question => question.key === request.key)
+      const continued = [...continuedQuestions(handle.agent), ...await this.recoveredBlockingQuestions(metadata, handle.agent)].find(question => question.key === request.key)
       if (continued?.callId === undefined) throw new Error('这个提问已结束或已被替换')
-      const accepted = this.questionReplies.answer(handle.agent, continued.callId as ToolCallId,
-        validatedQuestionAnswer(continued.questions, request.answer, true))
-      if (!accepted) throw new Error('这个提问已结束或已被替换')
+      const answer = validatedQuestionAnswer(continued.questions, request.answer, continued.blocking !== true)
+      if (continued.blocking === true) this.questionReplies.answerRecoveredBlocking(handle.agent, continued, answer)
+      else if (!this.questionReplies.answer(handle.agent, continued.callId as ToolCallId, answer)) throw new Error('这个提问已结束或已被替换')
     }
     return this.snapshot(metadata, signal, true)
   }
@@ -2134,6 +2268,7 @@ export class TopicRuntime {
       this.index.bindSource(marker.sourceSessionId, root)
       await this.index.forgetLegacy(marker)
       await new DraftStore(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId)).remove()
+      await new QuestionDraftStore(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId)).remove()
       await removeOwnedSessionTree(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId))
     } else await this.removeSessionArtifact(marker.sessionHeader)
     await this.index.finishDeleting(marker)
@@ -2342,19 +2477,23 @@ export class TopicRuntime {
     return summaries.sort((left, right) => right.updatedAt - left.updatedAt)
   }
 
-  private async summary(metadata: TopicMetadata, signal?: AbortSignal): Promise<TopicSummary> {
-    let current = metadata
-    if ((current.mode === 'exact-fork' || cachedTopicTitle(current) === null) && !this.titleHydrated.has(current.sessionId)) {
-      const log = await this.readLog(current, signal)
-      this.titleHydrated.add(current.sessionId)
-      const title = foldTopicTitle(log)
-      current = await this.patchMetadataSerialized(current, {
-        cachedTitle: title?.title ?? null,
-        cachedTitleSource: titleSourceKind(title),
-        cachedTitleEventSeq: title?.eventSeq ?? null,
-      }, signal)
-    }
-    return this.summaryFromMetadata(current)
+  private summary(metadata: TopicMetadata, signal?: AbortSignal): Promise<TopicSummary> {
+    // List metadata can become stale while deletion waits. Re-read inside the
+    // Topic queue before a title read can construct an owned Session realm.
+    return this.queueTopicAdmission(metadata.sessionId, async () => {
+      let current = await this.index.loadBySessionId(metadata.sessionId)
+      if ((current.mode === 'exact-fork' || cachedTopicTitle(current) === null) && !this.titleHydrated.has(current.sessionId)) {
+        const log = await this.readLog(current, signal)
+        const title = foldTopicTitle(log)
+        current = await this.patchMetadataSerialized(current, {
+          cachedTitle: title?.title ?? null,
+          cachedTitleSource: titleSourceKind(title),
+          cachedTitleEventSeq: title?.eventSeq ?? null,
+        }, signal, true)
+        this.titleHydrated.add(current.sessionId)
+      }
+      return this.summaryFromMetadata(current)
+    }, signal)
   }
 
   private summaryFromMetadata(metadata: TopicMetadata): TopicSummary {
@@ -2384,11 +2523,26 @@ export class TopicRuntime {
     }
   }
 
-  private async get(sessionId: string, signal?: AbortSignal): Promise<TopicSnapshot> {
-    const metadata = await this.index.loadBySessionId(sessionId)
-    this.assertOpen(signal)
-    if (metadata.hosted === true) await this.ensureHandle(metadata, signal)
-    return this.snapshot(metadata, signal)
+  /** Serialize reads/saves with deletion and report only durable, exact deletion evidence. */
+  private withOwnedTopic(
+    sessionId: string,
+    read: (metadata: TopicMetadata) => Promise<CiteCiterResponse>,
+    signal: AbortSignal,
+  ): Promise<CiteCiterResponse> {
+    return this.queueTopicAdmission(sessionId, async () => {
+      const metadata = await this.index.findBySessionId(sessionId)
+      if (metadata === undefined) {
+        const receipt = await this.index.findDeleted(sessionId)
+        if (receipt !== undefined) {
+          const { version: _, ...identity } = receipt
+          return { kind: 'deleted', ...identity }
+        }
+        throw new Error(`CiteCiter Topic "${sessionId}" does not exist`)
+      }
+      // Uncommitted deletion intent is not proof that deletion succeeded.
+      if (this.deleting.has(sessionId)) throw new Error(`CiteCiter Topic "${sessionId}" is being deleted`)
+      return read(metadata)
+    }, signal, true)
   }
 
   private async readLog(metadata: TopicMetadata, signal?: AbortSignal): Promise<RuntimeTopicLog> {
@@ -2483,8 +2637,9 @@ export class TopicRuntime {
     const pending = this.pendingQuestions.get(current.sessionId)
     const ownedAgent = this.handles.get(current.sessionId)?.agent
     const questions = [
-      ...(pending === undefined ? [] : [openQuestion(pending.key, pending.questions, pending.wait)]),
+      ...(pending === undefined ? [] : [openQuestion(pending.key, pending.questions, pending.wait, pending.callId)]),
       ...(ownedAgent === undefined ? [] : continuedQuestions(ownedAgent)),
+      ...(ownedAgent === undefined ? [] : await this.recoveredBlockingQuestions(current, ownedAgent)),
     ]
     const captureId = this.boardCapture.id(current.sessionId)
     const document = current.documentId === null ? null : await this.documents.summary(current.documentId)
@@ -2497,6 +2652,19 @@ export class TopicRuntime {
       pendingQuestion: questions[0] ?? null,
       pendingQuestions: questions,
     }
+  }
+
+  /** Recover persisted blocking cards only; rendering never enqueues a model request. */
+  private async recoveredBlockingQuestions(metadata: TopicMetadata, agent: Agent): Promise<PendingQuestion[]> {
+    if (metadata.storage !== 'source') return []
+    const records = await new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId)).records()
+    const events = agent.session.snapshotEvents()
+    const liveKey = this.pendingQuestions.get(metadata.sessionId)?.key
+    return records.flatMap(record => {
+      if (record.key === liveKey) return []
+      const question = recoverBlockingQuestion(metadata.sessionId, record, events, agent.session.inheritedEventCount)
+      return question?.callId === undefined || this.questionReplies.isQueued(agent, question.callId) ? [] : [question]
+    })
   }
 
   private async patchMetadata(

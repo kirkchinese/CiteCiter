@@ -2,7 +2,7 @@ import { type RefObject } from 'react';
 import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions';
 import type { PendingQuestion } from '../../topic.ts';
 import type { QuestionInteraction } from '../question-interaction.ts';
-import type { QuestionDraft } from '../topic-question-controller.ts';
+import type { QuestionDraftController } from '../question-draft-controller.ts';
 export interface QuestionCardProps {
     readonly pending: {
         readonly key: string;
@@ -12,10 +12,7 @@ export interface QuestionCardProps {
     readonly onCancel: () => Promise<unknown>;
     readonly interaction?: QuestionInteraction;
     readonly surface?: RefObject<HTMLFormElement>;
-    readonly draftStore?: {
-        getDraft(): QuestionDraft;
-        setDraft(draft: QuestionDraft): void;
-    };
+    readonly draftStore?: QuestionDraftController | undefined;
 }
 /** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
 export declare function QuestionCard({ onAnswer, onCancel, pending, interaction, surface, draftStore }: QuestionCardProps): import("react").JSX.Element | null;

@@ -26,7 +26,7 @@ export interface QuestionInteraction {
  */
 export function useNativeQuestionInteraction(pending: Pick<PendingQuestion,
   'subscribe' | 'getSnapshot' | 'review' | 'dismissal' | 'holdFocus' | 'releaseFocus' | 'engage' | 'takeTime'>
-  & { readonly callId?: string | undefined; readonly kind?: string | undefined }): {
+  & { readonly callId?: string | undefined; readonly kind?: string | undefined; readonly allowSkip?: boolean; readonly interrupted?: boolean }): {
   readonly interaction: QuestionInteraction
   readonly surface: RefObject<HTMLFormElement>
 } {
@@ -47,7 +47,8 @@ export function useNativeQuestionInteraction(pending: Pick<PendingQuestion,
     }
   }, [pending])
   const status = pending.review !== undefined ? '已提交的回答'
-    : snapshot.state === 'continued' ? '模型已继续，可补充回答'
+    : pending.interrupted ? '上次运行已中断，可补充回答；手动提交后继续'
+      : snapshot.state === 'continued' ? '模型已继续，可补充回答'
       : snapshot.countdown === undefined ? undefined
         : snapshot.waitState === 'editing' || snapshot.waitState === 'waiting' ? '等待你完成回答'
           : snapshot.waitState === 'focused' ? '输入区获得焦点，倒计时已暂停'
@@ -58,7 +59,7 @@ export function useNativeQuestionInteraction(pending: Pick<PendingQuestion,
       state: snapshot.state, channel: snapshot.channel, closed: snapshot.closed,
       review: pending.review, dismissLabel: pending.dismissal === 'hide' ? '收起' : '取消', status,
       canTakeTime: snapshot.countdown !== undefined && snapshot.waitState !== 'editing' && snapshot.waitState !== 'waiting',
-      allowSkip: pending.callId !== undefined && pending.kind !== 'plan-review',
+      allowSkip: pending.allowSkip ?? (pending.callId !== undefined && pending.kind !== 'plan-review'),
       focus: () => pending.holdFocus(), blur: () => pending.releaseFocus(),
       edit: () => pending.engage(), takeTime: () => pending.takeTime(),
     },

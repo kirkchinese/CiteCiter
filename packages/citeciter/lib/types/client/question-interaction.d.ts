@@ -25,6 +25,8 @@ export interface QuestionInteraction {
 export declare function useNativeQuestionInteraction(pending: Pick<PendingQuestion, 'subscribe' | 'getSnapshot' | 'review' | 'dismissal' | 'holdFocus' | 'releaseFocus' | 'engage' | 'takeTime'> & {
     readonly callId?: string | undefined;
     readonly kind?: string | undefined;
+    readonly allowSkip?: boolean;
+    readonly interrupted?: boolean;
 }): {
     readonly interaction: QuestionInteraction;
     readonly surface: RefObject<HTMLFormElement>;

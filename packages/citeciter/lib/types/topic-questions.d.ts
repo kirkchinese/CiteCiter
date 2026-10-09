@@ -6,6 +6,7 @@ import type { PendingQuestion } from './topic.ts';
 /** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
 export declare class TopicQuestionReplies {
     private readonly replies;
+    private readonly recoveredReplies;
     /**
      * Bind the official answer service in a child of the Topic contribution scope.
      * @param ctx - Topic-owned contribution context; its teardown releases this binding.
@@ -14,13 +15,22 @@ export declare class TopicQuestionReplies {
     attach(ctx: Context, agent: Agent): Promise<void>;
     /** Route a continued answer through its live injected service; absence must never recreate the Agent. */
     answer(agent: Agent, callId: ToolCallId, answer: AskUserQuestionAnswer): boolean;
+    /** A queued answer is hidden until the Host admits or explicitly discards it. */
+    isQueued(agent: Agent, callId: string): boolean;
+    /**
+     * Manually continue an interrupted legacy ask through the public Agent Inbox.
+     * The old tool result remains intact; the new, durable user message names the
+     * original call and preserves its question/answer batch for model replay.
+     * Caller validates the exact recovered question and holds Topic admission/CAS.
+     */
+    answerRecoveredBlocking(agent: Agent, question: PendingQuestion, answer: AskUserQuestionAnswer): void;
 }
 /** A named Host call keeps one answer identity across the foreground/continued boundary. */
 export declare function questionKey(sessionId: string, callId: string): string;
 /** Copy only the public question presentation, including supporting plan/detail text. */
 export declare function questionPresentation(questions: readonly AskUserQuestionItem[]): PendingQuestion['questions'];
 /** Project a live private waterfall without assuming that every question blocks indefinitely. */
-export declare function openQuestion(key: string, questions: readonly AskUserQuestionItem[], wait: AskUserQuestionRequest['wait']): PendingQuestion;
+export declare function openQuestion(key: string, questions: readonly AskUserQuestionItem[], wait: AskUserQuestionRequest['wait'], callId?: string): PendingQuestion;
 /**
  * Read the Host's durable question projection for this exact owned Agent.
  * Replies already in its native Inbox are excluded until admitted/discarded.

@@ -279,6 +279,7 @@ export declare const TYPERT: {
                     ASK_ABORTED: "ASK_ABORTED";
                 }>>;
                 approvalOutcome: import("zod").ZodOptional<import("zod").ZodLiteral<"rejected">>;
+                interruptionOutcome: import("zod").ZodOptional<import("zod").ZodLiteral<"interrupted">>;
                 running: import("zod").ZodBoolean;
                 id: import("zod").ZodString;
                 seq: import("zod").ZodNumber;
@@ -313,6 +314,7 @@ export declare const TYPERT: {
                 }>>;
                 callId: import("zod").ZodOptional<import("zod").ZodString>;
                 timed: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                blocking: import("zod").ZodOptional<import("zod").ZodBoolean>;
             }, import("zod/v4/core").$strict>>;
             pendingQuestions: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
                 key: import("zod").ZodString;
@@ -333,6 +335,7 @@ export declare const TYPERT: {
                 }>>;
                 callId: import("zod").ZodOptional<import("zod").ZodString>;
                 timed: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                blocking: import("zod").ZodOptional<import("zod").ZodBoolean>;
             }, import("zod/v4/core").$strict>>>;
             error: import("zod").ZodNullable<import("zod").ZodString>;
             board: import("zod").ZodOptional<import("zod").ZodObject<{
@@ -503,6 +506,27 @@ export declare const TYPERT: {
                 investigate: "investigate";
             }>>;
         }, import("zod/v4/core").$strict>]>, import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"question-draft-get">;
+            topicSessionId: import("zod").ZodString;
+            key: import("zod").ZodString;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"question-draft-save">;
+            topicSessionId: import("zod").ZodString;
+            key: import("zod").ZodString;
+            state: import("zod").ZodObject<{
+                version: import("zod").ZodLiteral<1>;
+                revision: import("zod").ZodNumber;
+                content: import("zod").ZodObject<{
+                    answers: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodObject<{
+                        selected: import("zod").ZodArray<import("zod").ZodString>;
+                        custom: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
+                    page: import("zod").ZodNumber;
+                    edited: import("zod").ZodBoolean;
+                    held: import("zod").ZodBoolean;
+                }, import("zod/v4/core").$strict>;
+            }, import("zod/v4/core").$strict>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"draft-get">;
             topicSessionId: import("zod").ZodString;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
@@ -616,6 +640,7 @@ export declare const TYPERT: {
                     custom: import("zod").ZodOptional<import("zod").ZodString>;
                 }, import("zod/v4/core").$strict>>;
             }, import("zod/v4/core").$strict>;
+            draftRevision: import("zod").ZodOptional<import("zod").ZodNumber>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"cancel-question">;
             topicSessionId: import("zod").ZodString;
@@ -680,6 +705,23 @@ export declare const TYPERT: {
     }, {
         name: string;
         create: () => import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"question-draft">;
+            state: import("zod").ZodObject<{
+                version: import("zod").ZodLiteral<1>;
+                revision: import("zod").ZodNumber;
+                content: import("zod").ZodObject<{
+                    answers: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodObject<{
+                        selected: import("zod").ZodArray<import("zod").ZodString>;
+                        custom: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>;
+                    page: import("zod").ZodNumber;
+                    edited: import("zod").ZodBoolean;
+                    held: import("zod").ZodBoolean;
+                }, import("zod/v4/core").$strict>;
+            }, import("zod/v4/core").$strict>;
+            conflict: import("zod").ZodBoolean;
+            closed: import("zod").ZodBoolean;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             kind: import("zod").ZodLiteral<"draft">;
             state: import("zod").ZodObject<{
                 version: import("zod").ZodLiteral<1>;
@@ -1060,6 +1102,7 @@ export declare const TYPERT: {
                         ASK_ABORTED: "ASK_ABORTED";
                     }>>;
                     approvalOutcome: import("zod").ZodOptional<import("zod").ZodLiteral<"rejected">>;
+                    interruptionOutcome: import("zod").ZodOptional<import("zod").ZodLiteral<"interrupted">>;
                     running: import("zod").ZodBoolean;
                     id: import("zod").ZodString;
                     seq: import("zod").ZodNumber;
@@ -1094,6 +1137,7 @@ export declare const TYPERT: {
                     }>>;
                     callId: import("zod").ZodOptional<import("zod").ZodString>;
                     timed: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                    blocking: import("zod").ZodOptional<import("zod").ZodBoolean>;
                 }, import("zod/v4/core").$strict>>;
                 pendingQuestions: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
                     key: import("zod").ZodString;
@@ -1114,6 +1158,7 @@ export declare const TYPERT: {
                     }>>;
                     callId: import("zod").ZodOptional<import("zod").ZodString>;
                     timed: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                    blocking: import("zod").ZodOptional<import("zod").ZodBoolean>;
                 }, import("zod/v4/core").$strict>>>;
                 error: import("zod").ZodNullable<import("zod").ZodString>;
                 board: import("zod").ZodOptional<import("zod").ZodObject<{
@@ -1467,6 +1512,27 @@ export declare const TYPERT: {
                         investigate: "investigate";
                     }>>;
                 }, import("zod/v4/core").$strict>]>, import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"question-draft-get">;
+                    topicSessionId: import("zod").ZodString;
+                    key: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"question-draft-save">;
+                    topicSessionId: import("zod").ZodString;
+                    key: import("zod").ZodString;
+                    state: import("zod").ZodObject<{
+                        version: import("zod").ZodLiteral<1>;
+                        revision: import("zod").ZodNumber;
+                        content: import("zod").ZodObject<{
+                            answers: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodObject<{
+                                selected: import("zod").ZodArray<import("zod").ZodString>;
+                                custom: import("zod").ZodString;
+                            }, import("zod/v4/core").$strict>>;
+                            page: import("zod").ZodNumber;
+                            edited: import("zod").ZodBoolean;
+                            held: import("zod").ZodBoolean;
+                        }, import("zod/v4/core").$strict>;
+                    }, import("zod/v4/core").$strict>;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"draft-get">;
                     topicSessionId: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
@@ -1580,6 +1646,7 @@ export declare const TYPERT: {
                             custom: import("zod").ZodOptional<import("zod").ZodString>;
                         }, import("zod/v4/core").$strict>>;
                     }, import("zod/v4/core").$strict>;
+                    draftRevision: import("zod").ZodOptional<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"cancel-question">;
                     topicSessionId: import("zod").ZodString;
@@ -1650,6 +1717,23 @@ export declare const TYPERT: {
             mode: "strict";
             typeSymbol: string;
             create: () => import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
+                kind: import("zod").ZodLiteral<"question-draft">;
+                state: import("zod").ZodObject<{
+                    version: import("zod").ZodLiteral<1>;
+                    revision: import("zod").ZodNumber;
+                    content: import("zod").ZodObject<{
+                        answers: import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodObject<{
+                            selected: import("zod").ZodArray<import("zod").ZodString>;
+                            custom: import("zod").ZodString;
+                        }, import("zod/v4/core").$strict>>;
+                        page: import("zod").ZodNumber;
+                        edited: import("zod").ZodBoolean;
+                        held: import("zod").ZodBoolean;
+                    }, import("zod/v4/core").$strict>;
+                }, import("zod/v4/core").$strict>;
+                conflict: import("zod").ZodBoolean;
+                closed: import("zod").ZodBoolean;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 kind: import("zod").ZodLiteral<"draft">;
                 state: import("zod").ZodObject<{
                     version: import("zod").ZodLiteral<1>;
@@ -2030,6 +2114,7 @@ export declare const TYPERT: {
                             ASK_ABORTED: "ASK_ABORTED";
                         }>>;
                         approvalOutcome: import("zod").ZodOptional<import("zod").ZodLiteral<"rejected">>;
+                        interruptionOutcome: import("zod").ZodOptional<import("zod").ZodLiteral<"interrupted">>;
                         running: import("zod").ZodBoolean;
                         id: import("zod").ZodString;
                         seq: import("zod").ZodNumber;
@@ -2064,6 +2149,7 @@ export declare const TYPERT: {
                         }>>;
                         callId: import("zod").ZodOptional<import("zod").ZodString>;
                         timed: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                        blocking: import("zod").ZodOptional<import("zod").ZodBoolean>;
                     }, import("zod/v4/core").$strict>>;
                     pendingQuestions: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
                         key: import("zod").ZodString;
@@ -2084,6 +2170,7 @@ export declare const TYPERT: {
                         }>>;
                         callId: import("zod").ZodOptional<import("zod").ZodString>;
                         timed: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                        blocking: import("zod").ZodOptional<import("zod").ZodBoolean>;
                     }, import("zod/v4/core").$strict>>>;
                     error: import("zod").ZodNullable<import("zod").ZodString>;
                     board: import("zod").ZodOptional<import("zod").ZodObject<{

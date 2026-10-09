@@ -12,7 +12,7 @@ import css from './TopicComposer.module.css'
  * @param props - controlled draft, model route, request state and user-action callbacks.
  * @returns one form; model changes and sending remain owned by the Topic controller.
  */
-export function TopicComposer({ question, placeholder, route, providers, phase, canSend, routeSaving, folded, inputRef, onExpand, onQuestion, onSubmit, onStop, onModel, onReasoning, attachments, permission, onPermission, onFiles, delivery, onDelivery }: {
+export function TopicComposer({ question, placeholder, route, providers, phase, canSend, routeSaving, folded, inputRef, onExpand, onQuestion, onComposition, onSubmit, onStop, onModel, onReasoning, attachments, permission, onPermission, onFiles, delivery, onDelivery }: {
   readonly permission: PermissionMode
   readonly onPermission: (mode: PermissionMode) => void
   readonly onFiles: (files: readonly File[]) => void
@@ -30,6 +30,7 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
   readonly inputRef: Ref<HTMLTextAreaElement>
   readonly onExpand: () => void
   readonly onQuestion: (question: string) => void
+  readonly onComposition: (composing: boolean) => void
   readonly onSubmit: (event: FormEvent, mode?: DeliveryMode) => void
   readonly onStop: () => void
   readonly onModel: (provider: string, model: string) => void
@@ -45,6 +46,8 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
     <textarea hidden={folded} ref={inputRef} rows={2} maxLength={11_000}
       aria-label="继续向 CiteCiter 提问" value={question} disabled={route === undefined}
       onChange={event => onQuestion(event.currentTarget.value)} placeholder={placeholder}
+      onCompositionStart={() => onComposition(true)} onCompositionEnd={() => onComposition(false)}
+      onBlur={() => onComposition(false)}
       onPaste={event => {
         if (event.clipboardData.files.length === 0) return
         onFiles([...event.clipboardData.files])

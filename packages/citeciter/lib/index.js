@@ -1,17 +1,16 @@
-import { A as learningCardsInputSchema, D as actionTarget, E as DEFAULT_WHEEL_SLOTS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_BOARD_STATE, N as applyBoardOps, O as LEARNING_CARD_FIELD_DESCRIPTIONS, P as boardBatchSchema, R as draftStateSchema, T as readQuestionReply, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as LEARNING_EXAMPLE_PARAMETER, k as LEARNING_PROMPT, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as questionReplyText, x as topicMetadataSchema, y as renderCitationContext, z as subtractSubmitted } from "./update-hS-oqA8i.js";
-import { createRequire } from "node:module";
+import { A as learningCardsInputSchema, B as draftFileSchema, D as actionTarget, E as DEFAULT_WHEEL_SLOTS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as EMPTY_BOARD_STATE, N as applyBoardOps, O as LEARNING_CARD_FIELD_DESCRIPTIONS, P as boardBatchSchema, R as DRAFT_CHUNK_BYTES, T as readQuestionReply, V as draftStateSchema, _ as documentSummarySchema, a as CITECITER_SETTINGS_NAMESPACE, b as toolEvidenceClaimSchema, c as canonicalCitationIdentity, d as citationSelectionClaimSchema, f as citeCiterRequestSchema, g as documentEvidenceClaimSchema, h as documentContentSchema, i as CITATION_CONTEXT_NAME, j as LEARNING_EXAMPLE_PARAMETER, k as LEARNING_PROMPT, l as citationDraftSchema, m as citeCiterSettingsSchema, n as updateCheckErrorCodeSchema, o as DEFAULT_CITECITER_SETTINGS, r as updateCheckResponseSchema, s as TUTOR_SECTION_NAME, t as UpdateChecker, v as parseTopicMetadataFile, w as questionReplyText, x as topicMetadataSchema, y as renderCitationContext, z as EMPTY_DRAFT_STATE } from "./update-DKX-XCwo.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import z$1 from "@deepseek-ai/schemastery";
-import { access, lstat, mkdir, open, readFile, readdir, realpath, rename, rmdir, unlink, writeFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, matchesGlob, relative, resolve } from "node:path";
+import { lstat, mkdir, open, readFile, readdir, realpath, rename, rmdir, unlink, writeFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, matchesGlob, relative, resolve } from "node:path";
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionLogOffset, foldRequestHeader } from "@deepseek-ai/dsh-session";
 import { createHash, randomUUID } from "node:crypto";
 import { setTimeout as setTimeout$1 } from "node:timers/promises";
+import { BlockAssembler, MessageId, ReasoningEffortId, assembleAssistantStream, createUserMessage, freezeMessage } from "@deepseek-ai/dsh-llm";
 import ToolRuntime, { defineTool } from "@deepseek-ai/dsh-tools";
 import { snapshotJsonValue } from "@deepseek-ai/dsh-util-values";
-import { BlockAssembler, MessageId, ReasoningEffortId, assembleAssistantStream, createUserMessage, freezeMessage } from "@deepseek-ai/dsh-llm";
 import { isDeepStrictEqual } from "node:util";
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import AgentRegistry, { installModelSelection } from "@deepseek-ai/dsh-agent";
@@ -26,7 +25,7 @@ import * as ToolAskUser from "@deepseek-ai/dsh-tool-ask-user";
 import * as ToolFs from "@deepseek-ai/dsh-tool-fs";
 import * as ToolFsSearch from "@deepseek-ai/dsh-tool-fs-search";
 import UserQuestionService, { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
-import { pathToFileURL } from "node:url";
+import { AsyncLocalStorage } from "node:async_hooks";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {
@@ -83,7 +82,7 @@ const ownerSchema = z.object({
 	version: z.literal(1),
 	sourceSessionId: z.string().min(1)
 }).strict();
-function absent$1(error) {
+function absent$3(error) {
 	return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 /** Locate only source-owned Citer directories through the installed JSONL backend; persisted paths are never trusted. */
@@ -117,7 +116,7 @@ var SourceStorage = class {
 		await assertSessionFormat(sourceDirectory);
 		const directory = resolve(sourceDirectory, "citeciter");
 		let info = await lstat(directory).catch((error) => {
-			if (absent$1(error)) return void 0;
+			if (absent$3(error)) return void 0;
 			throw error;
 		});
 		if (info === void 0) {
@@ -128,12 +127,12 @@ var SourceStorage = class {
 		if (!info.isDirectory() || info.isSymbolicLink()) throw new Error("Citer 拒绝使用链接或非目录的来源存储路径");
 		const marker = resolve(directory, "owner.json");
 		const markerInfo = await lstat(marker).catch((error) => {
-			if (absent$1(error)) return void 0;
+			if (absent$3(error)) return void 0;
 			throw error;
 		});
 		if (markerInfo !== void 0 && (!markerInfo.isFile() || markerInfo.isSymbolicLink())) throw new Error("Citer 来源标记必须是普通文件");
 		let raw = await readFile(marker, "utf8").catch((error) => {
-			if (absent$1(error)) return void 0;
+			if (absent$3(error)) return void 0;
 			throw error;
 		});
 		if (raw === void 0) {
@@ -157,7 +156,7 @@ var SourceStorage = class {
 		if (typeof root !== "string" || !isAbsolute(root)) throw new Error("当前 DSH 未提供可定位的 JSONL 存储根目录");
 		const result = /* @__PURE__ */ new Map();
 		const workspaces = await readdir(root, { withFileTypes: true }).catch((error) => {
-			if (absent$1(error)) return [];
+			if (absent$3(error)) return [];
 			throw error;
 		});
 		for (const workspace of workspaces) {
@@ -212,7 +211,7 @@ async function atomicReplace(temporary, destination) {
 }
 //#endregion
 //#region lib/types/draft-store.js
-function absent(error) {
+function absent$2(error) {
 	return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 /** Caller serializes with Topic deletion and supplies an ownership-verified Topic directory. No model log is touched. */
@@ -226,7 +225,7 @@ var DraftStore = class {
 		if ((await lstat(this.topicDirectory)).isSymbolicLink()) throw new Error("Citer 拒绝链接草稿目录");
 		const directory = resolve(topic, "draft");
 		const info = await lstat(directory).catch((error) => {
-			if (absent(error)) return void 0;
+			if (absent$2(error)) return void 0;
 			throw error;
 		});
 		if (info === void 0) {
@@ -238,7 +237,7 @@ var DraftStore = class {
 	async file(directory, name) {
 		const file = resolve(directory, name);
 		const info = await lstat(file).catch((error) => {
-			if (absent(error)) return void 0;
+			if (absent$2(error)) return void 0;
 			throw error;
 		});
 		if (info !== void 0 && (!info.isFile() || info.isSymbolicLink())) throw new Error("Citer 草稿文件必须是普通文件");
@@ -249,7 +248,7 @@ var DraftStore = class {
 		const directory = await this.directory();
 		if (directory === void 0) return EMPTY_DRAFT_STATE;
 		const raw = await readFile(await this.file(directory, "state.json"), "utf8").catch((error) => {
-			if (absent(error)) return void 0;
+			if (absent$2(error)) return void 0;
 			throw error;
 		});
 		return raw === void 0 ? EMPTY_DRAFT_STATE : draftStateSchema.parse(JSON.parse(raw));
@@ -281,14 +280,14 @@ var DraftStore = class {
 			await atomicReplace(temporary, await this.file(directory, "state.json"));
 		} finally {
 			await unlink(temporary).catch((error) => {
-				if (!absent(error)) throw error;
+				if (!absent$2(error)) throw error;
 			});
 		}
 		const keep = new Set([...state.content.files, ...state.pending?.content.files ?? []].map((file) => file.id));
 		for (const file of [...current.content.files, ...current.pending?.content.files ?? []]) {
 			if (keep.has(file.id)) continue;
 			for (const suffix of ["bin", "json"]) await unlink(await this.file(directory, `${file.id}.${suffix}`)).catch((error) => {
-				if (!absent(error)) throw error;
+				if (!absent$2(error)) throw error;
 			});
 		}
 		return {
@@ -312,7 +311,7 @@ var DraftStore = class {
 		const directory = await this.directory(true);
 		const complete = await this.file(directory, `${meta.id}.bin`);
 		const exists = await lstat(complete).catch((error) => {
-			if (absent(error)) return void 0;
+			if (absent$2(error)) return void 0;
 			throw error;
 		});
 		const target = exists === void 0 ? await this.file(directory, `${meta.id}.part`) : complete;
@@ -334,7 +333,7 @@ var DraftStore = class {
 		if (offset + bytes.length === meta.size) {
 			const descriptor = await this.file(directory, `${meta.id}.json`);
 			const saved = await readFile(descriptor, "utf8").catch((error) => {
-				if (absent(error)) return void 0;
+				if (absent$2(error)) return void 0;
 				throw error;
 			});
 			if (saved === void 0) await writeFile(descriptor, JSON.stringify(meta) + "\n", {
@@ -375,22 +374,188 @@ var DraftStore = class {
 	}
 };
 //#endregion
-//#region lib/types/model-admission.js
-/** Keep an unavailable inherited route visible until the user explicitly replaces it. */
-const MODEL_SELECTION_REQUIRED = "来源模型已不可用。草稿已保留，请选择可用模型后发送。";
-/** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
-async function selectInitialModel(metadata, select) {
-	try {
-		await select();
-	} catch (error) {
-		if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "session/model-unavailable") throw error;
-		metadata.modelSelectionRequired = true;
+//#region lib/types/question-draft-store.js
+function absent$1(error) {
+	return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+function filename(key) {
+	return `${createHash("sha256").update(questionDraftKeySchema.parse(key)).digest("hex")}.json`;
+}
+/** Caller serializes all operations with Topic admission/deletion and verifies ownership of the Topic directory. */
+var QuestionDraftStore = class {
+	topicDirectory;
+	constructor(topicDirectory) {
+		this.topicDirectory = topicDirectory;
 	}
-}
-/** Check the durable flag before an explicit submission, without changing permissions or model defaults. */
-function requireSelectedModel(metadata) {
-	if (metadata.modelSelectionRequired === true) throw new Error(MODEL_SELECTION_REQUIRED);
-}
+	async directory(create = false) {
+		const topic = await realpath(this.topicDirectory);
+		if ((await lstat(this.topicDirectory)).isSymbolicLink()) throw new Error("Citer 拒绝链接问题草稿目录");
+		const directory = resolve(topic, "question-drafts");
+		const info = await lstat(directory).catch((error) => {
+			if (absent$1(error)) return void 0;
+			throw error;
+		});
+		if (info === void 0) {
+			if (!create) return void 0;
+			await mkdir(directory, { mode: 448 });
+		} else if (!info.isDirectory() || info.isSymbolicLink()) throw new Error("Citer 问题草稿目录必须是普通目录");
+		return directory;
+	}
+	async file(directory, name) {
+		const file = resolve(directory, name);
+		const info = await lstat(file).catch((error) => {
+			if (absent$1(error)) return void 0;
+			throw error;
+		});
+		if (info !== void 0 && (!info.isFile() || info.isSymbolicLink())) throw new Error("Citer 问题草稿文件必须是普通文件");
+		return file;
+	}
+	async readIfPresent(key) {
+		const name = filename(key);
+		const directory = await this.directory();
+		const raw = directory === void 0 ? void 0 : await readFile(await this.file(directory, name), "utf8").catch((error) => {
+			if (absent$1(error)) return void 0;
+			throw error;
+		});
+		if (raw === void 0) return void 0;
+		const record = questionDraftRecordSchema.parse(JSON.parse(raw));
+		if (record.key !== key) throw new Error("Citer 问题草稿身份不匹配");
+		return record;
+	}
+	/** Read validated data bound to the exact key. Corrupt records remain intact and surface an error. */
+	async read(key) {
+		return await this.readIfPresent(key) ?? {
+			key,
+			closed: false,
+			state: EMPTY_QUESTION_DRAFT_STATE
+		};
+	}
+	/** Register a real blocking call before any edit, preserving every existing draft and its CAS revision. */
+	async registerBlocking(key) {
+		const current = await this.readIfPresent(key);
+		if (current !== void 0) return current;
+		const record = {
+			key,
+			closed: false,
+			blocking: true,
+			state: EMPTY_QUESTION_DRAFT_STATE
+		};
+		await this.write(record);
+		return record;
+	}
+	/** List only validated records for restart reconciliation; unknown files are never consumed as drafts. */
+	async records() {
+		const directory = await this.directory();
+		if (directory === void 0) return [];
+		const records = [];
+		for (const name of await readdir(directory)) {
+			if (!/^[a-f\d]{64}\.json$/u.test(name)) continue;
+			const record = questionDraftRecordSchema.parse(JSON.parse(await readFile(await this.file(directory, name), "utf8")));
+			if (filename(record.key) !== name) throw new Error("Citer 问题草稿文件身份不匹配");
+			records.push(record);
+		}
+		return records;
+	}
+	async write(record) {
+		const validated = questionDraftRecordSchema.parse(record);
+		const directory = await this.directory(true);
+		const temporary = await this.file(directory, `${randomUUID()}.tmp`);
+		await writeFile(temporary, JSON.stringify(validated) + "\n", {
+			flag: "wx",
+			mode: 384
+		});
+		try {
+			await atomicReplace(temporary, await this.file(directory, filename(record.key)));
+		} finally {
+			await unlink(temporary).catch((error) => {
+				if (!absent$1(error)) throw error;
+			});
+		}
+	}
+	/** CAS returns the authoritative record on conflict; a closed record never accepts another save. */
+	async save(key, next, blocking) {
+		const current = await this.read(key);
+		if (current.closed || current.state.revision !== next.revision) return {
+			state: current.state,
+			conflict: true,
+			closed: current.closed
+		};
+		const state = {
+			...next,
+			revision: next.revision + 1
+		};
+		await this.write({
+			...current,
+			key,
+			closed: false,
+			state,
+			...blocking === void 0 ? {} : { blocking }
+		});
+		return {
+			state,
+			conflict: false,
+			closed: false
+		};
+	}
+	/**
+	* Check the submitting window's saved revision inside the same Topic admission
+	* operation that accepts its answer. A separate preflight GET cannot prevent a race.
+	* @param expectedRevision - the saved version, or undefined for a legacy caller without a draft protocol.
+	* Legacy callers are accepted only when this exact key has no persisted record.
+	* @returns the authoritative conflict/closed record, or undefined when admission may proceed.
+	*/
+	async checkSubmission(key, expectedRevision) {
+		const persisted = await this.readIfPresent(key);
+		if (expectedRevision === void 0) return persisted === void 0 ? void 0 : {
+			state: persisted.state,
+			conflict: true,
+			closed: persisted.closed
+		};
+		const current = persisted ?? {
+			key,
+			closed: false,
+			state: EMPTY_QUESTION_DRAFT_STATE
+		};
+		return current.closed || current.state.revision !== expectedRevision ? {
+			state: current.state,
+			conflict: true,
+			closed: current.closed
+		} : void 0;
+	}
+	/** Called only after an exact Host admission or terminal outcome, never on timeout or Client disposal. */
+	async close(key, onlyExisting = false) {
+		const persisted = await this.readIfPresent(key);
+		const current = persisted ?? {
+			key,
+			closed: false,
+			state: EMPTY_QUESTION_DRAFT_STATE
+		};
+		if (current.closed || onlyExisting && persisted === void 0) return current;
+		const record = {
+			...current,
+			key,
+			closed: true,
+			state: {
+				...EMPTY_QUESTION_DRAFT_STATE,
+				revision: current.state.revision + 1
+			}
+		};
+		await this.write(record);
+		return record;
+	}
+	/** Permanently remove only recognized ordinary files after the owning Topic is retired. */
+	async remove() {
+		const directory = await this.directory();
+		if (directory === void 0) return;
+		const files = await readdir(directory);
+		for (const name of files) {
+			if (!/^(?:[a-f\d]{64}\.json|[a-f\d-]{36}\.tmp)$/u.test(name)) throw new Error("问题草稿目录包含未识别文件，已保留");
+			await this.file(directory, name);
+		}
+		for (const name of files) await unlink(await this.file(directory, name));
+		await rmdir(directory);
+	}
+};
 //#endregion
 //#region lib/types/tool-events.js
 /** Read only the public structured error taxonomy, never infer a verdict from model-visible text. */
@@ -437,6 +602,222 @@ function toolResultRecord(event) {
 			...errorCode === void 0 ? {} : { errorCode }
 		};
 	}
+}
+//#endregion
+//#region lib/types/topic-questions.js
+/** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
+var TopicQuestionReplies = class {
+	replies = /* @__PURE__ */ new WeakMap();
+	recoveredReplies = /* @__PURE__ */ new WeakMap();
+	/**
+	* Bind the official answer service in a child of the Topic contribution scope.
+	* @param ctx - Topic-owned contribution context; its teardown releases this binding.
+	* @param agent - Exact live Agent receiving replies, never a Host list lookup.
+	*/
+	async attach(ctx, agent) {
+		await ctx.plugin({
+			name: "citeciter-question-replies",
+			inject: ["userQuestions"],
+			apply: (scope) => {
+				const reply = (callId, answer) => scope.userQuestions.answer(agent, callId, answer);
+				scope.effect(() => {
+					this.replies.set(agent, reply);
+					return () => {
+						if (this.replies.get(agent) === reply) this.replies.delete(agent);
+						this.recoveredReplies.delete(agent);
+					};
+				}, "citeciter: scoped question replies");
+				scope.on("agent/inbox/claimed", ({ agent: owner, message, turn }) => {
+					if (owner !== agent || message.source.kind !== "user-question-reply") return;
+					const pending = this.recoveredReplies.get(agent)?.get(message.source.callId);
+					if (pending?.messageId === message.id) pending.turn = turn;
+				}, { global: true });
+				scope.on("agent/inbox/discarded", ({ agent: owner, message }) => {
+					if (owner !== agent || message.source.kind !== "user-question-reply") return;
+					const pending = this.recoveredReplies.get(agent);
+					if (pending?.get(message.source.callId)?.messageId === message.id) pending.delete(message.source.callId);
+				}, { global: true });
+				scope.on("session/event", (session, event) => {
+					if (session !== agent.session) return;
+					const pending = this.recoveredReplies.get(agent);
+					if (pending === void 0) return;
+					if (event.type === "user/message" && event.data.source.kind === "user-question-reply") pending.delete(event.data.source.callId);
+					else if (event.type === "turn/end") {
+						for (const [id, reply] of pending) if (reply.turn === event.data.turn) pending.delete(id);
+					}
+				}, { global: true });
+			}
+		});
+	}
+	/** Route a continued answer through its live injected service; absence must never recreate the Agent. */
+	answer(agent, callId, answer) {
+		const reply = this.replies.get(agent);
+		if (reply === void 0) throw new Error("这个 Topic 的提问服务已结束，请重新打开后重试");
+		return reply(callId, answer);
+	}
+	/** A queued answer is hidden until the Host admits or explicitly discards it. */
+	isQueued(agent, callId) {
+		return this.recoveredReplies.get(agent)?.has(callId) === true || [...agent.inbox.nextTurn, ...agent.inbox.nextStep].some((message) => message.source.kind === "user-question-reply" && message.source.callId === callId);
+	}
+	/**
+	* Manually continue an interrupted legacy ask through the public Agent Inbox.
+	* The old tool result remains intact; the new, durable user message names the
+	* original call and preserves its question/answer batch for model replay.
+	* Caller validates the exact recovered question and holds Topic admission/CAS.
+	*/
+	answerRecoveredBlocking(agent, question, answer) {
+		if (!this.replies.has(agent) || question.blocking !== true || question.callId === void 0) throw new Error("此问题的补答服务已结束");
+		const callId = question.callId;
+		if (this.isQueued(agent, callId)) throw new Error("这条问题的回答已经排队，未重复提交");
+		const message = createUserMessage({
+			source: {
+				kind: "user-question-reply",
+				callId,
+				outcome: "answered"
+			},
+			content: [{
+				type: "text",
+				text: JSON.stringify({
+					kind: "answer_to_pending_question",
+					tool: "ask_user_question",
+					callId,
+					questions: question.questions,
+					answers: answer.answers
+				})
+			}]
+		});
+		const pending = this.recoveredReplies.get(agent) ?? /* @__PURE__ */ new Map();
+		pending.set(callId, { messageId: message.id });
+		this.recoveredReplies.set(agent, pending);
+		try {
+			agent.steer(message);
+		} catch (error) {
+			pending.delete(callId);
+			throw error;
+		}
+	}
+};
+/** A named Host call keeps one answer identity across the foreground/continued boundary. */
+function questionKey(sessionId, callId) {
+	return `question:${sessionId}:${callId}`;
+}
+/** Copy only the public question presentation, including supporting plan/detail text. */
+function questionPresentation(questions) {
+	return questions.map((question) => ({
+		id: question.id,
+		question: question.question,
+		...question.header === void 0 ? {} : { header: question.header },
+		...question.detail === void 0 ? {} : { detail: question.detail },
+		...question.options === void 0 ? {} : { options: question.options.map((option) => ({ ...option })) },
+		...question.multiSelect === void 0 ? {} : { multiSelect: question.multiSelect }
+	}));
+}
+/** Project a live private waterfall without assuming that every question blocks indefinitely. */
+function openQuestion(key, questions, wait, callId) {
+	return {
+		key,
+		questions: questionPresentation(questions),
+		state: "open",
+		...wait === void 0 ? {
+			blocking: true,
+			...callId === void 0 ? {} : { callId }
+		} : {
+			callId: String(wait.callId),
+			timed: wait.timed === true
+		}
+	};
+}
+/**
+* Read the Host's durable question projection for this exact owned Agent.
+* Replies already in its native Inbox are excluded until admitted/discarded.
+* No Session is registered in the Host list and no log format is rewritten.
+*/
+function continuedQuestions(agent) {
+	const state = agent.ctx.get("sessionProjections")?.stateOf(agent.session, "userQuestions");
+	const queued = [...agent.inbox.nextTurn, ...agent.inbox.nextStep];
+	return (state?.questions.active ?? []).filter((question) => question.state === "continued" && !queued.some((message) => message.source.kind === "user-question-reply" && message.source.callId === question.callId)).map((question) => ({
+		key: questionKey(String(agent.session.header.id), String(question.callId)),
+		callId: String(question.callId),
+		state: "continued",
+		questions: questionPresentation(question.questions)
+	}));
+}
+//#endregion
+//#region lib/types/question-draft-lifecycle.js
+function pending(content) {
+	const first = content.find((block) => block.type === "text");
+	if (first === void 0) return false;
+	try {
+		const value = JSON.parse(first.text);
+		return typeof value === "object" && value !== null && "pending" in value && value.pending === true;
+	} catch {
+		return false;
+	}
+}
+function unresolvedError(event) {
+	if (event.type !== "tool/result" && event.type !== "tool/ptc-dispatch") return false;
+	const error = "error" in event.data ? event.data.error : void 0;
+	return typeof error === "object" && error !== null && "code" in error && (error.code === "TOOL_OUTCOME_UNKNOWN" || error.code === "ASK_TIMED_OUT");
+}
+/**
+* Inspect exact owned post-seed calls only. Missing projections, queued replies,
+* disconnects and interrupted-call repair never establish a terminal receipt.
+*/
+function questionDraftLogStatus(sessionId, key, events, inheritedEventCount, blocking = false) {
+	let status = "unknown";
+	let callId;
+	let currentTurn;
+	let callTurn;
+	let aborted = false;
+	for (const event of events.slice(inheritedEventCount)) {
+		if (event.type === "turn/start") currentTurn = event.data.turn;
+		const call = toolCallRecord(event);
+		if (call?.name === "ask_user_question" && questionKey(sessionId, call.callId) === key) {
+			callId = call.callId;
+			callTurn = currentTurn;
+			status = "open";
+			continue;
+		}
+		if (callId === void 0) continue;
+		if (event.type === "user/message" && event.data.source.kind === "user-question-reply" && event.data.source.callId === callId) return "closed";
+		const result = toolResultRecord(event);
+		if (result?.callId === callId && !unresolvedError(event) && !pending(result.content)) {
+			if (blocking && result.errorCode === "ASK_ABORTED") aborted = true;
+			else return "closed";
+		}
+		if (blocking && event.type === "turn/end" && event.data.turn === callTurn) {
+			const reason = event.data.reason;
+			if (reason.kind === "aborted" && reason.reason.kind === "user") return "closed";
+			if (!aborted) continue;
+			if (reason.kind === "interrupted" || reason.kind === "aborted" && reason.reason.kind === "disposed") continue;
+			status = "unknown";
+		}
+	}
+	return status;
+}
+/** Candidate key for a committed result/reply; callers still verify its original ask call. */
+function questionDraftReceiptKey(sessionId, event) {
+	if (event.type === "user/message" && event.data.source.kind === "user-question-reply") return questionKey(sessionId, event.data.source.callId);
+	if (event.type !== "tool/result" && event.type !== "tool/ptc-dispatch") return void 0;
+	const result = toolResultRecord(event);
+	return result === void 0 ? void 0 : questionKey(sessionId, result.callId);
+}
+//#endregion
+//#region lib/types/model-admission.js
+/** Keep an unavailable inherited route visible until the user explicitly replaces it. */
+const MODEL_SELECTION_REQUIRED = "来源模型已不可用。草稿已保留，请选择可用模型后发送。";
+/** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
+async function selectInitialModel(metadata, select) {
+	try {
+		await select();
+	} catch (error) {
+		if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "session/model-unavailable") throw error;
+		metadata.modelSelectionRequired = true;
+	}
+}
+/** Check the durable flag before an explicit submission, without changing permissions or model defaults. */
+function requireSelectedModel(metadata) {
+	if (metadata.modelSelectionRequired === true) throw new Error(MODEL_SELECTION_REQUIRED);
 }
 //#endregion
 //#region lib/types/evidence-text.js
@@ -16271,6 +16652,91 @@ async function copySessionHistory(source, target, sessionId) {
 	}
 }
 //#endregion
+//#region lib/types/topic-deletion-receipts.js
+const sessionIdentity = z.string().regex(/^citeciter-[a-zA-Z0-9-]+$/u).max(200);
+const receiptSchema = z.object({
+	version: z.literal(1),
+	sourceSessionId: z.string().min(1),
+	topicId: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+	sessionId: sessionIdentity,
+	cleanup: z.enum(["pending", "complete"])
+}).strict();
+function absent(error) {
+	return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+/** Store exact identities below an already owned source root, independently of numeric Topic directories. */
+var TopicDeletionReceipts = class {
+	writeJson;
+	/** @param writeJson - the owner's atomic JSON writer; no Host services or log writer are involved. */
+	constructor(writeJson) {
+		this.writeJson = writeJson;
+	}
+	async directory(root, create) {
+		const rootInfo = await lstat(root).catch((error) => {
+			if (absent(error) && !create) return void 0;
+			throw error;
+		});
+		if (rootInfo === void 0) return void 0;
+		if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink()) throw new Error("Citer 删除回执的来源根必须是普通目录");
+		const canonicalRoot = await realpath(root);
+		const directory = resolve(canonicalRoot, "deleted");
+		if (create) await mkdir(directory, { mode: 448 }).catch((error) => {
+			if (!(typeof error === "object" && error !== null && "code" in error && error.code === "EEXIST")) throw error;
+		});
+		const info = await lstat(directory).catch((error) => {
+			if (absent(error)) return void 0;
+			throw error;
+		});
+		if (info === void 0) return void 0;
+		if (!info.isDirectory() || info.isSymbolicLink() || await realpath(directory) !== directory) throw new Error("Citer 拒绝读取或写入链接形式的删除回执目录");
+		return directory;
+	}
+	/**
+	* Read one exact receipt from a known Citer-owned source root.
+	* @param root - canonical source/citeciter root, or the existing legacy Citer source index.
+	* @param sourceSessionId - source identity supplied by the owner, never derived from receipt data.
+	* @param sessionId - exact generated Topic identity; no arbitrary path segments are accepted.
+	* @returns verified evidence, or undefined only when the receipt does not exist.
+	* Malformed, linked or identity-mismatched artifacts fail visibly and never imply deletion.
+	*/
+	async read(root, sourceSessionId, sessionId) {
+		const identity = sessionIdentity.parse(sessionId);
+		const directory = await this.directory(root, false);
+		if (directory === void 0) return void 0;
+		const path = resolve(directory, `${identity}.json`);
+		const info = await lstat(path).catch((error) => {
+			if (absent(error)) return void 0;
+			throw error;
+		});
+		if (info === void 0) return void 0;
+		if (!info.isFile() || info.isSymbolicLink() || info.size > 8192) throw new Error("Citer 删除回执不是有效的普通文件");
+		const content = await readFile(path, "utf8").catch((error) => {
+			if (absent(error)) return void 0;
+			throw error;
+		});
+		if (content === void 0) return void 0;
+		const receipt = receiptSchema.parse(JSON.parse(content));
+		if (receipt.sessionId !== identity || receipt.sourceSessionId !== sourceSessionId) throw new Error("Citer 删除回执与来源或 Topic 身份不匹配");
+		return receipt;
+	}
+	/**
+	* Commit completed deletion evidence before the owner removes its recovery marker.
+	* @param root - existing owned source root; this method never creates a source Session.
+	* @param receipt - completed exact identity, with no content-bearing metadata.
+	* @returns after atomic publication, or when the identical receipt was already committed.
+	*/
+	async complete(root, receipt) {
+		const previous = await this.read(root, receipt.sourceSessionId, receipt.sessionId);
+		if (previous !== void 0) {
+			if (previous.topicId !== receipt.topicId) throw new Error("Citer 删除回执中的 Topic 编号发生冲突");
+			if (previous.cleanup === "complete") return;
+		}
+		const directory = await this.directory(root, true);
+		if (directory === void 0) throw new Error("Citer 删除回执目录不可用");
+		await this.writeJson(resolve(directory, `${sessionIdentity.parse(receipt.sessionId)}.json`), receipt);
+	}
+};
+//#endregion
 //#region lib/types/topic-index.js
 /** Durable navigation metadata and bounded legacy artifact cleanup, independent of Agent execution. */
 const TOPIC_INDEX_ROOT = dshHomePath("citeciter", "workspaces");
@@ -16384,12 +16850,15 @@ const topicDeletionMarkerSchema = z.object({
 	}).strict()
 }).strict();
 function parseTopicDeletionMarker(raw) {
-	return topicDeletionMarkerSchema.parse(raw);
+	const marker = topicDeletionMarkerSchema.parse(raw);
+	if (marker.sessionHeader.id !== marker.sessionId) throw new Error("Citer 删除标记与 Session 身份不匹配");
+	return marker;
 }
 /** Minimal on-disk navigation index; Session history stays in standard DSH JSONL. */
 var TopicIndex = class {
 	root;
 	sourceRoots = /* @__PURE__ */ new Map();
+	deletionReceipts = new TopicDeletionReceipts(atomicWriteJson$1);
 	/** Bind a canonical source-owned root resolved by SourceStorage. */
 	bindSource(sourceSessionId, root) {
 		this.sourceRoots.set(sourceSessionId, root);
@@ -16476,9 +16945,55 @@ var TopicIndex = class {
 		await atomicWriteJson$1(resolve(directory, "topic.json"), validated);
 	}
 	async loadBySessionId(sessionId) {
-		const metadata = (await this.all()).find((item) => item.sessionId === sessionId);
+		const metadata = await this.findBySessionId(sessionId);
 		if (metadata !== void 0) return metadata;
 		throw new Error(`CiteCiter Topic "${sessionId}" does not exist`);
+	}
+	/** Return owned metadata when present; malformed or unreadable storage still throws. */
+	async findBySessionId(sessionId) {
+		return (await this.all()).find((item) => item.sessionId === sessionId);
+	}
+	/**
+	* Find authoritative committed deletion evidence without inferring it from missing metadata.
+	* @param sessionId - exact generated Citer Session identity.
+	* @returns a verified pending marker or completed receipt, including after Host restart;
+	* old deletions whose markers were already removed have no recoverable evidence.
+	*/
+	async findDeleted(sessionId) {
+		let result;
+		const accept = (receipt) => {
+			if (result !== void 0 && (result.sourceSessionId !== receipt.sourceSessionId || result.topicId !== receipt.topicId)) throw new Error("Citer 删除记录包含冲突的 Topic 身份");
+			if (result === void 0 || receipt.cleanup === "pending") result = receipt;
+		};
+		for (const marker of await this.listDeleting()) if (marker.sessionId === sessionId) accept({
+			version: 1,
+			sessionId,
+			sourceSessionId: marker.sourceSessionId,
+			topicId: marker.topicId,
+			cleanup: "pending"
+		});
+		const sources = await readdir(this.root, { withFileTypes: true }).catch((error) => {
+			if (errorCode$1(error) === "ENOENT") return [];
+			throw error;
+		});
+		const candidates = [...this.sourceRoots].map(([sourceSessionId, root]) => ({
+			sourceSessionId,
+			root
+		}));
+		for (const source of sources) {
+			if (!source.isDirectory() || source.isSymbolicLink()) continue;
+			const sourceSessionId = Buffer.from(source.name, "base64url").toString("utf8");
+			if (sourceSessionId === "" || sourceDirectoryName(sourceSessionId) !== source.name) continue;
+			candidates.push({
+				sourceSessionId,
+				root: resolve(this.root, source.name)
+			});
+		}
+		for (const { sourceSessionId, root } of candidates) {
+			const receipt = await this.deletionReceipts.read(root, sourceSessionId, sessionId);
+			if (receipt !== void 0) accept(receipt);
+		}
+		return result;
 	}
 	async list(sourceSessionId) {
 		return (await this.all()).filter((item) => item.sourceSessionId === sourceSessionId).sort((a, b) => a.topicId - b.topicId);
@@ -16528,17 +17043,27 @@ var TopicIndex = class {
 			for (const topic of topics) {
 				if (!topic.isDirectory() || topic.isSymbolicLink() || !/^\d+$/.test(topic.name)) continue;
 				const marker = await this.deletionMarkerIfPresent(resolve(sourceDirectory, topic.name));
-				if (marker !== void 0 && marker.topicId === Number(topic.name) && (source === void 0 ? marker.storage === void 0 : marker.storage === "source" && marker.sourceSessionId === source)) markers.push(marker);
+				if (marker !== void 0 && marker.topicId === Number(topic.name) && (source === void 0 ? marker.storage === void 0 && sourceDirectoryName(marker.sourceSessionId) === basename(sourceDirectory) : marker.storage === "source" && marker.sourceSessionId === source)) markers.push(marker);
 			}
 		}
 		return markers;
 	}
-	/** Remove the marker and its now-empty Topic directory after artifact cleanup. */
+	/** Commit the deletion identity, then remove the marker and empty Topic directory after artifact cleanup. */
 	async finishDeleting(marker) {
 		const owned = marker.storage === "source";
 		const directory = this.directory(marker.sourceSessionId, marker.topicId, owned);
 		const root = owned ? this.sourceRoots.get(marker.sourceSessionId) : this.root;
 		await unlinkOwnedFileIfPresent(root, resolve(directory, "topic.json"));
+		const sourceRoot = this.sourceRoots.get(marker.sourceSessionId);
+		if (owned && sourceRoot === void 0) throw new Error("Citer 来源目录不可用，未移除删除恢复标记");
+		const receiptRoot = sourceRoot ?? resolve(this.root, sourceDirectoryName(marker.sourceSessionId));
+		await this.deletionReceipts.complete(receiptRoot, {
+			version: 1,
+			sourceSessionId: marker.sourceSessionId,
+			topicId: marker.topicId,
+			sessionId: marker.sessionId,
+			cleanup: "complete"
+		});
 		await unlinkOwnedFileIfPresent(root, resolve(directory, "deleting.json"));
 		await rmdirOwnedIfEmpty(root, directory);
 	}
@@ -16570,7 +17095,10 @@ var TopicIndex = class {
 	}
 	async deletionMarkerIfPresent(directory) {
 		try {
-			return parseTopicDeletionMarker(JSON.parse(await readFile(resolve(directory, "deleting.json"), "utf8")));
+			const path = resolve(directory, "deleting.json");
+			const info = await lstat(path);
+			if (!info.isFile() || info.isSymbolicLink()) throw new Error("Citer 删除标记必须是普通文件");
+			return parseTopicDeletionMarker(JSON.parse(await readFile(path, "utf8")));
 		} catch (error) {
 			if (errorCode$1(error) === "ENOENT") return void 0;
 			throw error;
@@ -16757,78 +17285,153 @@ var DocumentStore = class {
 	}
 };
 //#endregion
-//#region lib/types/topic-questions.js
-/** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
-var TopicQuestionReplies = class {
-	replies = /* @__PURE__ */ new WeakMap();
-	/**
-	* Bind the official answer service in a child of the Topic contribution scope.
-	* @param ctx - Topic-owned contribution context; its teardown releases this binding.
-	* @param agent - Exact live Agent receiving replies, never a Host list lookup.
-	*/
-	async attach(ctx, agent) {
-		await ctx.plugin({
-			name: "citeciter-question-replies",
-			inject: ["userQuestions"],
-			apply: (scope) => {
-				const reply = (callId, answer) => scope.userQuestions.answer(agent, callId, answer);
-				scope.effect(() => {
-					this.replies.set(agent, reply);
-					return () => {
-						if (this.replies.get(agent) === reply) this.replies.delete(agent);
-					};
-				}, "citeciter: scoped question replies");
-			}
-		});
-	}
-	/** Route a continued answer through its live injected service; absence must never recreate the Agent. */
-	answer(agent, callId, answer) {
-		const reply = this.replies.get(agent);
-		if (reply === void 0) throw new Error("这个 Topic 的提问服务已结束，请重新打开后重试");
-		return reply(callId, answer);
-	}
-};
-/** A named Host call keeps one answer identity across the foreground/continued boundary. */
-function questionKey(sessionId, callId) {
-	return `question:${sessionId}:${callId}`;
+//#region lib/types/topic-question-bridge.js
+/**
+* Bind one owned Agent's ordinary question waterfall before generic Client answerers.
+* The legacy tool omits wait.callId; its public execution boundary supplies the exact
+* identity across async work and parallel PTC dispatches without guessing from logs.
+* Plan-review and unidentified/non-owned requests retain their native answerer.
+*/
+function bindTopicQuestionBridge(ctx, agent, answer) {
+	const calls = new AsyncLocalStorage();
+	ctx.effect(() => () => calls.disable(), "citeciter: question execution identity");
+	ctx.on("tools/execute", (execution, next) => {
+		if (execution.agent !== agent || execution.name !== "ask_user_question") return next();
+		return calls.run(String(execution.callId), next);
+	}, {
+		global: true,
+		prepend: true
+	});
+	ctx.on("user-questions/request", (request, next) => {
+		if (request.agent !== agent || request.questions.some((question) => question.intent?.kind === "plan-review")) return next();
+		const callId = request.wait?.callId ?? calls.getStore();
+		return callId === void 0 ? next() : answer(request, String(callId));
+	}, {
+		global: true,
+		prepend: true
+	});
 }
-/** Copy only the public question presentation, including supporting plan/detail text. */
-function questionPresentation(questions) {
-	return questions.map((question) => ({
-		id: question.id,
-		question: question.question,
-		...question.header === void 0 ? {} : { header: question.header },
-		...question.detail === void 0 ? {} : { detail: question.detail },
-		...question.options === void 0 ? {} : { options: question.options.map((option) => ({ ...option })) },
-		...question.multiSelect === void 0 ? {} : { multiSelect: question.multiSelect }
-	}));
+//#endregion
+//#region lib/types/blocking-question-recovery.js
+const argumentsSchema = z.object({ questions: z.array(z.object({
+	id: z.string().min(1),
+	question: z.string(),
+	header: z.string().optional(),
+	options: z.array(z.object({
+		label: z.string(),
+		description: z.string().optional()
+	}).loose()).optional(),
+	multi_select: z.boolean().optional()
+}).loose()).min(1) }).loose();
+/**
+* Prove that an unfinished PTC child belongs to the exact run_code invocation
+* repaired by DSH after a crash. Every parent link must be logged in the same
+* turn; an ordinary parent failure, settled child or unrelated repair is not proof.
+* @param events - only the owning Topic's post-seed events, in append order.
+*/
+function hasInterruptedPtcParent(callId, events) {
+	const starts = events.flatMap((event, index) => event.type === "tool/ptc-dispatch-start" && event.data.subCallId === callId ? [{
+		event,
+		index
+	}] : []);
+	if (starts.length !== 1) return false;
+	const child = starts[0];
+	const turnStart = events.slice(0, child.index).findLast((event) => event.type === "turn/start");
+	if (turnStart?.type !== "turn/start") return false;
+	const turn = turnStart.data.turn;
+	const turnEnd = events.findIndex((event, index) => index > child.index && event.type === "turn/end" && event.data.turn === turn);
+	const ended = events[turnEnd];
+	if (ended?.type !== "turn/end" || ended.data.reason.kind !== "interrupted") return false;
+	const rootId = child.event.data.rootCallId;
+	const rootCalls = events.flatMap((event, index) => event.type === "tool/call" && event.data.callId === rootId ? [{
+		event,
+		index
+	}] : []);
+	if (rootCalls.length !== 1) return false;
+	const root = rootCalls[0];
+	if (root.event.data.name !== "run_code" || root.event.data.turn !== turn || root.index >= child.index) return false;
+	const ancestors = /* @__PURE__ */ new Set();
+	let parentId = String(child.event.data.parentCallId);
+	let before = child.index;
+	while (parentId !== rootId) {
+		if (parentId === callId || ancestors.has(parentId)) return false;
+		ancestors.add(parentId);
+		const parents = events.flatMap((event, index) => event.type === "tool/ptc-dispatch-start" && event.data.subCallId === parentId ? [{
+			event,
+			index
+		}] : []);
+		if (parents.length !== 1) return false;
+		const parent = parents[0];
+		if (parent.index <= root.index || parent.index >= before || parent.event.data.rootCallId !== rootId || parent.event.data.name !== "run_code") return false;
+		before = parent.index;
+		parentId = String(parent.event.data.parentCallId);
+	}
+	ancestors.add(rootId);
+	let repaired = false;
+	for (let index = root.index + 1; index < turnEnd; index++) {
+		const event = events[index];
+		if (event.type === "turn/start") return false;
+		const result = toolResultRecord(event);
+		if (result?.callId === callId) return false;
+		if (result === void 0 || !ancestors.has(result.callId)) continue;
+		if (repaired || event.type !== "tool/result" || result.callId !== rootId || event.data.turn !== turn || event.data.error?.code !== "TOOL_OUTCOME_UNKNOWN" || index <= child.index) return false;
+		repaired = true;
+	}
+	return repaired;
 }
-/** Project a live private waterfall without assuming that every question blocks indefinitely. */
-function openQuestion(key, questions, wait) {
-	return {
-		key,
-		questions: questionPresentation(questions),
-		state: "open",
-		...wait === void 0 ? {} : {
-			callId: String(wait.callId),
-			timed: wait.timed === true
+/** An absent live card alone is never evidence of interruption. */
+function interrupted(callId, events) {
+	let turn;
+	let callTurn;
+	let aborted = false;
+	for (const event of events) {
+		if (event.type === "turn/start") turn = event.data.turn;
+		if (toolCallRecord(event)?.callId === callId) callTurn = turn;
+		if (toolResultRecord(event)?.callId === callId) {
+			const error = event.type === "tool/result" || event.type === "tool/ptc-dispatch" ? event.data.error : void 0;
+			if (error?.code === "TOOL_OUTCOME_UNKNOWN") return true;
+			if (error?.code === "ASK_ABORTED") aborted = true;
 		}
-	};
+		if (aborted && event.type === "turn/end" && event.data.turn === callTurn) {
+			const reason = event.data.reason;
+			if (reason.kind === "interrupted" || reason.kind === "aborted" && reason.reason.kind === "disposed") return true;
+		}
+	}
+	return hasInterruptedPtcParent(callId, events);
 }
 /**
-* Read the Host's durable question projection for this exact owned Agent.
-* Replies already in its native Inbox are excluded until admitted/discarded.
-* No Session is registered in the Host list and no log format is rewritten.
+* Recover only a Host-identified blocking draft and its exact committed ask.
+* Missing/invalid logs never fabricate a question; cancellation and accepted
+* replies remain closed. The returned card can submit only on a user's action.
 */
-function continuedQuestions(agent) {
-	const state = agent.ctx.get("sessionProjections")?.stateOf(agent.session, "userQuestions");
-	const queued = [...agent.inbox.nextTurn, ...agent.inbox.nextStep];
-	return (state?.questions.active ?? []).filter((question) => question.state === "continued" && !queued.some((message) => message.source.kind === "user-question-reply" && message.source.callId === question.callId)).map((question) => ({
-		key: questionKey(String(agent.session.header.id), String(question.callId)),
-		callId: String(question.callId),
+function recoverBlockingQuestion(sessionId, record, events, inheritedEventCount) {
+	if (record.blocking !== true || record.closed || questionDraftLogStatus(sessionId, record.key, events, inheritedEventCount, true) !== "open") return void 0;
+	const call = events.slice(inheritedEventCount).map(toolCallRecord).find((value) => value?.name === "ask_user_question" && questionKey(sessionId, value.callId) === record.key);
+	if (call === void 0 || !interrupted(call.callId, events.slice(inheritedEventCount))) return void 0;
+	let value;
+	try {
+		value = JSON.parse(call.arguments);
+	} catch {
+		return;
+	}
+	const parsed = argumentsSchema.safeParse(value);
+	if (!parsed.success || new Set(parsed.data.questions.map((question) => question.id)).size !== parsed.data.questions.length) return void 0;
+	return {
+		key: record.key,
+		callId: call.callId,
 		state: "continued",
-		questions: questionPresentation(question.questions)
-	}));
+		blocking: true,
+		questions: parsed.data.questions.map((question) => ({
+			id: question.id,
+			question: question.question,
+			...question.header === void 0 ? {} : { header: question.header },
+			...question.options === void 0 ? {} : { options: question.options.map((option) => ({
+				label: option.label,
+				...option.description === void 0 ? {} : { description: option.description }
+			})) },
+			...question.multi_select === void 0 ? {} : { multiSelect: question.multi_select }
+		}))
+	};
 }
 //#endregion
 //#region lib/types/board-capture.js
@@ -17016,45 +17619,20 @@ function createCiterSessionStore(Base, access) {
 }
 //#endregion
 //#region lib/types/host-agent-modules.js
-var __rewriteRelativeImportExtension = function(path, preserveJsx) {
-	if (typeof path === "string" && /^\.\.?\//.test(path)) return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
-		return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
-	});
-	return path;
-};
-/** Resolve the official Desktop's bundled DSH runtime, keeping Electron virtual paths intact. */
-async function desktopModuleAnchor(resources) {
-	for (const name of ["app", "app.asar"]) {
-		const manifest = join(resources, name, "dsh", "package.json");
-		try {
-			await access(manifest);
-			return manifest;
-		} catch (error) {
-			if (error.code !== "ENOENT") throw error;
-		}
-	}
-	throw new Error("Citer 无法定位官方 DSH Desktop 的内置运行模块，请更新官方桌面版");
-}
 /**
-* Resolve runtime modules from the host installation, not the plugin's dependencies.
-* CLI argv can name an npm/pnpm symlink; canonicalize it before walking node_modules.
-* Official Desktop carries its runtime inside app.asar/dsh (or app/dsh when unpacked).
-* The Electron shell's package.json is not a DSH module-resolution anchor.
+* Load the declared SDK peers through DSH's active profile resolver.
+* File URLs bypass peer routing and can create a second private scope identity,
+* particularly when Electron ASAR paths use different casing on Windows.
+* Bare imports also leave CLI symlinks and Desktop packaging to the host resolver.
 * @returns the host's AgentLoop, SessionStore, title service and scope factory.
-* @throws when the launcher cannot be located or its runtime exports are unavailable.
 */
 async function loadHostAgentModules() {
-	const resources = process.resourcesPath;
-	const entry = resources === void 0 ? process.argv[1] : await desktopModuleAnchor(resources);
-	if (entry === void 0 || !isAbsolute(entry)) throw new Error("Citer 无法定位当前 DSH 的运行模块");
-	const require = createRequire(resources === void 0 ? await realpath(entry) : entry);
 	const [loop, scope, session, title] = await Promise.all([
-		import(__rewriteRelativeImportExtension(pathToFileURL(require.resolve("@deepseek-ai/dsh-agent-loop")).href)),
-		import(__rewriteRelativeImportExtension(pathToFileURL(require.resolve("@deepseek-ai/dsh-scope")).href)),
-		import(__rewriteRelativeImportExtension(pathToFileURL(require.resolve("@deepseek-ai/dsh-session")).href)),
-		import(__rewriteRelativeImportExtension(pathToFileURL(require.resolve("@deepseek-ai/dsh-session-title")).href))
+		import("@deepseek-ai/dsh-agent-loop"),
+		import("@deepseek-ai/dsh-scope"),
+		import("@deepseek-ai/dsh-session"),
+		import("@deepseek-ai/dsh-session-title")
 	]);
-	if (typeof loop.AgentLoop !== "function" || typeof scope.createScope !== "function" || typeof session.SessionStore !== "function" || typeof title.SessionTitleService !== "function") throw new Error("当前 DSH 未提供 Citer 所需的 Agent 组合接口");
 	return {
 		AgentLoop: loop.AgentLoop,
 		SessionStore: session.SessionStore,
@@ -17740,17 +18318,18 @@ function validatedQuestionAnswer(questions, answer, allowSkipped = false) {
 		if (selected.length !== item.selected.length) throw new Error(`问题 ${question.id} 包含重复选项`);
 		const labels = new Set(question.options?.map((option) => option.label) ?? []);
 		if (selected.some((label) => !labels.has(label))) throw new Error(`问题 ${question.id} 包含未知选项`);
-		const custom = item.custom?.trim();
-		if (allowSkipped && selected.length === 0 && (custom === void 0 || custom === "")) return {
+		const custom = item.custom;
+		const hasCustom = custom !== void 0 && custom.trim() !== "";
+		if (allowSkipped && selected.length === 0 && !hasCustom) return {
 			id: question.id,
 			selected: []
 		};
-		if (question.multiSelect !== true && selected.length + (custom === void 0 || custom === "" ? 0 : 1) !== 1) throw new Error(`问题 ${question.id} 只能选择一个答案`);
-		if (question.multiSelect === true && selected.length === 0 && (custom === void 0 || custom === "")) throw new Error(`问题 ${question.id} 尚未回答`);
+		if (question.multiSelect !== true && selected.length + (hasCustom ? 1 : 0) !== 1) throw new Error(`问题 ${question.id} 只能选择一个答案`);
+		if (question.multiSelect === true && selected.length === 0 && !hasCustom) throw new Error(`问题 ${question.id} 尚未回答`);
 		return {
 			id: question.id,
 			selected,
-			...custom === void 0 || custom === "" ? {} : { custom }
+			...hasCustom ? { custom } : {}
 		};
 	}) };
 }
@@ -17814,7 +18393,8 @@ function topicMessages(log) {
 			const call = index === void 0 ? void 0 : messages[index];
 			if (index !== void 0 && call?.role === "tool" && call.name === "ask_user_question") messages[index] = {
 				...call,
-				questionReply: reply
+				questionReply: reply,
+				running: false
 			};
 			continue;
 		}
@@ -17918,6 +18498,14 @@ function topicMessages(log) {
 			continue;
 		}
 		if (event.type === "turn/end") error = null;
+	}
+	for (const [callId, index] of toolIndexes) {
+		const call = messages[index];
+		if (call?.role === "tool" && call.name === "ask_user_question" && call.result === null && call.questionReply === void 0 && hasInterruptedPtcParent(callId, events)) messages[index] = {
+			...call,
+			interruptionOutcome: "interrupted",
+			running: false
+		};
 	}
 	if (log.liveMessage !== void 0) messages.push(log.liveMessage);
 	return {
@@ -18164,11 +18752,49 @@ var TopicRuntime = class {
 	async executeRequest(request, signal) {
 		this.assertOpen(signal);
 		switch (request.action) {
+			case "question-draft-get":
+			case "question-draft-save": return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
+				if (metadata.storage !== "source") throw new Error("请先将旧 Topic 迁移到来源目录，再保存问题草稿");
+				const drafts = new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId));
+				let current = await drafts.read(request.key);
+				if (current.closed) return {
+					kind: "question-draft",
+					state: current.state,
+					closed: true,
+					conflict: request.action === "question-draft-save"
+				};
+				const handle = await this.ensureHandle(metadata, signal);
+				const live = this.pendingQuestions.get(metadata.sessionId);
+				if (live?.key === request.key && live.wait === void 0) current = await drafts.registerBlocking(request.key);
+				const status = questionDraftLogStatus(metadata.sessionId, request.key, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount, current.blocking);
+				if (status === "closed") return {
+					kind: "question-draft",
+					state: (await drafts.close(request.key)).state,
+					closed: true,
+					conflict: request.action === "question-draft-save"
+				};
+				const projection = handle.agent.ctx.get("sessionProjections")?.stateOf(handle.agent.session, "userQuestions");
+				const questions = live?.key === request.key ? live.questions : projection?.questions.active.find((question) => questionKey(metadata.sessionId, question.callId) === request.key)?.questions ?? recoverBlockingQuestion(metadata.sessionId, current, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount)?.questions;
+				if (request.action === "question-draft-save") {
+					if (questions === void 0) throw new Error("尚不能确认此问题仍可回答，已保留草稿，请重新打开后重试");
+					this.validateQuestionDraft(request.state.content, questions);
+					return {
+						kind: "question-draft",
+						...await drafts.save(request.key, request.state, live?.key === request.key ? live.wait === void 0 : current.blocking)
+					};
+				}
+				if (questions === void 0 && status === "unknown" && current.state.revision === 0) throw new Error("这个 Topic 中没有可确认的问题草稿身份");
+				return {
+					kind: "question-draft",
+					state: current.state,
+					closed: false,
+					conflict: false
+				};
+			}, signal);
 			case "draft-get":
 			case "draft-save":
 			case "draft-file-put":
-			case "draft-file-get": return this.queueTopicAdmission(request.topicSessionId, async () => {
-				const metadata = await this.index.loadBySessionId(request.topicSessionId);
+			case "draft-file-get": return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
 				if (metadata.storage !== "source") throw new Error("请先将旧 Topic 迁移到来源目录，再保存草稿");
 				const drafts = new DraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId));
 				if (request.action === "draft-file-put") {
@@ -18213,13 +18839,15 @@ var TopicRuntime = class {
 				this.boardCapture.reply(metadata.sessionId, request.id, request.png, request.error);
 				return { kind: "board-capture-accepted" };
 			}
-			case "get": return {
-				kind: "topic",
-				topic: await this.get(request.topicSessionId, signal)
-			};
+			case "get": return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
+				if (metadata.hosted === true) await this.ensureHandle(metadata, signal);
+				return {
+					kind: "topic",
+					topic: await this.snapshot(metadata, signal, true)
+				};
+			}, signal);
 			case "native-state":
-			case "native-attachment": {
-				const metadata = await this.index.loadBySessionId(request.topicSessionId);
+			case "native-attachment": return this.withOwnedTopic(request.topicSessionId, async (metadata) => {
 				const handle = await this.ensureHandle(metadata, signal);
 				return request.action === "native-state" ? {
 					kind: "native-state",
@@ -18231,7 +18859,7 @@ var TopicRuntime = class {
 					kind: "native-attachment",
 					...await readNativeAttachment(handle.agent.ctx, handle.agent.session, request.attachmentId, signal)
 				};
-			}
+			}, signal);
 			case "ask": return {
 				kind: "topic",
 				topic: await this.askIdempotent(request, signal)
@@ -18240,10 +18868,21 @@ var TopicRuntime = class {
 				kind: "topic",
 				topic: await this.queueTopicAdmission(request.topicSessionId, () => this.stop(request.topicSessionId, signal), signal)
 			};
-			case "answer-question": return {
-				kind: "topic",
-				topic: await this.queueTopicAdmission(request.topicSessionId, () => this.answerQuestion(request, signal), signal)
-			};
+			case "answer-question": return this.queueTopicAdmission(request.topicSessionId, async () => {
+				const metadata = await this.index.loadBySessionId(request.topicSessionId);
+				if (metadata.storage === "source") {
+					const conflict = await new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId)).checkSubmission(request.key, request.draftRevision);
+					if (conflict !== void 0 && request.draftRevision === void 0) throw new Error(conflict.closed ? "此提问已结束，未重复提交回答" : "此问题已有持久化回答草稿，请刷新界面后再提交；原草稿已保留");
+					if (conflict !== void 0) return {
+						kind: "question-draft",
+						...conflict
+					};
+				} else if (request.draftRevision !== void 0) throw new Error("此 Topic 尚不支持持久化回答草稿，请先迁移");
+				return {
+					kind: "topic",
+					topic: await this.answerQuestion(request, signal)
+				};
+			}, signal);
 			case "cancel-question": return {
 				kind: "topic",
 				topic: await this.queueTopicAdmission(request.topicSessionId, () => this.cancelQuestion(request.topicSessionId, request.key, signal), signal)
@@ -18265,7 +18904,7 @@ var TopicRuntime = class {
 				kind: "models",
 				providers: await this.models(signal)
 			};
-			case "set-permission": {
+			case "set-permission": return this.queueTopicAdmission(request.topicSessionId, async () => {
 				const metadata = await this.index.loadBySessionId(request.topicSessionId);
 				if (metadata.hosted !== true && request.mode !== "read-only") throw new Error("旧 Topic 保持只读。请新建 Topic 使用 DSH 编程权限。");
 				const handle = await this.ensureHandle(metadata, signal);
@@ -18273,9 +18912,9 @@ var TopicRuntime = class {
 				await handle.agent.ctx.sessions.flush(handle.agent.session);
 				return {
 					kind: "topic",
-					topic: await this.snapshot(metadata, signal)
+					topic: await this.snapshot(metadata, signal, true)
 				};
-			}
+			}, signal);
 			case "set-model-route": return {
 				kind: "topic",
 				topic: await this.setModelRoute(request, signal)
@@ -18703,6 +19342,7 @@ var TopicRuntime = class {
 	}
 	async setupHostedAgent(agentCtx, agent, metadata) {
 		await this.questionReplies.attach(agentCtx, agent);
+		this.trackQuestionDraftReceipts(agentCtx, agent, metadata);
 		agentCtx.on("session/event", (session, event) => {
 			if (session !== agent.session) return;
 			const submittedAt = topicSubmissionTime(event);
@@ -18710,7 +19350,7 @@ var TopicRuntime = class {
 			this.restoreSubmittedTopic(metadata, submittedAt).catch((error) => {
 				if (!this.closed && !this.deleting.has(metadata.sessionId)) this.host.logger.warn("CiteCiter could not restore a submitted Topic", error);
 			});
-		});
+		}, { global: true });
 		const stream = new TopicStreamProjection();
 		this.streams.set(metadata.sessionId, stream);
 		agentCtx.on("agent/assistant-stream", ({ frame }) => stream.accept(frame, agent.session.snapshotEvents().length));
@@ -18731,10 +19371,11 @@ var TopicRuntime = class {
 			inheritedEventCount: current.session.inheritedEventCount
 		})));
 		agentCtx.tools.register(this.learningCardsTool());
-		agentCtx.on("user-questions/request", (request) => this.askUser(request));
+		bindTopicQuestionBridge(agentCtx, agent, (request, callId) => this.askUser(request, callId));
 	}
 	async setupAgent(agentCtx, agent, metadata) {
 		await this.questionReplies.attach(agentCtx, agent);
+		this.trackQuestionDraftReceipts(agentCtx, agent, metadata);
 		const stream = new TopicStreamProjection();
 		this.streams.set(metadata.sessionId, stream);
 		agentCtx.on("agent/assistant-stream", ({ frame }) => {
@@ -18795,7 +19436,7 @@ var TopicRuntime = class {
 				if (policyCtx.sandboxPolicy.overrideOf(agent.session) !== "read-only") setSandboxMode(agent.session, "read-only");
 			}
 		});
-		agentCtx.on("user-questions/request", (request) => this.askUser(request));
+		bindTopicQuestionBridge(agentCtx, agent, (request, callId) => this.askUser(request, callId));
 	}
 	globTool() {
 		return defineTool({
@@ -19247,13 +19888,56 @@ var TopicRuntime = class {
 		});
 		return result;
 	}
-	askUser(request) {
+	/** Validate partial selections against the exact Host question, without normalizing unsent text. */
+	validateQuestionDraft(content, questions) {
+		if (content.page >= questions.length) throw new Error("问题草稿页码超出当前问题范围");
+		const byId = new Map(questions.map((question) => [question.id, question]));
+		for (const [id, answer] of Object.entries(content.answers)) {
+			const question = byId.get(id);
+			if (question === void 0) throw new Error("问题草稿包含不属于当前提问的答案");
+			const labels = new Set(question.options?.map((option) => option.label) ?? []);
+			if (new Set(answer.selected).size !== answer.selected.length || answer.selected.some((label) => !labels.has(label))) throw new Error("问题草稿包含未知或重复选项");
+		}
+	}
+	/** Commit cleanup through the same admission queue as saves and permanent deletion. */
+	trackQuestionDraftReceipts(agentCtx, agent, metadata) {
+		if (metadata.storage !== "source") return;
+		const questionKeys = new Set(agent.session.snapshotEvents().slice(agent.session.inheritedEventCount).flatMap((event) => {
+			const call = toolCallRecord(event);
+			return call?.name === "ask_user_question" ? [questionKey(metadata.sessionId, call.callId)] : [];
+		}));
+		this.queueTopicAdmission(metadata.sessionId, async () => {
+			const latest = await this.index.loadBySessionId(metadata.sessionId);
+			if (latest.storage !== "source") return;
+			const drafts = new QuestionDraftStore(this.index.ownedDirectory(latest.sourceSessionId, latest.topicId));
+			for (const record of await drafts.records()) if (!record.closed && questionDraftLogStatus(metadata.sessionId, record.key, agent.session.snapshotEvents(), agent.session.inheritedEventCount, record.blocking) === "closed") await drafts.close(record.key, true);
+		}, this.lifecycleAbort.signal).catch((error) => {
+			if (!this.closed && !this.deleting.has(metadata.sessionId)) this.host.logger.warn("CiteCiter could not reconcile question drafts after reopening", error);
+		});
+		agentCtx.on("session/event", (session, event) => {
+			if (session !== agent.session) return;
+			const call = toolCallRecord(event);
+			if (call?.name === "ask_user_question") questionKeys.add(questionKey(metadata.sessionId, call.callId));
+			const key = questionDraftReceiptKey(metadata.sessionId, event);
+			if (event.type !== "turn/end" && (key === void 0 || !questionKeys.has(key))) return;
+			this.queueTopicAdmission(metadata.sessionId, async () => {
+				const latest = await this.index.loadBySessionId(metadata.sessionId);
+				if (latest.storage !== "source") return;
+				const drafts = new QuestionDraftStore(this.index.ownedDirectory(latest.sourceSessionId, latest.topicId));
+				const records = key === void 0 ? await drafts.records() : [await drafts.read(key)];
+				for (const record of records) if (!record.closed && questionDraftLogStatus(metadata.sessionId, record.key, session.snapshotEvents(), session.inheritedEventCount, record.blocking) === "closed") await drafts.close(record.key, true);
+			}, this.lifecycleAbort.signal).catch((error) => {
+				if (!this.closed && !this.deleting.has(metadata.sessionId)) this.host.logger.warn("CiteCiter could not retire a completed question draft", error);
+			});
+		}, { global: true });
+	}
+	askUser(request, callId) {
 		if (this.closed) throw new UserQuestionError(CITECITER_SHUTTING_DOWN, "ASK_ABORTED");
 		const sessionId = request.agent === void 0 ? void 0 : String(request.agent.session.header.id);
 		if (sessionId === void 0 || !this.handles.has(sessionId)) throw new UserQuestionError("CiteCiter cannot identify the asking Topic", "CALLER_NOT_LIVE");
 		if (this.pendingQuestions.has(sessionId)) throw new UserQuestionError("this Topic already has a pending question", "DUPLICATE_QUESTION");
 		return new Promise((resolveAnswer, rejectAnswer) => {
-			const key = request.wait === void 0 ? randomUUID() : questionKey(sessionId, String(request.wait.callId));
+			const key = questionKey(sessionId, callId);
 			const finish = () => {
 				if (this.pendingQuestions.get(sessionId)?.key === key) this.pendingQuestions.delete(sessionId);
 				request.signal?.removeEventListener("abort", onAbort);
@@ -19269,6 +19953,7 @@ var TopicRuntime = class {
 			const onAbort = () => reject(new UserQuestionError("ask_user_question was aborted before the user answered", "ASK_ABORTED"));
 			const pending = {
 				key,
+				callId,
 				sessionId,
 				questions: request.questions,
 				wait: request.wait,
@@ -19278,6 +19963,16 @@ var TopicRuntime = class {
 				onAbort
 			};
 			this.pendingQuestions.set(sessionId, pending);
+			if (request.wait === void 0) this.queueTopicAdmission(sessionId, async () => {
+				const metadata = await this.index.loadBySessionId(sessionId);
+				if (metadata.storage !== "source") return;
+				const drafts = new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId));
+				const record = await drafts.registerBlocking(key);
+				const session = request.agent.session;
+				if (!record.closed && questionDraftLogStatus(sessionId, key, session.snapshotEvents(), session.inheritedEventCount, true) === "closed") await drafts.close(key, true);
+			}, this.lifecycleAbort.signal).catch((error) => {
+				if (!this.closed && !this.deleting.has(sessionId)) this.host.logger.warn("CiteCiter could not register a blocking question draft", error);
+			});
 			request.signal?.addEventListener("abort", onAbort, { once: true });
 			if (request.signal?.aborted === true) onAbort();
 		});
@@ -19289,9 +19984,11 @@ var TopicRuntime = class {
 		if (pending?.key === request.key) pending.resolve(validatedQuestionAnswer(pending.questions, request.answer, pending.wait !== void 0));
 		else {
 			const handle = await this.ensureHandle(metadata, signal);
-			const continued = continuedQuestions(handle.agent).find((question) => question.key === request.key);
+			const continued = [...continuedQuestions(handle.agent), ...await this.recoveredBlockingQuestions(metadata, handle.agent)].find((question) => question.key === request.key);
 			if (continued?.callId === void 0) throw new Error("这个提问已结束或已被替换");
-			if (!this.questionReplies.answer(handle.agent, continued.callId, validatedQuestionAnswer(continued.questions, request.answer, true))) throw new Error("这个提问已结束或已被替换");
+			const answer = validatedQuestionAnswer(continued.questions, request.answer, continued.blocking !== true);
+			if (continued.blocking === true) this.questionReplies.answerRecoveredBlocking(handle.agent, continued, answer);
+			else if (!this.questionReplies.answer(handle.agent, continued.callId, answer)) throw new Error("这个提问已结束或已被替换");
 		}
 		return this.snapshot(metadata, signal, true);
 	}
@@ -19433,6 +20130,7 @@ var TopicRuntime = class {
 			this.index.bindSource(marker.sourceSessionId, root);
 			await this.index.forgetLegacy(marker);
 			await new DraftStore(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId)).remove();
+			await new QuestionDraftStore(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId)).remove();
 			await removeOwnedSessionTree(this.index.ownedDirectory(marker.sourceSessionId, marker.topicId));
 		} else await this.removeSessionArtifact(marker.sessionHeader);
 		await this.index.finishDeleting(marker);
@@ -19620,19 +20318,20 @@ var TopicRuntime = class {
 		this.assertOpen(signal);
 		return (await Promise.all(metadata.filter((topic) => includeArchived ? topic.archivedAt !== null : topic.archivedAt === null).map((topic) => this.summary(topic, signal)))).sort((left, right) => right.updatedAt - left.updatedAt);
 	}
-	async summary(metadata, signal) {
-		let current = metadata;
-		if ((current.mode === "exact-fork" || cachedTopicTitle(current) === null) && !this.titleHydrated.has(current.sessionId)) {
-			const log = await this.readLog(current, signal);
-			this.titleHydrated.add(current.sessionId);
-			const title = foldTopicTitle(log);
-			current = await this.patchMetadataSerialized(current, {
-				cachedTitle: title?.title ?? null,
-				cachedTitleSource: titleSourceKind(title),
-				cachedTitleEventSeq: title?.eventSeq ?? null
-			}, signal);
-		}
-		return this.summaryFromMetadata(current);
+	summary(metadata, signal) {
+		return this.queueTopicAdmission(metadata.sessionId, async () => {
+			let current = await this.index.loadBySessionId(metadata.sessionId);
+			if ((current.mode === "exact-fork" || cachedTopicTitle(current) === null) && !this.titleHydrated.has(current.sessionId)) {
+				const title = foldTopicTitle(await this.readLog(current, signal));
+				current = await this.patchMetadataSerialized(current, {
+					cachedTitle: title?.title ?? null,
+					cachedTitleSource: titleSourceKind(title),
+					cachedTitleEventSeq: title?.eventSeq ?? null
+				}, signal, true);
+				this.titleHydrated.add(current.sessionId);
+			}
+			return this.summaryFromMetadata(current);
+		}, signal);
 	}
 	summaryFromMetadata(metadata) {
 		const agent = this.handles.get(metadata.sessionId)?.agent ?? (metadata.hosted === true ? this.host.agents.get(SessionId(metadata.sessionId)) : void 0);
@@ -19660,11 +20359,24 @@ var TopicRuntime = class {
 			modelSelectionRequired: metadata.modelSelectionRequired === true
 		};
 	}
-	async get(sessionId, signal) {
-		const metadata = await this.index.loadBySessionId(sessionId);
-		this.assertOpen(signal);
-		if (metadata.hosted === true) await this.ensureHandle(metadata, signal);
-		return this.snapshot(metadata, signal);
+	/** Serialize reads/saves with deletion and report only durable, exact deletion evidence. */
+	withOwnedTopic(sessionId, read, signal) {
+		return this.queueTopicAdmission(sessionId, async () => {
+			const metadata = await this.index.findBySessionId(sessionId);
+			if (metadata === void 0) {
+				const receipt = await this.index.findDeleted(sessionId);
+				if (receipt !== void 0) {
+					const { version: _, ...identity } = receipt;
+					return {
+						kind: "deleted",
+						...identity
+					};
+				}
+				throw new Error(`CiteCiter Topic "${sessionId}" does not exist`);
+			}
+			if (this.deleting.has(sessionId)) throw new Error(`CiteCiter Topic "${sessionId}" is being deleted`);
+			return read(metadata);
+		}, signal, true);
 	}
 	async readLog(metadata, signal) {
 		if (signal !== void 0) this.assertOpen(signal);
@@ -19738,7 +20450,11 @@ var TopicRuntime = class {
 		if (title === void 0 && current.hosted !== true) this.scheduleExactTitleRefresh(current, log);
 		const pending = this.pendingQuestions.get(current.sessionId);
 		const ownedAgent = this.handles.get(current.sessionId)?.agent;
-		const questions = [...pending === void 0 ? [] : [openQuestion(pending.key, pending.questions, pending.wait)], ...ownedAgent === void 0 ? [] : continuedQuestions(ownedAgent)];
+		const questions = [
+			...pending === void 0 ? [] : [openQuestion(pending.key, pending.questions, pending.wait, pending.callId)],
+			...ownedAgent === void 0 ? [] : continuedQuestions(ownedAgent),
+			...ownedAgent === void 0 ? [] : await this.recoveredBlockingQuestions(current, ownedAgent)
+		];
 		const captureId = this.boardCapture.id(current.sessionId);
 		const document = current.documentId === null ? null : await this.documents.summary(current.documentId);
 		return {
@@ -19750,6 +20466,18 @@ var TopicRuntime = class {
 			pendingQuestion: questions[0] ?? null,
 			pendingQuestions: questions
 		};
+	}
+	/** Recover persisted blocking cards only; rendering never enqueues a model request. */
+	async recoveredBlockingQuestions(metadata, agent) {
+		if (metadata.storage !== "source") return [];
+		const records = await new QuestionDraftStore(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId)).records();
+		const events = agent.session.snapshotEvents();
+		const liveKey = this.pendingQuestions.get(metadata.sessionId)?.key;
+		return records.flatMap((record) => {
+			if (record.key === liveKey) return [];
+			const question = recoverBlockingQuestion(metadata.sessionId, record, events, agent.session.inheritedEventCount);
+			return question?.callId === void 0 || this.questionReplies.isQueued(agent, question.callId) ? [] : [question];
+		});
 	}
 	async patchMetadata(metadata, patch, signal) {
 		if (this.deleting?.has(metadata.sessionId)) throw new Error(`CiteCiter Topic "${metadata.sessionId}" is being deleted`);

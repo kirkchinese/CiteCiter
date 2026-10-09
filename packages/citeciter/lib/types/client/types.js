@@ -3,7 +3,6 @@ export class CiteBus {
     reportListenerError;
     snapshot = { panelOpen: false, activation: 0, presentation: 'side', boardCitation: null };
     listeners = new Set();
-    nextCitationId = 1;
     /** @param reportListenerError - contains one failed browser subscriber. */
     constructor(reportListenerError) {
         this.reportListenerError = reportListenerError;
@@ -39,13 +38,13 @@ export class CiteBus {
     requestBoardCitation(topicSessionId, prompt) {
         this.snapshot = {
             ...this.snapshot,
-            boardCitation: { id: this.nextCitationId++, topicSessionId, prompt },
+            boardCitation: { id: crypto.randomUUID(), topicSessionId, prompt },
         };
         this.notify();
     }
     /**
      * Clear the citation only when the matching consumer handled it.
-     * @param id - monotonically assigned citation request identity.
+     * @param id - exact request identity, unique across windows and draft restoration.
      */
     clearBoardCitation(id) {
         if (this.snapshot.boardCitation?.id !== id)

@@ -1,6 +1,8 @@
+import { createUserMessage } from '@deepseek-ai/dsh-llm';
 /** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
 export class TopicQuestionReplies {
     replies = new WeakMap();
+    recoveredReplies = new WeakMap();
     /**
      * Bind the official answer service in a child of the Topic contribution scope.
      * @param ctx - Topic-owned contribution context; its teardown releases this binding.
@@ -14,9 +16,40 @@ export class TopicQuestionReplies {
                 const reply = (callId, answer) => scope.userQuestions.answer(agent, callId, answer);
                 scope.effect(() => {
                     this.replies.set(agent, reply);
-                    return () => { if (this.replies.get(agent) === reply)
-                        this.replies.delete(agent); };
+                    return () => {
+                        if (this.replies.get(agent) === reply)
+                            this.replies.delete(agent);
+                        this.recoveredReplies.delete(agent);
+                    };
                 }, 'citeciter: scoped question replies');
+                scope.on('agent/inbox/claimed', ({ agent: owner, message, turn }) => {
+                    if (owner !== agent || message.source.kind !== 'user-question-reply')
+                        return;
+                    const pending = this.recoveredReplies.get(agent)?.get(message.source.callId);
+                    if (pending?.messageId === message.id)
+                        pending.turn = turn;
+                }, { global: true });
+                scope.on('agent/inbox/discarded', ({ agent: owner, message }) => {
+                    if (owner !== agent || message.source.kind !== 'user-question-reply')
+                        return;
+                    const pending = this.recoveredReplies.get(agent);
+                    if (pending?.get(message.source.callId)?.messageId === message.id)
+                        pending.delete(message.source.callId);
+                }, { global: true });
+                scope.on('session/event', (session, event) => {
+                    if (session !== agent.session)
+                        return;
+                    const pending = this.recoveredReplies.get(agent);
+                    if (pending === undefined)
+                        return;
+                    if (event.type === 'user/message' && event.data.source.kind === 'user-question-reply')
+                        pending.delete(event.data.source.callId);
+                    else if (event.type === 'turn/end') {
+                        for (const [id, reply] of pending)
+                            if (reply.turn === event.data.turn)
+                                pending.delete(id);
+                    }
+                }, { global: true });
             },
         });
     }
@@ -26,6 +59,38 @@ export class TopicQuestionReplies {
         if (reply === undefined)
             throw new Error('这个 Topic 的提问服务已结束，请重新打开后重试');
         return reply(callId, answer);
+    }
+    /** A queued answer is hidden until the Host admits or explicitly discards it. */
+    isQueued(agent, callId) {
+        return this.recoveredReplies.get(agent)?.has(callId) === true || [...agent.inbox.nextTurn, ...agent.inbox.nextStep].some(message => message.source.kind === 'user-question-reply' && message.source.callId === callId);
+    }
+    /**
+     * Manually continue an interrupted legacy ask through the public Agent Inbox.
+     * The old tool result remains intact; the new, durable user message names the
+     * original call and preserves its question/answer batch for model replay.
+     * Caller validates the exact recovered question and holds Topic admission/CAS.
+     */
+    answerRecoveredBlocking(agent, question, answer) {
+        if (!this.replies.has(agent) || question.blocking !== true || question.callId === undefined)
+            throw new Error('此问题的补答服务已结束');
+        const callId = question.callId;
+        if (this.isQueued(agent, callId))
+            throw new Error('这条问题的回答已经排队，未重复提交');
+        const message = createUserMessage({
+            source: { kind: 'user-question-reply', callId, outcome: 'answered' },
+            content: [{ type: 'text', text: JSON.stringify({ kind: 'answer_to_pending_question', tool: 'ask_user_question', callId,
+                        questions: question.questions, answers: answer.answers }) }],
+        });
+        const pending = this.recoveredReplies.get(agent) ?? new Map();
+        pending.set(callId, { messageId: message.id });
+        this.recoveredReplies.set(agent, pending);
+        try {
+            agent.steer(message);
+        }
+        catch (error) {
+            pending.delete(callId);
+            throw error;
+        }
     }
 }
 /** A named Host call keeps one answer identity across the foreground/continued boundary. */
@@ -43,9 +108,9 @@ export function questionPresentation(questions) {
     }));
 }
 /** Project a live private waterfall without assuming that every question blocks indefinitely. */
-export function openQuestion(key, questions, wait) {
+export function openQuestion(key, questions, wait, callId) {
     return { key, questions: questionPresentation(questions), state: 'open',
-        ...(wait === undefined ? {} : { callId: String(wait.callId), timed: wait.timed === true }) };
+        ...(wait === undefined ? { blocking: true, ...(callId === undefined ? {} : { callId }) } : { callId: String(wait.callId), timed: wait.timed === true }) };
 }
 /**
  * Read the Host's durable question projection for this exact owned Agent.

@@ -61,19 +61,31 @@ export async function apply(ctx) {
             const response = await remoteCtx.remote.citeciter.request(request);
             if (!response.ok)
                 throw new Error(response.error.message);
+            if (response.value.kind === 'deleted') {
+                if (!('topicSessionId' in request) || response.value.sessionId !== request.topicSessionId)
+                    throw new Error('Citer 草稿删除回执身份不匹配');
+                nativeComposer.retire(response.value.sessionId);
+                throw new Error('这个 Topic 已永久删除，未继续保存草稿');
+            }
             return response.value;
-        }, nativeComposer);
+        }, nativeComposer, () => document.hasFocus());
         remoteCtx.effect(() => () => drafts.dispose(), 'citeciter: durable drafts');
+        remoteCtx.effect(() => nativeComposer.onRetired(sessionId => drafts.forget(sessionId)), 'citeciter: retired Topic drafts');
         remoteCtx.effect(() => {
             const beforeUnload = (event) => {
-                if (!drafts.hasUnsavedChanges())
+                if (!drafts.hasUnsavedChanges() && !nativeComposer.hasUnsavedQuestionDrafts())
                     return;
                 void drafts.flushAll();
+                void nativeComposer.flushQuestionDrafts();
                 event.preventDefault();
                 event.returnValue = '';
             };
-            const visibility = () => { if (document.visibilityState === 'hidden')
-                void drafts.flushAll(); };
+            const visibility = () => {
+                if (document.visibilityState !== 'hidden')
+                    return;
+                void drafts.flushAll();
+                void nativeComposer.flushQuestionDrafts();
+            };
             window.addEventListener('beforeunload', beforeUnload);
             document.addEventListener('visibilitychange', visibility);
             return () => {

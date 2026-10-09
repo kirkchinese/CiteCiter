@@ -488,6 +488,7 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         ASK_ABORTED: "ASK_ABORTED";
     }>>;
     approvalOutcome: z.ZodOptional<z.ZodLiteral<"rejected">>;
+    interruptionOutcome: z.ZodOptional<z.ZodLiteral<"interrupted">>;
     running: z.ZodBoolean;
     id: z.ZodString;
     seq: z.ZodNumber;
@@ -546,6 +547,7 @@ export declare const pendingQuestionSchema: z.ZodObject<{
     }>>;
     callId: z.ZodOptional<z.ZodString>;
     timed: z.ZodOptional<z.ZodBoolean>;
+    blocking: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strict>;
 export type PendingQuestion = z.infer<typeof pendingQuestionSchema>;
 export declare const topicSnapshotSchema: z.ZodObject<{
@@ -692,6 +694,7 @@ export declare const topicSnapshotSchema: z.ZodObject<{
             ASK_ABORTED: "ASK_ABORTED";
         }>>;
         approvalOutcome: z.ZodOptional<z.ZodLiteral<"rejected">>;
+        interruptionOutcome: z.ZodOptional<z.ZodLiteral<"interrupted">>;
         running: z.ZodBoolean;
         id: z.ZodString;
         seq: z.ZodNumber;
@@ -726,6 +729,7 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         }>>;
         callId: z.ZodOptional<z.ZodString>;
         timed: z.ZodOptional<z.ZodBoolean>;
+        blocking: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strict>>;
     pendingQuestions: z.ZodOptional<z.ZodArray<z.ZodObject<{
         key: z.ZodString;
@@ -746,6 +750,7 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         }>>;
         callId: z.ZodOptional<z.ZodString>;
         timed: z.ZodOptional<z.ZodBoolean>;
+        blocking: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strict>>>;
     error: z.ZodNullable<z.ZodString>;
     board: z.ZodOptional<z.ZodObject<{
@@ -994,6 +999,27 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
         investigate: "investigate";
     }>>;
 }, z.core.$strict>]>, z.ZodDiscriminatedUnion<[z.ZodObject<{
+    action: z.ZodLiteral<"question-draft-get">;
+    topicSessionId: z.ZodString;
+    key: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"question-draft-save">;
+    topicSessionId: z.ZodString;
+    key: z.ZodString;
+    state: z.ZodObject<{
+        version: z.ZodLiteral<1>;
+        revision: z.ZodNumber;
+        content: z.ZodObject<{
+            answers: z.ZodRecord<z.ZodString, z.ZodObject<{
+                selected: z.ZodArray<z.ZodString>;
+                custom: z.ZodString;
+            }, z.core.$strict>>;
+            page: z.ZodNumber;
+            edited: z.ZodBoolean;
+            held: z.ZodBoolean;
+        }, z.core.$strict>;
+    }, z.core.$strict>;
+}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"draft-get">;
     topicSessionId: z.ZodString;
 }, z.core.$strict>, z.ZodObject<{
@@ -1107,6 +1133,7 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
             custom: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>;
     }, z.core.$strict>;
+    draftRevision: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"cancel-question">;
     topicSessionId: z.ZodString;
@@ -1171,6 +1198,23 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>;
 /** Strict response union returned by the single Remote command endpoint. */
 export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    kind: z.ZodLiteral<"question-draft">;
+    state: z.ZodObject<{
+        version: z.ZodLiteral<1>;
+        revision: z.ZodNumber;
+        content: z.ZodObject<{
+            answers: z.ZodRecord<z.ZodString, z.ZodObject<{
+                selected: z.ZodArray<z.ZodString>;
+                custom: z.ZodString;
+            }, z.core.$strict>>;
+            page: z.ZodNumber;
+            edited: z.ZodBoolean;
+            held: z.ZodBoolean;
+        }, z.core.$strict>;
+    }, z.core.$strict>;
+    conflict: z.ZodBoolean;
+    closed: z.ZodBoolean;
+}, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"draft">;
     state: z.ZodObject<{
         version: z.ZodLiteral<1>;
@@ -1551,6 +1595,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 ASK_ABORTED: "ASK_ABORTED";
             }>>;
             approvalOutcome: z.ZodOptional<z.ZodLiteral<"rejected">>;
+            interruptionOutcome: z.ZodOptional<z.ZodLiteral<"interrupted">>;
             running: z.ZodBoolean;
             id: z.ZodString;
             seq: z.ZodNumber;
@@ -1585,6 +1630,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             }>>;
             callId: z.ZodOptional<z.ZodString>;
             timed: z.ZodOptional<z.ZodBoolean>;
+            blocking: z.ZodOptional<z.ZodBoolean>;
         }, z.core.$strict>>;
         pendingQuestions: z.ZodOptional<z.ZodArray<z.ZodObject<{
             key: z.ZodString;
@@ -1605,6 +1651,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             }>>;
             callId: z.ZodOptional<z.ZodString>;
             timed: z.ZodOptional<z.ZodBoolean>;
+            blocking: z.ZodOptional<z.ZodBoolean>;
         }, z.core.$strict>>>;
         error: z.ZodNullable<z.ZodString>;
         board: z.ZodOptional<z.ZodObject<{

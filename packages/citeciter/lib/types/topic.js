@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { draftStateSchema, draftFileSchema } from "./draft-contract.js";
+import { questionDraftKeySchema, questionDraftStateSchema } from "./question-draft-contract.js";
 import { nativeStateSchema, nativeAttachmentRefSchema } from "./native-session-contract.js";
 import { boardSnapshotSchema } from "./board.js";
 import { boardCaptureJobSchema } from "./board-capture-protocol.js";
@@ -322,6 +323,7 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
         errorCode: z.enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
         // Derived presentation evidence only; never replaces the native tool result.
         approvalOutcome: z.literal('rejected').optional(),
+        interruptionOutcome: z.literal('interrupted').optional(),
         running: z.boolean(),
     }).strict(),
     z.object({
@@ -358,6 +360,7 @@ export const pendingQuestionSchema = z.object({
     state: z.enum(['open', 'continued']).optional(),
     callId: z.string().min(1).optional(),
     timed: z.boolean().optional(),
+    blocking: z.boolean().optional(),
 }).strict();
 export const topicSnapshotSchema = z.object({
     captureId: z.string().optional(),
@@ -471,6 +474,8 @@ const createRequestSchema = z.union([
 ]);
 /** One strict direct-RPC command for the private CiteCiter runtime. */
 export const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnion('action', [
+        z.object({ action: z.literal('question-draft-get'), topicSessionId: topicSessionIdSchema, key: questionDraftKeySchema }).strict(),
+        z.object({ action: z.literal('question-draft-save'), topicSessionId: topicSessionIdSchema, key: questionDraftKeySchema, state: questionDraftStateSchema }).strict(),
         z.object({ action: z.literal('draft-get'), topicSessionId: topicSessionIdSchema }).strict(),
         z.object({ action: z.literal('draft-save'), topicSessionId: topicSessionIdSchema, state: draftStateSchema }).strict(),
         z.object({ action: z.literal('draft-file-put'), topicSessionId: topicSessionIdSchema, file: draftFileSchema, offset: z.number().int().nonnegative(), data: z.string().max(349_528).regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),
@@ -497,6 +502,7 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
             topicSessionId: topicSessionIdSchema,
             key: z.string().min(1),
             answer: questionAnswerSchema,
+            draftRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 1).optional(),
         }).strict(),
         z.object({
             action: z.literal('cancel-question'),
@@ -559,6 +565,7 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
     ])]);
 /** Strict response union returned by the single Remote command endpoint. */
 export const citeCiterResponseSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('question-draft'), state: questionDraftStateSchema, conflict: z.boolean(), closed: z.boolean() }).strict(),
     z.object({ kind: z.literal('draft'), state: draftStateSchema, conflict: z.boolean() }).strict(),
     z.object({ kind: z.literal('draft-file-saved') }).strict(),
     z.object({ kind: z.literal('draft-file'), data: z.string().max(349_528).regex(/^[A-Za-z0-9+/]*={0,2}$/) }).strict(),

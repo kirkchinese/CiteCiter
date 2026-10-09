@@ -215,6 +215,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const drag = usePanelDrag(panelRef, floating, bus.setPresentation)
   const floatPosition = drag.position
   const docked = !floating && dock?.mode === 'columns'
+  const composerVisible = open && (floating || docked || compact)
   const composerFolded = false
 
   useEffect(() => open ? companion.retainVisible() : undefined, [companion, open])
@@ -237,23 +238,32 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   }, [active?.topic.sessionId, deleteTarget])
   useEffect(() => {
     const citation = overlay.boardCitation
-    if (citation === null || active?.topic.sessionId !== citation.topicSessionId) return
+    if (!composerVisible || !draft.ready || citation === null || active?.topic.sessionId !== citation.topicSessionId) return
+    let cancelled = false
+    const focusOrigin = document.activeElement
     void drafts.append(citation.topicSessionId, '', [{ id: `board-${citation.id}`, kind: 'board', label: '板书引用', content: citation.prompt }]).then(() => {
       setViews(current => ({ ...current, [citation.topicSessionId]: 'explain' }))
       bus.clearBoardCitation(citation.id)
-      requestAnimationFrame(() => composerRef.current?.focus())
+      if (!cancelled && document.activeElement === focusOrigin) composerRef.current?.focus()
     }).catch(error => setAttachmentError(String(error)))
-  }, [active?.topic.sessionId, bus, overlay.boardCitation, drafts])
+    return () => { cancelled = true }
+  }, [active?.topic.sessionId, bus, overlay.boardCitation, drafts, composerVisible, draft.ready])
   useEffect(() => {
+    // A reopened dock first measures its host while its body is hidden. Focus
+    // only after that layout is committed, never from an earlier animation frame.
+    if (!composerVisible || !draft.ready) return
+    let cancelled = false
+    const focusOrigin = document.activeElement
     for (const seed of snapshot.composeSeeds) {
       if (active?.topic.sessionId !== seed.sessionId || consumedSeeds.current.has(seed.id)) continue
       consumedSeeds.current.add(seed.id)
       void drafts.append(seed.sessionId, seed.question, seed.references).then(() => {
         companion.consumeComposeSeed(seed.id)
-        requestAnimationFrame(() => composerRef.current?.focus())
+        if (!cancelled && document.activeElement === focusOrigin) composerRef.current?.focus()
       }).catch(error => { consumedSeeds.current.delete(seed.id); setAttachmentError(String(error)) })
     }
-  }, [snapshot.composeSeeds, active?.topic.sessionId, companion, drafts])
+    return () => { cancelled = true }
+  }, [snapshot.composeSeeds, active?.topic.sessionId, companion, drafts, composerVisible, draft.ready])
   const modalTitle = deleteTarget !== null ? '永久删除 Topic' : topicSettingsOpen ? 'Topic 设置' : null
   useEffect(() => {
     if (modalTitle === null) return
@@ -303,6 +313,10 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   }, [modalTitle])
 
   const visibleMessages = active?.messages.filter((message) => isTopicMessageVisible(message, active.messages)) ?? []
+  // The projected turn already retains the failure details and retry context.
+  // Keep standalone action errors visible, but announce an identical failure only once.
+  const transcriptError = snapshot.error !== null && !visibleMessages.some(message =>
+    message.role === 'error' && message.text === snapshot.error) ? snapshot.error : null
 
   if (!open) return null
 
@@ -483,8 +497,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                   )
                 })}
                 {snapshot.phase === 'creating' && <div className={css.loadingCard}>{PHASE_LABEL.creating}</div>}
-                {snapshot.error !== null && (
-                  <p className={css.panelError} data-citeciter-error role="alert">{friendlyFailure(snapshot.error)}</p>
+                {transcriptError !== null && (
+                  <p className={css.panelError} data-citeciter-error role="alert">{friendlyFailure(transcriptError)}</p>
                 )}
               </div>}
               {view === 'cards' && active !== null && <div className={learningCss.content}><LearningCards key={active.topic.sessionId}
@@ -506,14 +520,14 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                 pending={active?.pendingQuestions ?? (active?.pendingQuestion == null ? EMPTY_QUESTIONS : [active.pendingQuestion])}>
                   <TopicComposer permission={active?.topic.permission ?? 'read-only'} onPermission={mode => { void companion.setPermission(mode) }} delivery={delivery} onDelivery={setDelivery}
                     onFiles={addFiles} question={question} route={draft.ready ? active?.topic.modelConfig : undefined} providers={snapshot.providers}
-                    phase={snapshot.phase} canSend={canAsk && draft.ready && !draft.sending && !draft.pending && !draft.conflict && active !== null && (question.trim() !== '' || draft.content.references.length > 0 || draft.content.files.length > 0)}
+                    phase={snapshot.phase} canSend={canAsk && draft.ready && !draft.sending && !draft.pending && active !== null && (question.trim() !== '' || draft.content.references.length > 0 || draft.content.files.length > 0)}
                     routeSaving={snapshot.modelRouteSaving || snapshot.reasoningEffortSaving}
                     folded={composerFolded} inputRef={composerRef} onQuestion={setQuestion} onSubmit={submit}
+                    onComposition={value => drafts.setComposing(draftKey, value)}
                     placeholder="输入问题 · Enter 发送，Shift + Enter 换行"
                     attachments={<>
                       {active?.topic.modelSelectionRequired === true && <p role="status">来源模型已不可用。草稿已保留，请选择可用模型后发送。</p>}
                       {(attachmentError || draft.error) && <p role="alert">{attachmentError || draft.error}</p>}
-                      {draft.conflict && <div><button type="button" onClick={() => runDraft(drafts.keepLocal(draftKey))}>保留本窗口草稿</button><button type="button" onClick={() => runDraft(drafts.reload(draftKey))}>载入已保存草稿</button></div>}
                       {draft.pending && !draft.sending && <p role="status">上次发送状态待核对。<button type="button" onClick={() => runDraft(drafts.reconcile(draftKey))}>核对发送状态</button><button type="button" onClick={event => submit(event, delivery, true)}>重试上次发送</button></p>}
                       {!draft.ready && draft.error && <button type="button" onClick={() => runDraft(drafts.ensure(draftKey))}>重新读取草稿</button>}
                       {draft.missing.map(file => <button type="button" key={file.id} onClick={() => runDraft(drafts.removeFile(draftKey, file.id))}>移除失效附件：{file.name}</button>)}

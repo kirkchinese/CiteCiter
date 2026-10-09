@@ -224,6 +224,17 @@ export function createCompanionController(readChat, configForms, request, onAuto
         });
         try {
             const response = await call({ action: 'get', topicSessionId: sessionId });
+            if (response.kind === 'deleted') {
+                if (response.sessionId !== sessionId)
+                    throw new Error('CiteCiter 返回了不匹配的删除记录');
+                nativeComposer.retire(sessionId);
+                if (!disposed && operationGeneration === activeGeneration)
+                    update((draft) => {
+                        draft.phase = 'ready';
+                        draft.notice = '此 Topic 已在另一窗口删除。';
+                    });
+                return;
+            }
             if (response.kind !== 'topic')
                 throw new Error('CiteCiter 返回了错误的 Topic 响应');
             acceptTopic(response.topic, operationGeneration, sessionId);
@@ -308,6 +319,30 @@ export function createCompanionController(readChat, configForms, request, onAuto
         topicsRefresh = refresh;
         return refresh;
     };
+    const releaseRetired = nativeComposer.onRetired(sessionId => {
+        if (disposed)
+            return;
+        const current = store.getSnapshot();
+        // The local delete operation already owns its identity check and UI settlement.
+        if (current.active?.topic.sessionId === sessionId && current.deleting)
+            return;
+        if (current.active?.topic.sessionId === sessionId) {
+            clearLastTopic(current.active.topic.sourceSessionId, sessionId);
+            activeGeneration++;
+            reopenSuppressedGeneration = sourceGeneration;
+        }
+        update(draft => {
+            draft.topics = draft.topics.filter(topic => topic.sessionId !== sessionId);
+            if (draft.active?.topic.sessionId !== sessionId)
+                return;
+            draft.active = null;
+            draft.phase = 'idle';
+            draft.sourceAnchorKey = null;
+            draft.archiving = false;
+            draft.error = null;
+            draft.notice = 'Topic 已永久删除。';
+        });
+    });
     const refreshActive = async (operationGeneration = activeGeneration) => {
         if (disposed)
             return;
@@ -315,6 +350,12 @@ export function createCompanionController(readChat, configForms, request, onAuto
         if (active === null)
             return;
         const response = await call({ action: 'get', topicSessionId: active.topic.sessionId });
+        if (response.kind === 'deleted') {
+            if (response.sessionId !== active.topic.sessionId || response.sourceSessionId !== active.topic.sourceSessionId || response.topicId !== active.topic.topicId)
+                throw new Error('Citer 删除回执与当前 Topic 不一致');
+            nativeComposer.retire(response.sessionId);
+            return;
+        }
         if (response.kind === 'topic')
             acceptTopic(response.topic, operationGeneration, active.topic.sessionId, true);
     };
@@ -1168,6 +1209,7 @@ export function createCompanionController(readChat, configForms, request, onAuto
                 clearTimeout(pollTimer);
             pollTimer = null;
             unsubscribeSettings();
+            releaseRetired();
             lifecycle.abort(new DOMException('CiteCiter is shutting down', 'AbortError'));
             while (operations.size > 0 || remoteOperations.size > 0 || topicsRefresh !== null) {
                 await Promise.allSettled([

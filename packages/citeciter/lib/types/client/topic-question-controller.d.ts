@@ -1,6 +1,7 @@
 import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions';
 import type { PendingQuestion as HostQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/client';
 import type { PendingQuestion } from '../topic.ts';
+import type { QuestionDraftController, QuestionDraftResult } from './question-draft-controller.ts';
 export interface QuestionDraftAnswer {
     readonly selected: readonly string[];
     readonly custom: string;
@@ -18,7 +19,7 @@ interface WaitClaim extends AsyncIterable<{
 }
 export interface TopicQuestionChannel {
     claim(callId: string, signal: AbortSignal): WaitClaim;
-    answer(key: string, answer: AskUserQuestionAnswer): Promise<void>;
+    answer(key: string, answer: AskUserQuestionAnswer, draftRevision: number): Promise<QuestionDraftResult | undefined>;
     cancel(key: string): Promise<void>;
     timeout(key: string): Promise<void>;
 }
@@ -29,8 +30,8 @@ export interface TopicQuestionChannel {
  */
 export declare class TopicQuestionController {
     private readonly channel;
+    readonly drafts: QuestionDraftController;
     readonly review: undefined;
-    readonly dismissal: 'hide' | 'cancel';
     private pending;
     private readonly lifetime;
     private readonly listeners;
@@ -46,12 +47,15 @@ export declare class TopicQuestionController {
     private closed;
     private hidden;
     private failure;
-    private draft;
+    private readonly releaseDraft;
     private snapshot;
-    constructor(pending: PendingQuestion, channel: TopicQuestionChannel);
+    constructor(pending: PendingQuestion, channel: TopicQuestionChannel, drafts: QuestionDraftController);
     readonly subscribe: (listener: () => void) => (() => void);
     readonly getSnapshot: () => TopicQuestionSnapshot;
+    get dismissal(): 'hide' | 'cancel';
     get callId(): string | undefined;
+    get allowSkip(): boolean;
+    get interrupted(): boolean;
     getDraft(): QuestionDraft;
     setDraft(draft: QuestionDraft): void;
     /** Reconcile the private Host snapshot; an older open frame cannot undo continuation. */
@@ -70,7 +74,7 @@ export declare class TopicQuestionController {
     dismiss(): Promise<void>;
     reveal(): void;
     private close;
-    /** Called when the native composer is disposed or a fresh Host snapshot drops this call. */
-    dispose(): void;
+    /** Release a carrier without deleting its draft; only a confirmed Topic deletion may discard it here. */
+    dispose(deleted?: boolean): Promise<void>;
 }
 export {};

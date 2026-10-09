@@ -8,7 +8,7 @@ import type { DeliveryMode } from '../native-composer.ts';
  * @param props - controlled draft, model route, request state and user-action callbacks.
  * @returns one form; model changes and sending remain owned by the Topic controller.
  */
-export declare function TopicComposer({ question, placeholder, route, providers, phase, canSend, routeSaving, folded, inputRef, onExpand, onQuestion, onSubmit, onStop, onModel, onReasoning, attachments, permission, onPermission, onFiles, delivery, onDelivery }: {
+export declare function TopicComposer({ question, placeholder, route, providers, phase, canSend, routeSaving, folded, inputRef, onExpand, onQuestion, onComposition, onSubmit, onStop, onModel, onReasoning, attachments, permission, onPermission, onFiles, delivery, onDelivery }: {
     readonly permission: PermissionMode;
     readonly onPermission: (mode: PermissionMode) => void;
     readonly onFiles: (files: readonly File[]) => void;
@@ -26,6 +26,7 @@ export declare function TopicComposer({ question, placeholder, route, providers,
     readonly inputRef: Ref<HTMLTextAreaElement>;
     readonly onExpand: () => void;
     readonly onQuestion: (question: string) => void;
+    readonly onComposition: (composing: boolean) => void;
     readonly onSubmit: (event: FormEvent, mode?: DeliveryMode) => void;
     readonly onStop: () => void;
     readonly onModel: (provider: string, model: string) => void;

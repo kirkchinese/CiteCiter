@@ -1,18 +1,8 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect } from 'react';
+import { boardCitationPrompt } from "../board-citation.js";
 import { BoardView } from "./BoardView.js";
 import css from './BoardView.module.css';
-function citationPrompt(element) {
-    if (element.kind === 'math')
-        return `$$\n${element.content}\n$$`;
-    if (['text', 'markdown', 'table'].includes(element.kind))
-        return element.content;
-    const compact = element.content.replaceAll(/\s+/gu, ' ').trim();
-    const label = ['text', 'markdown', 'math', 'table'].includes(element.kind) && compact !== ''
-        ? compact.slice(0, 80)
-        : `黑板元素 ${element.id}`;
-    return `关于黑板上的「${label}」：`;
-}
 /**
  * Render the session-scoped blackboard registered through conversation.view.
  * @param props - active DSH conversation identity and CiteCiter browser faces.
@@ -28,7 +18,7 @@ export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, o
     const quote = (element) => {
         if (active === null)
             return;
-        bus.requestBoardCitation(active.topic.sessionId, citationPrompt(element));
+        bus.requestBoardCitation(active.topic.sessionId, boardCitationPrompt(element));
         openPanel();
     };
     if (active === null) {
