@@ -10,7 +10,6 @@ import {
   resolveDocumentEvidence,
   resolveObserverCitation,
   resolveToolEvidence,
-  validateObserverCitation,
 } from '../lib/types/observer.js'
 
 const sourceId = 'source-session'
@@ -37,24 +36,9 @@ function assistant(seq, text, reasoning = 'private reasoning') {
   }
 }
 
-function draftFor(text, sourceText) {
-  const startOffset = text.indexOf(sourceText)
-  const draft = {
-    sourceSessionId: sourceId,
-    anchorSeq: 3,
-    startOffset,
-    endOffset: startOffset + sourceText.length,
-    sourceText,
-    displayText: sourceText,
-    prefixText: text.slice(Math.max(0, startOffset - 5), startOffset),
-    suffixText: text.slice(startOffset + sourceText.length, startOffset + sourceText.length + 5),
-  }
-  return { ...draft, selectionFingerprint: fingerprintCitationDraft(draft) }
-}
-
 test('a committed assistant/message is citable while its step and turn remain open', () => {
   const text = 'Alpha 😀 curvature omega'
-  const citation = draftFor(text, '😀 curvature')
+  const claim = { sourceSessionId: sourceId, anchorSeq: 3, displayText: '😀 curvature', prefixText: 'Alpha ', suffixText: ' omega' }
   const source = {
     session: { id: sourceId },
     events: [
@@ -66,11 +50,12 @@ test('a committed assistant/message is citable while its step and turn remain op
     ],
   }
 
-  const first = validateObserverCitation(source, citation)
-  const second = validateObserverCitation(source, citation)
+  const first = resolveObserverCitation(source, claim)
+  const second = resolveObserverCitation(source, claim)
   assert.equal(first.assistantMessageSeq, 3)
-  assert.equal(first.assistantVisibleText, text)
-  assert.equal(first.contentFingerprint, citation.selectionFingerprint)
+  assert.equal(first.citation.sourceText, '😀 curvature')
+  assert.equal(first.citation.startOffset, 'private reasoning\n\n'.length + text.indexOf('😀'))
+  assert.equal(first.contentFingerprint, first.citation.selectionFingerprint)
   assert.deepEqual(second, first)
   assert.notEqual(second.citation, first.citation)
 })
@@ -120,15 +105,12 @@ test('the Host resolves committed reasoning-only and mixed reasoning-answer sele
     suffixText: ' answer.',
   })
   assert.equal(mixed.citation.sourceText, 'thought.\n\nFinal')
-  assert.equal(validateObserverCitation({
-    session: { id: sourceId },
-    events: [assistant(13, 'Final answer.', 'First thought.')],
-  }, mixed.citation).assistantVisibleText, 'First thought.\n\nFinal answer.')
+  assert.equal(mixed.assistantVisibleText, 'First thought.\n\nFinal answer.')
 })
 
-test('chunk-only, stale text, invalid UTF-16 offsets, and forged fingerprints are rejected', () => {
+test('chunk-only events and quotes missing from the committed message are rejected', () => {
   const text = 'Alpha curvature omega'
-  const citation = draftFor(text, 'curvature')
+  const claim = { sourceSessionId: sourceId, anchorSeq: 3, displayText: 'curvature', prefixText: 'Alpha ', suffixText: ' omega' }
   const chunkOnly = {
     session: { id: sourceId },
     events: [{
@@ -138,21 +120,12 @@ test('chunk-only, stale text, invalid UTF-16 offsets, and forged fingerprints ar
       data: { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text } },
     }],
   }
-  assert.throws(() => validateObserverCitation(chunkOnly, citation), /committed assistant\/message/)
+  assert.throws(() => resolveObserverCitation(chunkOnly, claim), /committed assistant\/message/)
 
   const source = { session: { id: sourceId }, events: [assistant(3, text)] }
-  assert.throws(
-    () => validateObserverCitation(source, { ...citation, sourceText: 'curvaturf' }),
-    /offsets and sourceText/,
-  )
-  assert.throws(
-    () => validateObserverCitation(source, { ...citation, endOffset: citation.endOffset + 1 }),
-    /offsets and sourceText/,
-  )
-  assert.throws(
-    () => validateObserverCitation(source, { ...citation, selectionFingerprint: '0'.repeat(64) }),
-    /content fingerprint/,
-  )
+  assert.throws(() => resolveObserverCitation(source, { ...claim, displayText: 'curvaturf' }))
+  assert.throws(() => resolveObserverCitation(source, { ...claim, sourceSessionId: 'other-session' }), /sourceSessionId/)
+  assert.throws(() => resolveObserverCitation(source, { ...claim, anchorSeq: 4 }), /committed assistant\/message/)
 })
 
 function toolCall(seq, callId, name) {

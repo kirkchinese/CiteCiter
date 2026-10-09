@@ -7,8 +7,6 @@ import {
   boardOpSchema,
   boardSnapshotSchema,
   EMPTY_BOARD_STATE,
-  foldBoardElements,
-  foldBoardSnapshot,
 } from '../lib/types/board.js'
 
 function set(id, overrides = {}) {
@@ -99,20 +97,20 @@ test('board batches enforce final element and content budgets', () => {
 })
 
 test('board snapshots carry final elements instead of replay history', () => {
-  const elements = foldBoardElements([
+  const elements = [...applyBoardOps(EMPTY_BOARD_STATE, [
     set('a', { content: '旧' }),
     { op: 'update', id: 'a', content: '新' },
     set('b', { content: '板书' }),
     { op: 'focus', id: 'b' },
     { op: 'animate', id: 'b', animation: 'highlight', durationMs: 300 },
-  ])
+  ]).state.values()]
   const snapshot = boardSnapshotSchema.parse({
     version: 4,
     revision: 2,
     elements,
     invalid: 0,
   })
-  const folded = foldBoardSnapshot(snapshot)
+  const folded = snapshot
   assert.equal(folded.revision, 2)
   assert.equal(Object.hasOwn(folded.elements[0], 'animation'), false)
   assert.deepEqual(folded.elements.map((element) => [element.id, element.content]), [

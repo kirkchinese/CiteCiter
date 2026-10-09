@@ -1,4 +1,4 @@
-import { f as citeCiterRequestSchema, p as citeCiterResponseSchema, r as updateCheckResponseSchema } from "./update-DKX-XCwo.js";
+import { d as citeCiterRequestSchema, f as citeCiterResponseSchema, r as updateCheckResponseSchema } from "./update-DDut5jKW.js";
 //#region lib/types/typert-codec.js
 /** Official Typert lazily resolves schemas after module registration. */
 function strictCodec(typeSymbol, schema) {

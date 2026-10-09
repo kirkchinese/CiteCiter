@@ -1,33 +1,13 @@
-import { Context } from '@deepseek-ai/cordis';
-import { SessionLogOffset, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session';
-import { type SessionTitleProviderRequest } from '@deepseek-ai/dsh-session-title';
+import type { Context } from '@deepseek-ai/cordis';
+import { type SessionEvent, type SessionHeader, type SessionLogOffset } from '@deepseek-ai/dsh-session';
 import { type BoardSnapshot } from './board.ts';
-import { type ObserverSourceSnapshot } from './observer.ts';
-import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type CitationRecord, type TopicMessage, type TopicMode, type TopicScenario, type TopicSummary } from './topic.ts';
-type CreateRequest = Extract<CiteCiterRequest, {
-    action: 'create';
-}>;
+import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type TopicMessage, type TopicSummary } from './topic.ts';
 type DeleteResponse = Extract<CiteCiterResponse, {
     kind: 'deleted';
 }>;
 type TopicChangeListener = (name: 'created' | 'updated' | 'deleted', payload: {
     topic: TopicSummary;
 } | Omit<DeleteResponse, 'kind'>) => void;
-/** Decide both model visibility and execution access for one private Topic tool. */
-export declare function citeCiterToolAvailable(name: string, allowSourceFiles: boolean, scenario?: TopicScenario): boolean;
-/**
- * Render selected evidence only when this Topic actually owns a Citation.
- * @param citation - immutable Citation or explicit absence for a free Topic.
- * @returns model context text, or `undefined` when no quote was selected.
- */
-export declare function topicCitationContext(citation: CitationRecord | null): string | undefined;
-/**
- * Keep product safety and scenario rules authoritative over optional teaching-style preferences.
- * @param scenario - Topic behavior selected at creation.
- * @param custom - optional user-authored teaching preferences.
- * @returns the complete tutor prompt.
- */
-export declare function composeTutorPrompt(scenario: TopicScenario, custom: string | undefined): string;
 /** Complete model-visible parameter schema for blackboard_apply. */
 export declare const BLACKBOARD_APPLY_PARAMETERS: {
     readonly ops: {
@@ -239,9 +219,7 @@ export declare const BLACKBOARD_APPLY_PARAMETERS: {
         };
     };
 };
-/** Select the first human question added after a Topic's inherited seed. */
-export declare function selectTopicTitleMessage(request: SessionTitleProviderRequest): import("@deepseek-ai/dsh-session-title").SessionTitleUserMessage;
-/** Session header and events used to project one private Topic. */
+/** Session header and events used to project one Topic. */
 export interface RuntimeTopicLog {
     readonly header: SessionHeader;
     readonly events: readonly SessionEvent[];
@@ -251,7 +229,7 @@ export interface RuntimeTopicLog {
 }
 /**
  * Project transcript rows and the latest turn's active failure banner.
- * @param log - private Topic Session contents.
+ * @param log - Topic Session contents; an inherited prefix from older versions is skipped.
  * @returns transcript rows plus an error only while the newest turn remains failed.
  */
 export declare function topicMessages(log: RuntimeTopicLog): {
@@ -260,77 +238,49 @@ export declare function topicMessages(log: RuntimeTopicLog): {
 };
 /**
  * Project final blackboard state from successful blackboard_apply call/result pairs.
- * @param log - private Topic Session contents.
+ * @param log - Topic Session contents.
  * @returns versioned final state, successful commit revision, and invalid-commit count.
  */
 export declare function projectBoardFromLog(log: RuntimeTopicLog): BoardSnapshot;
 /**
- * Return the first genuine Topic question after any Exact Fork seed.
- * @param log - private Topic Session contents.
- * @returns the first post-seed question, or `null` when it has not been committed.
- */
-export declare function firstPostSeedUserQuestion(log: RuntimeTopicLog): string | null;
-/**
- * Find a post-seed user question by its durable message identifier.
- * @param log - private Topic Session contents.
- * @param messageId - request identity stored as the user-message identity.
- * @returns the matching question, or `null` when the request is not committed.
- */
-export declare function postSeedUserQuestionById(log: RuntimeTopicLog, messageId: string): string | null;
-/**
- * Fold child-owned titles using the restored logical prefix, including after migration.
+ * Fold Topic-owned titles, skipping an inherited prefix kept by older Topics.
  * @param log - restored Topic events and the host-owned inherited event count.
  * @returns the latest Topic title projection, or undefined before any title is recorded.
  */
 export declare function foldTopicTitle(log: RuntimeTopicLog): import("@deepseek-ai/dsh-session-title").SessionTitleSnapshot | undefined;
-/** Resolve the actual Topic mode without forking through an open DSH turn. */
-export declare function resolveTopicModeAndSeed(requested: CreateRequest, source: ObserverSourceSnapshot, anchorSeq: number): {
-    mode: TopicMode;
-    forkThroughSeq: number | null;
-    seed: readonly SessionEvent[];
-};
-/** One process-local private DSH tree with standard Session logs and Agent loop. */
+/** Process-local Topic coordinator over native DSH Sessions stored in each source's Citer directory. */
 export declare class TopicRuntime {
     private readonly host;
     private readonly settings;
-    private readonly runtime;
     private readonly native;
     private readonly index;
     private readonly sourceStorage;
     private readonly documents;
     private readonly lifecycleAbort;
-    private readonly fibers;
     private readonly handles;
-    private readonly selections;
     private readonly opening;
     private readonly requests;
-    private readonly cleanupFailures;
     private readonly pendingQuestions;
     private readonly questionReplies;
     private readonly creations;
     private readonly asks;
     private readonly topicAdmissions;
     private readonly deleting;
-    private readonly titleRefreshes;
-    private readonly titleRefreshAttempted;
     private readonly titleHydrated;
     private readonly sourceAvailability;
     private readonly sourceAvailabilityChecks;
     private readonly ready;
     private readonly topicListeners;
     private readonly streams;
+    private readonly boardCapture;
     private disposal;
     private releasing;
-    private releaseLlm;
-    private releaseFs;
-    private releaseSubprocess;
-    private hasSourceFiles;
     private closed;
     /** @param host - owning DSH context. @param settings - current user preferences. */
     constructor(host: Context, settings?: () => CiteCiterSettings);
-    /** Wait until every private DSH service has started. */
+    /** Wait until source roots are bound and interrupted deletions and migrations have finished. */
     initialize(): Promise<void>;
-    /** Execute one validated browser command against private Topics. */
+    /** Execute one validated browser command against Topics. */
     request(rawRequest: CiteCiterRequest, callerSignal: AbortSignal): Promise<CiteCiterResponse>;
     /**
      * Observe committed Topic state changes.
@@ -338,16 +288,13 @@ export declare class TopicRuntime {
      * @returns disposer removing the exact listener.
      */
     onTopicChange(listener: TopicChangeListener): () => void;
-    private readonly boardCapture;
     private executeRequest;
-    /** Stop every owned Agent and plugin fiber before releasing bridged services. */
+    /** Stop every owned Agent before releasing bridged services. */
     dispose(): Promise<void>;
     private disposeOwned;
     private beginClosing;
     private assertOpen;
     private start;
-    /** Adopt existing Citer histories into each source directory without deleting or rewriting their original logs. */
-    private migrateStorage;
     private releaseRuntime;
     private releaseOwnedRuntime;
     private settleOwnedOperations;
@@ -355,21 +302,19 @@ export declare class TopicRuntime {
     /** Let a caller stop waiting without cancelling an accepted idempotent mutation. */
     private waitForCaller;
     private createIdempotent;
+    /** A retried request returns the Topic its first attempt committed. */
     private resumeOrCreate;
     private createHandle;
-    private setupHostedAgent;
+    /** Contribute Citer prompts, tools and observers to one native Topic Agent. */
     private setupAgent;
-    private globTool;
     private learningCardsTool;
     private blackboardApplyTool;
     /** Keep storage and submitted-reference authorization outside the shared document tool contract. */
     private registerDocumentTools;
-    /** Share source-read instructions and contract across native and legacy Topic runtimes. */
+    /** Read the source only after the user has sent its address as an attachment. */
     private registerSourceTool;
     private ensureHandle;
-    private disposeLateHandle;
-    /** Resolve only after the accepted question is present in the durable model-input log. */
-    private commitFollowup;
+    /** Submit a question through the Host session controller, as the composer would. */
     private ask;
     private askIdempotent;
     private queueAsk;
@@ -391,16 +336,11 @@ export declare class TopicRuntime {
     private deleteAdmitted;
     /** Observe the retired Session after its Agent has released write ownership. */
     private readRetiredSessionHeader;
-    /** Remove every retired generation only from CiteCiter's fixed private JSONL backend. */
-    private removeSessionArtifact;
     private finishDeletion;
     private recoverDeletions;
     private clearDeletedTopicState;
-    private enqueueModelChange;
     private setModelRoute;
     private setReasoningEffort;
-    private selectModel;
-    private applyModelSelection;
     private importDocument;
     private models;
     private list;
@@ -416,6 +356,5 @@ export declare class TopicRuntime {
     private recoveredBlockingQuestions;
     private patchMetadata;
     private patchMetadataSerialized;
-    private scheduleExactTitleRefresh;
 }
 export {};

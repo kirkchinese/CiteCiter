@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
-  claimAskIntent,
+  claimCreateFreeTopicIntent,
   claimCreateTopicIntent,
   completeRequestIntent,
 } from '../lib/types/client/request-guard.js'
@@ -33,17 +33,19 @@ test('one pending creation keeps its request ID across retries but not after con
     },
   })
   try {
-    const first = await claimCreateTopicIntent(selection, '为什么？', 'observer')
-    const retry = await claimCreateTopicIntent({ ...selection }, '为什么？', 'observer')
-    const changed = await claimCreateTopicIntent(selection, '怎么样？', 'observer')
+    const first = await claimCreateTopicIntent(selection, '为什么？')
+    const retry = await claimCreateTopicIntent({ ...selection }, '为什么？')
+    const changed = await claimCreateTopicIntent(selection, '怎么样？')
+    const routed = await claimCreateTopicIntent(selection, '为什么？', { provider: 'p', model: 'm' })
     assert.deepEqual(retry, first)
     assert.notEqual(changed.requestId, first.requestId)
+    assert.notEqual(routed.requestId, first.requestId)
 
-    const ask = await claimAskIntent('topic-a', '为什么？')
-    assert.notEqual(ask.requestId, first.requestId)
+    const free = await claimCreateFreeTopicIntent('source-session', '为什么？')
+    assert.notEqual(free.requestId, first.requestId)
 
     completeRequestIntent(first)
-    const laterIntent = await claimCreateTopicIntent(selection, '为什么？', 'observer')
+    const laterIntent = await claimCreateTopicIntent(selection, '为什么？')
     assert.equal(laterIntent.key, first.key)
     assert.notEqual(laterIntent.requestId, first.requestId)
   } finally {

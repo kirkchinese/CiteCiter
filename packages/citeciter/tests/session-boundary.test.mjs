@@ -6,14 +6,14 @@ import { tmpdir } from 'node:os'
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { SESSION_FORMAT_VERSION, Session, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { firstPostSeedUserQuestion, topicMessages } from '../lib/types/topic-runtime.js'
+import { topicMessages } from '../lib/types/topic-runtime.js'
 
 const userEvent = (seq, text) => ({
   type: 'user/message', seq, time: seq, surfaceOp: 'append',
   data: { id: `message-${seq}`, role: 'user', content: [{ type: 'text', text }], source: { kind: 'user' } },
 })
 
-test('a resumed exact Topic excludes inherited history but retains its earlier own questions', () => {
+test('a Topic restored with an inherited prefix shows only its own messages', () => {
   const events = [userEvent(0, 'Parent question'), userEvent(1, 'Topic question')]
   const session = Session.fromRestore(SessionId('boundary-topic'), events, {
     version: SESSION_FORMAT_VERSION, id: SessionId('boundary-topic'), createdAt: 1,
@@ -24,11 +24,10 @@ test('a resumed exact Topic excludes inherited history but retains its earlier o
     header: session.header, events: session.snapshotEvents(),
     inheritedEventCount: session.inheritedEventCount,
   }
-  assert.equal(firstPostSeedUserQuestion(log), 'Topic question')
   assert.deepEqual(topicMessages(log).messages.map(message => message.text), ['Topic question'])
 })
 
-test('the latest JSONL read handle restores a version-0 seedLength without writing a generation', async () => {
+test('reading a version-0 Topic log for migration restores its prefix without writing a generation', async () => {
   const root = await mkdtemp(join(tmpdir(), 'citeciter-legacy-jsonl-'))
   const ctx = new Context()
   const sessions = await ctx.plugin(SessionStore)
@@ -56,9 +55,9 @@ test('the latest JSONL read handle restores a version-0 seedLength without writi
       assert.equal(reader.header.isSeeded, true)
       assert.equal(reader.inheritedEventCount, 4)
       assert.ok(events.slice(0, reader.inheritedEventCount).some(event => event.type === 'user/message' && event.data.content[0]?.text === 'Inherited source'))
-      assert.equal(firstPostSeedUserQuestion({
+      assert.deepEqual(topicMessages({
         header: reader.header, events, inheritedEventCount: reader.inheritedEventCount,
-      }), 'Old Topic question')
+      }).messages.map(message => message.text), ['Old Topic question'])
     } finally {
       await reader.close()
     }

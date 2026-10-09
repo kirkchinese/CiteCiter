@@ -1,7 +1,7 @@
 /**
  * Render infrequent Topic management separately from the learning composer.
  * @param props - current identity, operation status and management callbacks.
- * @returns a controlled dialog; deletion is enabled only for legacy private logs or verified Citer-owned source storage.
+ * @returns a controlled dialog for archiving and permanent deletion.
  */
 export declare function TopicSettingsDialog({ open, topic, archiving, deleting, error, onClose, onArchive, onDelete }: {
     readonly open: boolean;
@@ -9,8 +9,6 @@ export declare function TopicSettingsDialog({ open, topic, archiving, deleting, 
         readonly sessionId: string;
         readonly title: string;
         readonly archived: boolean;
-        readonly hosted?: boolean | undefined;
-        readonly storage?: 'source' | undefined;
     } | undefined;
     readonly archiving: boolean;
     readonly deleting: boolean;

@@ -19,7 +19,7 @@ export function WheelSettings({ snapshot, companion }: { snapshot: CompanionSnap
     previousRevision.current = savedRevision
     setSlots([...savedSlots])
   }, [savedSlots, savedRevision])
-  const change = (index: number, patch: Partial<CiteAction>) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? { label: '自定义', prompt: '', ask: true, scenario: 'qa', presentation: 'side', target: 'new' }), ...patch } : slot))
+  const change = (index: number, patch: Partial<CiteAction>) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? { label: '自定义', prompt: '', ask: true, presentation: 'side', target: 'new' }), ...patch } : slot))
   const swap = (index: number, offset: number) => setSlots(current => { const next = [...current]; const to = (index + offset + 8) % 8; [next[index], next[to]] = [next[to]!, next[index]!]; return next })
   return <section className={css.settings}>
     <h3>选文轮盘</h3>
@@ -35,7 +35,6 @@ export function WheelSettings({ snapshot, companion }: { snapshot: CompanionSnap
         <label>提示词<textarea aria-label={`槽位 ${index + 1} 提示词`} rows={3} maxLength={4000} value={slot.prompt} onChange={event => change(index,{ prompt:event.currentTarget.value })} /></label>
         <label className={css.toggle}><input type="checkbox" checked={slot.ask} onChange={event => change(index,{ ask:event.currentTarget.checked })} />先输入问题并选择模型</label>
         <label>引用目标<select aria-label={`槽位 ${index + 1} 引用目标`} value={actionTarget(slot)} onChange={event => change(index, { target: event.currentTarget.value as 'current' | 'new' })}><option value="current">加入当前 Topic</option><option value="new">新建 Topic</option></select></label>
-        <label>内容方式<select value={slot.scenario} onChange={event => change(index,{ scenario:event.currentTarget.value as CiteAction['scenario'] })}><option value="qa">直接问答</option><option value="present">学习讲解与板书</option></select></label>
         <label>默认打开位置<select value={slot.presentation} onChange={event => change(index,{ presentation:event.currentTarget.value as CiteAction['presentation'] })}><option value="side">侧边（窄窗口独立页面）</option><option value="floating">悬浮</option></select></label>
       </>}
       <div className={css.slotActions}><button type="button" onClick={() => swap(index,-1)}>逆时针移动</button><button type="button" onClick={() => swap(index,1)}>顺时针移动</button><button type="button" onClick={() => setSlots(current => current.map((item,i) => i === index ? null : item))}>清空</button></div>

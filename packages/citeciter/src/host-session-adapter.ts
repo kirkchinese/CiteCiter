@@ -2,7 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentHandle } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
-import { SessionId, SessionLogOffset, type SessionEvent } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@deepseek-ai/dsh-session'
 import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 import type { CiteCiterSettings, TopicMetadata } from './topic.ts'
 import { CiterSessionWorld } from './citer-session-world.ts'
@@ -53,9 +53,8 @@ export class HostSessionAdapter {
   /** Retain navigation metadata before the Host can resume this identity. */
   remember(metadata: TopicMetadata): void { this.metadata.set(metadata.sessionId, metadata) }
 
-  /** Resolve the Topic's factory/persistence realm, retaining old candidate records without deleting Host files. */
+  /** Resolve the Topic's own factory and persistence realm below its source directory. */
   async context(metadata: TopicMetadata): Promise<Context> {
-    if (metadata.storage !== 'source') return this.ctx
     let world = this.worlds.get(metadata.sessionId)
     if (world === undefined) {
       await assertOwnedSessionFormat(this.storageRoot(metadata), metadata.sessionId)
@@ -94,8 +93,12 @@ export class HostSessionAdapter {
     return ready
   }
 
-  /** Create a native Session with an explicit initial permission. Citer supplies an empty seed so removed references cannot leak through inherited history. No prompt is sent here. */
-  async create(metadata: TopicMetadata, seed: readonly SessionEvent[], signal?: AbortSignal): Promise<AgentHandle> {
+  /**
+   * Create a native Session with an explicit initial permission. It starts without
+   * inherited history, so references removed from a draft cannot leak into model input.
+   * No prompt is sent here.
+   */
+  async create(metadata: TopicMetadata, signal?: AbortSignal): Promise<AgentHandle> {
     this.remember(metadata)
     const owner = await this.context(metadata)
     const handle = await owner.agents.create({
@@ -103,10 +106,9 @@ export class HostSessionAdapter {
       meta: {
         ...(metadata.sourceCwd === '' ? {} : { cwd: metadata.sourceCwd }),
         parentSession: SessionId(metadata.sourceSessionId),
-        isSeeded: seed.length > 0,
+        isSeeded: false,
         agentPreset: this.ctx.agentPresets.defaultId,
       },
-      ...(seed.length === 0 ? {} : { seed, inheritedEventCount: SessionLogOffset(seed.length) }),
       agentOptions: { provider: metadata.modelConfig.provider, model: metadata.modelConfig.model },
       setup: async (agentCtx, agent) => {
         await this.ctx.agentPresets.mount(agentCtx, agent.session.header.agentPreset)

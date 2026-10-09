@@ -168,7 +168,7 @@ export interface CitePanelProps {
 export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, bus, companion, closePanel, openReader, reportParseError }: CitePanelProps) {
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
-  const pendingInteraction = useInteractions(value => snapshot.active?.topic.hosted === true ? value.get(snapshot.active.topic.sessionId as SessionId) : undefined)
+  const pendingInteraction = useInteractions(value => snapshot.active === null ? undefined : value.get(snapshot.active.topic.sessionId as SessionId))
   const draftKey = snapshot.active?.topic.sessionId ?? snapshot.sourceSessionId ?? 'new'
   const draft = useDrafts(value => value[draftKey] ?? EMPTY_DRAFT_VIEW)
   const question = draft.content.text
@@ -330,7 +330,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
       files.map(file => file.id), mode, requestId, draftKey,
     ), retry).then(sent => { if (sent) transcript.followLatest() }))
   }
-  const openNewTopic = () => { void companion.createFree('', 'qa') }
+  const openNewTopic = () => { void companion.createFree('') }
   const confirmDelete = async () => {
     if (
       deleteTarget === null
@@ -514,7 +514,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
               {view !== 'explain' && snapshot.error !== null && <p className={css.panelError} role="alert">{friendlyFailure(snapshot.error)}</p>}
 
 
-              {active?.topic.hosted === true && <NativeQueue sessionId={active.topic.sessionId} native={nativeComposer} />}
+              {active !== null && <NativeQueue sessionId={active.topic.sessionId} native={nativeComposer} />}
               {pendingInteraction !== undefined && <NativeInteraction key={pendingInteraction.key} pending={pendingInteraction} messages={active?.messages ?? []} />}
               <TopicQuestions sessionId={active?.topic.sessionId ?? ''} native={nativeComposer}
                 pending={active?.pendingQuestions ?? (active?.pendingQuestion == null ? EMPTY_QUESTIONS : [active.pendingQuestion])}>

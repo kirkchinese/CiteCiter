@@ -9,49 +9,13 @@ export declare const DEFAULT_TOPIC_SCENARIO: "qa";
 export declare const CITECITER_SETTINGS_NAMESPACE: "citeciter";
 /** Topic-scoped system prompt section. */
 export declare const TUTOR_SECTION_NAME: "@kirkchinese/dsh-citeciter:tutor";
-/** Topic-scoped, user-role Citation context. */
-export declare const CITATION_CONTEXT_NAME: "@kirkchinese/dsh-citeciter:citation";
-export declare const topicModeSchema: z.ZodEnum<{
-    observer: "observer";
-    "exact-fork": "exact-fork";
-}>;
-export type TopicMode = z.infer<typeof topicModeSchema>;
-/**
- * Topic turn-content scenario. Orthogonal to {@link TopicMode}: mode describes
- * the source-session timing relation, scenario selects the assembled tool set,
- * prompt sections, and future loop decorations for this Topic.
- */
-export declare const topicScenarioSchema: z.ZodEnum<{
-    qa: "qa";
-    present: "present";
-    read: "read";
-    investigate: "investigate";
-}>;
-export type TopicScenario = z.infer<typeof topicScenarioSchema>;
-/** One user-editable prompt template shown beside the selection popover. */
-export declare const promptTemplateSchema: z.ZodObject<{
-    id: z.ZodString;
-    label: z.ZodString;
-    text: z.ZodString;
-}, z.core.$strict>;
-export type PromptTemplate = z.infer<typeof promptTemplateSchema>;
-/** User preferences applied to new Topics and source reads. */
+/** User preferences applied to new Topics, source reads and the browser panel. */
 export declare const citeCiterSettingsSchema: z.ZodObject<{
-    defaultMode: z.ZodEnum<{
-        observer: "observer";
-        "exact-when-available": "exact-when-available";
-    }>;
     includeSourceReasoning: z.ZodBoolean;
-    allowSourceFiles: z.ZodBoolean;
     panelWidthPercent: z.ZodNumber;
     reopenLastTopic: z.ZodBoolean;
     tutorPrompt: z.ZodOptional<z.ZodString>;
     followupQuestions: z.ZodOptional<z.ZodBoolean>;
-    promptTemplates: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        id: z.ZodString;
-        label: z.ZodString;
-        text: z.ZodString;
-    }, z.core.$strict>>>;
     shortcutOpenPanel: z.ZodOptional<z.ZodString>;
     boardAnimations: z.ZodOptional<z.ZodBoolean>;
     activeRecall: z.ZodOptional<z.ZodBoolean>;
@@ -60,10 +24,6 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
         label: z.ZodString;
         prompt: z.ZodString;
         ask: z.ZodBoolean;
-        scenario: z.ZodEnum<{
-            qa: "qa";
-            present: "present";
-        }>;
         presentation: z.ZodEnum<{
             side: "side";
             floating: "floating";
@@ -72,7 +32,7 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
             current: "current";
             new: "new";
         }>>;
-    }, z.core.$strict>>>>;
+    }, z.core.$strip>>>>;
     wheelTrigger: z.ZodOptional<z.ZodEnum<{
         "right-button": "right-button";
         Alt: "Alt";
@@ -94,6 +54,13 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>;
 /** Settings used before an optional DSH settings provider becomes available. */
 export declare const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings;
+/**
+ * Read persisted settings field by field. Keys written by other versions are
+ * ignored, and an invalid value falls back to its default without discarding the rest.
+ * @param raw - settings value from the Host configuration.
+ * @returns complete settings for this version.
+ */
+export declare function readCiteCiterSettings(raw: unknown): CiteCiterSettings;
 /** Browser-visible selection resolved by the Host against one committed model call. */
 export declare const citationSelectionClaimSchema: z.ZodObject<{
     sourceSessionId: z.ZodString;
@@ -116,7 +83,7 @@ export declare const citationDraftSchema: z.ZodObject<{
     suffixText: z.ZodString;
     selectionFingerprint: z.ZodString;
 }, z.core.$strict>;
-/** Exact Citation retained for durable data and legacy 0.3.1 requests. */
+/** Host-resolved assistant-message Citation before it becomes a durable record. */
 export type CitationDraft = z.infer<typeof citationDraftSchema>;
 /**
  * Evidence anchor discriminator for one durable Citation. `anchorSeq` mirrors
@@ -353,21 +320,9 @@ export declare const topicSummarySchema: z.ZodObject<{
         "workspace-write": "workspace-write";
         "danger-full-access": "danger-full-access";
     }>>;
-    hosted: z.ZodOptional<z.ZodBoolean>;
-    storage: z.ZodOptional<z.ZodLiteral<"source">>;
     topicId: z.ZodNumber;
     sessionId: z.ZodString;
     sourceSessionId: z.ZodString;
-    mode: z.ZodEnum<{
-        observer: "observer";
-        "exact-fork": "exact-fork";
-    }>;
-    scenario: z.ZodEnum<{
-        qa: "qa";
-        present: "present";
-        read: "read";
-        investigate: "investigate";
-    }>;
     documentId: z.ZodNullable<z.ZodString>;
     citation: z.ZodNullable<z.ZodObject<{
         entry: z.ZodDiscriminatedUnion<[z.ZodObject<{
@@ -560,21 +515,9 @@ export declare const topicSnapshotSchema: z.ZodObject<{
             "workspace-write": "workspace-write";
             "danger-full-access": "danger-full-access";
         }>>;
-        hosted: z.ZodOptional<z.ZodBoolean>;
-        storage: z.ZodOptional<z.ZodLiteral<"source">>;
         topicId: z.ZodNumber;
         sessionId: z.ZodString;
         sourceSessionId: z.ZodString;
-        mode: z.ZodEnum<{
-            observer: "observer";
-            "exact-fork": "exact-fork";
-        }>;
-        scenario: z.ZodEnum<{
-            qa: "qa";
-            present: "present";
-            read: "read";
-            investigate: "investigate";
-        }>;
         documentId: z.ZodNullable<z.ZodString>;
         citation: z.ZodNullable<z.ZodObject<{
             entry: z.ZodDiscriminatedUnion<[z.ZodObject<{
@@ -873,56 +816,15 @@ export declare const documentContentSchema: z.ZodObject<{
 export type DocumentContent = z.infer<typeof documentContentSchema>;
 /** One strict direct-RPC command for the private CiteCiter runtime. */
 export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<readonly [z.ZodObject<{
-    action: z.ZodLiteral<"create">;
-    modelRoute: z.ZodOptional<z.ZodObject<{
-        provider: z.ZodString;
-        model: z.ZodString;
-    }, z.core.$strict>>;
-    requestId: z.ZodString;
     sourceSessionId: z.ZodString;
-    question: z.ZodString;
-    mode: z.ZodLiteral<"observer">;
-    scenario: z.ZodOptional<z.ZodEnum<{
-        qa: "qa";
-        present: "present";
-    }>>;
-}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
     modelRoute: z.ZodOptional<z.ZodObject<{
         provider: z.ZodString;
         model: z.ZodString;
     }, z.core.$strict>>;
     requestId: z.ZodString;
-    citation: z.ZodObject<{
-        sourceSessionId: z.ZodString;
-        anchorSeq: z.ZodNumber;
-        startOffset: z.ZodNumber;
-        endOffset: z.ZodNumber;
-        sourceText: z.ZodString;
-        displayText: z.ZodString;
-        prefixText: z.ZodString;
-        suffixText: z.ZodString;
-        selectionFingerprint: z.ZodString;
-    }, z.core.$strict>;
     question: z.ZodString;
-    mode: z.ZodEnum<{
-        observer: "observer";
-        "exact-fork": "exact-fork";
-        "exact-when-available": "exact-when-available";
-    }>;
-    scenario: z.ZodOptional<z.ZodEnum<{
-        qa: "qa";
-        present: "present";
-        read: "read";
-        investigate: "investigate";
-    }>>;
 }, z.core.$strict>, z.ZodObject<{
-    action: z.ZodLiteral<"create">;
-    modelRoute: z.ZodOptional<z.ZodObject<{
-        provider: z.ZodString;
-        model: z.ZodString;
-    }, z.core.$strict>>;
-    requestId: z.ZodString;
     selectionClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
         anchorSeq: z.ZodNumber;
@@ -931,25 +833,14 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
         prefixText: z.ZodString;
         suffixText: z.ZodString;
     }, z.core.$strict>;
-    question: z.ZodString;
-    mode: z.ZodEnum<{
-        observer: "observer";
-        "exact-fork": "exact-fork";
-        "exact-when-available": "exact-when-available";
-    }>;
-    scenario: z.ZodOptional<z.ZodEnum<{
-        qa: "qa";
-        present: "present";
-        read: "read";
-        investigate: "investigate";
-    }>>;
-}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
     modelRoute: z.ZodOptional<z.ZodObject<{
         provider: z.ZodString;
         model: z.ZodString;
     }, z.core.$strict>>;
     requestId: z.ZodString;
+    question: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
     toolClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
         callId: z.ZodString;
@@ -960,25 +851,14 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
             diff: "diff";
         }>>;
     }, z.core.$strict>;
-    question: z.ZodString;
-    mode: z.ZodEnum<{
-        observer: "observer";
-        "exact-fork": "exact-fork";
-        "exact-when-available": "exact-when-available";
-    }>;
-    scenario: z.ZodOptional<z.ZodEnum<{
-        qa: "qa";
-        present: "present";
-        read: "read";
-        investigate: "investigate";
-    }>>;
-}, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"create">;
     modelRoute: z.ZodOptional<z.ZodObject<{
         provider: z.ZodString;
         model: z.ZodString;
     }, z.core.$strict>>;
     requestId: z.ZodString;
+    question: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
     documentClaim: z.ZodObject<{
         sourceSessionId: z.ZodString;
         documentId: z.ZodString;
@@ -986,18 +866,13 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
         prefixText: z.ZodString;
         suffixText: z.ZodString;
     }, z.core.$strict>;
+    action: z.ZodLiteral<"create">;
+    modelRoute: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>;
+    requestId: z.ZodString;
     question: z.ZodString;
-    mode: z.ZodEnum<{
-        observer: "observer";
-        "exact-fork": "exact-fork";
-        "exact-when-available": "exact-when-available";
-    }>;
-    scenario: z.ZodOptional<z.ZodEnum<{
-        qa: "qa";
-        present: "present";
-        read: "read";
-        investigate: "investigate";
-    }>>;
 }, z.core.$strict>]>, z.ZodDiscriminatedUnion<[z.ZodObject<{
     action: z.ZodLiteral<"question-draft-get">;
     topicSessionId: z.ZodString;
@@ -1172,12 +1047,6 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"set-reasoning-effort">;
     topicSessionId: z.ZodString;
-    reasoningEffort: z.ZodNullable<z.ZodString>;
-}, z.core.$strict>, z.ZodObject<{
-    action: z.ZodLiteral<"select-model">;
-    topicSessionId: z.ZodString;
-    provider: z.ZodString;
-    model: z.ZodString;
     reasoningEffort: z.ZodNullable<z.ZodString>;
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"document-import">;
@@ -1461,21 +1330,9 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 "workspace-write": "workspace-write";
                 "danger-full-access": "danger-full-access";
             }>>;
-            hosted: z.ZodOptional<z.ZodBoolean>;
-            storage: z.ZodOptional<z.ZodLiteral<"source">>;
             topicId: z.ZodNumber;
             sessionId: z.ZodString;
             sourceSessionId: z.ZodString;
-            mode: z.ZodEnum<{
-                observer: "observer";
-                "exact-fork": "exact-fork";
-            }>;
-            scenario: z.ZodEnum<{
-                qa: "qa";
-                present: "present";
-                read: "read";
-                investigate: "investigate";
-            }>;
             documentId: z.ZodNullable<z.ZodString>;
             citation: z.ZodNullable<z.ZodObject<{
                 entry: z.ZodDiscriminatedUnion<[z.ZodObject<{
@@ -1702,21 +1559,9 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             "workspace-write": "workspace-write";
             "danger-full-access": "danger-full-access";
         }>>;
-        hosted: z.ZodOptional<z.ZodBoolean>;
-        storage: z.ZodOptional<z.ZodLiteral<"source">>;
         topicId: z.ZodNumber;
         sessionId: z.ZodString;
         sourceSessionId: z.ZodString;
-        mode: z.ZodEnum<{
-            observer: "observer";
-            "exact-fork": "exact-fork";
-        }>;
-        scenario: z.ZodEnum<{
-            qa: "qa";
-            present: "present";
-            read: "read";
-            investigate: "investigate";
-        }>;
         documentId: z.ZodNullable<z.ZodString>;
         citation: z.ZodNullable<z.ZodObject<{
             entry: z.ZodDiscriminatedUnion<[z.ZodObject<{
@@ -1842,6 +1687,4 @@ export type CitationIdentity = Omit<CitationDraft, 'selectionFingerprint'> & {
 };
 /** Serialize the identity-bearing fields. Legacy drafts without an entry keep their v3 identity. */
 export declare function canonicalCitationIdentity(citation: CitationIdentity): string;
-/** Render the immutable Citation as explicitly untrusted user-role context. */
-export declare function renderCitationContext(citation: CitationRecord): string;
 export {};

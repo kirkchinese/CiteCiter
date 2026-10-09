@@ -15,56 +15,15 @@ export declare const citeCiterRequestDescriptor: {
             mode: "strict";
             typeSymbol: string;
             create: () => import("zod").ZodUnion<readonly [import("zod").ZodUnion<readonly [import("zod").ZodObject<{
-                action: import("zod").ZodLiteral<"create">;
-                modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
-                    provider: import("zod").ZodString;
-                    model: import("zod").ZodString;
-                }, import("zod/v4/core").$strict>>;
-                requestId: import("zod").ZodString;
                 sourceSessionId: import("zod").ZodString;
-                question: import("zod").ZodString;
-                mode: import("zod").ZodLiteral<"observer">;
-                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
-                    qa: "qa";
-                    present: "present";
-                }>>;
-            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"create">;
                 modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
                     provider: import("zod").ZodString;
                     model: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>>;
                 requestId: import("zod").ZodString;
-                citation: import("zod").ZodObject<{
-                    sourceSessionId: import("zod").ZodString;
-                    anchorSeq: import("zod").ZodNumber;
-                    startOffset: import("zod").ZodNumber;
-                    endOffset: import("zod").ZodNumber;
-                    sourceText: import("zod").ZodString;
-                    displayText: import("zod").ZodString;
-                    prefixText: import("zod").ZodString;
-                    suffixText: import("zod").ZodString;
-                    selectionFingerprint: import("zod").ZodString;
-                }, import("zod/v4/core").$strict>;
                 question: import("zod").ZodString;
-                mode: import("zod").ZodEnum<{
-                    observer: "observer";
-                    "exact-fork": "exact-fork";
-                    "exact-when-available": "exact-when-available";
-                }>;
-                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
-                    qa: "qa";
-                    present: "present";
-                    read: "read";
-                    investigate: "investigate";
-                }>>;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
-                action: import("zod").ZodLiteral<"create">;
-                modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
-                    provider: import("zod").ZodString;
-                    model: import("zod").ZodString;
-                }, import("zod/v4/core").$strict>>;
-                requestId: import("zod").ZodString;
                 selectionClaim: import("zod").ZodObject<{
                     sourceSessionId: import("zod").ZodString;
                     anchorSeq: import("zod").ZodNumber;
@@ -73,25 +32,14 @@ export declare const citeCiterRequestDescriptor: {
                     prefixText: import("zod").ZodString;
                     suffixText: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>;
-                question: import("zod").ZodString;
-                mode: import("zod").ZodEnum<{
-                    observer: "observer";
-                    "exact-fork": "exact-fork";
-                    "exact-when-available": "exact-when-available";
-                }>;
-                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
-                    qa: "qa";
-                    present: "present";
-                    read: "read";
-                    investigate: "investigate";
-                }>>;
-            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"create">;
                 modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
                     provider: import("zod").ZodString;
                     model: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>>;
                 requestId: import("zod").ZodString;
+                question: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 toolClaim: import("zod").ZodObject<{
                     sourceSessionId: import("zod").ZodString;
                     callId: import("zod").ZodString;
@@ -102,25 +50,14 @@ export declare const citeCiterRequestDescriptor: {
                         diff: "diff";
                     }>>;
                 }, import("zod/v4/core").$strict>;
-                question: import("zod").ZodString;
-                mode: import("zod").ZodEnum<{
-                    observer: "observer";
-                    "exact-fork": "exact-fork";
-                    "exact-when-available": "exact-when-available";
-                }>;
-                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
-                    qa: "qa";
-                    present: "present";
-                    read: "read";
-                    investigate: "investigate";
-                }>>;
-            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"create">;
                 modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
                     provider: import("zod").ZodString;
                     model: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>>;
                 requestId: import("zod").ZodString;
+                question: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 documentClaim: import("zod").ZodObject<{
                     sourceSessionId: import("zod").ZodString;
                     documentId: import("zod").ZodString;
@@ -128,18 +65,13 @@ export declare const citeCiterRequestDescriptor: {
                     prefixText: import("zod").ZodString;
                     suffixText: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>;
+                action: import("zod").ZodLiteral<"create">;
+                modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
+                    provider: import("zod").ZodString;
+                    model: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>>;
+                requestId: import("zod").ZodString;
                 question: import("zod").ZodString;
-                mode: import("zod").ZodEnum<{
-                    observer: "observer";
-                    "exact-fork": "exact-fork";
-                    "exact-when-available": "exact-when-available";
-                }>;
-                scenario: import("zod").ZodOptional<import("zod").ZodEnum<{
-                    qa: "qa";
-                    present: "present";
-                    read: "read";
-                    investigate: "investigate";
-                }>>;
             }, import("zod/v4/core").$strict>]>, import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"question-draft-get">;
                 topicSessionId: import("zod").ZodString;
@@ -314,12 +246,6 @@ export declare const citeCiterRequestDescriptor: {
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"set-reasoning-effort">;
                 topicSessionId: import("zod").ZodString;
-                reasoningEffort: import("zod").ZodNullable<import("zod").ZodString>;
-            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
-                action: import("zod").ZodLiteral<"select-model">;
-                topicSessionId: import("zod").ZodString;
-                provider: import("zod").ZodString;
-                model: import("zod").ZodString;
                 reasoningEffort: import("zod").ZodNullable<import("zod").ZodString>;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"document-import">;
@@ -609,21 +535,9 @@ export declare const citeCiterRequestDescriptor: {
                         "workspace-write": "workspace-write";
                         "danger-full-access": "danger-full-access";
                     }>>;
-                    hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
-                    storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
                     topicId: import("zod").ZodNumber;
                     sessionId: import("zod").ZodString;
                     sourceSessionId: import("zod").ZodString;
-                    mode: import("zod").ZodEnum<{
-                        observer: "observer";
-                        "exact-fork": "exact-fork";
-                    }>;
-                    scenario: import("zod").ZodEnum<{
-                        qa: "qa";
-                        present: "present";
-                        read: "read";
-                        investigate: "investigate";
-                    }>;
                     documentId: import("zod").ZodNullable<import("zod").ZodString>;
                     citation: import("zod").ZodNullable<import("zod").ZodObject<{
                         entry: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{
@@ -850,21 +764,9 @@ export declare const citeCiterRequestDescriptor: {
                     "workspace-write": "workspace-write";
                     "danger-full-access": "danger-full-access";
                 }>>;
-                hosted: import("zod").ZodOptional<import("zod").ZodBoolean>;
-                storage: import("zod").ZodOptional<import("zod").ZodLiteral<"source">>;
                 topicId: import("zod").ZodNumber;
                 sessionId: import("zod").ZodString;
                 sourceSessionId: import("zod").ZodString;
-                mode: import("zod").ZodEnum<{
-                    observer: "observer";
-                    "exact-fork": "exact-fork";
-                }>;
-                scenario: import("zod").ZodEnum<{
-                    qa: "qa";
-                    present: "present";
-                    read: "read";
-                    investigate: "investigate";
-                }>;
                 documentId: import("zod").ZodNullable<import("zod").ZodString>;
                 citation: import("zod").ZodNullable<import("zod").ZodObject<{
                     entry: import("zod").ZodDiscriminatedUnion<[import("zod").ZodObject<{

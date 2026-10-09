@@ -1,4 +1,4 @@
-/** Host entry for native Topics, legacy compatibility and the browser Remote API. */
+/** Host entry: native Topics, their settings and the browser Remote API. */
 import { Service, type Context } from '@deepseek-ai/cordis';
 import { type SettingsReader } from './host-settings-adapter.ts';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
@@ -7,15 +7,15 @@ import { type UpdateCheckResponse } from './update.ts';
 import { type CiteCiterRequest, type CiteCiterResponse } from './topic.ts';
 /** Cordis/Typert package identity. */
 export declare const name = "@kirkchinese/dsh-citeciter";
-/** Explicit dependencies for native session composition and legacy compatibility. */
-export declare const inject: readonly ["llm", "sessionQuery", "subprocess", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
+/** Host services used to compose native Topic sessions. */
+export declare const inject: readonly ["llm", "sessionQuery", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
 /** Host settings identity shared with the browser settings scope. */
 export declare const CITECITER_SETTINGS_NS: "citeciter";
 /** Native settings schema for new Topics and the companion panel. */
 export declare const CITECITER_SETTINGS_SCHEMA: z<object>;
-/** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
+/** Root-scoped Remote service owning Topic metadata and native Topic contributions. */
 export declare class CiteCiterHost extends TypertRemoteService {
-    static inject: readonly ["llm", "sessionQuery", "subprocess", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
+    static inject: readonly ["llm", "sessionQuery", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
     static Config: z<object, object, "volatile">;
     private readonly topics;
     private readonly updates;
@@ -36,5 +36,5 @@ export declare function apply(ctx: Context): Promise<void>;
 export type { CiteCiterService } from './service.ts';
 export { updateCheckErrorCodeSchema, updateCheckResponseSchema } from './update.ts';
 export type { UpdateCheckErrorCode, UpdateCheckResponse } from './update.ts';
-export type { CiteCiterRequest, CiteCiterResponse, CiteCiterSettings, CitationSelectionClaim, CitationDraft, CitationEntry, CitationEvidence, CitationRecord, DocumentContent, DocumentEvidenceClaim, DocumentFormat, DocumentSummary, ToolEvidenceClaim, TopicMode, TopicScenario, TopicSnapshot, TopicSummary, } from './topic.ts';
+export type { CiteCiterRequest, CiteCiterResponse, CiteCiterSettings, CitationSelectionClaim, CitationEntry, CitationEvidence, CitationRecord, DocumentContent, DocumentEvidenceClaim, DocumentFormat, DocumentSummary, ToolEvidenceClaim, TopicSnapshot, TopicSummary, } from './topic.ts';
 export default CiteCiterHost;

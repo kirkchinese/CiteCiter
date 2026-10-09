@@ -13,19 +13,16 @@ import {
   type CiteCiterSettings,
   type ProviderOption,
   type QuestionAnswer,
-  type TopicScenario,
   type TopicSnapshot,
   type TopicSummary,
 } from '../topic.ts'
 import { readAssistantAnswer } from './answer.ts'
-import { normalizeQuestion, normalizeDraftQuestion } from './prompt.ts'
+import { normalizeDraftQuestion } from './prompt.ts'
 import {
-  claimAskIntent,
   claimCreateFreeTopicIntent,
   claimCreateDocumentIntent,
   claimCreateTopicIntent,
   completeRequestIntent,
-  type CreateMode,
   type DocumentClaimIntent,
   type RequestIntent,
 } from './request-guard.ts'
@@ -35,7 +32,6 @@ import type { CiteSelection } from './types.ts'
 import { topicDraftReferences, type DraftReference } from './draft-references.ts'
 
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error'
-export type { CreateMode } from './request-guard.ts'
 export type TopicsStatus = 'idle' | 'loading' | 'ready' | 'error'
 export type SettingsSaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -80,8 +76,8 @@ export interface CompanionFace {
   subscribe(listener: () => void): () => void
   setSource(sessionId: SessionId | null): void
   retainVisible(): () => void
-  create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario, modelRoute?: ActionModel): Promise<void>
-  createFree(question: string, scenario: Extract<TopicScenario, 'qa' | 'present'>): Promise<boolean>
+  create(selection: CiteSelection, question: string, modelRoute?: ActionModel): Promise<void>
+  createFree(question: string): Promise<boolean>
   /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
   createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>
   openTopic(sessionId: string): Promise<void>
@@ -607,8 +603,6 @@ export function createCompanionController(
   async function runCreate(
     selection: CiteSelection,
     question: string,
-    mode: CreateMode,
-    scenario: TopicScenario,
     intent: RequestIntent,
     modelRoute?: ActionModel,
   ): Promise<void> {
@@ -644,8 +638,6 @@ export function createCompanionController(
             suffixText: selection.suffixText,
           },
           question,
-          mode,
-          scenario,
           modelRoute,
         })
       } else {
@@ -659,8 +651,6 @@ export function createCompanionController(
             projection: selection.projection,
           },
           question,
-          mode,
-          scenario: 'investigate',
           modelRoute,
         })
       }
@@ -677,31 +667,27 @@ export function createCompanionController(
     }
   }
 
-  const create = async (selection: CiteSelection, rawQuestion: string, mode?: CreateMode, scenario: TopicScenario = 'qa', modelRoute?: ActionModel): Promise<void> => {
+  const create = async (selection: CiteSelection, rawQuestion: string, modelRoute?: ActionModel): Promise<void> => {
     if (disposed) return
     const question = normalizeDraftQuestion(rawQuestion)
-    const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode
-    const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario, modelRoute)
+    const intent = await claimCreateTopicIntent(selection, question, modelRoute)
     if (disposed) return
     if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
     const pending = pendingCreates.get(intent.requestId)
     if (pending !== undefined) return pending
-    const operation = runCreate(selection, question, resolvedMode, scenario, intent, modelRoute).finally(() => {
+    const operation = runCreate(selection, question, intent, modelRoute).finally(() => {
       if (pendingCreates.get(intent.requestId) === operation) pendingCreates.delete(intent.requestId)
     })
     pendingCreates.set(intent.requestId, operation)
     return operation
   }
 
-  const createFree = async (
-    rawQuestion: string,
-    scenario: Extract<TopicScenario, 'qa' | 'present'>,
-  ): Promise<boolean> => {
+  const createFree = async (rawQuestion: string): Promise<boolean> => {
     if (disposed) return false
     const sourceSessionId = store.getSnapshot().sourceSessionId
     if (sourceSessionId === null) return false
     const question = rawQuestion.trim()
-    const intent = await claimCreateFreeTopicIntent(sourceSessionId, question, scenario)
+    const intent = await claimCreateFreeTopicIntent(sourceSessionId, question)
     if (disposed) return false
     const pending = pendingFreeCreates.get(intent.requestId)
     if (pending !== undefined) return pending
@@ -718,8 +704,6 @@ export function createCompanionController(
           requestId: intent.requestId,
           sourceSessionId,
           question,
-          mode: 'observer',
-          scenario,
         })
         if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
         completeRequestIntent(intent)
@@ -771,8 +755,6 @@ export function createCompanionController(
           suffixText: claim.suffixText,
         },
         question,
-        mode: 'observer',
-        scenario: 'read',
         modelRoute,
       })
       if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的文档 Topic 响应')
@@ -787,30 +769,6 @@ export function createCompanionController(
     }
   }
 
-  async function runAsk(active: TopicSnapshot, question: string, intent: RequestIntent): Promise<boolean> {
-    if (disposed) return false
-    const operationGeneration = ++activeGeneration
-    update((draft) => {
-      draft.phase = 'running'
-      draft.error = null
-      draft.notice = null
-    })
-    try {
-      const response = await call({
-        action: 'ask',
-        requestId: intent.requestId,
-        topicSessionId: active.topic.sessionId,
-        question,
-      })
-      completeRequestIntent(intent)
-      if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId)
-      return response.kind === 'topic' && operationGeneration === activeGeneration
-    } catch (error) {
-      fail(error, operationGeneration)
-      return false
-    }
-  }
-
   const ask = async (rawQuestion: string, attachments: readonly DraftAttachmentId[] = [], mode: DeliveryMode = 'queue', requestId?: string, expectedSessionId?: string): Promise<boolean> => {
     if (disposed) return false
     const snapshot = store.getSnapshot()
@@ -818,39 +776,28 @@ export function createCompanionController(
     if (active === null || !['ready', 'stopped', 'error', 'running'].includes(snapshot.phase)) return false
     const sessionId = active.topic.sessionId
     if (expectedSessionId !== undefined && expectedSessionId !== sessionId) return false
-    if (active.topic.hosted === true) {
-      if (pendingAsks.has(sessionId)) return false
-      const generation = activeGeneration
-      const operation = (async () => {
-        try {
-          await nativeComposer.send(sessionId, rawQuestion, attachments, mode, requestId)
-        } catch (error) {
-          fail(error, generation)
-          if (error instanceof UncertainSubmissionError) throw error
-          return false
-        }
-        // Host admission is authoritative. A later read failure must not keep an
-        // already accepted draft available for accidental duplicate submission.
-        if (generation === activeGeneration) {
-          actionFailure = null
-          update(draft => { draft.notice = null })
-        }
-        try {
-          const response = await call({ action: 'get', topicSessionId: sessionId })
-          if (response.kind === 'topic') acceptTopic(response.topic, generation, sessionId)
-        } catch (error) { fail(error, generation, false) }
-        return true
-      })().finally(() => pendingAsks.delete(sessionId))
-      pendingAsks.set(sessionId, operation)
-      return operation
-    }
     if (pendingAsks.has(sessionId)) return false
-    const question = normalizeQuestion(rawQuestion)
-    const intent = await claimAskIntent(sessionId, question)
-    if (disposed || pendingAsks.has(sessionId)) return false
-    const operation = runAsk(active, question, intent).finally(() => {
-      if (pendingAsks.get(sessionId) === operation) pendingAsks.delete(sessionId)
-    })
+    const generation = activeGeneration
+    const operation = (async () => {
+      try {
+        await nativeComposer.send(sessionId, rawQuestion, attachments, mode, requestId)
+      } catch (error) {
+        fail(error, generation)
+        if (error instanceof UncertainSubmissionError) throw error
+        return false
+      }
+      // Host admission is authoritative. A later read failure must not keep an
+      // already accepted draft available for accidental duplicate submission.
+      if (generation === activeGeneration) {
+        actionFailure = null
+        update(draft => { draft.notice = null })
+      }
+      try {
+        const response = await call({ action: 'get', topicSessionId: sessionId })
+        if (response.kind === 'topic') acceptTopic(response.topic, generation, sessionId)
+      } catch (error) { fail(error, generation, false) }
+      return true
+    })().finally(() => pendingAsks.delete(sessionId))
     pendingAsks.set(sessionId, operation)
     return operation
   }
@@ -1164,7 +1111,7 @@ export function createCompanionController(
     setSource,
     retainVisible,
     create: (...args) => admit(undefined, () => create(...args)),
-    createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
+    createFree: question => admit(false, () => createFree(question)),
     createFromDocument: (...args) => admit(undefined, () => createFromDocument(...args)),
     openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
     resolveDraftTopic: sourceSessionId => admit(null, () => resolveDraftTopic(sourceSessionId)),

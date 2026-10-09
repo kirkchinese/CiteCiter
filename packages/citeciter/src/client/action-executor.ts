@@ -19,7 +19,7 @@ export function createActionExecutor(companion: CompanionFace, reader: ReaderFac
     if (source.kind === 'conversation') {
       if (target !== null) companion.appendSelection(sourceId, target, question, selectionReferences(source))
       else {
-        await companion.create(source.selection, question, undefined, action.scenario, modelRoute)
+        await companion.create(source.selection, question, modelRoute)
         if (companion.getSnapshot().phase === 'error') throw new Error(companion.getSnapshot().error ?? '创建失败')
       }
       assertSource()

@@ -5864,10 +5864,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			label: string().trim().min(1).max(20),
 			prompt: string().max(4e3),
 			ask: boolean(),
-			scenario: _enum(["qa", "present"]),
 			presentation: _enum(["side", "floating"]),
 			target: _enum(["current", "new"]).optional()
-		}).strict().refine((action) => action.ask || action.prompt.trim() !== "", "直接执行的模式需要提示词").nullable()).length(8);
+		}).refine((action) => action.ask || action.prompt.trim() !== "", "直接执行的模式需要提示词").nullable()).length(8);
 		const wheelTriggerSchema = _enum([
 			"right-button",
 			"Alt",
@@ -5885,7 +5884,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				label: "自由提问",
 				prompt: "",
 				ask: true,
-				scenario: "qa",
 				presentation: "side",
 				target: "current"
 			},
@@ -5893,44 +5891,39 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				label: "解释这段",
 				prompt: learningQuestion("logic"),
 				ask: false,
-				scenario: "present",
 				presentation: "side"
 			},
 			{
 				label: "找错误",
 				prompt: "请审查引用内容的错误、遗漏和成立条件。区分可确认的错误与需要补充的信息。",
 				ask: false,
-				scenario: "qa",
 				presentation: "floating"
 			},
 			{
 				label: "翻译",
 				prompt: "请将引用内容翻译为中文，保留重要术语的原文。",
 				ask: false,
-				scenario: "qa",
 				presentation: "floating"
 			},
 			{
 				label: "定量板书",
 				prompt: learningQuestion("quantitative"),
 				ask: false,
-				scenario: "present",
 				presentation: "side"
 			},
 			{
 				label: "总结卡片",
 				prompt: learningQuestion("summary", "围绕本次引用的内容整理。"),
 				ask: false,
-				scenario: "present",
 				presentation: "side"
 			},
 			null,
 			null
 		];
-		/** Preserve customized legacy slots; only the unchanged built-in free question gains append behavior. */
+		/** Slots saved before targets existed append only when they are the unchanged built-in free question. */
 		function actionTarget(action) {
 			if (action.target !== void 0) return action.target;
-			return action.label === "自由提问" && action.prompt === "" && action.ask && action.scenario === "qa" && action.presentation === "side" ? "current" : "new";
+			return action.label === "自由提问" && action.prompt === "" && action.ask && action.presentation === "side" ? "current" : "new";
 		}
 		/** Combine a mode and optional user question without hidden system state. */
 		function actionQuestion(action, question) {
@@ -5974,33 +5967,23 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Host settings namespace mirrored by the browser settings scope. */
 		const CITECITER_SETTINGS_NAMESPACE = "citeciter";
-		const topicModeSchema = _enum(["observer", "exact-fork"]);
 		/**
-		* Topic turn-content scenario. Orthogonal to {@link TopicMode}: mode describes
-		* the source-session timing relation, scenario selects the assembled tool set,
-		* prompt sections, and future loop decorations for this Topic.
+		* Historical on-disk fields. Every Topic is now an Observer Topic; Exact Fork
+		* values and scenarios remain readable in metadata written before 0.9.
 		*/
+		const topicModeSchema = _enum(["observer", "exact-fork"]);
 		const topicScenarioSchema = _enum([
 			"qa",
 			"present",
 			"read",
 			"investigate"
 		]);
-		/** One user-editable prompt template shown beside the selection popover. */
-		const promptTemplateSchema = object({
-			id: string().min(1).max(60),
-			label: string().trim().min(1).max(40),
-			text: string().trim().min(1).max(600)
-		}).strict();
 		object({
-			defaultMode: _enum(["observer", "exact-when-available"]),
 			includeSourceReasoning: boolean(),
-			allowSourceFiles: boolean(),
 			panelWidthPercent: number().int().min(28).max(55),
 			reopenLastTopic: boolean(),
 			tutorPrompt: string().max(4e3).optional(),
 			followupQuestions: boolean().optional(),
-			promptTemplates: array(promptTemplateSchema).max(8).optional(),
 			shortcutOpenPanel: string().max(40).optional(),
 			boardAnimations: boolean().optional(),
 			activeRecall: boolean().optional(),
@@ -6017,9 +6000,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}).strict();
 		/** Settings used before an optional DSH settings provider becomes available. */
 		const DEFAULT_CITECITER_SETTINGS = Object.freeze({
-			defaultMode: "observer",
 			includeSourceReasoning: true,
-			allowSourceFiles: true,
 			panelWidthPercent: 34,
 			reopenLastTopic: true,
 			followupQuestions: true,
@@ -6027,24 +6008,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			activeRecall: false,
 			defaultPermission: "read-only",
 			learningRoute: false,
-			updateNotifications: true,
-			promptTemplates: [
-				{
-					id: "explain",
-					label: "解释这段",
-					text: "请解释这段内容：讲清楚它为什么成立、关键推导和直觉。"
-				},
-				{
-					id: "review",
-					label: "找错误",
-					text: "请严格审查这段内容：找出遗漏、矛盾和错误，逐条说明。"
-				},
-				{
-					id: "translate",
-					label: "翻译",
-					text: "请把这段内容翻译成中文，并保留专业术语的原文。"
-				}
-			]
+			updateNotifications: true
 		});
 		/** Browser-visible selection resolved by the Host against one committed model call. */
 		const citationSelectionClaimSchema = object({
@@ -6055,8 +6019,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			prefixText: string().max(1e3),
 			suffixText: string().max(1e3)
 		}).strict();
-		/** Host-verifiable Markdown evidence plus the browser-visible quote used by the UI. */
-		const citationDraftSchema = object({
+		object({
 			sourceSessionId: string().min(1),
 			anchorSeq: number().int().nonnegative(),
 			startOffset: number().int().nonnegative(),
@@ -6199,13 +6162,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const topicSummarySchema = object({
 			modelSelectionRequired: boolean().optional(),
 			permission: permissionSchema.optional(),
-			hosted: boolean().optional(),
-			storage: literal("source").optional(),
 			topicId: number().int().positive(),
 			sessionId: string().min(1),
 			sourceSessionId: string().min(1),
-			mode: topicModeSchema,
-			scenario: topicScenarioSchema,
 			documentId: string().min(1).nullable(),
 			citation: citationRecordSchema.nullable(),
 			title: string().min(1),
@@ -6325,11 +6284,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const draftQuestionSchema = string().trim().max(12e3);
 		const questionSchema = string().trim().min(1).max(12e3);
 		const topicSessionIdSchema = string().min(1);
-		const createModeSchema = _enum([
-			"observer",
-			"exact-fork",
-			"exact-when-available"
-		]);
 		/** Whole-card tool-result claim; the Host verifies it against the committed `tool/result`. */
 		const toolEvidenceClaimSchema = object({
 			sourceSessionId: string().min(1),
@@ -6369,52 +6323,29 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			page: number().int().nonnegative().default(0),
 			pageCount: number().int().positive().default(1)
 		}).strict();
+		const createFields = {
+			action: literal("create"),
+			modelRoute: actionModelSchema.optional(),
+			requestId: string().min(1),
+			question: draftQuestionSchema
+		};
 		/** One strict direct-RPC command for the private CiteCiter runtime. */
 		const citeCiterRequestSchema = union([union([
 			object({
-				action: literal("create"),
-				modelRoute: actionModelSchema.optional(),
-				requestId: string().min(1),
-				sourceSessionId: string().min(1),
-				question: draftQuestionSchema,
-				mode: literal("observer"),
-				scenario: _enum(["qa", "present"]).optional()
+				...createFields,
+				sourceSessionId: string().min(1)
 			}).strict(),
 			object({
-				action: literal("create"),
-				modelRoute: actionModelSchema.optional(),
-				requestId: string().min(1),
-				citation: citationDraftSchema,
-				question: draftQuestionSchema,
-				mode: createModeSchema,
-				scenario: topicScenarioSchema.optional()
+				...createFields,
+				selectionClaim: citationSelectionClaimSchema
 			}).strict(),
 			object({
-				action: literal("create"),
-				modelRoute: actionModelSchema.optional(),
-				requestId: string().min(1),
-				selectionClaim: citationSelectionClaimSchema,
-				question: draftQuestionSchema,
-				mode: createModeSchema,
-				scenario: topicScenarioSchema.optional()
+				...createFields,
+				toolClaim: toolEvidenceClaimSchema
 			}).strict(),
 			object({
-				action: literal("create"),
-				modelRoute: actionModelSchema.optional(),
-				requestId: string().min(1),
-				toolClaim: toolEvidenceClaimSchema,
-				question: draftQuestionSchema,
-				mode: createModeSchema,
-				scenario: topicScenarioSchema.optional()
-			}).strict(),
-			object({
-				action: literal("create"),
-				modelRoute: actionModelSchema.optional(),
-				requestId: string().min(1),
-				documentClaim: documentEvidenceClaimSchema,
-				question: draftQuestionSchema,
-				mode: createModeSchema,
-				scenario: topicScenarioSchema.optional()
+				...createFields,
+				documentClaim: documentEvidenceClaimSchema
 			}).strict()
 		]), discriminatedUnion("action", [
 			object({
@@ -6534,13 +6465,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			object({
 				action: literal("set-reasoning-effort"),
 				topicSessionId: topicSessionIdSchema,
-				reasoningEffort: string().min(1).nullable()
-			}).strict(),
-			object({
-				action: literal("select-model"),
-				topicSessionId: topicSessionIdSchema,
-				provider: string().min(1),
-				model: string().min(1),
 				reasoningEffort: string().min(1).nullable()
 			}).strict(),
 			object({
@@ -8211,15 +8135,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const NEXT_QUESTIONS_CLOSE = "</citeciter-next-questions>";
 		const NEXT_QUESTION_MARKERS = [NEXT_QUESTIONS_OPEN, NEXT_QUESTIONS_CLOSE];
 		/**
-		* Normalize a genuine user question without wrapping it in Citation or role
-		* prose. System Tutor and Citation Context travel through their own layers.
+		* Trim a first question without wrapping it in Citation or role prose. It may be
+		* empty because creation only prepares a draft; the length limit applies before any request.
+		* @param rawQuestion - text typed or chosen by the user.
+		* @returns the trimmed question.
 		*/
-		function normalizeQuestion(rawQuestion) {
-			const question = normalizeDraftQuestion(rawQuestion);
-			if (question === "") throw new Error("question cannot be empty");
-			return question;
-		}
-		/** Creation may prepare an empty composer; length limits apply before any request. */
 		function normalizeDraftQuestion(rawQuestion) {
 			const question = rawQuestion.trim();
 			if (question.length > 12e3) throw new Error(`question exceeds ${MAX_QUESTION_CHARS} characters`);
@@ -8340,10 +8260,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* Claim the retry-stable request ID for one pending Topic-creation intent.
 		* @param selection - cited source selection.
 		* @param question - normalized first question.
-		* @param mode - resolved Topic creation mode.
+		* @param modelRoute - optional model chosen by the wheel action.
 		* @returns the pending intent key and request ID.
 		*/
-		function claimCreateTopicIntent(selection, question, mode, scenario = "qa", modelRoute) {
+		function claimCreateTopicIntent(selection, question, modelRoute) {
 			const identity = selection.kind === "assistant-step" ? [
 				selection.sourceSessionId,
 				selection.anchorKey,
@@ -8362,8 +8282,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				...identity,
 				selection.displayText,
 				question,
-				mode,
-				scenario,
 				modelRoute ?? null
 			]));
 		}
@@ -8371,15 +8289,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* Claim the retry-stable request ID for one uncited Topic creation.
 		* @param sourceSessionId - owning DSH Session.
 		* @param question - normalized first question.
-		* @param scenario - requested Topic presentation.
 		* @returns the pending intent key and request ID.
 		*/
-		function claimCreateFreeTopicIntent(sourceSessionId, question, scenario) {
-			return claimRequestIntent("create-free", JSON.stringify([
-				sourceSessionId,
-				question,
-				scenario
-			]));
+		function claimCreateFreeTopicIntent(sourceSessionId, question) {
+			return claimRequestIntent("create-free", JSON.stringify([sourceSessionId, question]));
 		}
 		/**
 		* Claim the retry-stable request ID for one pending document Topic creation.
@@ -8397,15 +8310,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				claim.suffixText,
 				question
 			]));
-		}
-		/**
-		* Claim the retry-stable request ID for one pending Topic follow-up.
-		* @param topicSessionId - target private Topic Session.
-		* @param question - normalized follow-up question.
-		* @returns the pending intent key and request ID.
-		*/
-		function claimAskIntent(topicSessionId, question) {
-			return claimRequestIntent("ask", JSON.stringify([topicSessionId, question]));
 		}
 		/**
 		* Forget a confirmed request so a later identical submission is a new user intent.
@@ -8933,7 +8837,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (visibleConsumers === 0) setVisible(false);
 				};
 			};
-			async function runCreate(selection, question, mode, scenario, intent, modelRoute) {
+			async function runCreate(selection, question, intent, modelRoute) {
 				if (disposed) return;
 				const operationGeneration = ++activeGeneration;
 				update((draft) => {
@@ -8964,8 +8868,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								suffixText: selection.suffixText
 							},
 							question,
-							mode,
-							scenario,
 							modelRoute
 						});
 					} else response = await call({
@@ -8978,8 +8880,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							projection: selection.projection
 						},
 						question,
-						mode,
-						scenario: "investigate",
 						modelRoute
 					});
 					if (response.kind !== "topic") throw new Error("CiteCiter 返回了错误的创建响应");
@@ -8999,27 +8899,26 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					fail(error, operationGeneration);
 				}
 			}
-			const create = async (selection, rawQuestion, mode, scenario = "qa", modelRoute) => {
+			const create = async (selection, rawQuestion, modelRoute) => {
 				if (disposed) return;
 				const question = normalizeDraftQuestion(rawQuestion);
-				const resolvedMode = mode ?? store.getSnapshot().settings.defaultMode;
-				const intent = await claimCreateTopicIntent(selection, question, resolvedMode, scenario, modelRoute);
+				const intent = await claimCreateTopicIntent(selection, question, modelRoute);
 				if (disposed) return;
 				if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error("来源会话已切换，请重新选文");
 				const pending = pendingCreates.get(intent.requestId);
 				if (pending !== void 0) return pending;
-				const operation = runCreate(selection, question, resolvedMode, scenario, intent, modelRoute).finally(() => {
+				const operation = runCreate(selection, question, intent, modelRoute).finally(() => {
 					if (pendingCreates.get(intent.requestId) === operation) pendingCreates.delete(intent.requestId);
 				});
 				pendingCreates.set(intent.requestId, operation);
 				return operation;
 			};
-			const createFree = async (rawQuestion, scenario) => {
+			const createFree = async (rawQuestion) => {
 				if (disposed) return false;
 				const sourceSessionId = store.getSnapshot().sourceSessionId;
 				if (sourceSessionId === null) return false;
 				const question = rawQuestion.trim();
-				const intent = await claimCreateFreeTopicIntent(sourceSessionId, question, scenario);
+				const intent = await claimCreateFreeTopicIntent(sourceSessionId, question);
 				if (disposed) return false;
 				const pending = pendingFreeCreates.get(intent.requestId);
 				if (pending !== void 0) return pending;
@@ -9035,9 +8934,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							action: "create",
 							requestId: intent.requestId,
 							sourceSessionId,
-							question,
-							mode: "observer",
-							scenario
+							question
 						});
 						if (response.kind !== "topic") throw new Error("CiteCiter 返回了错误的创建响应");
 						completeRequestIntent(intent);
@@ -9095,8 +8992,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							suffixText: claim.suffixText
 						},
 						question,
-						mode: "observer",
-						scenario: "read",
 						modelRoute
 					});
 					if (response.kind !== "topic") throw new Error("CiteCiter 返回了错误的文档 Topic 响应");
@@ -9117,29 +9012,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					throw error;
 				}
 			};
-			async function runAsk(active, question, intent) {
-				if (disposed) return false;
-				const operationGeneration = ++activeGeneration;
-				update((draft) => {
-					draft.phase = "running";
-					draft.error = null;
-					draft.notice = null;
-				});
-				try {
-					const response = await call({
-						action: "ask",
-						requestId: intent.requestId,
-						topicSessionId: active.topic.sessionId,
-						question
-					});
-					completeRequestIntent(intent);
-					if (response.kind === "topic") acceptTopic(response.topic, operationGeneration, active.topic.sessionId);
-					return response.kind === "topic" && operationGeneration === activeGeneration;
-				} catch (error) {
-					fail(error, operationGeneration);
-					return false;
-				}
-			}
 			const ask = async (rawQuestion, attachments = [], mode = "queue", requestId, expectedSessionId) => {
 				if (disposed) return false;
 				const snapshot = store.getSnapshot();
@@ -9152,44 +9024,33 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				].includes(snapshot.phase)) return false;
 				const sessionId = active.topic.sessionId;
 				if (expectedSessionId !== void 0 && expectedSessionId !== sessionId) return false;
-				if (active.topic.hosted === true) {
-					if (pendingAsks.has(sessionId)) return false;
-					const generation = activeGeneration;
-					const operation = (async () => {
-						try {
-							await nativeComposer.send(sessionId, rawQuestion, attachments, mode, requestId);
-						} catch (error) {
-							fail(error, generation);
-							if (error instanceof UncertainSubmissionError) throw error;
-							return false;
-						}
-						if (generation === activeGeneration) {
-							actionFailure = null;
-							update((draft) => {
-								draft.notice = null;
-							});
-						}
-						try {
-							const response = await call({
-								action: "get",
-								topicSessionId: sessionId
-							});
-							if (response.kind === "topic") acceptTopic(response.topic, generation, sessionId);
-						} catch (error) {
-							fail(error, generation, false);
-						}
-						return true;
-					})().finally(() => pendingAsks.delete(sessionId));
-					pendingAsks.set(sessionId, operation);
-					return operation;
-				}
 				if (pendingAsks.has(sessionId)) return false;
-				const question = normalizeQuestion(rawQuestion);
-				const intent = await claimAskIntent(sessionId, question);
-				if (disposed || pendingAsks.has(sessionId)) return false;
-				const operation = runAsk(active, question, intent).finally(() => {
-					if (pendingAsks.get(sessionId) === operation) pendingAsks.delete(sessionId);
-				});
+				const generation = activeGeneration;
+				const operation = (async () => {
+					try {
+						await nativeComposer.send(sessionId, rawQuestion, attachments, mode, requestId);
+					} catch (error) {
+						fail(error, generation);
+						if (error instanceof UncertainSubmissionError) throw error;
+						return false;
+					}
+					if (generation === activeGeneration) {
+						actionFailure = null;
+						update((draft) => {
+							draft.notice = null;
+						});
+					}
+					try {
+						const response = await call({
+							action: "get",
+							topicSessionId: sessionId
+						});
+						if (response.kind === "topic") acceptTopic(response.topic, generation, sessionId);
+					} catch (error) {
+						fail(error, generation, false);
+					}
+					return true;
+				})().finally(() => pendingAsks.delete(sessionId));
 				pendingAsks.set(sessionId, operation);
 				return operation;
 			};
@@ -9500,7 +9361,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				setSource,
 				retainVisible,
 				create: (...args) => admit(void 0, () => create(...args)),
-				createFree: (question, scenario) => admit(false, () => createFree(question, scenario)),
+				createFree: (question) => admit(false, () => createFree(question)),
 				createFromDocument: (...args) => admit(void 0, () => createFromDocument(...args)),
 				openTopic: (sessionId) => admit(void 0, () => openTopic(sessionId, ++activeGeneration)),
 				resolveDraftTopic: (sourceSessionId) => admit(null, () => resolveDraftTopic(sourceSessionId)),
@@ -39142,7 +39003,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		/**
 		* Render infrequent Topic management separately from the learning composer.
 		* @param props - current identity, operation status and management callbacks.
-		* @returns a controlled dialog; deletion is enabled only for legacy private logs or verified Citer-owned source storage.
+		* @returns a controlled dialog for archiving and permanent deletion.
 		*/
 		function TopicSettingsDialog({ open, topic, archiving, deleting, error, onClose, onArchive, onDelete }) {
 			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
@@ -39152,38 +39013,30 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				title: "Topic 设置",
 				children: topic !== void 0 && (0, react_jsx_runtime.jsxs)("div", {
 					className: TopicSettingsDialog_module_css_default.settings,
-					children: [
-						(0, react_jsx_runtime.jsxs)("div", {
-							className: TopicSettingsDialog_module_css_default.actions,
-							children: [(0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								"aria-label": topic.archived ? "恢复当前 Topic" : "归档当前 Topic",
-								disabled: archiving,
-								onClick: () => {
-									onArchive(!topic.archived).then((saved) => {
-										if (saved) onClose();
-									});
-								},
-								children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutlineMedium, { size: 16 }), archiving ? "处理中…" : topic.archived ? "恢复" : "归档"]
-							}), (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								className: TopicSettingsDialog_module_css_default.danger,
-								disabled: deleting || topic.hosted === true && topic.storage !== "source",
-								onClick: onDelete,
-								title: topic.hosted === true && topic.storage !== "source" ? "重启 DSH 后迁移至 Citer 自有目录" : void 0,
-								children: "永久删除"
-							})]
-						}),
-						topic.hosted === true && topic.storage !== "source" && (0, react_jsx_runtime.jsx)("p", {
-							className: TopicSettingsDialog_module_css_default.hint,
-							children: "此 Topic 尚未迁移，目前可归档与恢复。"
-						}),
-						error !== null && (0, react_jsx_runtime.jsx)("p", {
-							role: "alert",
-							className: TopicSettingsDialog_module_css_default.error,
-							children: error
-						})
-					]
+					children: [(0, react_jsx_runtime.jsxs)("div", {
+						className: TopicSettingsDialog_module_css_default.actions,
+						children: [(0, react_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"aria-label": topic.archived ? "恢复当前 Topic" : "归档当前 Topic",
+							disabled: archiving,
+							onClick: () => {
+								onArchive(!topic.archived).then((saved) => {
+									if (saved) onClose();
+								});
+							},
+							children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconArchiveOutlineMedium, { size: 16 }), archiving ? "处理中…" : topic.archived ? "恢复" : "归档"]
+						}), (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: TopicSettingsDialog_module_css_default.danger,
+							disabled: deleting,
+							onClick: onDelete,
+							children: "永久删除"
+						})]
+					}), error !== null && (0, react_jsx_runtime.jsx)("p", {
+						role: "alert",
+						className: TopicSettingsDialog_module_css_default.error,
+						children: error
+					})]
 				})
 			});
 		}
@@ -39525,7 +39378,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, bus, companion, closePanel, openReader, reportParseError }) {
 			const overlay = useOverlay((value) => value);
 			const snapshot = useCompanion((value) => value);
-			const pendingInteraction = useInteractions((value) => snapshot.active?.topic.hosted === true ? value.get(snapshot.active.topic.sessionId) : void 0);
+			const pendingInteraction = useInteractions((value) => snapshot.active === null ? void 0 : value.get(snapshot.active.topic.sessionId));
 			const draftKey = snapshot.active?.topic.sessionId ?? snapshot.sourceSessionId ?? "new";
 			const draft = useDrafts((value) => value[draftKey] ?? EMPTY_DRAFT_VIEW);
 			const question = draft.content.text;
@@ -39714,7 +39567,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}));
 			};
 			const openNewTopic = () => {
-				companion.createFree("", "qa");
+				companion.createFree("");
 			};
 			const confirmDelete = async () => {
 				if (deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting) return;
@@ -40014,7 +39867,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 												role: "alert",
 												children: friendlyFailure(snapshot.error)
 											}),
-											active?.topic.hosted === true && (0, react_jsx_runtime.jsx)(NativeQueue, {
+											active !== null && (0, react_jsx_runtime.jsx)(NativeQueue, {
 												sessionId: active.topic.sessionId,
 												native: nativeComposer
 											}),
@@ -40279,7 +40132,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					label: "自定义",
 					prompt: "",
 					ask: true,
-					scenario: "qa",
 					presentation: "side",
 					target: "new"
 				},
@@ -40373,17 +40225,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								}), (0, react_jsx_runtime.jsx)("option", {
 									value: "new",
 									children: "新建 Topic"
-								})]
-							})] }),
-							(0, react_jsx_runtime.jsxs)("label", { children: ["内容方式", (0, react_jsx_runtime.jsxs)("select", {
-								value: slot.scenario,
-								onChange: (event) => change(index, { scenario: event.currentTarget.value }),
-								children: [(0, react_jsx_runtime.jsx)("option", {
-									value: "qa",
-									children: "直接问答"
-								}), (0, react_jsx_runtime.jsx)("option", {
-									value: "present",
-									children: "学习讲解与板书"
 								})]
 							})] }),
 							(0, react_jsx_runtime.jsxs)("label", { children: ["默认打开位置", (0, react_jsx_runtime.jsxs)("select", {
@@ -40521,16 +40362,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 										companion.setSetting("includeSourceReasoning", event.currentTarget.checked);
 									}
 								})]
-							}),
-							(0, react_jsx_runtime.jsxs)("label", {
-								className: CiteCiter_module_css_default.settingToggle,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "旧 Topic：允许调查来源工作区" }), (0, react_jsx_runtime.jsx)("small", { children: "此开关仅控制旧 Topic 的只读文件工具。新 Topic 使用完整 DSH 工具，权限由输入框中的模式控制。" })] }), (0, react_jsx_runtime.jsx)("input", {
-									type: "checkbox",
-									checked: settings.allowSourceFiles,
-									onChange: (event) => {
-										companion.setSetting("allowSourceFiles", event.currentTarget.checked);
-									}
-								})]
 							})
 						]
 					}),
@@ -40550,7 +40381,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							}),
 							(0, react_jsx_runtime.jsxs)("label", {
 								className: CiteCiter_module_css_default.settingStack,
-								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "自定义导师提示词" }), (0, react_jsx_runtime.jsx)("small", { children: "补充教学偏好；留空使用内置提示词。原生 Topic 从下次发送起生效；旧 Topic 恢复后生效。" })] }), (0, react_jsx_runtime.jsx)("textarea", {
+								children: [(0, react_jsx_runtime.jsxs)("span", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "自定义导师提示词" }), (0, react_jsx_runtime.jsx)("small", { children: "补充教学偏好；留空使用内置提示词。从下次发送起生效。" })] }), (0, react_jsx_runtime.jsx)("textarea", {
 									className: CiteCiter_module_css_default.promptTextarea,
 									value: settings.tutorPrompt ?? "",
 									maxLength: 4e3,
@@ -41116,7 +40947,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				if (source.kind === "conversation") {
 					if (target !== null) companion.appendSelection(sourceId, target, question, selectionReferences(source));
 					else {
-						await companion.create(source.selection, question, void 0, action.scenario, modelRoute);
+						await companion.create(source.selection, question, modelRoute);
 						if (companion.getSnapshot().phase === "error") throw new Error(companion.getSnapshot().error ?? "创建失败");
 					}
 					assertSource();

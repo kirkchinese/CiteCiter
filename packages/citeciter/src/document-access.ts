@@ -1,12 +1,13 @@
 import type { Session } from '@deepseek-ai/dsh-session'
 import { hasSentSource } from './source-session.ts'
 
-/** Resolve one document from durable user submissions. Draft metadata grants no native Topic access. */
-export function resolveReadableDocument(session: Session | undefined, hosted: boolean, initial: string | null, requested?: string): string {
-  if (!hosted) {
-    if (initial === null || requested !== undefined && requested !== initial) throw new Error('此旧版 Topic 只能读取原始文档')
-    return initial
-  }
+/**
+ * Resolve one document from durable user submissions. Draft metadata grants no access.
+ * @param session - the Topic Session whose committed user messages carry document addresses.
+ * @param requested - explicit documentId; optional when exactly one document was sent.
+ * @returns the readable documentId.
+ */
+export function resolveReadableDocument(session: Session | undefined, requested?: string): string {
   const submitted = new Set<string>()
   for (const event of session?.snapshotEvents() ?? []) {
     if (event.type !== 'user/message' || event.data.source.kind !== 'user') continue

@@ -58,11 +58,6 @@ export declare function fingerprintCitationRecord(record: CitationEvidence): str
 /** Resolve a browser selection claim against the authoritative committed assistant message. */
 export declare function resolveObserverCitation(source: ObserverSourceSnapshot, rawClaim: CitationSelectionClaim): ValidatedObserverCitation;
 /**
- * Validate one Citation against committed reasoning or answer text in the observed source snapshot.
- * A matching `assistant/message` is sufficient; its step and turn may remain open.
- */
-export declare function validateObserverCitation(source: ObserverSourceSnapshot, rawDraft: CitationDraft): ValidatedObserverCitation;
-/**
  * Resolve a whole-card tool-result claim against the committed `tool/result`.
  * @param source - one atomic live-preferred SessionQuery observation.
  * @param rawClaim - browser-submitted tool result identity, projection, and visible quote.

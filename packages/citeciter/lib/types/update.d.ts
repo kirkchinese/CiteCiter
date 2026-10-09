@@ -39,13 +39,6 @@ export declare const updateCheckResponseSchema: z.ZodDiscriminatedUnion<[z.ZodOb
 }, z.core.$strict>], "kind">;
 /** Browser-facing update result; this operation never installs or restarts anything. */
 export type UpdateCheckResponse = z.infer<typeof updateCheckResponseSchema>;
-/**
- * Compare stable versions without accepting prerelease or build suffixes.
- * @param left - first candidate version.
- * @param right - second candidate version.
- * @returns negative, zero, or positive for valid versions; otherwise `null`.
- */
-export declare function compareStableVersions(left: string, right: string): -1 | 0 | 1 | null;
 /** Per-Host update checker with bounded I/O and a successful-result TTL cache. */
 export declare class UpdateChecker {
     private readonly fetchImpl;

@@ -12,16 +12,11 @@ export interface ParsedNextQuestions {
 }
 
 /**
- * Normalize a genuine user question without wrapping it in Citation or role
- * prose. System Tutor and Citation Context travel through their own layers.
+ * Trim a first question without wrapping it in Citation or role prose. It may be
+ * empty because creation only prepares a draft; the length limit applies before any request.
+ * @param rawQuestion - text typed or chosen by the user.
+ * @returns the trimmed question.
  */
-export function normalizeQuestion(rawQuestion: string): string {
-  const question = normalizeDraftQuestion(rawQuestion)
-  if (question === '') throw new Error('question cannot be empty')
-  return question
-}
-
-/** Creation may prepare an empty composer; length limits apply before any request. */
 export function normalizeDraftQuestion(rawQuestion: string): string {
   const question = rawQuestion.trim()
   if (question.length > MAX_QUESTION_CHARS) {

@@ -10,16 +10,6 @@ export const UPDATE_CHECK_TTL_MS = 6 * 60 * 60 * 1_000
 const UPDATE_CHECK_TIMEOUT_MS = 5_000
 const UPDATE_RESPONSE_MAX_BYTES = 64 * 1_024
 
-const stableVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u
-
-function stableVersionParts(version: string): readonly [number, number, number] | null {
-  const match = stableVersionPattern.exec(version)
-  if (match === null) return null
-  const parts = match.slice(1).map(Number)
-  if (parts.length !== 3 || parts.some((part) => !Number.isSafeInteger(part))) return null
-  return [parts[0]!, parts[1]!, parts[2]!]
-}
-
 /** npm tags select versions; latest is not a guarantee that the selected version is stable. */
 const packageVersionSchema = z.string().refine(isPackageVersion, 'expected a canonical SemVer package version')
 
@@ -116,23 +106,6 @@ async function readBoundedText(response: Response, signal: AbortSignal): Promise
     text += decoder.decode(chunk.value, { stream: true })
   }
   return text + decoder.decode()
-}
-
-/**
- * Compare stable versions without accepting prerelease or build suffixes.
- * @param left - first candidate version.
- * @param right - second candidate version.
- * @returns negative, zero, or positive for valid versions; otherwise `null`.
- */
-export function compareStableVersions(left: string, right: string): -1 | 0 | 1 | null {
-  const leftParts = stableVersionParts(left)
-  const rightParts = stableVersionParts(right)
-  if (leftParts === null || rightParts === null) return null
-  for (let index = 0; index < leftParts.length; index += 1) {
-    if (leftParts[index]! < rightParts[index]!) return -1
-    if (leftParts[index]! > rightParts[index]!) return 1
-  }
-  return 0
 }
 
 /** Per-Host update checker with bounded I/O and a successful-result TTL cache. */

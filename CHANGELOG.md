@@ -27,6 +27,13 @@ Targets the official DSH Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1`. Includes 
 - Appending to an existing Topic from the wheel focuses the composer once the panel is laid out.
 - Board citations keep the text inside SVG and HTML diagrams.
 
+### Removed
+
+- The private Topic runtime used by versions before 0.8, together with Exact Fork mode. Every Topic is now a native DSH Session in its source's `citeciter/` directory. Topics still stored in the pre-0.8 layout are migrated automatically at startup when their source is available; the original logs are kept.
+- Settings that no longer had an effect: default Topic mode, "allow investigating the source workspace" (applied only to pre-0.8 Topics), prompt templates and the wheel slot's content type. Values saved by earlier versions are ignored, and an invalid saved value now falls back to its default without resetting the other settings.
+- The `select-model` request and the 0.3.1 `citation` create request.
+- Nine DSH peer dependencies that only the private runtime used, so the host compatibility check has fewer packages to match.
+
 ## 0.9.0-alpha.3 — 2026-09-28
 
 Targets DSH Web `0.1.7-rc.2`.

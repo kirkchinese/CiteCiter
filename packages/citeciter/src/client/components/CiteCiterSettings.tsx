@@ -70,14 +70,6 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
             onChange={(event) => { void companion.setSetting('includeSourceReasoning', event.currentTarget.checked) }}
           />
         </label>
-        <label className={css.settingToggle}>
-          <span><strong>旧 Topic：允许调查来源工作区</strong><small>此开关仅控制旧 Topic 的只读文件工具。新 Topic 使用完整 DSH 工具，权限由输入框中的模式控制。</small></span>
-          <input
-            type="checkbox"
-            checked={settings.allowSourceFiles}
-            onChange={(event) => { void companion.setSetting('allowSourceFiles', event.currentTarget.checked) }}
-          />
-        </label>
       </section>
 
       <section className={css.settingsGroup}>
@@ -88,7 +80,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
             onChange={(event) => { void companion.setSetting('activeRecall', event.currentTarget.checked) }} />
         </label>
         <label className={css.settingStack}>
-          <span><strong>自定义导师提示词</strong><small>补充教学偏好；留空使用内置提示词。原生 Topic 从下次发送起生效；旧 Topic 恢复后生效。</small></span>
+          <span><strong>自定义导师提示词</strong><small>补充教学偏好；留空使用内置提示词。从下次发送起生效。</small></span>
           <textarea
             className={css.promptTextarea}
             value={settings.tutorPrompt ?? ''}
