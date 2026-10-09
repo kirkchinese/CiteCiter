@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { SESSION_FORMAT_VERSION, Session, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { topicMessages } from '../lib/types/topic-runtime.js'
+import { topicMessages } from '../lib/types/topic-log.js'
 
 const userEvent = (seq, text) => ({
   type: 'user/message', seq, time: seq, surfaceOp: 'append',

@@ -4,59 +4,28 @@ import { resolve } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentHandle } from '@deepseek-ai/dsh-agent'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller'
-import {
-  assembleAssistantStream,
-  type ContentBlock,
-  type LlmCallConfig,
-  type LlmModelInfo,
-  type ToolCallId,
-} from '@deepseek-ai/dsh-llm'
+import type { LlmCallConfig, LlmModelInfo, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
-import {
-  SESSION_FORMAT_VERSION,
-  SessionId,
-  foldRequestHeader,
-  type SessionEvent,
-  type SessionHeader,
-  type SessionLogOffset,
-} from '@deepseek-ai/dsh-session'
-import { foldSessionTitle } from '@deepseek-ai/dsh-session-title'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { SESSION_FORMAT_VERSION, SessionId, foldRequestHeader, type SessionHeader } from '@deepseek-ai/dsh-session'
 import {
   UserQuestionError,
   type AskUserQuestionAnswer,
   type AskUserQuestionItem,
   type AskUserQuestionRequest,
 } from '@deepseek-ai/dsh-user-questions'
-import { SourceStorage } from './source-storage.ts'
-import { DraftStore } from './draft-store.ts'
-import { QuestionDraftStore } from './question-draft-store.ts'
-import { questionDraftLogStatus, questionDraftReceiptKey } from './question-draft-lifecycle.ts'
-import type { QuestionDraftContent } from './question-draft-contract.ts'
-import { requireSelectedModel, selectInitialModel } from './model-admission.ts'
-import { createSourceReadTool, SOURCE_READ_PROMPT, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
-import { composeHostedTopicPrompt } from './topic-prompts.ts'
-import { readNativeState } from './native-session-read.ts'
-import { readNativeAttachment } from './native-attachment-read.ts'
-import { toolCallRecord, toolResultRecord } from './tool-events.ts'
-import { projectRejectedToolApprovals } from './tool-approval-projection.ts'
-import { contextMessage } from './message-projection.ts'
-import { readQuestionReply, questionReplyText } from './question-reply.ts'
-import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
+import { createBlackboardApplyTool } from './blackboard-tool.ts'
+import { BoardCaptureBroker } from './board-capture.ts'
+import { recoverBlockingQuestion } from './blocking-question-recovery.ts'
 import { resolveReadableDocument } from './document-access.ts'
 import { createDocumentReadTool, createDocumentSearchTool, type AuthorizedDocumentReader } from './document-tools.ts'
-import { removeOwnedSessionTree } from './owned-session-cleanup.ts'
+import { DocumentStore } from './documents.ts'
+import { DraftStore } from './draft-store.ts'
+import { HostSessionAdapter } from './host-session-adapter.ts'
+import { createLearningCardsTool } from './learning-cards-tool.ts'
 import { migrateLegacyTopics } from './legacy-migration.ts'
-import { TopicIndex, type TopicDeletionMarker, unlinkIfPresent, rmdirIfEmpty } from './topic-index.ts'
-import { LEARNING_CARD_FIELD_DESCRIPTIONS, learningCardsInputSchema } from './learning.ts'
-import { LEARNING_EXAMPLE_PARAMETER } from './learning-example.ts'
-import {
-  BOARD_MAX_BATCH_OPS,
-  applyBoardOps,
-  boardBatchSchema,
-  EMPTY_BOARD_STATE,
-  type BoardSnapshot,
-} from './board.ts'
+import { requireSelectedModel, selectInitialModel } from './model-admission.ts'
+import { readNativeAttachment } from './native-attachment-read.ts'
+import { readNativeState } from './native-session-read.ts'
 import {
   fingerprintCitationRecord,
   resolveDocumentEvidence,
@@ -64,13 +33,20 @@ import {
   resolveToolEvidence,
   type ObserverSourceSnapshot,
 } from './observer.ts'
-import { DocumentStore } from './documents.ts'
-import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies } from './topic-questions.ts'
-import { bindTopicQuestionBridge } from './topic-question-bridge.ts'
-import { hasInterruptedPtcParent, recoverBlockingQuestion } from './blocking-question-recovery.ts'
-import { BoardCaptureBroker } from './board-capture.ts'
+import { removeOwnedSessionTree } from './owned-session-cleanup.ts'
+import type { QuestionDraftContent } from './question-draft-contract.ts'
+import { questionDraftLogStatus, questionDraftReceiptKey } from './question-draft-lifecycle.ts'
+import { QuestionDraftStore } from './question-draft-store.ts'
+import { createSourceReadTool, SOURCE_READ_PROMPT, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
 import { readSourceSession, hasSentSource } from './source-session.ts'
-import { HostSessionAdapter } from './host-session-adapter.ts'
+import { SourceStorage } from './source-storage.ts'
+import { toolCallRecord } from './tool-events.ts'
+import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
+import { TopicIndex, type TopicDeletionMarker, unlinkIfPresent, rmdirIfEmpty } from './topic-index.ts'
+import { foldTopicTitle, latestObservedSeq, projectBoardFromLog, titleSourceKind, topicMessages, type TopicLog } from './topic-log.ts'
+import { composeHostedTopicPrompt } from './topic-prompts.ts'
+import { bindTopicQuestionBridge } from './topic-question-bridge.ts'
+import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies, validateQuestionAnswer } from './topic-questions.ts'
 import { TopicStreamProjection } from './topic-stream.ts'
 import {
   CITATION_SCHEMA_VERSION,
@@ -87,8 +63,6 @@ import {
   type DocumentSummary,
   type ProviderOption,
   type PendingQuestion,
-  type QuestionAnswer,
-  type TopicMessage,
   type TopicMetadata,
   type TopicSnapshot,
   type TopicSummary,
@@ -108,114 +82,6 @@ function citeCiterShuttingDownError(): Error {
   return new Error(CITECITER_SHUTTING_DOWN)
 }
 
-const boardStyleParameterSchema = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    color: { type: 'string', description: 'CSS color restricted by the board validator.' },
-    fontSize: { type: 'string', description: 'CSS length in px, em, rem, or percent.' },
-  },
-} as const
-
-const boardEnvelopeParameterProperties = {
-  x: { type: 'number', required: true, description: 'Left edge as canvas percent; x + w must be at most 100.' },
-  y: { type: 'number', required: true, description: 'Top edge as canvas percent; y + h must be at most 100.' },
-  w: { type: 'number', required: true, description: 'Width as canvas percent, from 0.5 to 100.' },
-  h: { type: 'number', required: true, description: 'Height as canvas percent, from 0.5 to 100.' },
-} as const
-
-/** Complete model-visible parameter schema for blackboard_apply. */
-export const BLACKBOARD_APPLY_PARAMETERS = {
-  ops: {
-    type: 'array',
-    required: true,
-    description: `Ordered atomic batch containing 1-${BOARD_MAX_BATCH_OPS} board operations.`,
-    items: {
-      oneOf: [
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: { op: { type: 'string', const: 'clear', required: true } },
-        },
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            op: { type: 'string', const: 'set', required: true },
-            id: { type: 'string', required: true },
-            kind: { type: 'string', enum: ['text', 'markdown', 'math', 'svg', 'html', 'image', 'table'], required: true },
-            content: { type: 'string', required: true },
-            ...boardEnvelopeParameterProperties,
-            style: boardStyleParameterSchema,
-          },
-        },
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            op: { type: 'string', const: 'update', required: true },
-            id: { type: 'string', required: true },
-            content: { type: 'string' },
-            x: { type: 'number' },
-            y: { type: 'number' },
-            w: { type: 'number' },
-            h: { type: 'number' },
-            style: boardStyleParameterSchema,
-          },
-        },
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            op: { type: 'string', const: 'remove', required: true },
-            id: { type: 'string', required: true },
-          },
-        },
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            op: { type: 'string', const: 'clear_region', required: true },
-            ...boardEnvelopeParameterProperties,
-          },
-        },
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            op: { type: 'string', const: 'animate', required: true },
-            id: { type: 'string', required: true },
-            animation: { type: 'string', enum: ['fade-in', 'slide-in', 'pulse', 'highlight'], required: true },
-            durationMs: { type: 'integer', description: 'Animation duration from 50 to 5000 milliseconds.' },
-            iterations: { type: 'integer', description: 'Iteration count from 1 to 5.' },
-          },
-        },
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            op: { type: 'string', const: 'focus', required: true },
-            id: {
-              oneOf: [{ type: 'string' }, { type: 'null' }],
-              required: true,
-              description: 'Existing element id, or null to clear focus.',
-            },
-          },
-        },
-      ],
-    },
-  },
-} as const
-
-/** Session header and events used to project one Topic. */
-export interface RuntimeTopicLog {
-  readonly header: SessionHeader
-  readonly events: readonly SessionEvent[]
-  readonly inheritedEventCount: SessionLogOffset
-  readonly liveMessage?: TopicMessage | undefined
-  readonly renderKeys?: ReadonlyMap<number, string> | undefined
-}
-
 interface RuntimePendingQuestion {
   readonly key: string
   readonly callId: string
@@ -226,269 +92,6 @@ interface RuntimePendingQuestion {
   readonly reject: (error: UserQuestionError) => void
   readonly signal: AbortSignal | undefined
   readonly onAbort: () => void
-}
-
-function textBlocks(content: readonly ContentBlock[], type: 'text' | 'reasoning'): string {
-  return content.flatMap((block) => block.type === type ? [block.text] : []).join('')
-}
-
-function toolResultText(content: readonly ContentBlock[]): string {
-  return textBlocks(content, 'text')
-}
-
-function validatedQuestionAnswer(
-  questions: readonly { readonly id: string; readonly options?: readonly { readonly label: string }[] | undefined; readonly multiSelect?: boolean | undefined }[],
-  answer: QuestionAnswer,
-  allowSkipped = false,
-): AskUserQuestionAnswer {
-  if (answer.answers.length !== questions.length) throw new Error('每个问题都需要回答')
-  const byId = new Map(answer.answers.map((item) => [item.id, item]))
-  if (byId.size !== answer.answers.length) throw new Error('问题回答包含重复 id')
-  return {
-    answers: questions.map((question) => {
-      const item = byId.get(question.id)
-      if (item === undefined) throw new Error(`缺少问题 ${question.id} 的回答`)
-      const selected = [...new Set(item.selected)]
-      if (selected.length !== item.selected.length) throw new Error(`问题 ${question.id} 包含重复选项`)
-      const labels = new Set(question.options?.map((option) => option.label) ?? [])
-      if (selected.some((label) => !labels.has(label))) throw new Error(`问题 ${question.id} 包含未知选项`)
-      const custom = item.custom
-      const hasCustom = custom !== undefined && custom.trim() !== ''
-      if (allowSkipped && selected.length === 0 && !hasCustom) return { id: question.id, selected: [] }
-      if (question.multiSelect !== true && selected.length + (hasCustom ? 1 : 0) !== 1) {
-        throw new Error(`问题 ${question.id} 只能选择一个答案`)
-      }
-      if (question.multiSelect === true && selected.length === 0 && !hasCustom) {
-        throw new Error(`问题 ${question.id} 尚未回答`)
-      }
-      return {
-        id: question.id,
-        selected,
-        ...(hasCustom ? { custom } : {}),
-      }
-    }),
-  }
-}
-
-/** Last read scan cursor from this Topic log; it may move backward and never limits future reads. */
-function latestObservedSeq(events: readonly SessionEvent[]): number | null {
-  const sourceCalls = new Set<string>()
-  let observed: number | null = null
-  for (const event of events) {
-    const call = toolCallRecord(event)
-    if (call?.name === 'read_source_session') {
-      sourceCalls.add(call.callId)
-      continue
-    }
-    const result = toolResultRecord(event)
-    if (result === undefined || result.isError || !sourceCalls.has(result.callId)) continue
-    let meta: unknown = result.meta
-    if (meta === undefined) {
-      try { meta = JSON.parse(toolResultText(result.content)) }
-      catch { continue } // Non-JSON results do not contain a recoverable source cursor.
-    }
-    if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) continue
-    const value = 'capturedThroughSeq' in meta ? meta.capturedThroughSeq : undefined
-    if (value === null || typeof value === 'number') observed = value
-  }
-  return observed
-}
-
-/**
- * Project transcript rows and the latest turn's active failure banner.
- * @param log - Topic Session contents; an inherited prefix from older versions is skipped.
- * @returns transcript rows plus an error only while the newest turn remains failed.
- */
-export function topicMessages(log: RuntimeTopicLog): { messages: TopicMessage[], error: string | null } {
-  const messages: TopicMessage[] = []
-  const toolIndexes = new Map<string, number>()
-  const start = log.inheritedEventCount
-  const events = log.events.slice(start)
-  const rejectedToolApprovals = projectRejectedToolApprovals(events)
-  let error: string | null = null
-  const attemptByTurn = new Map<number, number>()
-  const bodyByTurn = new Set<number>()
-  for (const event of events) {
-    if (event.type === 'turn/start') {
-      error = null
-      continue
-    }
-    if (event.type === 'step/start') {
-      attemptByTurn.set(event.data.turn, (attemptByTurn.get(event.data.turn) ?? 0) + 1)
-      continue
-    }
-    if (event.type === 'user/message' && event.data.source.kind === 'user-question-reply') {
-      const reply = readQuestionReply(textBlocks(event.data.content, 'text'), String(event.data.source.callId))
-      messages.push({ id: event.data.id, seq: event.seq, role: 'user', text: questionReplyText(reply), questionReply: reply })
-      const index = toolIndexes.get(reply.callId)
-      const call = index === undefined ? undefined : messages[index]
-      if (index !== undefined && call?.role === 'tool' && call.name === 'ask_user_question') {
-        messages[index] = { ...call, questionReply: reply, running: false }
-      }
-      continue
-    }
-    if (event.type === 'user/message' && event.data.source.kind === 'user') {
-      const text = textBlocks(event.data.content, 'text')
-      const attachments = event.data.content.flatMap(block => block.type === 'image' || block.type === 'file' ? [{ kind: block.type, id: String(block.attachment.attachmentId), name: block.attachment.name ?? (block.type === 'image' ? '图片' : '文件') }] : [])
-      if (text !== '' || attachments.length > 0) messages.push({
-        id: event.data.id,
-        seq: event.seq,
-        role: 'user',
-        attachments,
-        text,
-      })
-      continue
-    }
-    const context = contextMessage(event)
-    if (context !== undefined) {
-      const text = textBlocks(context.content, 'text')
-      if (text !== '') messages.push({
-        id: context.id,
-        seq: event.seq,
-        role: 'context',
-        label: context.label,
-        text,
-      })
-      continue
-    }
-    if (event.type === 'assistant/message' || event.type === 'assistant/attempt') {
-      const content = event.type === 'assistant/message'
-        ? event.data.message.content : assembleAssistantStream(event.data.stream).blocks()
-      const text = textBlocks(content, 'text')
-      const reasoning = textBlocks(content, 'reasoning')
-      const renderKey = log.renderKeys?.get(event.seq)
-      if (text !== '') bodyByTurn.add(event.data.turn)
-      if (text !== '' || reasoning !== '') messages.push({
-        id: event.type === 'assistant/message' ? event.data.message.id : `attempt:${event.seq}`,
-        ...(renderKey === undefined ? {} : { renderKey }),
-        seq: event.seq,
-        role: 'assistant',
-        text,
-        reasoning: reasoning === '' ? null : reasoning,
-        streaming: false,
-      })
-      continue
-    }
-    const toolCall = toolCallRecord(event)
-    if (toolCall !== undefined) {
-      toolIndexes.set(toolCall.callId, messages.length)
-      messages.push({
-        id: toolCall.callId,
-        seq: event.seq,
-        role: 'tool',
-        name: toolCall.name,
-        arguments: toolCall.arguments,
-        result: null,
-        isError: false,
-        running: true,
-      })
-      continue
-    }
-    const toolResult = toolResultRecord(event)
-    if (toolResult !== undefined) {
-      const callId = toolResult.callId
-      const index = toolIndexes.get(callId)
-      if (index === undefined) continue
-      const call = messages[index]
-      if (call?.role !== 'tool') continue
-      messages[index] = {
-        ...call,
-        seq: event.seq,
-        result: toolResultText(toolResult.content),
-        attachments: toolResult.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []),
-        isError: toolResult.isError,
-        ...(toolResult.errorCode === undefined ? {} : { errorCode: toolResult.errorCode }),
-        ...(rejectedToolApprovals.has(callId) ? { approvalOutcome: 'rejected' as const } : {}),
-        running: false,
-      }
-      continue
-    }
-    if (event.type === 'turn/end' && (event.data.reason.kind === 'error' || (
-      event.data.reason.kind === 'aborted' && event.data.reason.reason.kind === 'user'
-    ))) {
-      const reason = event.data.reason
-      const stopped = reason.kind === 'aborted'
-      const text = reason.kind === 'error' ? reason.error.message : '已停止，可继续。'
-      error = stopped ? null : text
-      messages.push({
-        id: `error:${event.seq}`,
-        seq: event.seq,
-        role: 'error',
-        text,
-        bodyRetained: bodyByTurn.has(event.data.turn),
-        attempt: Math.max(1, attemptByTurn.get(event.data.turn) ?? 1),
-        status: stopped ? 'stopped' : 'failed',
-      })
-      continue
-    }
-    if (event.type === 'turn/end') error = null
-  }
-  // A repaired PTC parent may have no child result. Mark only the proved
-  // interruption as presentation state; never invent the missing tool output.
-  for (const [callId, index] of toolIndexes) {
-    const call = messages[index]
-    if (call?.role === 'tool' && call.name === 'ask_user_question' && call.result === null
-      && call.questionReply === undefined && hasInterruptedPtcParent(callId, events)) {
-      messages[index] = { ...call, interruptionOutcome: 'interrupted', running: false }
-    }
-  }
-  if (log.liveMessage !== undefined) messages.push(log.liveMessage)
-  return { messages, error }
-}
-
-/**
- * Project final blackboard state from successful blackboard_apply call/result pairs.
- * @param log - Topic Session contents.
- * @returns versioned final state, successful commit revision, and invalid-commit count.
- */
-export function projectBoardFromLog(log: RuntimeTopicLog): BoardSnapshot {
-  const calls = new Map<string, string>()
-  let state = EMPTY_BOARD_STATE
-  let revision = 0
-  let invalid = 0
-  const start = log.inheritedEventCount
-  for (const event of log.events.slice(start)) {
-    const call = toolCallRecord(event)
-    if (call?.name === 'blackboard_apply') {
-      calls.set(call.callId, call.arguments)
-      continue
-    }
-    const result = toolResultRecord(event)
-    if (result === undefined) continue
-    const callId = result.callId
-    const args = calls.get(callId)
-    if (args === undefined) continue
-    calls.delete(callId)
-    if (result.isError) continue
-    try {
-      const raw: unknown = JSON.parse(args)
-      if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
-        throw new Error('expected blackboard_apply arguments')
-      }
-      const batch = boardBatchSchema.parse((raw as { readonly ops?: unknown }).ops)
-      state = applyBoardOps(state, batch).state
-      revision += 1
-    } catch {
-      invalid += 1
-    }
-  }
-  return { version: 4, revision, elements: [...state.values()], invalid }
-}
-
-function titleSourceKind(value: ReturnType<typeof foldSessionTitle>): TopicMetadata['cachedTitleSource'] {
-  if (value === undefined) return null
-  return value.source.kind === 'fallback' || value.source.kind === 'provider' || value.source.kind === 'user'
-    ? value.source.kind
-    : null
-}
-
-/**
- * Fold Topic-owned titles, skipping an inherited prefix kept by older Topics.
- * @param log - restored Topic events and the host-owned inherited event count.
- * @returns the latest Topic title projection, or undefined before any title is recorded.
- */
-export function foldTopicTitle(log: RuntimeTopicLog) {
-  return foldSessionTitle(log.events.slice(log.inheritedEventCount))
 }
 
 function modelConfigFromSource(source: ObserverSourceSnapshot, anchorSeq: number): LlmCallConfig {
@@ -1040,80 +643,12 @@ export class TopicRuntime {
     })
     this.registerSourceTool(agentCtx, metadata, agent)
     this.registerDocumentTools(agentCtx)
-    agentCtx.tools.register(this.blackboardApplyTool())
+    agentCtx.tools.register(createBlackboardApplyTool())
     agentCtx.tools.register(this.boardCapture.tool(agentCtx, current => projectBoardFromLog({
       header: current.session.header, events: current.session.snapshotEvents(), inheritedEventCount: current.session.inheritedEventCount,
     })))
-    agentCtx.tools.register(this.learningCardsTool())
+    agentCtx.tools.register(createLearningCardsTool())
     bindTopicQuestionBridge(agentCtx, agent, (request, callId) => this.askUser(request, callId))
-  }
-
-  private learningCardsTool() {
-    return defineTool({
-      name: 'learning_cards',
-      description: 'Save a complete set of 1–8 summary learning cards inside this Topic only. Use only when asked to summarize or revise cards. First check conclusions against available evidence, correct errors in every field including examples and answers, and label unresolved claims as unverified or omit them. Replaces the displayed set; older sets remain in the Topic log. This tool validates structure, not factual accuracy.',
-      parameters: {
-        cards: {
-          type: 'array', required: true, description: 'Complete set of 1–8 cards.',
-          items: {
-            type: 'object', additionalProperties: false,
-            properties: {
-              title: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.title },
-              summary: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.summary },
-              example: LEARNING_EXAMPLE_PARAMETER,
-              question: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.question },
-              answer: { type: 'string', required: true, description: LEARNING_CARD_FIELD_DESCRIPTIONS.answer },
-            },
-          },
-        },
-      },
-      output: {
-        schema: { type: 'object', additionalProperties: false, properties: { saved: { type: 'integer', required: true } } },
-        render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
-        presentationMeta: (_args, value) => ({ saved: value.saved }),
-      },
-      execute: async (args, exec) => {
-        if (exec.agent?.session === undefined) throw new Error('learning_cards requires a Topic Session')
-        const { cards } = learningCardsInputSchema.parse(args)
-        return { saved: cards.length }
-      },
-      presentCall: () => ({ card: 'generic', title: '整理学习卡片' }),
-      presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '学习卡片未保存' : '学习卡片已保存' }),
-    })
-  }
-
-  private blackboardApplyTool() {
-    return defineTool({
-      name: 'blackboard_apply',
-      description: 'Atomically apply one protocol-v4 blackboard batch for the current Topic. A failed batch leaves the board unchanged. The canvas is dark green: use light text or provide a contrasting background inside SVG. Coordinates and sizes are percentages, not pixels; leave margins and keep notes short enough to fit their envelopes. SVG colors are preserved. Keep labels inside the SVG viewBox and clear of lines. After drawing, use blackboard_view to inspect the rendered image and correct clipping, overlap and low contrast before claiming completion.',
-      parameters: BLACKBOARD_APPLY_PARAMETERS,
-      output: {
-        schema: {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            applied: { type: 'integer', required: true },
-          },
-        },
-        render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
-        presentationMeta: (_args, value) => ({ applied: value.applied }),
-      },
-      execute: async (args, exec) => {
-        const ops = boardBatchSchema.parse(args.ops)
-        const session = exec.agent?.session
-        if (session === undefined) throw new Error('blackboard_apply requires a Topic Session')
-        const current = projectBoardFromLog({
-          header: session.header, events: session.snapshotEvents(), inheritedEventCount: session.inheritedEventCount,
-        })
-        applyBoardOps(new Map(current.elements.map((element) => [element.id, element])), ops)
-        return { applied: ops.length }
-      },
-      presentCall: () => ({ card: 'generic', title: '更新黑板' }),
-      presentResult: (_args, result) => ({
-        card: 'generic',
-        title: result.isError ? '黑板更新失败' : `黑板已应用 ${(result.meta as { readonly applied?: number })?.applied ?? 0} 条`,
-      }),
-    })
   }
 
   /** Keep storage and submitted-reference authorization outside the shared document tool contract. */
@@ -1339,12 +874,12 @@ export class TopicRuntime {
     this.assertOpen(signal)
     const pending = this.pendingQuestions.get(request.topicSessionId)
     if (pending?.key === request.key) {
-      pending.resolve(validatedQuestionAnswer(pending.questions, request.answer, pending.wait !== undefined))
+      pending.resolve(validateQuestionAnswer(pending.questions, request.answer, pending.wait !== undefined))
     } else {
       const handle = await this.ensureHandle(metadata, signal)
       const continued = [...continuedQuestions(handle.agent), ...await this.recoveredBlockingQuestions(metadata, handle.agent)].find(question => question.key === request.key)
       if (continued?.callId === undefined) throw new Error('这个提问已结束或已被替换')
-      const answer = validatedQuestionAnswer(continued.questions, request.answer, continued.blocking !== true)
+      const answer = validateQuestionAnswer(continued.questions, request.answer, continued.blocking !== true)
       if (continued.blocking === true) this.questionReplies.answerRecoveredBlocking(handle.agent, continued, answer)
       else if (!this.questionReplies.answer(handle.agent, continued.callId as ToolCallId, answer)) throw new Error('这个提问已结束或已被替换')
     }
@@ -1694,7 +1229,7 @@ export class TopicRuntime {
     }, signal, true)
   }
 
-  private async readLog(metadata: TopicMetadata, signal?: AbortSignal): Promise<RuntimeTopicLog> {
+  private async readLog(metadata: TopicMetadata, signal?: AbortSignal): Promise<TopicLog> {
     if (signal !== undefined) this.assertOpen(signal)
     const live = this.handles.get(metadata.sessionId)?.agent.session ?? this.host.agents.get(SessionId(metadata.sessionId))?.session
     if (live !== undefined) return {

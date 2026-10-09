@@ -2,7 +2,7 @@ import type { Context } from '@deepseek-ai/cordis';
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand';
 import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions';
-import type { PendingQuestion } from './topic.ts';
+import type { PendingQuestion, QuestionAnswer } from './topic.ts';
 /** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
 export declare class TopicQuestionReplies {
     private readonly replies;
@@ -37,3 +37,17 @@ export declare function openQuestion(key: string, questions: readonly AskUserQue
  * No Session is registered in the Host list and no log format is rewritten.
  */
 export declare function continuedQuestions(agent: Agent): PendingQuestion[];
+/**
+ * Validate a complete answer against the exact Host question before it is submitted.
+ * @param questions - the pending question items.
+ * @param answer - one answer per question.
+ * @param allowSkipped - whether an unanswered optional item may be submitted empty.
+ * @returns the answer in the Host's format.
+ */
+export declare function validateQuestionAnswer(questions: readonly {
+    readonly id: string;
+    readonly options?: readonly {
+        readonly label: string;
+    }[] | undefined;
+    readonly multiSelect?: boolean | undefined;
+}[], answer: QuestionAnswer, allowSkipped?: boolean): AskUserQuestionAnswer;

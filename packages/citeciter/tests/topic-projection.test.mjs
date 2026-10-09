@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { projectBoardFromLog, topicMessages } from '../lib/types/topic-runtime.js'
+import { projectBoardFromLog, topicMessages } from '../lib/types/topic-log.js'
 
 let seq = 0
 const event = (type, data) => ({ type, seq: seq++, time: seq, data })

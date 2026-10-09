@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { TopicStreamProjection } from '../lib/types/topic-stream.js'
-import { topicMessages } from '../lib/types/topic-runtime.js'
+import { topicMessages } from '../lib/types/topic-log.js'
 
 test('live text and reasoning survive snapshot detachment and disappear on settlement', () => {
   const stream = new TopicStreamProjection()

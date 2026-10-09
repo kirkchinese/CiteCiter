@@ -3,7 +3,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 import { createUserMessage, type MessageId } from '@deepseek-ai/dsh-llm'
 import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions'
-import type { PendingQuestion } from './topic.ts'
+import type { PendingQuestion, QuestionAnswer } from './topic.ts'
 
 type Reply = (callId: ToolCallId, answer: AskUserQuestionAnswer) => boolean
 
@@ -126,4 +126,45 @@ export function continuedQuestions(agent: Agent): PendingQuestion[] {
       message.source.kind === 'user-question-reply' && message.source.callId === question.callId))
     .map(question => ({ key: questionKey(String(agent.session.header.id), String(question.callId)),
       callId: String(question.callId), state: 'continued', questions: questionPresentation(question.questions) }))
+}
+
+/**
+ * Validate a complete answer against the exact Host question before it is submitted.
+ * @param questions - the pending question items.
+ * @param answer - one answer per question.
+ * @param allowSkipped - whether an unanswered optional item may be submitted empty.
+ * @returns the answer in the Host's format.
+ */
+export function validateQuestionAnswer(
+  questions: readonly { readonly id: string; readonly options?: readonly { readonly label: string }[] | undefined; readonly multiSelect?: boolean | undefined }[],
+  answer: QuestionAnswer,
+  allowSkipped = false,
+): AskUserQuestionAnswer {
+  if (answer.answers.length !== questions.length) throw new Error('每个问题都需要回答')
+  const byId = new Map(answer.answers.map((item) => [item.id, item]))
+  if (byId.size !== answer.answers.length) throw new Error('问题回答包含重复 id')
+  return {
+    answers: questions.map((question) => {
+      const item = byId.get(question.id)
+      if (item === undefined) throw new Error(`缺少问题 ${question.id} 的回答`)
+      const selected = [...new Set(item.selected)]
+      if (selected.length !== item.selected.length) throw new Error(`问题 ${question.id} 包含重复选项`)
+      const labels = new Set(question.options?.map((option) => option.label) ?? [])
+      if (selected.some((label) => !labels.has(label))) throw new Error(`问题 ${question.id} 包含未知选项`)
+      const custom = item.custom
+      const hasCustom = custom !== undefined && custom.trim() !== ''
+      if (allowSkipped && selected.length === 0 && !hasCustom) return { id: question.id, selected: [] }
+      if (question.multiSelect !== true && selected.length + (hasCustom ? 1 : 0) !== 1) {
+        throw new Error(`问题 ${question.id} 只能选择一个答案`)
+      }
+      if (question.multiSelect === true && selected.length === 0 && !hasCustom) {
+        throw new Error(`问题 ${question.id} 尚未回答`)
+      }
+      return {
+        id: question.id,
+        selected,
+        ...(hasCustom ? { custom } : {}),
+      }
+    }),
+  }
 }
