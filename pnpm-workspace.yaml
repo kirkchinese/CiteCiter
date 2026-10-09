@@ -2,3 +2,9 @@ packages:
   - packages/*
 allowBuilds:
   koffi: true
+# CiteCiter tracks DSH prereleases on their release day, before the default
+# minimum release age has passed. Only packages published from deepseek-ai are exempt.
+minimumReleaseAgeExclude:
+  - '@deepseek-ai/*'
+  - 'node-addon-native-custom-loader'
+  - 'node-addon-require-builtin*'

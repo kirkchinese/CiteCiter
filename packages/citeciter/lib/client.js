@@ -32,7 +32,7 @@ window.__ModuleLoader__.load({
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		let react_dom = require("react-dom");
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-brand@0.2._18a82fdb02ef0bea1438e91706d84e1a/node_modules/@deepseek-ai/dsh-brand/lib/index.js
+		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-brand@0.2._98872691de1af917d2536ca141aa5506/node_modules/@deepseek-ai/dsh-brand/lib/index.js
 		/**
 		* Duplicate-install-safe nominal primitive helpers.
 		*
@@ -63,7 +63,7 @@ window.__ModuleLoader__.load({
 			return value;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-session@0._e6f144e4dfde0b4c0f35ba01cca68070/node_modules/@deepseek-ai/dsh-session/lib/types/types.js
+		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-session@0._2f6e90015528321e57f5b21fac4f3d76/node_modules/@deepseek-ai/dsh-session/lib/types/types.js
 		/**
 		* Brand a string as a {@link SessionId}.
 		* @param id - the raw session id string.
@@ -41226,7 +41226,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			})] });
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-util-works_b8732b1acfd3bddce30c37331f284ef8/node_modules/@deepseek-ai/dsh-util-workspace-path/lib/index.js
+		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-util-works_15e90a73390379d34bab46ca3fe69133/node_modules/@deepseek-ai/dsh-util-workspace-path/lib/index.js
 		/**
 		* The `dsh-resource://file/…` address grammar: how a file is named across the
 		* Sidebar and the resource model, built and parsed without touching a
