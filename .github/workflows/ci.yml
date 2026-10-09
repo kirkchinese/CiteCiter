@@ -31,6 +31,7 @@ jobs:
       - run: pnpm peers check
       - run: pnpm typecheck
       - run: pnpm typecheck:desktop
+      - run: pnpm test
       - run: pnpm build
       - run: pnpm --dir packages/citeciter pack --pack-destination "${{ github.workspace }}/.refs/artifacts"
       - run: git diff --check

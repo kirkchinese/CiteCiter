@@ -5,6 +5,7 @@
     "build": "pnpm check:git-entry && pnpm --dir packages/citeciter build",
     "typecheck": "pnpm --dir packages/citeciter typecheck",
     "typecheck:desktop": "node packages/citeciter/scripts/check-desktop.mjs",
+    "test": "pnpm --dir packages/citeciter test",
     "sync:git-entry": "node packages/citeciter/scripts/sync-git-entry.mjs",
     "check:git-entry": "node packages/citeciter/scripts/sync-git-entry.mjs --check"
   },
