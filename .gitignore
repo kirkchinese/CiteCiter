@@ -1,6 +1,11 @@
-.refs/
 node_modules/
 *.log
-/tmp/
-/https:/
+*.tgz
+
+# tsc output consumed by the bundler; only lib/*.js and lib/types/**/*.d.ts are released
+packages/citeciter/lib/types/**/*.js
+
+# Local scratch space, editor settings and design drafts
+.refs/
+.vscode/
 /docs/design/
