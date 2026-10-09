@@ -23,9 +23,9 @@ git diff --check
 
 修改权威 manifest 后，运行 `pnpm sync:git-entry`，再运行 `pnpm install` 更新锁文件。`pnpm check:git-entry` 检查漂移，并作为构建与 CI 门禁。根命令使用 `pnpm --dir packages/citeciter`；根和内层有意使用相同包名，不要改用按包名 `--filter`，以免递归执行。包括 `dsh-util-values` 在内的宿主模块使用声明的 peer 范围，各编译门分别固定自己的 SDK；不要通过忽略 peer 错误掩盖跨版本冲突。
 
-Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌套 `file:` 依赖或依赖某个已发布的 CiteCiter 包。修复提交 `f0c30dd99299e4c054f1951a014489364ee7713e` 已公开在 `codex/official-desktop-october` 分支，尚未合并 `main` 或发布新的 Release/npm 包。仅供候选复测的命令为 `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#f0c30dd99299e4c054f1951a014489364ee7713e"`；这不是已完成完整功能验收的推荐版本。
+Git 安装使用已提交的构建产物，不需要根 `prepare` 钩子、嵌套 `file:` 依赖或依赖某个已发布的 CiteCiter 包。当前运行代码提交 `cfcdac8befc9e140d95d79f1fb45effe47372cf1` 已公开在 `codex/official-desktop-october` 分支，尚未合并 `main` 或发布新的 Release/npm 包。仅供候选复测的命令为 `dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#cfcdac8befc9e140d95d79f1fb45effe47372cf1"`；这仍是等待独立复审和已记录本地清理的候选版本。[alpha.3 回归对比](docs/validation/2026-10-09-alpha3-regression.md) 记录当前复审范围和剩余缺口。
 
-10 月 7 日的早期记录包括 pnpm `11.7.0` 的真实本地 Git 快照安装，以及官方 CLI `0.2.0-rc.2` 使用 pnpm `11.21.0` 从早期 `f8825a6` 固定提交完成的公开 GitHub 安装。此后官方 Desktop 插件页已实际安装上述 `f0c30dd` 固定提交、立即启用，并在完整退出后重新启动。156 个发布文件（含 149 个 lib 文件）均与该 Git 提交逐字节一致，入口与先前 `636409058e77` tarball 相同；来源、5 个 Topic、5 份普通草稿及附件保持完整。这是历史固定 Git 提交的安装证据，不把其 156 个文件与 tarball 的 154 个文件混为一项。后续修复另以新候选安装，当前包身份及各项结果以官方验收记录为准；完整功能矩阵仍未通过。
+10 月 7 日的早期记录包括 pnpm `11.7.0` 的真实本地 Git 快照安装，以及官方 CLI `0.2.0-rc.2` 使用 pnpm `11.21.0` 从早期 `f8825a6` 固定提交完成的公开 GitHub 安装。此后官方 Desktop 插件页实际安装早期 `f0c30dd99299e4c054f1951a014489364ee7713e` 固定提交、立即启用，并在完整退出后重新启动。156 个发布文件（含 149 个 lib 文件）均与该 Git 提交逐字节一致，入口与先前 `636409058e77` tarball 相同；来源、5 个 Topic、5 份普通草稿及附件保持完整。这是历史固定 Git 提交的安装证据，不把其 156 个文件与 tarball 的 154 个文件混为一项。后续修复另以新候选安装，当前包身份及各项结果以官方验收记录为准；最后的 Windows 功能验收结果和外部限制见 alpha.3 回归对比，独立复审仍待完成。
 
 ## 架构边界
 

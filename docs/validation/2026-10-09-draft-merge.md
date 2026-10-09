@@ -158,13 +158,13 @@ DE935AC3 包为 932,794 字节、162 个文件；主 Web 与官方 Desktop 两�
 
 | 项目 | 当前结论 |
 | --- | --- |
-| 真实文件跨窗口拖放 | 已请求用户将 README 拖到官方 Citer 面板，尚无结果；不能用 filechooser 或粘贴冒充拖放。 |
-| 实际缩放组合 | 宿主会话字号 14→18 已通过；官方应用另以临时设备比例 125% / 200% 实际启动，双栏、200% 窄屏返回和草稿恢复通过，随后恢复原启动方式。浏览器自身的页面重排缩放仍无有效观察，不能用字号或 pageScaleFactor 冒充。 |
+| 真实文件跨窗口拖放 | 用户已完成 Explorer → 官方 Citer 消息区域拖入 README；仅 Topic 18 草稿得到一份附件，字节与原文件一致，来源无副本；独立 Web 和官方 Desktop 冷启动均恢复，未自动发送。见后续 alpha.3 回归记录。 |
+| 实际缩放组合 | 宿主字号与官方设备比例结果保持；用户另提供 Edge 150% 并排、200% 独立页面截图并明确确认通过。浏览器比例依据用户操作确认，不冒充自动缩放或 DPI 证据。 |
 | 当前失败状态的重复告警 | 已通过当前包的真实 DeepSeek TRANSPORT 失败及正常连接恢复：失败时一张错误卡、无重复底部告警；手动重试完成后旧错误提示消失。见文末实际记录。 |
 | 最终代码 Git 提交安装 | cfcdac8 已通过官方 CLI 安装、冷启动、草稿恢复及真实问答；文件核对范围与 manifest 差异见下节。 |
-| 清理 | 自动审批拒绝清理本轮误建的空目录 `packages/citeciter/.refs/artifacts/board-citation-20261009/`，仅返回 blocked by policy；目录为空且被忽略，不在包内，未改用其他工具删除。 |
+| 清理 | 用户授权且不要备份的 Topic 2、3 已通过 Citer 永久删除，临时 timed-qa 已通过官方 CLI 卸载；来源及其他 Topic 在删除前后的文件摘要不变。自动审批仍拒绝删除本地 `.refs/citeciter-timed-qa/` 三个源文件，以及此前误建的空目录 `packages/citeciter/.refs/artifacts/board-citation-20261009/`，仅返回 blocked by policy；两者被忽略且不在包内，未绕过拒绝。 |
 
-以上缺口未消除前不创建 Release 或发布 npm。独立 Web 已停止；官方 Desktop 是主目录唯一运行中的 Host。Linux/macOS 不在本轮已验收范围。
+功能补测及旧版本对比的最新结论见 [alpha.3 → alpha.4 回归记录](2026-10-09-alpha3-regression.md)。本地残余目录清理的外部阻塞保持可见；按用户最新安排，候选先交 Claude 复审，本轮不创建 Release 或发布 npm。独立 Web 已停止；官方 Desktop 是主目录唯一运行中的 Host。Linux/macOS 不在本轮已验收范围。
 
 ## README 同步与 Git 安装准备
 
