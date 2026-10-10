@@ -1,28 +1,9 @@
 import { type SessionHeader } from '@deepseek-ai/dsh-session';
 import { z } from 'zod';
 import { type TopicMetadata } from './topic.ts';
-export declare function errorCode(error: unknown): string | undefined;
+import { type TopicDeletionReceipt } from './topic-deletion-receipts.ts';
 export declare function unlinkIfPresent(path: string): Promise<void>;
 export declare function rmdirIfEmpty(path: string): Promise<void>;
-/**
- * Remove one artifact from a caller-owned JSONL root without following links.
- * @param root - fixed private JSONL root owned by the caller.
- * @param artifact - location returned by that exact JSONL backend.
- * @returns when the file/link and its empty per-session directory are absent.
- */
-export declare function removeOwnedJsonlArtifact(root: string, artifact: {
-    readonly kind: string;
-    readonly path: string;
-} | undefined): Promise<void>;
-/**
- * Delete all JSONL generations of an already retired private Topic.
- * DSH 0.1.5 has no public delete/location API. This bounded disk adapter follows
- * its project/Session directory layout and canonical generation filenames.
- * @param root - exclusively owned CiteCiter Session root, never a host Session root.
- * @param sessionId - generated CiteCiter identity; arbitrary path segments are refused.
- * @returns after every canonical generation and the retired lock file are absent.
- */
-export declare function removeOwnedTopicGenerations(root: string, sessionId: string): Promise<void>;
 declare const topicDeletionMarkerSchema: z.ZodObject<{
     schemaVersion: z.ZodLiteral<1>;
     storage: z.ZodOptional<z.ZodLiteral<"source">>;
@@ -37,38 +18,53 @@ declare const topicDeletionMarkerSchema: z.ZodObject<{
         cwd: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>;
 }, z.core.$strict>;
+/** Committed intent to delete one Topic; recovery finishes the cleanup after a restart. */
 export type TopicDeletionMarker = Omit<z.infer<typeof topicDeletionMarkerSchema>, 'sessionHeader'> & {
     readonly sessionHeader: SessionHeader;
 };
 /** Minimal on-disk navigation index; Session history stays in standard DSH JSONL. */
 export declare class TopicIndex {
-    private readonly root;
+    private readonly legacyRoot;
     private readonly sourceRoots;
+    private readonly deletionReceipts;
+    /** @param legacyRoot - pre-0.8 index root, read only to migrate old Topics. */
+    constructor(legacyRoot?: string);
     /** Bind a canonical source-owned root resolved by SourceStorage. */
     bindSource(sourceSessionId: string, root: string): void;
-    /** Return the owned metadata directory for one source-backed Topic. */
+    /** Return the owned metadata directory for one Topic. */
     ownedDirectory(sourceSessionId: string, topicId: number): string;
-    /** @param root - private Topic index root. */
-    constructor(root?: string);
-    /** Read navigation records across sources; never opens or mutates a Session log. */
-    all(includeSuperseded?: boolean): Promise<TopicMetadata[]>;
+    /** Read navigation records across bound sources; never opens or mutates a Session log. */
+    all(): Promise<TopicMetadata[]>;
+    /** Read records still stored in the pre-0.8 index root, for migration only. */
+    legacyRecords(): Promise<TopicMetadata[]>;
+    /** Reserve the next unused numeric Topic directory below a bound source root. */
     reserve(sourceSessionId: string): Promise<{
         topicId: number;
         directory: string;
     }>;
     save(metadata: TopicMetadata): Promise<void>;
+    /** Read the metadata currently stored in one owned Topic directory, if any. */
+    readOwned(sourceSessionId: string, topicId: number): Promise<TopicMetadata | undefined>;
     loadBySessionId(sessionId: string): Promise<TopicMetadata>;
+    /** Return owned metadata when present; malformed or unreadable storage still throws. */
+    findBySessionId(sessionId: string): Promise<TopicMetadata | undefined>;
+    /**
+     * Find authoritative committed deletion evidence without inferring it from missing metadata.
+     * @param sessionId - exact generated Citer Session identity.
+     * @returns a verified pending marker or completed receipt, including after Host restart;
+     * old deletions whose markers were already removed have no recoverable evidence.
+     */
+    findDeleted(sessionId: string): Promise<TopicDeletionReceipt | undefined>;
     list(sourceSessionId: string): Promise<TopicMetadata[]>;
     /** Commit a minimal deletion marker before making Topic metadata unreachable. */
     markDeleting(metadata: TopicMetadata, sessionHeader: SessionHeader): Promise<TopicDeletionMarker>;
     /** Discover committed deletion markers without following linked directories. */
     listDeleting(): Promise<TopicDeletionMarker[]>;
-    /** Remove the marker and its now-empty Topic directory after artifact cleanup. */
+    /** Commit the deletion identity, then remove the marker and empty Topic directory after artifact cleanup. */
     finishDeleting(marker: TopicDeletionMarker): Promise<void>;
-    /** Forget only a superseded plugin index after an owned copy was committed; original logs remain intact. */
+    /** Forget a migrated pre-0.8 index entry after its owned copy was committed; original logs remain intact. */
     forgetLegacy(metadata: Pick<TopicMetadata, 'sessionId' | 'sourceSessionId' | 'topicId'>): Promise<void>;
-    private directory;
-    private read;
+    private sourceRoot;
     private readIfPresent;
     private deletionMarkerIfPresent;
 }

@@ -19,16 +19,6 @@ export function learningQuestion(stageId: LearningStageId, question = ''): strin
   return `【学习阶段：${stage.label}】\n${stage.instruction}${question.trim() === '' ? '' : `\n\n我的问题：${question.trim()}`}`
 }
 
-/** Recover the most recently requested stage from this Topic's own visible history. */
-export function latestLearningStage(messages: readonly TopicMessage[]): LearningStageId | null {
-  for (const message of [...messages].reverse()) {
-    if (message.role !== 'user') continue
-    const stage = LEARNING_STAGES.find(candidate => message.text.startsWith(`【学习阶段：${candidate.label}】\n`))
-    if (stage !== undefined) return stage.id
-  }
-  return null
-}
-
 /** The validation schema and model-visible native tool must expose the same field contract. */
 export const LEARNING_CARD_FIELD_DESCRIPTIONS = {
   title: 'Non-empty title, at most 100 characters.',
@@ -90,10 +80,3 @@ export function projectLearningCards(messages: readonly TopicMessage[]): Learnin
 export function learningCardsMarkdown(cards: readonly LearningCard[], topicTitle: string, topicId: string, source: string): string {
   return `# ${topicTitle}\n\nTopic: ${topicId}\n\n来源：${source}\n\n${cards.map((card, index) => `## ${index + 1}. ${card.title}\n\n${card.summary}\n\n**例子**\n\n${learningExampleMarkdown(card.example)}\n\n**可选自测**\n\n${card.question}\n\n**参考答案**\n\n${card.answer}`).join('\n\n---\n\n')}\n`
 }
-
-/** Shared teaching contract appended to every scenario's logged tutor section. */
-export const LEARNING_PROMPT = `The optional learning route is 底层逻辑 → 定性分析 → 定量分析（板书） → 概念关联 → 总结学习卡片. A user may select or skip any stage. Respond to the current request only; never advance automatically or claim that a stage proves mastery. Never schedule spaced repetition or reminders. Do not require quizzes before continuing.
-
-Use learning_cards only when the user asks to summarize or revise learning cards. Before composing cards in this same turn, check the Topic's conclusions and existing board for incorrect definitions, missing conditions, faulty derivations or arithmetic, and contradictions. Earlier assistant output is not evidence. Read available sources when needed; distinguish source evidence from general knowledge. Correct errors before saving, and explicitly label unresolved claims as 未核实 (unverified) or omit them. Check every card's summary, example, question and reference answer for consistency: a correction in the summary must also reach its example and answer. Briefly report corrections and unresolved points; do not present this self-check as independent verification.
-
-Each successful learning_cards call replaces the visible card set for this Topic; older sets remain in its log. Send the complete desired set in one call, not separate calls for individual cards. Respect the user's requested count: one card means one card, not one per stage. Write concise, source-grounded summaries and examples, plus a question and reference answer for optional self-testing. Choose example.kind=text for Markdown prose or example.kind=code for raw source code; code includes its language and preserves indentation without Markdown fences. Put explanations in the summary or answer, not around a code example. Preserve real available source locators inside summaries; do not invent offsets, sources or evidence. Cards and blackboard tools only record learning material inside this independent Topic; they never write to the workspace or source Session.`

@@ -8,9 +8,7 @@ export interface DraftView {
     readonly files: readonly ComposerAttachment[];
     readonly missing: readonly DraftFile[];
     readonly ready: boolean;
-    readonly saving: boolean;
     readonly sending: boolean;
-    readonly conflict: boolean;
     readonly pending: boolean;
     readonly error: string | null;
 }
@@ -18,7 +16,7 @@ export type DraftSnapshot = Readonly<Record<string, DraftView>>;
 export declare const EMPTY_DRAFT_VIEW: DraftView;
 type Request = (request: CiteCiterRequest) => Promise<CiteCiterResponse>;
 /** Own draft persistence and attachment lifetimes independently of panel mounting and Topic navigation. */
-export declare function createDraftController(request: Request, native: NativeComposer): {
+export declare function createDraftController(request: Request, native: NativeComposer, isOperating: () => boolean): {
     getSnapshot: () => Readonly<Record<string, DraftView>>;
     subscribe: (listener: () => void) => () => void;
     /** Pending receipts are already durable; only unflushed local edits need a navigation warning. */
@@ -26,6 +24,8 @@ export declare function createDraftController(request: Request, native: NativeCo
     flushAll: () => Promise<PromiseSettledResult<void>[]>;
     ensure: (id: string) => Promise<void>;
     flush: (id: string) => Promise<void>;
+    /** Defer remote text reconciliation until the input method commits its candidate. */
+    setComposing: (id: string, composing: boolean) => void;
     /** Publish ready-draft edits synchronously; the returned promise only waits for an initial load when needed. */
     setText: (id: string, text: string) => Promise<void>;
     append: (id: string, text: string, references: readonly DraftReference[]) => Promise<void>;
@@ -34,11 +34,8 @@ export declare function createDraftController(request: Request, native: NativeCo
     removeFile: (id: string, fileId: string) => Promise<void>;
     /** Persist the exact outgoing snapshot and identity before native submission begins. */
     submit: (id: string, send: (content: DraftContent, files: readonly ComposerAttachment[], requestId: string) => Promise<boolean>, retry?: boolean) => Promise<boolean>;
-    reload: (id: string) => Promise<void>;
     /** Check a lost send response without replacing edits made while the check is in flight. */
     reconcile: (id: string) => Promise<void>;
-    /** Explicit conflict resolution: restore locally retained bytes removed by a peer, then CAS the latest revision. */
-    keepLocal: (id: string) => Promise<void>;
     forget: (id: string) => void;
     dispose: () => Promise<void>;
 };

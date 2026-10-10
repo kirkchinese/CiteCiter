@@ -13,7 +13,6 @@ import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import { snapshotJsonValue, type JsonValue } from '@deepseek-ai/dsh-util-values'
 import {
   canonicalCitationIdentity,
-  citationDraftSchema,
   citationSelectionClaimSchema,
   documentEvidenceClaimSchema,
   toolEvidenceClaimSchema,
@@ -76,8 +75,6 @@ export interface SourceReadResult {
   readonly requestedThroughSeq: number | null
   /** Last scanned sequence; filtered records can advance this without adding evidence. */
   readonly capturedThroughSeq: number | null
-  /** Legacy upper-bound marker; may precede fromSeq and is not the source horizon. */
-  readonly availableThroughSeq: number | null
   /** A byte-budget stop within the requested range, not a source exhaustion flag. */
   readonly truncated: boolean
   readonly hasMore: boolean
@@ -181,49 +178,6 @@ export function resolveObserverCitation(
     assistantMessageSeq: anchor.seq,
     assistantVisibleText: text,
     contentFingerprint: selectionFingerprint,
-  }
-}
-
-/**
- * Validate one Citation against committed reasoning or answer text in the observed source snapshot.
- * A matching `assistant/message` is sufficient; its step and turn may remain open.
- */
-export function validateObserverCitation(
-  source: ObserverSourceSnapshot,
-  rawDraft: CitationDraft,
-): ValidatedObserverCitation {
-  const citation = citationDraftSchema.parse(rawDraft) as CitationDraft
-  const anchor = committedAssistantText(source, citation.sourceSessionId, citation.anchorSeq)
-  const offsetText = anchor.projections.find((text) => (
-    citation.endOffset > citation.startOffset
-    && citation.endOffset <= text.length
-    && citation.endOffset - citation.startOffset === citation.sourceText.length
-    && text.slice(citation.startOffset, citation.endOffset) === citation.sourceText
-  ))
-  if (offsetText === undefined) {
-    throw new Error('Citation UTF-16 offsets and sourceText do not match the assistant/message')
-  }
-  const visibleText = anchor.projections.find((text) => (
-    citation.endOffset > citation.startOffset
-    && citation.endOffset <= text.length
-    && citation.endOffset - citation.startOffset === citation.sourceText.length
-    && text.slice(citation.startOffset, citation.endOffset) === citation.sourceText
-    && text.slice(Math.max(0, citation.startOffset - citation.prefixText.length), citation.startOffset) === citation.prefixText
-    && text.slice(citation.endOffset, citation.endOffset + citation.suffixText.length) === citation.suffixText
-  ))
-  if (visibleText === undefined) {
-    throw new Error('Citation surrounding context does not match the assistant/message')
-  }
-
-  const expectedFingerprint = fingerprintCitationDraft(citation)
-  if (citation.selectionFingerprint !== expectedFingerprint) {
-    throw new Error('Citation content fingerprint does not match its evidence')
-  }
-  return {
-    citation,
-    assistantMessageSeq: anchor.seq,
-    assistantVisibleText: visibleText,
-    contentFingerprint: expectedFingerprint,
   }
 }
 
@@ -393,11 +347,6 @@ export function formatSourceSessionRead(
     throw new Error('maxBytes must be a safe integer of at least 2')
   }
 
-  let availableThroughSeq: number | null = null
-  for (const event of source.events) {
-    if (options.throughSeq !== undefined && event.seq > options.throughSeq) break
-    availableThroughSeq = event.seq
-  }
   const events: SourceEvidenceEvent[] = []
   let bytesUsed = 2 // JSON array brackets.
   let capturedThroughSeq: number | null = null
@@ -453,7 +402,6 @@ export function formatSourceSessionRead(
     requestedFromSeq: fromSeq,
     requestedThroughSeq: options.throughSeq ?? null,
     capturedThroughSeq,
-    availableThroughSeq,
     truncated,
     hasMore: nextFromSeq !== null,
     nextFromSeq,

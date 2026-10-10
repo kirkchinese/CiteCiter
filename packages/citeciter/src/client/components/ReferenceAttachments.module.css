@@ -5,6 +5,7 @@
 .chip button { border: 0; background: transparent; color: inherit; padding: 4px 7px; border-radius: 6px; font: inherit; font-size: 12px; cursor: pointer; }
 .chip button:hover { background: color-mix(in srgb, currentColor 9%, transparent); }
 .chip button:focus-visible { outline: 2px solid #6898f2; outline-offset: 1px; }
+.unavailable { margin-inline: 6px; color: var(--dsw-alias-label-secondary, #687080); font-size: 11px; white-space: nowrap; }
 .chip button:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .preview { margin: 0 8px 8px; padding: 10px; max-height: 180px; overflow: auto; border-radius: 10px; background: color-mix(in srgb, currentColor 4%, transparent); font-size: 13px; }
 .preview code { overflow-wrap: anywhere; font-size: 11px; opacity: .65; }

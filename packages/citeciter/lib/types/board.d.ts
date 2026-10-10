@@ -220,18 +220,3 @@ export declare const boardSnapshotSchema: z.ZodObject<{
 export type BoardSnapshot = z.infer<typeof boardSnapshotSchema>;
 /** Empty snapshot used before any board commit. */
 export declare const EMPTY_BOARD_SNAPSHOT: BoardSnapshot;
-/**
- * Read renderable elements from one final-state snapshot.
- * @param snapshot - projected final board state.
- * @returns ordered elements plus the committed revision.
- */
-export declare function foldBoardSnapshot(snapshot: BoardSnapshot): {
-    readonly elements: readonly BoardElementState[];
-    readonly revision: number;
-};
-/**
- * Fold a raw op list from first-set order; used by protocol tests.
- * @param ops - one validated op batch.
- * @returns final elements in insertion order.
- */
-export declare function foldBoardElements(ops: readonly BoardOp[]): readonly BoardElementState[];

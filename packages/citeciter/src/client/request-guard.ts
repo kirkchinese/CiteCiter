@@ -1,8 +1,5 @@
 import type { ActionModel } from '../actions.ts'
-import type { TopicScenario } from '../topic.ts'
 import type { CiteSelection } from './types.ts'
-
-export type CreateMode = 'observer' | 'exact-fork' | 'exact-when-available'
 
 export interface RequestIntent {
   readonly key: string
@@ -65,14 +62,12 @@ async function claimRequestIntent(namespace: string, identity: string): Promise<
  * Claim the retry-stable request ID for one pending Topic-creation intent.
  * @param selection - cited source selection.
  * @param question - normalized first question.
- * @param mode - resolved Topic creation mode.
+ * @param modelRoute - optional model chosen by the wheel action.
  * @returns the pending intent key and request ID.
  */
 export function claimCreateTopicIntent(
   selection: CiteSelection,
   question: string,
-  mode: CreateMode,
-  scenario: TopicScenario = 'qa',
   modelRoute?: ActionModel,
 ): Promise<RequestIntent> {
   const identity = selection.kind === 'assistant-step'
@@ -95,8 +90,6 @@ export function claimCreateTopicIntent(
     ...identity,
     selection.displayText,
     question,
-    mode,
-    scenario,
     modelRoute ?? null,
   ]))
 }
@@ -105,15 +98,10 @@ export function claimCreateTopicIntent(
  * Claim the retry-stable request ID for one uncited Topic creation.
  * @param sourceSessionId - owning DSH Session.
  * @param question - normalized first question.
- * @param scenario - requested Topic presentation.
  * @returns the pending intent key and request ID.
  */
-export function claimCreateFreeTopicIntent(
-  sourceSessionId: string,
-  question: string,
-  scenario: Extract<TopicScenario, 'qa' | 'present'>,
-): Promise<RequestIntent> {
-  return claimRequestIntent('create-free', JSON.stringify([sourceSessionId, question, scenario]))
+export function claimCreateFreeTopicIntent(sourceSessionId: string, question: string): Promise<RequestIntent> {
+  return claimRequestIntent('create-free', JSON.stringify([sourceSessionId, question]))
 }
 
 /** Document-range claim identity shared by the Reader entry point. */
@@ -145,19 +133,6 @@ export function claimCreateDocumentIntent(
     claim.suffixText,
     question,
   ]))
-}
-
-/**
- * Claim the retry-stable request ID for one pending Topic follow-up.
- * @param topicSessionId - target private Topic Session.
- * @param question - normalized follow-up question.
- * @returns the pending intent key and request ID.
- */
-export function claimAskIntent(
-  topicSessionId: string,
-  question: string,
-): Promise<RequestIntent> {
-  return claimRequestIntent('ask', JSON.stringify([topicSessionId, question]))
 }
 
 /**

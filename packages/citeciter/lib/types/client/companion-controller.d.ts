@@ -5,13 +5,12 @@ import type { SettingsForm } from './host-ui-adapter.ts';
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store';
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
-import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type QuestionAnswer, type TopicScenario, type TopicSnapshot, type TopicSummary } from '../topic.ts';
-import { type CreateMode, type DocumentClaimIntent } from './request-guard.ts';
+import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type QuestionAnswer, type TopicSnapshot, type TopicSummary } from '../topic.ts';
+import { type DocumentClaimIntent } from './request-guard.ts';
 import type { ActionModel } from '../actions.ts';
 import type { CiteSelection } from './types.ts';
 import { type DraftReference } from './draft-references.ts';
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error';
-export type { CreateMode } from './request-guard.ts';
 export type TopicsStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type SettingsSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export interface ComposeSeed {
@@ -49,8 +48,8 @@ export interface CompanionFace {
     subscribe(listener: () => void): () => void;
     setSource(sessionId: SessionId | null): void;
     retainVisible(): () => void;
-    create(selection: CiteSelection, question: string, mode?: CreateMode, scenario?: TopicScenario, modelRoute?: ActionModel): Promise<void>;
-    createFree(question: string, scenario: Extract<TopicScenario, 'qa' | 'present'>): Promise<boolean>;
+    create(selection: CiteSelection, question: string, modelRoute?: ActionModel): Promise<void>;
+    createFree(question: string): Promise<boolean>;
     /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
     createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>;
     openTopic(sessionId: string): Promise<void>;
@@ -79,3 +78,4 @@ export interface CompanionFace {
 export declare const INITIAL_COMPANION_SNAPSHOT: CompanionSnapshot;
 /** Bind private Topic Remote calls to one browser snapshot and polling lifecycle. */
 export declare function createCompanionController(readChat: (sessionId: SessionId) => ChatSnapshot | undefined, configForms: SettingsForm<CiteCiterSettings>, request: RemoteRequest, onAutoOpen: () => void, store: SnapshotStore<CompanionSnapshot>, nativeComposer: NativeComposer): CompanionFace;
+export {};

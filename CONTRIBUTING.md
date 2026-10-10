@@ -2,73 +2,87 @@
 
 [简体中文](CONTRIBUTING.zh.md)
 
-Use Node.js `^22.19.0 || >=24.0.0`, pnpm `11.21.0` and DSH `0.1.7-rc.2` for the 0.9 prerelease. Real-model acceptance and host limitations are recorded in docs/validation/2026-09-27-connect-450.md; the released 0.8 line retains its DSH `0.1.5-rc.1` / Desktop `2.0.9` baseline. The package lives in `packages/citeciter/`; Host and Client compile separately with strict TypeScript.
+CiteCiter is an external [DSH](https://github.com/deepseek-ai/deepseek-harness) plugin. It follows the DSH [architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md) and [plugin conventions](https://github.com/deepseek-ai/deepseek-harness/blob/master/AGENTS.md); check them against the DSH version you build for. The product rules are in [docs/product.zh.md](docs/product.zh.md).
 
-```powershell
+## Setup and checks
+
+Use Node.js `^22.19.0 || >=24.0.0` and pnpm `11.21.0`.
+
+```sh
 pnpm install --frozen-lockfile
-pnpm typecheck
-pnpm typecheck:desktop
-pnpm build
-pnpm --dir packages/citeciter pack --pack-destination E:/project/CiteCiter/.refs/artifacts
-git diff --check
+pnpm check:git-entry     # root Git-install manifest matches the package manifest
+pnpm check:readme        # package READMEs match the repository READMEs
+pnpm peers check
+pnpm typecheck           # Host and Client against the main SDK
+pnpm typecheck:desktop   # the same sources against the official Desktop SDK
+pnpm test                # unit tests (compiles first)
+pnpm build               # rebuilds the committed lib/
 ```
 
-Tracked `lib/` is a release artifact and must be rebuilt after source changes. `pnpm --dir packages/citeciter dev` watches builds only; it neither starts models nor creates test instances. CI checks dependencies, types, build and packaging. Static success is not functional acceptance.
+CI runs the same commands on Ubuntu and Windows. `pnpm --dir packages/citeciter dev` rebuilds on change; it does not start DSH.
 
-## Architecture boundaries
+## Repository layout
 
-Follow the [DSH architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md) and [plugin conventions](https://github.com/deepseek-ai/deepseek-harness/blob/master/AGENTS.md), checking actual installed subpackage versions and contracts. CiteCiter is an external plugin; do not claim DSH monorepo-only gates ran here.
-
-| Module | Responsibility |
+| Path | Contents |
 | --- | --- |
-| host-settings-adapter.ts / typert-codec.ts / client/host-ui-adapter.ts / client/host-icons.ts | Normalize the two pinned host contracts at isolated boundaries |
-| session-format-guard.ts | Refuse old-host writes to newer native logs without rewriting their format |
-| draft-contract.ts / draft-store.ts / client/draft-controller.ts | Versioned draft state, owned byte storage, CAS saves and exact admission reconciliation |
-| model-admission.ts | Recover a retired inherited model without losing the Topic or submitting its draft |
-| client/components/ToolMessage.tsx | Tool disclosure and visible attachments, using a session-authorized loader |
-| client/transcript-position.ts | Per-Topic reading anchors, explicit-send following and image/reflow restoration |
-| host-session-adapter.ts | Native Agent creation, resumption, initial permissions and scoped contributions |
-| citer-session-world.ts / citer-session-store.ts | Owned native factories and membership; no root navigation announcement |
-| citer-session-access.ts | Owned model checkpoints and reversible flush routing; Host get/list remain unchanged |
-| source-storage.ts / session-migration.ts / owned-session-cleanup.ts | Verified source paths, complete-log migration and contained cleanup |
-| source-session.ts | Source observation, disposal and submitted-reference checks |
-| topic-index.ts | Metadata validation, navigation and legacy private-log cleanup |
-| topic-runtime.ts | Topic use cases, tool contributions and legacy compatibility |
-| source-read-tool.ts / topic-prompts.ts | Source tool schema, paging guidance and native prompt composition |
-| document-tools.ts | Authorized document read/search contracts, UTF-16 ranges, response budgets and continuation guidance |
-| topic-archive.ts | Distinguish accepted user input from later inbox claims and model/tool events for archive recovery |
-| board-capture.ts | Capture correlation, cancellation, timeout and native attachment storage |
-| board-capture-protocol.ts / client/board-capture-controller.ts | Poll exact Topic/revision render requests independently of panel and navigation lifecycles |
-| client/components/BoardCaptureWorker.tsx / BoardCaptureSurface.tsx | Render the actual board without starting a model request |
-| client/native-composer.ts | Published DSH attachment, send and queue services |
-| native-attachment-read.ts / client/file-download.ts | Exact Topic authorization, native file/image reads and download lifetime |
-| client/draft-references.ts | Draft references and exact submission serialization |
-| client/action-executor.ts / client/selection-references.ts | Explicit append/create routing and references from actual selections |
-| tool-events.ts / document-access.ts | Native/PTC event normalization and submitted-document access |
-| client/learning-route.ts | Learning request constraints and native todo result reading |
-| client/panel-drag.ts, host-dock.ts | Pointer and host layout lifecycles |
-| client/components/ | Controlled UI receiving snapshots and callbacks, without Cordis discovery |
+| `packages/citeciter/` | The plugin: `src/` (Host files at the top level, browser code in `client/`), `tests/`, `scripts/`, and the committed build output `lib/` |
+| `packages/citeciter-compat-desktop/` | A private, compile-only manifest pinning the official Desktop SDK for `typecheck:desktop` |
+| `package.json` (root) | The Git-install entry; generated from the package manifest |
+| `docs/product.zh.md` | Product rules |
 
-Do not patch the Host Agent Loop, append Topic work to source Sessions or leak removed draft references through hidden seeds. New Topics default to read-only and retain DSH permission/approval enforcement after explicit changes. Migration must compare the complete original log, retain original copies and never expand permissions.
+## Two SDK baselines
 
-Use scoped injection, ctx.effect and ctx.on. Release event listeners, observers, capture requests, object URLs and factory handles. Validate external JSON at readers; typed same-process calls need no duplicate decoding. Public APIs document inputs, outputs and lifecycle obligations.
+The package's `devDependencies` pin the main SDK (currently DSH `0.2.1-alpha.2`); `peerDependencies` list every DSH version the plugin supports. `citeciter-compat-desktop` pins the official Desktop SDK (`0.2.0-rc.2`), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
 
-## Local installation and real acceptance
+To support a new DSH release: update the DSH versions in `devDependencies` (or in the compat package for a Desktop release), add the version to every DSH peer range, run `pnpm sync:git-entry` and `pnpm install`, then run all checks. Remove a peer only when nothing in `src/` imports it.
 
-This acceptance uses the main DSH home as requested. Before starting or restarting a host, confirm no other Web or Desktop writer uses that home. Preserve user Sessions. Identify development processes and directories individually before cleanup.
+## Committed build output and Git installs
 
-Web uses the global CLI: `dsh plugin --profile web add <absolute package path>`. Desktop uses `dsh plugin add <absolute package path>` in its managed terminal, which selects the bundled CLI, desktop profile and home. The global CLI cannot replace management of Desktop's reserved profile.
+`lib/*.js` and `lib/types/**/*.d.ts` are released files and are committed, because Git installs use them without building. Rebuild before committing a source change. The intermediate `lib/types/**/*.js` that `tsc` emits for the bundler is ignored.
 
-For the first Web visit, use the full login URL printed by the host, then its session cookie. Treat login parameters as credentials and exclude them from Git and documentation. Restart after Host updates and reload after Client updates.
+pnpm's Git fetcher reads the repository root and ignores `publishConfig.directory`, so the root `package.json` mirrors the package manifest with paths into `packages/citeciter/`. Edit only `packages/citeciter/package.json` and run `pnpm sync:git-entry`. Root scripts use `pnpm --dir packages/citeciter`; both manifests share one name, so do not select the package with `--filter`.
 
-Functional acceptance must use real models, real source branches and actual UI. Cover text, programming, images, Q&A, teaching, attachment combinations, permissions, model/reasoning selection, queue/steer/stop, reference removal, document pagination, archive/restore, layouts and restart recovery. Inspect actual output, file side effects, durable logs and rendered layout. Scripts alone do not establish correctness.
+Edit only the repository READMEs. `pnpm sync:readme` generates `packages/citeciter/README.md` (English, shown on npm) and `README.zh.md`, rewriting relative links to the release tag.
 
-Do not retain artificial providers, fixtures or temporary test scripts. Remove temporary scripts after use. Keep procedures, results and limits in acceptance records, excluding Sessions, credentials, screenshots and packages. Previously committed scripts are removed from the current branch without rewriting Git history. Record factual model errors separately from engineering failures; ask the user when expected product behavior is unclear.
+## Architecture
 
-## Documentation and delivery
+Behavior lives in plugin contributions and documented DSH services; the host Agent Loop is never patched. Each Topic is a native DSH Session stored under its source session's `citeciter/` directory and never appears in the host's session list.
 
-Keep root/package Chinese and English READMEs aligned. Public behavior changes update release notes, JSDoc, `.agents/notes/` and `docs/validation/`. Identify diagrams and actual results accurately. Use one physical line per paragraph and one final newline.
+| Area | Modules |
+| --- | --- |
+| Host entry and Remote API | `index.ts`, `service.ts`, `typert.*.ts`, `host-settings-adapter.ts` |
+| Topic use cases | `topic-runtime.ts` (creation, admission queue, questions, deletion, model routing) |
+| Native sessions | `host-session-adapter.ts`, `citer-session-world.ts`, `citer-session-store.ts`, `citer-agent-registry.ts`, `host-agent-modules.ts` |
+| Storage | `source-storage.ts`, `topic-index.ts`, `topic-deletion-receipts.ts`, `owned-session-cleanup.ts`, `legacy-migration.ts`, `session-migration.ts`, `session-format-guard.ts` |
+| Log projections | `topic-log.ts`, `tool-events.ts`, `tool-approval-projection.ts`, `message-projection.ts`, `topic-stream.ts` |
+| Evidence and sources | `observer.ts`, `citation-mapping.ts`, `evidence-text.ts`, `source-session.ts`, `source-read-tool.ts`, `documents.ts`, `document-tools.ts`, `document-access.ts` |
+| Drafts and questions | `draft-*.ts`, `question-draft-*.ts`, `topic-questions.ts`, `topic-question-bridge.ts`, `blocking-question-recovery.ts`, `question-reply.ts` |
+| Board and learning | `board.ts`, `blackboard-tool.ts`, `board-capture*.ts`, `learning*.ts` |
+| Client | `client/index.ts` assembles controllers; `client/components/` holds React views that receive snapshots and callbacks and never look up Cordis services |
 
-Publish only when explicitly requested, using the inspected package from the tested commit. Verify npm version, dist-tag and integrity after publishing; attach the same package to the matching GitHub Release. Building a package does not publish it or authorize merging a branch.
+Three host adaptations are deliberate and isolated; do not spread them:
+
+- `citer-session-access.ts` wraps the host's `sessions.flush` for the plugin's lifetime so Citer-owned sessions are flushed to their own store, and checkpoints them before each model request through the public `llm/stream` event. The original `flush` is restored on teardown, and host `get`/`list` stay unchanged so Topics never reach the session list.
+- `host-agent-modules.ts` loads the host's AgentLoop, SessionStore, title service and scope factory through the profile resolver, so Desktop and symlinked CLIs share one module instance.
+- `client/host-dock.ts` and its CSS reserve layout space for the panel and restore the host's styles on close.
+
+Other rules: registrations are effects (`ctx.effect()`, `ctx.on()`) released with their owner; waterfall listeners call `next()` unless they deliberately claim the request; validate data at file, wire and configuration boundaries and trust typed same-process calls; model-visible input must be reconstructable from the Topic log; read persisted settings field by field so keys from other versions are ignored.
+
+## Testing
+
+Unit tests in `packages/citeciter/tests/` use `node:test` against the compiled `lib/types/` output; `pnpm test` compiles first. Test pure logic (citation mapping, log projections, draft merging, settings and metadata parsing) and keep tests free of fake model providers.
+
+Static checks and unit tests do not establish that a feature works. Verify user-visible changes in a real DSH with a real model: install the packed or Git build into a profile, exercise the flow in the actual UI, and check the Topic files it writes. Never run two host processes on the same DSH home.
+
+## Releasing
+
+1. Update `version` in `packages/citeciter/package.json`, then run `pnpm sync:git-entry` and `pnpm sync:readme`.
+2. Move the `Unreleased` notes in `CHANGELOG.md` under the version and date.
+3. Run all checks, `pnpm build`, and `pnpm --dir packages/citeciter pack`.
+4. Verify the packed build in a real DSH.
+5. Publish with an explicit registry and tag: `npm publish <tarball> --registry=https://registry.npmjs.org --tag <tag>`.
+6. Merge to `main`, tag `v<version>`, and create the GitHub Release with the same tarball.
+
+Do not commit credentials, `.env`, `.npmrc`, sessions, screenshots or tarballs.
 
 MIT License.

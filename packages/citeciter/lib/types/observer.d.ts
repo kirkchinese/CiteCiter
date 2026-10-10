@@ -41,8 +41,6 @@ export interface SourceReadResult {
     readonly requestedThroughSeq: number | null;
     /** Last scanned sequence; filtered records can advance this without adding evidence. */
     readonly capturedThroughSeq: number | null;
-    /** Legacy upper-bound marker; may precede fromSeq and is not the source horizon. */
-    readonly availableThroughSeq: number | null;
     /** A byte-budget stop within the requested range, not a source exhaustion flag. */
     readonly truncated: boolean;
     readonly hasMore: boolean;
@@ -57,11 +55,6 @@ export declare function fingerprintCitationDraft(draft: Omit<CitationDraft, 'sel
 export declare function fingerprintCitationRecord(record: CitationEvidence): string;
 /** Resolve a browser selection claim against the authoritative committed assistant message. */
 export declare function resolveObserverCitation(source: ObserverSourceSnapshot, rawClaim: CitationSelectionClaim): ValidatedObserverCitation;
-/**
- * Validate one Citation against committed reasoning or answer text in the observed source snapshot.
- * A matching `assistant/message` is sufficient; its step and turn may remain open.
- */
-export declare function validateObserverCitation(source: ObserverSourceSnapshot, rawDraft: CitationDraft): ValidatedObserverCitation;
 /**
  * Resolve a whole-card tool-result claim against the committed `tool/result`.
  * @param source - one atomic live-preferred SessionQuery observation.

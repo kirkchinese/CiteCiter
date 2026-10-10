@@ -1,11 +1,9 @@
-/** Host entry for native Topics, legacy compatibility and the browser Remote API. */
+/** Host entry: native Topics, their settings and the browser Remote API. */
 import { Service, type Context } from '@deepseek-ai/cordis'
 import { bindHostSettings, settingsConfig, type SettingsReader } from './host-settings-adapter.ts'
-import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-session-query'
 import type {} from '@deepseek-ai/dsh-settings'
-import type {} from '@deepseek-ai/dsh-subprocess'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import z from '@deepseek-ai/schemastery'
 import { TopicRuntime } from './topic-runtime.ts'
@@ -23,26 +21,19 @@ import {
 
 /** Cordis/Typert package identity. */
 export const name = '@kirkchinese/dsh-citeciter'
-/** Explicit dependencies for native session composition and legacy compatibility. */
-export const inject = ['llm', 'sessionQuery', 'subprocess', 'agents', 'agentPresets', 'sessionController', 'systemPrompt', 'tools', 'sandboxPolicy', 'sessions', 'sessionPersistence', 'sessionTitle', 'attachments'] as const
+/** Host services used to compose native Topic sessions. */
+export const inject = ['llm', 'sessionQuery', 'agents', 'agentPresets', 'sessionController', 'systemPrompt', 'tools', 'sandboxPolicy', 'sessions', 'sessionPersistence', 'sessionTitle', 'attachments'] as const
 
 /** Host settings identity shared with the browser settings scope. */
 export const CITECITER_SETTINGS_NS = CITECITER_SETTINGS_NAMESPACE
 
 /** Native settings schema for new Topics and the companion panel. */
 export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
-  defaultMode: z.union(['observer', 'exact-when-available']).default(DEFAULT_CITECITER_SETTINGS.defaultMode),
   includeSourceReasoning: z.boolean().default(DEFAULT_CITECITER_SETTINGS.includeSourceReasoning),
-  allowSourceFiles: z.boolean().default(DEFAULT_CITECITER_SETTINGS.allowSourceFiles),
   panelWidthPercent: z.number().step(1).min(28).max(55).default(DEFAULT_CITECITER_SETTINGS.panelWidthPercent),
   reopenLastTopic: z.boolean().default(DEFAULT_CITECITER_SETTINGS.reopenLastTopic),
   tutorPrompt: z.string().max(4000).default(''),
   followupQuestions: z.boolean().default(DEFAULT_CITECITER_SETTINGS.followupQuestions ?? true),
-  promptTemplates: z.array(z.object({
-    id: z.string().min(1).max(60),
-    label: z.string().min(1).max(40),
-    text: z.string().min(1).max(600),
-  })).max(8).default([]),
   shortcutOpenPanel: z.string().max(40).default(''),
   boardAnimations: z.boolean().default(DEFAULT_CITECITER_SETTINGS.boardAnimations ?? true),
   activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
@@ -55,13 +46,12 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
     label: z.string().min(1).max(20),
     prompt: z.string().max(4000),
     ask: z.boolean(),
-    scenario: z.union(['qa', 'present']),
     presentation: z.union(['side', 'floating']),
     target: z.union(['current', 'new']),
   })])).min(8).max(8).default(DEFAULT_WHEEL_SLOTS.map(slot => slot === null ? null : { ...slot, target: actionTarget(slot) })),
 })
 
-/** Root-scoped Remote service owning Topic metadata, native contributions and a legacy runtime. */
+/** Root-scoped Remote service owning Topic metadata and native Topic contributions. */
 export class CiteCiterHost extends TypertRemoteService {
   static inject = inject
   static Config = settingsConfig(CITECITER_SETTINGS_SCHEMA)
@@ -71,9 +61,9 @@ export class CiteCiterHost extends TypertRemoteService {
   private readonly service: CiteCiterService
   private releaseService: (() => void) | undefined
 
-  constructor(ctx: Context, config?: SettingsReader) {
+  constructor(ctx: Context, config: SettingsReader) {
     super(ctx, 'citeciter')
-    this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, CITECITER_SETTINGS_SCHEMA, config))
+    this.topics = new TopicRuntime(ctx, bindHostSettings(ctx, config))
     this.service = {
       create: async (request, signal) => this.topicSnapshot(request, signal),
       ask: async (request, signal) => this.topicSnapshot(request, signal),
@@ -137,10 +127,10 @@ export class CiteCiterHost extends TypertRemoteService {
   @Remote('checkUpdate')
   async checkUpdate(signal: AbortSignal): Promise<UpdateCheckResponse> {
     const result = await this.updates.check(signal)
-    // Desktop 2.x exports this immutable Host service; it never crosses into browser props.
-    const desktop = this.ctx.get('desktopProfiles') as { readonly current: { readonly name: string } } | undefined
-    return result.kind === 'success' && desktop !== undefined
-      ? { ...result, profile: desktop.current.name }
+    // Official Web and Desktop launchers expose the active profile through app-boot.
+    const profile = this.ctx.get('profileContext') as { readonly name: string } | undefined
+    return result.kind === 'success' && profile !== undefined
+      ? { ...result, profile: profile.name }
       : result
   }
 }
@@ -159,7 +149,6 @@ export type {
   CiteCiterResponse,
   CiteCiterSettings,
   CitationSelectionClaim,
-  CitationDraft,
   CitationEntry,
   CitationEvidence,
   CitationRecord,
@@ -168,8 +157,6 @@ export type {
   DocumentFormat,
   DocumentSummary,
   ToolEvidenceClaim,
-  TopicMode,
-  TopicScenario,
   TopicSnapshot,
   TopicSummary,
 } from './topic.ts'

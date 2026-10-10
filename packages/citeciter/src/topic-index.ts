@@ -1,4 +1,4 @@
-/** Durable navigation metadata and bounded legacy artifact cleanup, independent of Agent execution. */
+/** Durable Topic navigation metadata in each source-owned Citer root, independent of Agent execution. */
 import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, realpath, readFile, readdir, rmdir, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
@@ -7,9 +7,12 @@ import { type SessionHeader } from '@deepseek-ai/dsh-session'
 import { z } from 'zod'
 import { topicMetadataSchema, parseTopicMetadataFile, type TopicMetadata } from './topic.ts'
 import { atomicReplace } from './atomic-replace.ts'
-const TOPIC_INDEX_ROOT = dshHomePath('citeciter', 'workspaces')
+import { TopicDeletionReceipts, type TopicDeletionReceipt } from './topic-deletion-receipts.ts'
 
-export function errorCode(error: unknown): string | undefined {
+/** Index root used before 0.8, when Topic metadata lived outside the source Session directory. */
+const LEGACY_INDEX_ROOT = dshHomePath('citeciter', 'workspaces')
+
+function errorCode(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error
     ? String(error.code)
     : undefined
@@ -29,10 +32,6 @@ export async function rmdirIfEmpty(path: string): Promise<void> {
   } catch (error) {
     if (errorCode(error) !== 'ENOENT' && errorCode(error) !== 'ENOTEMPTY') throw error
   }
-}
-
-function sourceDirectoryName(sourceSessionId: string): string {
-  return Buffer.from(sourceSessionId, 'utf8').toString('base64url')
 }
 
 function assertContained(root: string, target: string): void {
@@ -78,56 +77,6 @@ async function rmdirOwnedIfEmpty(root: string, target: string): Promise<void> {
   await rmdirIfEmpty(target)
 }
 
-/**
- * Remove one artifact from a caller-owned JSONL root without following links.
- * @param root - fixed private JSONL root owned by the caller.
- * @param artifact - location returned by that exact JSONL backend.
- * @returns when the file/link and its empty per-session directory are absent.
- */
-export async function removeOwnedJsonlArtifact(
-  root: string,
-  artifact: { readonly kind: string, readonly path: string } | undefined,
-): Promise<void> {
-  if (artifact === undefined || artifact.kind !== 'jsonl') {
-    throw new Error('CiteCiter permanent deletion requires its private JSONL artifact backend')
-  }
-  await unlinkOwnedFileIfPresent(root, artifact.path)
-  await rmdirOwnedIfEmpty(root, dirname(artifact.path))
-}
-
-/**
- * Delete all JSONL generations of an already retired private Topic.
- * DSH 0.1.5 has no public delete/location API. This bounded disk adapter follows
- * its project/Session directory layout and canonical generation filenames.
- * @param root - exclusively owned CiteCiter Session root, never a host Session root.
- * @param sessionId - generated CiteCiter identity; arbitrary path segments are refused.
- * @returns after every canonical generation and the retired lock file are absent.
- */
-export async function removeOwnedTopicGenerations(root: string, sessionId: string): Promise<void> {
-  if (!/^citeciter-[a-zA-Z0-9-]+$/u.test(sessionId)) throw new Error('Invalid private Topic identity for deletion')
-  const projects = await readdir(root, { withFileTypes: true }).catch((error: unknown) => {
-    if (errorCode(error) === 'ENOENT') return []
-    throw error
-  })
-  for (const project of projects) {
-    if (!project.isDirectory() || project.isSymbolicLink()) continue
-    const directory = resolve(root, project.name, sessionId)
-    const info = await lstat(directory).catch((error: unknown) => {
-      if (errorCode(error) === 'ENOENT') return undefined
-      throw error
-    })
-    if (info === undefined) continue
-    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Refused linked Topic directory')
-    assertContained(await realpath(root), await realpath(directory))
-    for (const name of await readdir(directory)) {
-      if (/^session(?:\.v[1-9]\d*)?\.jsonl(?:\.zstd)?$/u.test(name) || name === 'session.lock') {
-        await unlinkOwnedFileIfPresent(root, resolve(directory, name))
-      }
-    }
-    await rmdirOwnedIfEmpty(root, directory)
-  }
-}
-
 async function atomicWriteJson(path: string, value: unknown): Promise<void> {
   const temp = `${path}.${randomUUID()}.tmp`
   try {
@@ -137,6 +86,13 @@ async function atomicWriteJson(path: string, value: unknown): Promise<void> {
     await unlinkIfPresent(temp)
     throw error
   }
+}
+
+async function readdirIfPresent(path: string) {
+  return readdir(path, { withFileTypes: true }).catch((error: unknown) => {
+    if (errorCode(error) === 'ENOENT') return []
+    throw error
+  })
 }
 
 const topicDeletionMarkerSchema = z.object({
@@ -154,79 +110,75 @@ const topicDeletionMarkerSchema = z.object({
   }).strict(),
 }).strict()
 
+/** Committed intent to delete one Topic; recovery finishes the cleanup after a restart. */
 export type TopicDeletionMarker = Omit<z.infer<typeof topicDeletionMarkerSchema>, 'sessionHeader'> & {
   readonly sessionHeader: SessionHeader
 }
 
 function parseTopicDeletionMarker(raw: unknown): TopicDeletionMarker {
-  return topicDeletionMarkerSchema.parse(raw) as TopicDeletionMarker
+  const marker = topicDeletionMarkerSchema.parse(raw) as TopicDeletionMarker
+  if (marker.sessionHeader.id !== marker.sessionId) throw new Error('Citer 删除标记与 Session 身份不匹配')
+  return marker
 }
 
 /** Minimal on-disk navigation index; Session history stays in standard DSH JSONL. */
 export class TopicIndex {
   private readonly sourceRoots = new Map<string, string>()
+  private readonly deletionReceipts = new TopicDeletionReceipts(atomicWriteJson)
+
+  /** @param legacyRoot - pre-0.8 index root, read only to migrate old Topics. */
+  constructor(private readonly legacyRoot: string = LEGACY_INDEX_ROOT) {}
 
   /** Bind a canonical source-owned root resolved by SourceStorage. */
   bindSource(sourceSessionId: string, root: string): void { this.sourceRoots.set(sourceSessionId, root) }
 
-  /** Return the owned metadata directory for one source-backed Topic. */
+  /** Return the owned metadata directory for one Topic. */
   ownedDirectory(sourceSessionId: string, topicId: number): string {
-    const root = this.sourceRoots.get(sourceSessionId)
-    if (root === undefined) throw new Error('Citer 来源目录不可用')
+    const root = this.sourceRoot(sourceSessionId)
     const directory = resolve(root, String(topicId))
     assertContained(root, directory)
     return directory
   }
 
-  /** @param root - private Topic index root. */
-  constructor(private readonly root: string = TOPIC_INDEX_ROOT) {}
-
-  /** Read navigation records across sources; never opens or mutates a Session log. */
-  async all(includeSuperseded = false): Promise<TopicMetadata[]> {
-    const sources = await readdir(this.root, { withFileTypes: true }).catch((error: unknown) => {
-      if (errorCode(error) === 'ENOENT') return []
-      throw error
-    })
+  /** Read navigation records across bound sources; never opens or mutates a Session log. */
+  async all(): Promise<TopicMetadata[]> {
     const records: TopicMetadata[] = []
-    for (const source of sources) {
-      if (!source.isDirectory() || source.isSymbolicLink()) continue
-      const directory = resolve(this.root, source.name)
-      for (const item of await readdir(directory, { withFileTypes: true })) {
+    for (const [sourceSessionId, root] of this.sourceRoots) {
+      for (const item of await readdir(root, { withFileTypes: true })) {
         if (!item.isDirectory() || item.isSymbolicLink() || !/^\d+$/.test(item.name)) continue
-        const path = resolve(directory, item.name)
-        if (await this.deletionMarkerIfPresent(path) !== undefined) continue
-        const record = await this.readIfPresent(resolve(path, 'topic.json'))
-        if (record !== undefined) records.push(record)
-      }
-    }
-    for (const [sourceSessionId, directory] of this.sourceRoots) {
-      for (const item of await readdir(directory, { withFileTypes: true })) {
-        if (!item.isDirectory() || item.isSymbolicLink() || !/^\d+$/.test(item.name)) continue
-        const path = resolve(directory, item.name)
+        const path = resolve(root, item.name)
         if (await this.deletionMarkerIfPresent(path) !== undefined) continue
         const record = await this.readIfPresent(resolve(path, 'topic.json'))
         if (record !== undefined && record.sourceSessionId === sourceSessionId && record.storage === 'source') records.push(record)
       }
     }
-    if (includeSuperseded) return records
-    const unique = new Map<string, TopicMetadata>()
-    for (const record of records) if (!unique.has(record.sessionId) || record.storage === 'source') unique.set(record.sessionId, record)
-    return [...unique.values()]
+    return records
   }
 
-  async reserve(sourceSessionId: string): Promise<{ topicId: number, directory: string }> {
-    const sourceDirectory = this.sourceRoots.get(sourceSessionId) ?? resolve(this.root, sourceDirectoryName(sourceSessionId))
-    await mkdir(sourceDirectory, { recursive: true, mode: 0o700 })
-    let topicId = Math.max(0, ...(await this.list(sourceSessionId)).map(item => item.topicId)) + 1
-    try {
-      const names = await readdir(sourceDirectory)
-      topicId = Math.max(topicId - 1, ...names.map((name) => /^\d+$/.test(name) ? Number(name) : 0)) + 1
-    } catch (error) {
-      if (errorCode(error) !== 'ENOENT') throw error
+  /** Read records still stored in the pre-0.8 index root, for migration only. */
+  async legacyRecords(): Promise<TopicMetadata[]> {
+    const records: TopicMetadata[] = []
+    for (const source of await readdirIfPresent(this.legacyRoot)) {
+      if (!source.isDirectory() || source.isSymbolicLink()) continue
+      const directory = resolve(this.legacyRoot, source.name)
+      for (const item of await readdir(directory, { withFileTypes: true })) {
+        if (!item.isDirectory() || item.isSymbolicLink() || !/^\d+$/.test(item.name)) continue
+        const path = resolve(directory, item.name)
+        if (await this.deletionMarkerIfPresent(path) !== undefined) continue
+        const record = await this.readIfPresent(resolve(path, 'topic.json'))
+        if (record !== undefined && record.storage !== 'source') records.push(record)
+      }
     }
+    return records
+  }
+
+  /** Reserve the next unused numeric Topic directory below a bound source root. */
+  async reserve(sourceSessionId: string): Promise<{ topicId: number, directory: string }> {
+    const root = this.sourceRoot(sourceSessionId)
+    let topicId = Math.max(0, ...(await readdir(root)).map(name => /^\d+$/.test(name) ? Number(name) : 0)) + 1
     while (true) {
-      const directory = resolve(sourceDirectory, String(topicId))
-      assertContained(sourceDirectory, directory)
+      const directory = resolve(root, String(topicId))
+      assertContained(root, directory)
       try {
         await mkdir(directory, { mode: 0o700 })
         return { topicId, directory }
@@ -239,17 +191,54 @@ export class TopicIndex {
 
   async save(metadata: TopicMetadata): Promise<void> {
     const validated = topicMetadataSchema.parse(metadata) as TopicMetadata
-    const directory = this.directory(validated.sourceSessionId, validated.topicId, validated.storage === 'source')
+    if (validated.storage !== 'source') throw new Error('Citer 只写入来源目录中的 Topic')
+    const directory = this.ownedDirectory(validated.sourceSessionId, validated.topicId)
     await mkdir(directory, { recursive: true, mode: 0o700 })
     if ((await lstat(directory)).isSymbolicLink()) throw new Error('Citer 拒绝写入链接形式的 Topic 目录')
-    await assertCanonicalParent(validated.storage === 'source' ? this.sourceRoots.get(validated.sourceSessionId)! : this.root, resolve(directory, 'topic.json'))
+    await assertCanonicalParent(this.sourceRoot(validated.sourceSessionId), resolve(directory, 'topic.json'))
     await atomicWriteJson(resolve(directory, 'topic.json'), validated)
   }
 
+  /** Read the metadata currently stored in one owned Topic directory, if any. */
+  async readOwned(sourceSessionId: string, topicId: number): Promise<TopicMetadata | undefined> {
+    return this.readIfPresent(resolve(this.ownedDirectory(sourceSessionId, topicId), 'topic.json'))
+  }
+
   async loadBySessionId(sessionId: string): Promise<TopicMetadata> {
-    const metadata = (await this.all()).find(item => item.sessionId === sessionId)
+    const metadata = await this.findBySessionId(sessionId)
     if (metadata !== undefined) return metadata
     throw new Error(`CiteCiter Topic "${sessionId}" does not exist`)
+  }
+
+  /** Return owned metadata when present; malformed or unreadable storage still throws. */
+  async findBySessionId(sessionId: string): Promise<TopicMetadata | undefined> {
+    return (await this.all()).find(item => item.sessionId === sessionId)
+  }
+
+  /**
+   * Find authoritative committed deletion evidence without inferring it from missing metadata.
+   * @param sessionId - exact generated Citer Session identity.
+   * @returns a verified pending marker or completed receipt, including after Host restart;
+   * old deletions whose markers were already removed have no recoverable evidence.
+   */
+  async findDeleted(sessionId: string): Promise<TopicDeletionReceipt | undefined> {
+    let result: TopicDeletionReceipt | undefined
+    const accept = (receipt: TopicDeletionReceipt) => {
+      if (result !== undefined && (result.sourceSessionId !== receipt.sourceSessionId || result.topicId !== receipt.topicId)) {
+        throw new Error('Citer 删除记录包含冲突的 Topic 身份')
+      }
+      // An existing recovery marker still owns cleanup, even if its final receipt
+      // was committed just before a crash interrupted marker removal.
+      if (result === undefined || receipt.cleanup === 'pending') result = receipt
+    }
+    for (const marker of await this.listDeleting()) if (marker.sessionId === sessionId) {
+      accept({ version: 1, sessionId, sourceSessionId: marker.sourceSessionId, topicId: marker.topicId, cleanup: 'pending' })
+    }
+    for (const [sourceSessionId, root] of this.sourceRoots) {
+      const receipt = await this.deletionReceipts.read(root, sourceSessionId, sessionId)
+      if (receipt !== undefined) accept(receipt)
+    }
+    return result
   }
 
   async list(sourceSessionId: string): Promise<TopicMetadata[]> {
@@ -258,10 +247,9 @@ export class TopicIndex {
 
   /** Commit a minimal deletion marker before making Topic metadata unreachable. */
   async markDeleting(metadata: TopicMetadata, sessionHeader: SessionHeader): Promise<TopicDeletionMarker> {
-    const directory = this.directory(metadata.sourceSessionId, metadata.topicId, metadata.storage === 'source')
     const marker: TopicDeletionMarker = {
       schemaVersion: 1,
-      ...(metadata.storage === 'source' ? { storage: 'source' } : {}),
+      storage: 'source',
       sessionId: metadata.sessionId,
       sourceSessionId: metadata.sourceSessionId,
       topicId: metadata.topicId,
@@ -273,69 +261,60 @@ export class TopicIndex {
         ...(sessionHeader.cwd === undefined ? {} : { cwd: sessionHeader.cwd }),
       },
     }
-    const markerPath = resolve(directory, 'deleting.json')
-    await assertCanonicalParent(metadata.storage === 'source' ? this.sourceRoots.get(metadata.sourceSessionId)! : this.root, markerPath)
+    const markerPath = resolve(this.ownedDirectory(metadata.sourceSessionId, metadata.topicId), 'deleting.json')
+    await assertCanonicalParent(this.sourceRoot(metadata.sourceSessionId), markerPath)
     await atomicWriteJson(markerPath, marker)
     return marker
   }
 
   /** Discover committed deletion markers without following linked directories. */
   async listDeleting(): Promise<TopicDeletionMarker[]> {
-    const sources = await readdir(this.root, { withFileTypes: true }).catch(error => {
-      if (errorCode(error) === 'ENOENT') return []
-      throw error
-    })
     const markers: TopicDeletionMarker[] = []
-    const directories = sources.filter(source => source.isDirectory() && !source.isSymbolicLink()).map(source => ({ path: resolve(this.root, source.name), source: undefined as string | undefined }))
-    directories.push(...[...this.sourceRoots].map(([source, path]) => ({ source, path })))
-    for (const { path: sourceDirectory, source } of directories) {
-      const topics = await readdir(sourceDirectory, { withFileTypes: true }).catch((error: unknown) => {
-        if (errorCode(error) === 'ENOENT') return []
-        throw error
-      })
-      for (const topic of topics) {
+    for (const [source, root] of this.sourceRoots) {
+      for (const topic of await readdirIfPresent(root)) {
         if (!topic.isDirectory() || topic.isSymbolicLink() || !/^\d+$/.test(topic.name)) continue
-        const marker = await this.deletionMarkerIfPresent(resolve(sourceDirectory, topic.name))
-        if (marker !== undefined && marker.topicId === Number(topic.name) && (source === undefined ? marker.storage === undefined : marker.storage === 'source' && marker.sourceSessionId === source)) markers.push(marker)
+        const marker = await this.deletionMarkerIfPresent(resolve(root, topic.name))
+        if (marker !== undefined && marker.topicId === Number(topic.name) && marker.storage === 'source' && marker.sourceSessionId === source) markers.push(marker)
       }
     }
     return markers
   }
 
-  /** Remove the marker and its now-empty Topic directory after artifact cleanup. */
+  /** Commit the deletion identity, then remove the marker and empty Topic directory after artifact cleanup. */
   async finishDeleting(marker: TopicDeletionMarker): Promise<void> {
-    const owned = marker.storage === 'source'
-    const directory = this.directory(marker.sourceSessionId, marker.topicId, owned)
-    const root = owned ? this.sourceRoots.get(marker.sourceSessionId)! : this.root
+    const root = this.sourceRoot(marker.sourceSessionId)
+    const directory = this.ownedDirectory(marker.sourceSessionId, marker.topicId)
     await unlinkOwnedFileIfPresent(root, resolve(directory, 'topic.json'))
+    // Preserve only the deletion identity outside the numeric Topic directory.
+    // Publication precedes marker removal, so restart cannot lose both forms.
+    await this.deletionReceipts.complete(root, {
+      version: 1, sourceSessionId: marker.sourceSessionId, topicId: marker.topicId,
+      sessionId: marker.sessionId, cleanup: 'complete',
+    })
     await unlinkOwnedFileIfPresent(root, resolve(directory, 'deleting.json'))
     await rmdirOwnedIfEmpty(root, directory)
   }
 
-  /** Forget only a superseded plugin index after an owned copy was committed; original logs remain intact. */
+  /** Forget a migrated pre-0.8 index entry after its owned copy was committed; original logs remain intact. */
   async forgetLegacy(metadata: Pick<TopicMetadata, 'sessionId' | 'sourceSessionId' | 'topicId'>): Promise<void> {
-    const directory = this.directory(metadata.sourceSessionId, metadata.topicId)
+    const directory = resolve(this.legacyRoot, Buffer.from(metadata.sourceSessionId, 'utf8').toString('base64url'), String(metadata.topicId))
+    assertContained(this.legacyRoot, directory)
     const previous = await this.readIfPresent(resolve(directory, 'topic.json'))
     if (previous === undefined) return
     if (previous.sessionId !== metadata.sessionId || previous.sourceSessionId !== metadata.sourceSessionId) throw new Error('Citer 旧索引与迁移身份不匹配，未删除')
-    await unlinkOwnedFileIfPresent(this.root, resolve(directory, 'topic.json'))
-    await rmdirOwnedIfEmpty(this.root, directory)
+    await unlinkOwnedFileIfPresent(this.legacyRoot, resolve(directory, 'topic.json'))
+    await rmdirOwnedIfEmpty(this.legacyRoot, directory)
   }
 
-  private directory(sourceSessionId: string, topicId: number, owned = false): string {
-    if (owned) return this.ownedDirectory(sourceSessionId, topicId)
-    const directory = resolve(this.root, sourceDirectoryName(sourceSessionId), String(topicId))
-    assertContained(this.root, directory)
-    return directory
-  }
-
-  private async read(path: string): Promise<TopicMetadata> {
-    return parseTopicMetadataFile(JSON.parse(await readFile(path, 'utf8')))
+  private sourceRoot(sourceSessionId: string): string {
+    const root = this.sourceRoots.get(sourceSessionId)
+    if (root === undefined) throw new Error('Citer 来源目录不可用')
+    return root
   }
 
   private async readIfPresent(path: string): Promise<TopicMetadata | undefined> {
     try {
-      return await this.read(path)
+      return parseTopicMetadataFile(JSON.parse(await readFile(path, 'utf8')))
     } catch (error) {
       if (errorCode(error) === 'ENOENT') return undefined
       throw error
@@ -344,7 +323,10 @@ export class TopicIndex {
 
   private async deletionMarkerIfPresent(directory: string): Promise<TopicDeletionMarker | undefined> {
     try {
-      return parseTopicDeletionMarker(JSON.parse(await readFile(resolve(directory, 'deleting.json'), 'utf8')))
+      const path = resolve(directory, 'deleting.json')
+      const info = await lstat(path)
+      if (!info.isFile() || info.isSymbolicLink()) throw new Error('Citer 删除标记必须是普通文件')
+      return parseTopicDeletionMarker(JSON.parse(await readFile(path, 'utf8')))
     } catch (error) {
       if (errorCode(error) === 'ENOENT') return undefined
       throw error

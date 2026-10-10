@@ -301,24 +301,3 @@ export const EMPTY_BOARD_SNAPSHOT: BoardSnapshot = Object.freeze({
   elements: [],
   invalid: 0,
 })
-
-/**
- * Read renderable elements from one final-state snapshot.
- * @param snapshot - projected final board state.
- * @returns ordered elements plus the committed revision.
- */
-export function foldBoardSnapshot(
-  snapshot: BoardSnapshot,
-): { readonly elements: readonly BoardElementState[], readonly revision: number } {
-  return { elements: snapshot.elements, revision: snapshot.revision }
-}
-
-/**
- * Fold a raw op list from first-set order; used by protocol tests.
- * @param ops - one validated op batch.
- * @returns final elements in insertion order.
- */
-export function foldBoardElements(ops: readonly BoardOp[]): readonly BoardElementState[] {
-  if (ops.length === 0) return []
-  return [...applyBoardOps(EMPTY_BOARD_STATE, ops).state.values()]
-}

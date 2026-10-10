@@ -1,4 +1,4 @@
-/** Isolated, disposable layout adapter for DSH alpha and legacy three-column frames. */
+/** Isolated, disposable layout adapter for the official DSH Web and Desktop frame. */
 import { type RefObject } from 'react';
 import { type DockGeometry } from './dock-geometry.ts';
 /**

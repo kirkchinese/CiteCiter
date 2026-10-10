@@ -123,19 +123,6 @@ export function dshRangeHasReasoningHeaderEndpoint(range: Range, flow: HTMLEleme
 }
 
 /**
- * Find the current DSH assistant element for a persisted anchor key.
- *
- * @param anchorKey - stable anchor emitted by the DSH conversation renderer.
- * @returns matching rendered assistant element, or null when it is not mounted.
- */
-export function findDshAssistantAnchor(anchorKey: string): HTMLElement | null {
-  for (const element of document.querySelectorAll<HTMLElement>(DSH_ASSISTANT_ANCHOR_SELECTOR)) {
-    if (element.dataset.chatAnchorKey === anchorKey) return element
-  }
-  return null
-}
-
-/**
  * Determine whether a node is generated UI rather than committed citable text.
  *
  * @param node - rendered node to classify.

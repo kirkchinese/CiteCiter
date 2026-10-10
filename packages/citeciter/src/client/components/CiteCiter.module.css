@@ -17,6 +17,7 @@
 }
 
 :global([data-citeciter-layout="columns"]) {
+  /* Keep the host's own rows, including shell.bottom in DSH 0.2.1. */
   grid-template-columns: var(--citeciter-host-columns) var(--citeciter-dock-width) !important;
   transition: none !important;
 }
@@ -241,6 +242,7 @@
 }
 
 .dock {
+  -webkit-app-region: no-drag;
   font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
   --citeciter-accent: #3478f6;
   position: absolute;

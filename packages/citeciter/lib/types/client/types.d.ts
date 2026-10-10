@@ -32,7 +32,7 @@ export interface ToolCiteSelection {
 export type CiteSelection = AssistantCiteSelection | ToolCiteSelection;
 /** One explicit request to append a blackboard reference to the Topic composer. */
 export interface BoardCitationRequest {
-    readonly id: number;
+    readonly id: string;
     readonly topicSessionId: string;
     readonly prompt: string;
 }
@@ -48,7 +48,6 @@ export declare class CiteBus {
     private readonly reportListenerError;
     private snapshot;
     private readonly listeners;
-    private nextCitationId;
     /** @param reportListenerError - contains one failed browser subscriber. */
     constructor(reportListenerError: (error: unknown) => void);
     /** @returns stable overlay snapshot. */
@@ -67,8 +66,8 @@ export declare class CiteBus {
     requestBoardCitation(topicSessionId: string, prompt: string): void;
     /**
      * Clear the citation only when the matching consumer handled it.
-     * @param id - monotonically assigned citation request identity.
+     * @param id - exact request identity, unique across windows and draft restoration.
      */
-    clearBoardCitation(id: number): void;
+    clearBoardCitation(id: string): void;
     private notify;
 }

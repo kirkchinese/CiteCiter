@@ -41,9 +41,10 @@ import { createBoardCaptureController } from './board-capture-controller.ts'
 import { BoardCaptureWorker } from './components/BoardCaptureWorker.tsx'
 import { createDraftController } from './draft-controller.ts'
 import { hostSettings, hostInteractions } from './host-ui-adapter.ts'
+import { createSourceChatReader } from './host-source-chat.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
-export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'conversation']
+export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'remote.userQuestions', 'conversation']
 
 /** Register one root-scoped companion without entering DSH's Session list. */
 export async function apply(ctx: Context): Promise<void> {
@@ -51,14 +52,7 @@ export async function apply(ctx: Context): Promise<void> {
   ctx.effect(() => unmountRemote, 'citeciter: Remote contribution')
 
   ctx.inject(['remote.citeciter'], (remoteCtx) => {
-    const sessions = remoteCtx.sessions
-    const readChat = (sessionId: SessionId) => {
-      const source = sessions.binding(sessionId)
-      if (source === undefined) return undefined
-      const conversation = remoteCtx.uiConversation.binding(source)
-      conversation.activate('chat')
-      return conversation.target('chat').getSnapshot()
-    }
+    const readChat = createSourceChatReader(remoteCtx)
     const settingsBinder = hostSettings(remoteCtx)
     const interactions = hostInteractions(remoteCtx)
     const settings = settingsBinder.get<CiteCiterSettings>(CITECITER_SETTINGS_NAMESPACE)
@@ -88,17 +82,28 @@ export async function apply(ctx: Context): Promise<void> {
     const drafts = createDraftController(async request => {
       const response = await remoteCtx.remote.citeciter.request(request)
       if (!response.ok) throw new Error(response.error.message)
+      if (response.value.kind === 'deleted') {
+        if (!('topicSessionId' in request) || response.value.sessionId !== request.topicSessionId) throw new Error('Citer 草稿删除回执身份不匹配')
+        nativeComposer.retire(response.value.sessionId)
+        throw new Error('这个 Topic 已永久删除，未继续保存草稿')
+      }
       return response.value
-    }, nativeComposer)
+    }, nativeComposer, () => document.hasFocus())
     remoteCtx.effect(() => () => drafts.dispose(), 'citeciter: durable drafts')
+    remoteCtx.effect(() => nativeComposer.onRetired(sessionId => drafts.forget(sessionId)), 'citeciter: retired Topic drafts')
     remoteCtx.effect(() => {
       const beforeUnload = (event: BeforeUnloadEvent) => {
-        if (!drafts.hasUnsavedChanges()) return
+        if (!drafts.hasUnsavedChanges() && !nativeComposer.hasUnsavedQuestionDrafts()) return
         void drafts.flushAll()
+        void nativeComposer.flushQuestionDrafts()
         event.preventDefault()
         event.returnValue = ''
       }
-      const visibility = () => { if (document.visibilityState === 'hidden') void drafts.flushAll() }
+      const visibility = () => {
+        if (document.visibilityState !== 'hidden') return
+        void drafts.flushAll()
+        void nativeComposer.flushQuestionDrafts()
+      }
       window.addEventListener('beforeunload', beforeUnload)
       document.addEventListener('visibilitychange', visibility)
       return () => {

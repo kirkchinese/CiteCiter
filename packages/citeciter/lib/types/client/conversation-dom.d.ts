@@ -57,13 +57,6 @@ export declare function dshRangeTouchesExcludedContent(range: Range, flow: HTMLE
  */
 export declare function dshRangeHasReasoningHeaderEndpoint(range: Range, flow: HTMLElement): boolean;
 /**
- * Find the current DSH assistant element for a persisted anchor key.
- *
- * @param anchorKey - stable anchor emitted by the DSH conversation renderer.
- * @returns matching rendered assistant element, or null when it is not mounted.
- */
-export declare function findDshAssistantAnchor(anchorKey: string): HTMLElement | null;
-/**
  * Determine whether a node is generated UI rather than committed citable text.
  *
  * @param node - rendered node to classify.

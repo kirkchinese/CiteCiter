@@ -6,11 +6,11 @@ export interface ParsedNextQuestions {
     readonly invalid: boolean;
 }
 /**
- * Normalize a genuine user question without wrapping it in Citation or role
- * prose. System Tutor and Citation Context travel through their own layers.
+ * Trim a first question without wrapping it in Citation or role prose. It may be
+ * empty because creation only prepares a draft; the length limit applies before any request.
+ * @param rawQuestion - text typed or chosen by the user.
+ * @returns the trimmed question.
  */
-export declare function normalizeQuestion(rawQuestion: string): string;
-/** Creation may prepare an empty composer; length limits apply before any request. */
 export declare function normalizeDraftQuestion(rawQuestion: string): string;
 /**
  * Parse optional follow-up control text without exposing complete or partial markers.

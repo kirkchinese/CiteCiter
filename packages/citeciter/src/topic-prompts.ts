@@ -21,7 +21,14 @@ export function learningRoutePrompt(enabled: boolean): string {
     : 'Learning route is OFF. Do not start, resume or update teaching todos from earlier messages or old plans, including to record completion of a single explanation, diagram or visual check. Answer the current question directly. Explicit requests for an individual diagram or cards still apply. Ordinary task planning for programming remains available.'
 }
 
-/** Compose native Topic instructions without importing legacy read-only policy or hidden citation content. */
+/**
+ * Compose the Topic system prompt section. Citations never appear here; they reach
+ * the model only as references the user submitted.
+ * @param custom - optional user teaching preferences.
+ * @param followups - whether the first answer may end with suggested follow-up questions.
+ * @param learningRoute - whether the optional learning route is enabled.
+ * @returns the complete section text.
+ */
 export function composeHostedTopicPrompt(custom: string | undefined, followups: boolean, learningRoute = false): string {
   return [HOSTED_TOPIC_PROMPT, custom?.trim(), learningRoutePrompt(learningRoute), followups ? FIRST_ANSWER_FOLLOWUPS : undefined].filter(Boolean).join('\n\n')
 }
