@@ -10,12 +10,18 @@ const bundle = clientBundle(
   ],
 )
 
-/** Normalize emitted chunks before their first write, without reopening mapped files. */
+/**
+ * pnpm truncates and hashes long virtual-store directory names at a platform-dependent length,
+ * so region comments name dependencies by package path only.
+ */
+const STORE_REGION_PATH = /^([\t ]*\/\/#region )(?:\.\.\/)*node_modules\/\.pnpm\/[^/\n]+\/node_modules\//gmu
+
+/** Normalize emitted chunks before their first write, so committed lib/ is identical on every platform. */
 const normalizeChunks: TsdownPlugin = {
   name: 'citeciter-normalize-chunks',
   generateBundle(_options, output) {
     for (const entry of Object.values(output)) {
-      if (entry.type === 'chunk') entry.code = entry.code.replace(/[\t ]+$/gmu, '')
+      if (entry.type === 'chunk') entry.code = entry.code.replace(/[\t ]+$/gmu, '').replace(STORE_REGION_PATH, '$1node_modules/')
     }
   },
 }

@@ -32,7 +32,7 @@ window.__ModuleLoader__.load({
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		let react_dom = require("react-dom");
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-brand@0.2._98872691de1af917d2536ca141aa5506/node_modules/@deepseek-ai/dsh-brand/lib/index.js
+		//#region node_modules/@deepseek-ai/dsh-brand/lib/index.js
 		/**
 		* Duplicate-install-safe nominal primitive helpers.
 		*
@@ -63,7 +63,7 @@ window.__ModuleLoader__.load({
 			return value;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-session@0._2f6e90015528321e57f5b21fac4f3d76/node_modules/@deepseek-ai/dsh-session/lib/types/types.js
+		//#region node_modules/@deepseek-ai/dsh-session/lib/types/types.js
 		/**
 		* Brand a string as a {@link SessionId}.
 		* @param id - the raw session id string.
@@ -82,7 +82,7 @@ window.__ModuleLoader__.load({
 			return brandNumber(value);
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/util.js
+		//#region node_modules/zod/v4/core/util.js
 		function getEnumValues(entries) {
 			const numericValues = Object.values(entries).filter((v) => typeof v === "number");
 			return Object.entries(entries).filter(([k, _]) => numericValues.indexOf(+k) === -1).map(([_, v]) => v);
@@ -558,7 +558,7 @@ window.__ModuleLoader__.load({
 			return fn;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/core.js
+		//#region node_modules/zod/v4/core/core.js
 		var _a$1;
 		const _zodDesc$1 = {
 			value: void 0,
@@ -665,7 +665,7 @@ window.__ModuleLoader__.load({
 			return globalConfig;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/errors.js
+		//#region node_modules/zod/v4/core/errors.js
 		function _getMessage() {
 			const internals = this._zod;
 			internals.message ?? (internals.message = JSON.stringify(internals.def, jsonStringifyReplacer, 2));
@@ -788,7 +788,7 @@ window.__ModuleLoader__.load({
 			return fieldErrors;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/parse.js
+		//#region node_modules/zod/v4/core/parse.js
 		function finalizeParams(callee, params) {
 			return {
 				callee: params?.callee ?? callee,
@@ -930,7 +930,7 @@ window.__ModuleLoader__.load({
 			return _safeParseAsync(_Err)(schema, value, _ctx);
 		};
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/regexes.js
+		//#region node_modules/zod/v4/core/regexes.js
 		/**
 		* @deprecated CUID v1 is deprecated by its authors due to information leakage
 		* (timestamps embedded in the id). Use {@link cuid2} instead.
@@ -1005,7 +1005,7 @@ window.__ModuleLoader__.load({
 		const lowercase = /^[^A-Z]*$/;
 		const uppercase$1 = /^[^a-z]*$/;
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/checks.js
+		//#region node_modules/zod/v4/core/checks.js
 		const $ZodCheck = /*@__PURE__*/ $constructor("$ZodCheck", (inst, def) => {
 			var _a;
 			inst._zod ?? (inst._zod = {});
@@ -1366,7 +1366,7 @@ window.__ModuleLoader__.load({
 			};
 		});
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/doc.js
+		//#region node_modules/zod/v4/core/doc.js
 		var Doc = class {
 			constructor(args = [], closed = {}) {
 				this.content = [];
@@ -1397,14 +1397,14 @@ window.__ModuleLoader__.load({
 			}
 		};
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/versions.js
+		//#region node_modules/zod/v4/core/versions.js
 		const version$1 = {
 			major: 4,
 			minor: 5,
 			patch: 4
 		};
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/schemas.js
+		//#region node_modules/zod/v4/core/schemas.js
 		const $ZodType = /*@__PURE__*/ $constructor("$ZodType", (inst, def) => {
 			var _a;
 			inst ?? (inst = {});
@@ -2785,7 +2785,7 @@ window.__ModuleLoader__.load({
 			}
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/memoizer.js
+		//#region node_modules/zod/v4/core/memoizer.js
 		var $ZodCyclicError = class extends Error {
 			constructor() {
 				super(`Cannot parse a reference cycle that closes through a transform`);
@@ -3004,7 +3004,7 @@ window.__ModuleLoader__.load({
 			return backEdges !== void 0 && value !== null && typeof value === "object" && backEdges.has(value);
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/locales/en.js
+		//#region node_modules/zod/v4/locales/en.js
 		const error = () => {
 			const Sizable = {
 				string: {
@@ -3110,7 +3110,7 @@ window.__ModuleLoader__.load({
 			return { localeError: error() };
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/registries.js
+		//#region node_modules/zod/v4/core/registries.js
 		var _a;
 		var $ZodRegistry = class {
 			constructor() {
@@ -3157,7 +3157,7 @@ window.__ModuleLoader__.load({
 		(_a = globalThis).__zod_globalRegistry ?? (_a.__zod_globalRegistry = registry());
 		const globalRegistry = globalThis.__zod_globalRegistry;
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/api.js
+		//#region node_modules/zod/v4/core/api.js
 		// @__NO_SIDE_EFFECTS__
 		function _string(Class, params) {
 			return new Class({
@@ -3662,7 +3662,7 @@ window.__ModuleLoader__.load({
 			return ch;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/to-json-schema.js
+		//#region node_modules/zod/v4/core/to-json-schema.js
 		function assignProps(target, ...sources) {
 			for (const source of sources) for (const key of Reflect.ownKeys(source)) if (Object.prototype.propertyIsEnumerable.call(source, key)) assignProp(target, key, source[key]);
 			return target;
@@ -4109,7 +4109,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return finalize(ctx, schema);
 		};
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/core/json-schema-processors.js
+		//#region node_modules/zod/v4/core/json-schema-processors.js
 		const formatMap = {
 			guid: "uuid",
 			url: "uri",
@@ -4481,7 +4481,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			seen.ref = def.innerType;
 		};
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/classic/errors.js
+		//#region node_modules/zod/v4/classic/errors.js
 		const _installedErrorProtos = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
 		function _lazyMethod(proto, key, make) {
 			Object.defineProperty(proto, key, {
@@ -4531,7 +4531,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		};
 		const ZodRealError = /*@__PURE__*/ $constructor("ZodError", initializer, void 0, { Parent: Error });
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/classic/parse.js
+		//#region node_modules/zod/v4/classic/parse.js
 		const parse$1 = /* @__PURE__ */ _parse(ZodRealError);
 		const parseAsync = /* @__PURE__ */ _parseAsync(ZodRealError);
 		const safeParse = /* @__PURE__ */ _safeParse(ZodRealError);
@@ -4545,7 +4545,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
 		const safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
 		//#endregion
-		//#region ../../node_modules/.pnpm/zod@4.5.4/node_modules/zod/v4/classic/schemas.js
+		//#region node_modules/zod/v4/classic/schemas.js
 		function _ensureDefaultLocale() {
 			if (!globalConfig.localeError) config(en_default());
 		}
@@ -6546,12 +6546,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}).strict()
 		]);
 		//#endregion
-		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/debug.js
+		//#region node_modules/semver/internal/debug.js
 		var require_debug = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			module.exports = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {};
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/constants.js
+		//#region node_modules/semver/internal/constants.js
 		var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			module.exports = {
 				MAX_LENGTH: 256,
@@ -6574,7 +6574,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/re.js
+		//#region node_modules/semver/internal/re.js
 		var require_re = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH, MAX_LENGTH } = require_constants();
 			const debug = require_debug();
@@ -6653,7 +6653,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			createToken("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/parse-options.js
+		//#region node_modules/semver/internal/parse-options.js
 		var require_parse_options = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const looseOption = Object.freeze({ loose: true });
 			const emptyOpts = Object.freeze({});
@@ -6665,7 +6665,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			module.exports = parseOptions;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/internal/identifiers.js
+		//#region node_modules/semver/internal/identifiers.js
 		var require_identifiers = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const numeric = /^[0-9]+$/;
 			const compareIdentifiers = (a, b) => {
@@ -6685,7 +6685,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/semver@7.8.5/node_modules/semver/classes/semver.js
+		//#region node_modules/semver/classes/semver.js
 		var require_semver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const debug = require_debug();
 			const { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
@@ -9563,7 +9563,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return text === "" ? `${reference}：请结合当前板书查看图形内容后回答。` : `${reference}中的文字：\n\n${literalLines(text)}\n\n图形关系请结合当前板书核对。`;
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/katex@0.18.5/node_modules/katex/dist/katex.mjs
+		//#region node_modules/katex/dist/katex.mjs
 		/**
 		* This is the ParseError class, which is the main error thrown by KaTeX
 		* functions when something has gone wrong. This is used to distinguish internal
@@ -36433,6 +36433,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"scenarioPicker": "p2EjMq_scenarioPicker",
 			"selectionPopover": "p2EjMq_selectionPopover",
 			"settingChoice": "p2EjMq_settingChoice",
+			"settingStack": "p2EjMq_settingStack",
+			"settingToggle": "p2EjMq_settingToggle",
 			"settingsDocumentAction": "p2EjMq_settingsDocumentAction",
 			"settingsDocumentButton": "p2EjMq_settingsDocumentButton",
 			"settingsDocumentStatus": "p2EjMq_settingsDocumentStatus",
@@ -36440,9 +36442,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"settingsHero": "p2EjMq_settingsHero",
 			"settingsPage": "p2EjMq_settingsPage",
 			"settingsSaveStatus": "p2EjMq_settingsSaveStatus",
-			"settingStack": "p2EjMq_settingStack",
 			"settingsWhale": "p2EjMq_settingsWhale",
-			"settingToggle": "p2EjMq_settingToggle",
 			"toolPreview": "p2EjMq_toolPreview",
 			"topicCopy": "p2EjMq_topicCopy",
 			"topicItem": "p2EjMq_topicItem",
@@ -39058,8 +39058,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"navigation": "hyscqa_navigation",
 			"rename": "hyscqa_rename",
 			"row": "hyscqa_row",
-			"rows": "hyscqa_rows",
 			"rowText": "hyscqa_rowText",
+			"rows": "hyscqa_rows",
 			"search": "hyscqa_search",
 			"show": "hyscqa_show",
 			"title": "hyscqa_title"
@@ -41226,7 +41226,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			})] });
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/@deepseek-ai+dsh-util-works_15e90a73390379d34bab46ca3fe69133/node_modules/@deepseek-ai/dsh-util-workspace-path/lib/index.js
+		//#region node_modules/@deepseek-ai/dsh-util-workspace-path/lib/index.js
 		/**
 		* The `dsh-resource://file/…` address grammar: how a file is named across the
 		* Sidebar and the resource model, built and parsed without touching a
@@ -42953,7 +42953,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 		}
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/util.js
+		//#region node_modules/html-to-image/lib/util.js
 		var require_util = /* @__PURE__ */ __commonJSMin(((exports) => {
 			var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 				function adopt(value) {
@@ -43251,7 +43251,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.isInstanceOfElement = isInstanceOfElement;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-pseudos.js
+		//#region node_modules/html-to-image/lib/clone-pseudos.js
 		var require_clone_pseudos = /* @__PURE__ */ __commonJSMin(((exports) => {
 			Object.defineProperty(exports, "__esModule", { value: true });
 			exports.clonePseudoElements = void 0;
@@ -43293,7 +43293,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.clonePseudoElements = clonePseudoElements;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/mimes.js
+		//#region node_modules/html-to-image/lib/mimes.js
 		var require_mimes = /* @__PURE__ */ __commonJSMin(((exports) => {
 			Object.defineProperty(exports, "__esModule", { value: true });
 			exports.getMimeType = void 0;
@@ -43322,7 +43322,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.getMimeType = getMimeType;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/dataurl.js
+		//#region node_modules/html-to-image/lib/dataurl.js
 		var require_dataurl = /* @__PURE__ */ __commonJSMin(((exports) => {
 			var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 				function adopt(value) {
@@ -43530,7 +43530,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.resourceToDataURL = resourceToDataURL;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-node.js
+		//#region node_modules/html-to-image/lib/clone-node.js
 		var require_clone_node = /* @__PURE__ */ __commonJSMin(((exports) => {
 			var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 				function adopt(value) {
@@ -43859,7 +43859,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.cloneNode = cloneNode;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-resources.js
+		//#region node_modules/html-to-image/lib/embed-resources.js
 		var require_embed_resources = /* @__PURE__ */ __commonJSMin(((exports) => {
 			var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 				function adopt(value) {
@@ -44062,7 +44062,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.embedResources = embedResources;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-images.js
+		//#region node_modules/html-to-image/lib/embed-images.js
 		var require_embed_images = /* @__PURE__ */ __commonJSMin(((exports) => {
 			var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 				function adopt(value) {
@@ -44322,7 +44322,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.embedImages = embedImages;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/apply-style.js
+		//#region node_modules/html-to-image/lib/apply-style.js
 		var require_apply_style = /* @__PURE__ */ __commonJSMin(((exports) => {
 			Object.defineProperty(exports, "__esModule", { value: true });
 			exports.applyStyle = void 0;
@@ -44340,7 +44340,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			exports.applyStyle = applyStyle;
 		}));
 		//#endregion
-		//#region ../../node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-webfonts.js
+		//#region node_modules/html-to-image/lib/embed-webfonts.js
 		var require_embed_webfonts = /* @__PURE__ */ __commonJSMin(((exports) => {
 			var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 				function adopt(value) {
