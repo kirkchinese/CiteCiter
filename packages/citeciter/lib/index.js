@@ -1,4 +1,4 @@
-import { A as boardBatchSchema, C as readQuestionReply, D as LEARNING_EXAMPLE_PARAMETER, E as learningCardsInputSchema, F as EMPTY_DRAFT_STATE, I as draftFileSchema, L as draftStateSchema, M as questionDraftKeySchema, N as questionDraftRecordSchema, O as EMPTY_BOARD_STATE, P as DRAFT_CHUNK_BYTES, R as subtractSubmitted, S as questionReplyText, T as LEARNING_CARD_FIELD_DESCRIPTIONS, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as EMPTY_QUESTION_DRAFT_STATE, k as applyBoardOps, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as DEFAULT_WHEEL_SLOTS, y as topicMetadataSchema } from "./update-BYeOEk1e.js";
+import { A as applyBoardOps, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_QUESTION_DRAFT_STATE, N as questionDraftKeySchema, O as LEARNING_EXAMPLE_PARAMETER, P as questionDraftRecordSchema, R as draftStateSchema, T as DEFAULT_WHEEL_SLOTS, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as subtractSubmitted } from "./update-B_0nN1_f.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -19581,7 +19581,7 @@ var TopicRuntime = class {
 	}
 	summaryFromMetadata(metadata) {
 		const agent = this.handles.get(metadata.sessionId)?.agent ?? this.host.agents.get(SessionId(metadata.sessionId));
-		const title = metadata.cachedTitle;
+		const title = topicDisplayTitle(metadata);
 		return {
 			permission: agent === void 0 ? "read-only" : this.host.sandboxPolicy.resolve({ session: agent.session }).mode,
 			topicId: metadata.topicId,
@@ -19589,8 +19589,8 @@ var TopicRuntime = class {
 			sourceSessionId: metadata.sourceSessionId,
 			documentId: metadata.documentId,
 			citation: metadata.citation,
-			title: title ?? metadata.temporaryTitle,
-			titlePending: title === null,
+			title: title.title,
+			titlePending: title.pending,
 			createdAt: metadata.createdAt,
 			updatedAt: metadata.updatedAt,
 			archived: metadata.archivedAt !== null,

@@ -941,6 +941,20 @@ function parseTopicMetadataFile(raw) {
 		documentId: documentId ?? null
 	});
 }
+/**
+* The title a Topic shows. DSH's fallback title repeats the first prompt, which for a Topic
+* is Citer's action instructions, so the excerpt or question it started from stays until a
+* provider or the user names the Topic.
+* @param metadata - the Topic's cached and temporary titles.
+* @returns the display title and whether a real title is still pending.
+*/
+function topicDisplayTitle(metadata) {
+	const named = metadata.cachedTitleSource === "fallback" ? null : metadata.cachedTitle;
+	return {
+		title: named ?? metadata.temporaryTitle,
+		pending: named === null
+	};
+}
 const permissionSchema = z.enum([
 	"read-only",
 	"workspace-write",
@@ -1588,4 +1602,4 @@ function waitForCaller(operation, signal) {
 	});
 }
 //#endregion
-export { boardBatchSchema as A, readQuestionReply as C, LEARNING_EXAMPLE_PARAMETER as D, learningCardsInputSchema as E, EMPTY_DRAFT_STATE as F, draftFileSchema as I, draftStateSchema as L, questionDraftKeySchema as M, questionDraftRecordSchema as N, EMPTY_BOARD_STATE as O, DRAFT_CHUNK_BYTES as P, subtractSubmitted as R, questionReplyText as S, LEARNING_CARD_FIELD_DESCRIPTIONS as T, readCiteCiterSettings as _, DEFAULT_CITECITER_SETTINGS as a, topicSnapshotSchema as b, citationDraftSchema as c, citeCiterRequestSchema as d, citeCiterResponseSchema as f, parseTopicMetadataFile as g, documentSummarySchema as h, CITECITER_SETTINGS_NAMESPACE as i, EMPTY_QUESTION_DRAFT_STATE as j, applyBoardOps as k, citationRecordSchema as l, documentEvidenceClaimSchema as m, updateCheckErrorCodeSchema as n, TUTOR_SECTION_NAME as o, documentContentSchema as p, updateCheckResponseSchema as r, canonicalCitationIdentity as s, UpdateChecker as t, citationSelectionClaimSchema as u, toolEvidenceClaimSchema as v, DEFAULT_WHEEL_SLOTS as w, topicSummarySchema as x, topicMetadataSchema as y };
+export { applyBoardOps as A, questionReplyText as C, learningCardsInputSchema as D, LEARNING_CARD_FIELD_DESCRIPTIONS as E, DRAFT_CHUNK_BYTES as F, EMPTY_DRAFT_STATE as I, draftFileSchema as L, EMPTY_QUESTION_DRAFT_STATE as M, questionDraftKeySchema as N, LEARNING_EXAMPLE_PARAMETER as O, questionDraftRecordSchema as P, draftStateSchema as R, topicSummarySchema as S, DEFAULT_WHEEL_SLOTS as T, readCiteCiterSettings as _, DEFAULT_CITECITER_SETTINGS as a, topicMetadataSchema as b, citationDraftSchema as c, citeCiterRequestSchema as d, citeCiterResponseSchema as f, parseTopicMetadataFile as g, documentSummarySchema as h, CITECITER_SETTINGS_NAMESPACE as i, boardBatchSchema as j, EMPTY_BOARD_STATE as k, citationRecordSchema as l, documentEvidenceClaimSchema as m, updateCheckErrorCodeSchema as n, TUTOR_SECTION_NAME as o, documentContentSchema as p, updateCheckResponseSchema as r, canonicalCitationIdentity as s, UpdateChecker as t, citationSelectionClaimSchema as u, toolEvidenceClaimSchema as v, readQuestionReply as w, topicSnapshotSchema as x, topicDisplayTitle as y, subtractSubmitted as z };

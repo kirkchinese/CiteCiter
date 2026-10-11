@@ -79,7 +79,7 @@ Creating a Topic or choosing 提问 only prepares a draft; preset actions such a
 
 New Topics are **read-only** by default, even when the source session has more permissions. A Topic can change the workspace only after you choose another permission mode in the composer or change the default for new Topics in Settings; DSH approvals and sandboxing still apply.
 
-Topics appear only in the Citer list, never in DSH's session list. A new Topic is titled by DSH's title service from its first message; rename it by double-clicking the title, pressing F2 or using the Topic menu, after which the title no longer changes on its own; an archived Topic returns to the list when you send to it again. Permanent deletion asks for the full Session ID and removes only that Topic's records, drafts and attachments.
+Topics appear only in the Citer list, never in DSH's session list. A new Topic starts with the excerpt or question as its title, and DSH's title service summarizes it on the first answer; rename it by double-clicking the title, pressing F2 or using the Topic menu, after which the title no longer changes on its own; an archived Topic returns to the list when you send to it again. Permanent deletion asks for the full Session ID and removes only that Topic's records, drafts and attachments.
 
 CiteCiter stores its data in each source session's directory:
 

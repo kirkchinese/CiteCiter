@@ -9,7 +9,7 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 - Selecting text in the conversation, a tool result or a document shows a toolbar with the first four actions; the rest and "ask in a new Topic" are under "⋯". The right-button wheel is optional and off by default, so the browser keeps its context menu unless the wheel is turned on in Settings.
 - Preset actions (explain, find errors, translate, …) send at once as their own message with the selected source and excerpt, without touching an existing draft; the question action still opens the composer. A setting switches presets back to filling the composer. If the host refuses a direct send, for example because the model is unavailable, the action moves into the composer.
 - Actions go to the open, unarchived Topic by default and create a Topic only when there is none or the user asks for a new one. Per-slot targets saved by earlier versions are ignored.
-- New Topics get summary titles from DSH's own first-prompt title provider; a rename still pins the title. This adds the DSH peer `@deepseek-ai/dsh-session-title-first-prompt-llm`, which every supported host already includes.
+- New Topics keep the excerpt or question as their title until DSH's own first-prompt title provider summarizes them; a rename still pins the title. This adds the DSH peer `@deepseek-ai/dsh-session-title-first-prompt-llm`, which every supported host already includes.
 
 ### Interface
 

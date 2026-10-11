@@ -304,6 +304,20 @@ export function parseTopicMetadataFile(raw: unknown): TopicMetadata {
   }) as TopicMetadata
 }
 
+/**
+ * The title a Topic shows. DSH's fallback title repeats the first prompt, which for a Topic
+ * is Citer's action instructions, so the excerpt or question it started from stays until a
+ * provider or the user names the Topic.
+ * @param metadata - the Topic's cached and temporary titles.
+ * @returns the display title and whether a real title is still pending.
+ */
+export function topicDisplayTitle(
+  metadata: Pick<TopicMetadata, 'temporaryTitle' | 'cachedTitle' | 'cachedTitleSource'>,
+): { readonly title: string, readonly pending: boolean } {
+  const named = metadata.cachedTitleSource === 'fallback' ? null : metadata.cachedTitle
+  return { title: named ?? metadata.temporaryTitle, pending: named === null }
+}
+
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'danger-full-access'])
 
 export const topicSummarySchema = z.object({

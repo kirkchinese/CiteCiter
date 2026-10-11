@@ -54,6 +54,7 @@ import {
   TOPIC_METADATA_SCHEMA_VERSION,
   TUTOR_SECTION_NAME,
   citeCiterRequestSchema,
+  topicDisplayTitle,
   topicMetadataSchema,
   type CiteCiterRequest,
   type CiteCiterResponse,
@@ -1186,7 +1187,7 @@ export class TopicRuntime {
 
   private summaryFromMetadata(metadata: TopicMetadata): TopicSummary {
     const agent = this.handles.get(metadata.sessionId)?.agent ?? this.host.agents.get(SessionId(metadata.sessionId))
-    const title = metadata.cachedTitle
+    const title = topicDisplayTitle(metadata)
     return {
       permission: agent === undefined ? 'read-only' : this.host.sandboxPolicy.resolve({ session: agent.session }).mode,
       topicId: metadata.topicId,
@@ -1194,8 +1195,8 @@ export class TopicRuntime {
       sourceSessionId: metadata.sourceSessionId,
       documentId: metadata.documentId,
       citation: metadata.citation,
-      title: title ?? metadata.temporaryTitle,
-      titlePending: title === null,
+      title: title.title,
+      titlePending: title.pending,
       createdAt: metadata.createdAt,
       updatedAt: metadata.updatedAt,
       archived: metadata.archivedAt !== null,

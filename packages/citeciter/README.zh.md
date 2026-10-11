@@ -79,7 +79,7 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v
 
 新 Topic 默认**只读**，即使来源会话拥有更高权限。只有你在输入框中选择其他权限模式，或在设置里修改新 Topic 的默认权限后，Topic 才能修改工作区；DSH 的审批和沙箱规则照常生效。
 
-Topic 只出现在 Citer 的列表里，不会出现在 DSH 的会话列表中。新 Topic 的标题由 DSH 的标题服务根据第一条消息生成；双击标题、按 F2 或在 Topic 菜单中重命名，重命名后不再自动修改；归档的 Topic 在你再次发送消息后自动恢复。永久删除需要输入完整的 Session ID，只删除这个 Topic 自己的记录、草稿和附件。
+Topic 只出现在 Citer 的列表里，不会出现在 DSH 的会话列表中。新 Topic 先以引用摘录或问题为标题，第一次回答时由 DSH 的标题服务生成摘要标题；双击标题、按 F2 或在 Topic 菜单中重命名，重命名后不再自动修改；归档的 Topic 在你再次发送消息后自动恢复。永久删除需要输入完整的 Session ID，只删除这个 Topic 自己的记录、草稿和附件。
 
 CiteCiter 的数据保存在每个来源会话的目录中：
 
