@@ -58,6 +58,15 @@ export class CiterSessionWorld {
             fallbackMaxBytes: 40,
             maxTitleBytes: 80,
           })
+          // The same first-prompt model provider and policy that dsh-base mounts for
+          // host sessions, so Topics get summary titles; a user rename still pins the title.
+          await ctx.plugin(modules.SessionTitleProvider, {
+            targetWords: 5,
+            targetCjkCharacters: 10,
+            maxInputBytes: 4096,
+            maxOutputTokens: 64,
+            timeoutMs: 60000,
+          })
           await ctx.plugin({
             name: 'citeciter-session-factory',
             inject: ['agents', 'sessionPersistence', 'llm', 'sessions', 'sessionTitle', 'systemPrompt', 'tools', 'sessionProjections'],
