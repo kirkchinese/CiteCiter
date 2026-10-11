@@ -1868,6 +1868,28 @@ async function loadHostAgentModules() {
 }
 //#endregion
 //#region lib/types/citer-session-world.js
+/**
+* DSH starts automatic first-prompt titles only for sessions without a parent, and a
+* Topic's parent is its source session. When a Topic request starts while its title is
+* still the fallback, ask the registered provider once, as the host does for its own
+* sessions. Explicit renames are never replaced.
+*/
+const requestTopicTitles = {
+	name: "citeciter-topic-titles",
+	inject: ["sessionTitle", "sessions"],
+	apply(ctx) {
+		const requested = /* @__PURE__ */ new WeakSet();
+		ctx.on("session/event", (session, event) => {
+			if (event.type !== "request/header" || requested.has(session)) return;
+			const title = ctx.sessionTitle.get(session);
+			if (title !== void 0 && title.source.kind !== "fallback") return;
+			requested.add(session);
+			ctx.sessionTitle.refresh(session).catch((error) => {
+				ctx.logger.warn(`CiteCiter could not title Topic ${session.id}`, error);
+			});
+		});
+	}
+};
 /** A Topic-owned DSH factory and JSONL backend; live conversation APIs stay shared, disk ownership does not. */
 var CiterSessionWorld = class {
 	fiber;
@@ -1927,6 +1949,7 @@ var CiterSessionWorld = class {
 						maxOutputTokens: 64,
 						timeoutMs: 6e4
 					});
+					await ctx.plugin(requestTopicTitles);
 					await ctx.plugin({
 						name: "citeciter-session-factory",
 						inject: [

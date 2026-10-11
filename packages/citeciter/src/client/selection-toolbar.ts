@@ -46,12 +46,18 @@ export interface SelectionReaders {
  */
 export function installSelectionToolbar(readers: SelectionReaders, enabled: () => boolean) {
   const store = createSnapshotStore<SelectionToolbarSnapshot>({ current: null })
-  let pending = 0
+  let pending: ReturnType<typeof setTimeout> | undefined
+  // Where the shown selection lives; only scrolling that moves it makes the toolbar stale.
+  let anchorNode: Node | null = null
   const dismiss = () => {
-    cancelAnimationFrame(pending)
+    clearTimeout(pending)
+    anchorNode = null
     if (store.getSnapshot().current !== null) store.update(draft => { draft.current = null })
   }
-  const show = (source: ActionSource, anchor: SelectionAnchor) => store.update(draft => { draft.current = { source, anchor } })
+  const show = (source: ActionSource, anchor: SelectionAnchor, node: Node) => {
+    anchorNode = node
+    store.update(draft => { draft.current = { source, anchor } })
+  }
   const evaluate = (origin: EventTarget | null, pointer: { readonly x: number, readonly y: number } | null) => {
     if (!enabled()) return dismiss()
     const originElement = origin instanceof Node ? elementOf(origin) : null
@@ -69,12 +75,13 @@ export function installSelectionToolbar(readers: SelectionReaders, enabled: () =
     const synthetic = { target, clientX: anchor.x, clientY: anchor.bottom, preventDefault: () => {} } as unknown as MouseEvent
     const source = range === null ? readers.surface(synthetic) : readers.range(synthetic)
     if (source === null) return dismiss()
-    show(source, anchor)
+    show(source, anchor, range?.commonAncestorContainer ?? target)
   }
   // Read the selection after the browser has finished updating it for this gesture.
+  // A timer still runs in an occluded window, where animation frames are paused.
   const settle = (origin: EventTarget | null, pointer: { readonly x: number, readonly y: number } | null) => {
-    cancelAnimationFrame(pending)
-    pending = requestAnimationFrame(() => evaluate(origin, pointer))
+    clearTimeout(pending)
+    pending = setTimeout(() => evaluate(origin, pointer), 0)
   }
   const down = (event: PointerEvent) => {
     if (event.target instanceof Element && event.target.closest('[data-citeciter-toolbar]') !== null) return
@@ -94,8 +101,9 @@ export function installSelectionToolbar(readers: SelectionReaders, enabled: () =
     if (window.getSelection()?.isCollapsed !== false) dismiss()
   }
   const scroll = (event: Event) => {
-    if (event.target instanceof Element && event.target.closest('[data-citeciter-toolbar]') !== null) return
-    dismiss()
+    if (anchorNode === null) return
+    // Scrolling elsewhere, such as the Citer transcript refreshing, leaves the toolbar in place.
+    if (event.target === document || (event.target instanceof Node && event.target.contains(anchorNode))) dismiss()
   }
   document.addEventListener('pointerdown', down, true)
   document.addEventListener('pointerup', up)
@@ -104,7 +112,6 @@ export function installSelectionToolbar(readers: SelectionReaders, enabled: () =
   document.addEventListener('selectionchange', selectionChange)
   document.addEventListener('scroll', scroll, true)
   window.addEventListener('resize', dismiss)
-  window.addEventListener('blur', dismiss)
   return {
     getSnapshot: store.getSnapshot,
     subscribe: store.subscribe,
@@ -118,7 +125,6 @@ export function installSelectionToolbar(readers: SelectionReaders, enabled: () =
       document.removeEventListener('selectionchange', selectionChange)
       document.removeEventListener('scroll', scroll, true)
       window.removeEventListener('resize', dismiss)
-      window.removeEventListener('blur', dismiss)
     },
   }
 }

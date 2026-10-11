@@ -1,13 +1,14 @@
-/* Mirrors the host composer: input-major surface, panel radius, soft elevation, content font size. */
+/* Mirrors the host composer card: input-major surface, panel radius, and the soft elevation's
+   0.5px stroke in the border-l2 color instead of a border. */
 .composer {
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l2);
   flex: none;
   margin: 8px 12px 12px;
   padding: 10px 8px 6px;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1, #fff));
-  border: .5px solid var(--dsw-alias-border-l2, #d9dde5);
   border-radius: var(--dsw-radius-panel, 12px);
-  box-shadow: var(--dsw-elevation-soft, 0 1px 4px #0000000f);
+  box-shadow: var(--dsw-elevation-soft, 0 0 0 .5px #0000001f, 0 1px 4px #0000000f);
   container-type: inline-size;
 }
 
@@ -39,21 +40,23 @@
   margin-top: 6px;
 }
 
+/* The host composer's send button: info fill, 34px circle. */
 .sendButton {
   display: grid;
   flex: none;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   padding: 0;
-  color: var(--dsw-alias-label-primary-foreground, #fff);
-  background: var(--dsw-alias-button-primary-fill, var(--dsw-alias-state-business-primary, #3478f6));
+  color: #fff;
+  background: var(--dsw-alias-button-info-fill, #4176e6);
   border: 0;
-  border-radius: 50%;
+  border-radius: 999px;
   cursor: pointer;
+  transition: background-color .1s;
 }
 
-.sendButton:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover, var(--dsw-alias-state-business-primary, #3478f6)); }
+.sendButton:hover:not(:disabled) { background: var(--dsw-alias-button-info-hover, #3567d1); }
 .sendButton:disabled { cursor: default; opacity: .4; }
 
 .sendButton:focus-visible,

@@ -39207,7 +39207,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/TopicComposer.module.css.mjs
-		const css$7 = ".fcUp-q_composer{color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-panel,12px);box-shadow:var(--dsw-elevation-soft,0 1px 4px #0000000f);flex:none;margin:8px 12px 12px;padding:10px 8px 6px;container-type:inline-size}.fcUp-q_composer textarea{box-sizing:border-box;resize:none;width:100%;min-width:0;min-height:48px;max-height:160px;color:inherit;font-family:inherit;font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));background:0 0;border:0;outline:none;padding:2px 10px 0;display:block}.fcUp-q_composer textarea::placeholder{color:var(--dsw-alias-label-tertiary)}.fcUp-q_composerActions{align-items:center;gap:4px;min-width:0;margin-top:6px;display:flex}.fcUp-q_sendButton{width:32px;height:32px;color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-state-business-primary,#3478f6));cursor:pointer;border:0;border-radius:50%;flex:none;place-items:center;padding:0;display:grid}.fcUp-q_sendButton:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-state-business-primary,#3478f6))}.fcUp-q_sendButton:disabled{cursor:default;opacity:.4}.fcUp-q_sendButton:focus-visible,.fcUp-q_expandButton:focus-visible,.fcUp-q_attachButton:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:2px}.fcUp-q_composer[data-folded]{padding-top:6px}.fcUp-q_composer[data-folded] textarea{display:none}.fcUp-q_expandButton{height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0 8px}.fcUp-q_expandButton:hover{background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_attachButton{width:32px;height:32px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:0;border-radius:50%;flex:none;place-items:center;font-size:20px;display:grid}.fcUp-q_attachButton:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_composerActions>button[aria-label^=权限]{white-space:nowrap;flex:none;max-width:140px}@container (width<=430px){.fcUp-q_composerActions>button[aria-label^=权限]>span{display:none}.fcUp-q_composerActions>button[aria-label^=权限]{padding:6px}}";
+		const css$7 = ".fcUp-q_composer{--dsw-elevation-stroke-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border-radius:var(--dsw-radius-panel,12px);box-shadow:var(--dsw-elevation-soft,0 0 0 .5px #0000001f, 0 1px 4px #0000000f);flex:none;margin:8px 12px 12px;padding:10px 8px 6px;container-type:inline-size}.fcUp-q_composer textarea{box-sizing:border-box;resize:none;width:100%;min-width:0;min-height:48px;max-height:160px;color:inherit;font-family:inherit;font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));background:0 0;border:0;outline:none;padding:2px 10px 0;display:block}.fcUp-q_composer textarea::placeholder{color:var(--dsw-alias-label-tertiary)}.fcUp-q_composerActions{align-items:center;gap:4px;min-width:0;margin-top:6px;display:flex}.fcUp-q_sendButton{color:#fff;background:var(--dsw-alias-button-info-fill,#4176e6);cursor:pointer;border:0;border-radius:999px;flex:none;place-items:center;width:34px;height:34px;padding:0;transition:background-color .1s;display:grid}.fcUp-q_sendButton:hover:not(:disabled){background:var(--dsw-alias-button-info-hover,#3567d1)}.fcUp-q_sendButton:disabled{cursor:default;opacity:.4}.fcUp-q_sendButton:focus-visible,.fcUp-q_expandButton:focus-visible,.fcUp-q_attachButton:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:2px}.fcUp-q_composer[data-folded]{padding-top:6px}.fcUp-q_composer[data-folded] textarea{display:none}.fcUp-q_expandButton{height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0 8px}.fcUp-q_expandButton:hover{background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_attachButton{width:32px;height:32px;color:var(--dsw-alias-label-secondary);cursor:pointer;background:0 0;border:0;border-radius:50%;flex:none;place-items:center;font-size:20px;display:grid}.fcUp-q_attachButton:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_composerActions>button[aria-label^=权限]{white-space:nowrap;flex:none;max-width:140px}@container (width<=430px){.fcUp-q_composerActions>button[aria-label^=权限]>span{display:none}.fcUp-q_composerActions>button[aria-label^=权限]{padding:6px}}";
 		const tagId$7 = "@kirkchinese/dsh-citeciter/TopicComposer.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$7) + "]") === null) {
 			const tag = document.createElement("style");
@@ -41614,19 +41614,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		*/
 		function installSelectionToolbar(readers, enabled) {
 			const store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({ current: null });
-			let pending = 0;
+			let pending;
+			let anchorNode = null;
 			const dismiss = () => {
-				cancelAnimationFrame(pending);
+				clearTimeout(pending);
+				anchorNode = null;
 				if (store.getSnapshot().current !== null) store.update((draft) => {
 					draft.current = null;
 				});
 			};
-			const show = (source, anchor) => store.update((draft) => {
-				draft.current = {
-					source,
-					anchor
-				};
-			});
+			const show = (source, anchor, node) => {
+				anchorNode = node;
+				store.update((draft) => {
+					draft.current = {
+						source,
+						anchor
+					};
+				});
+			};
 			const evaluate = (origin, pointer) => {
 				if (!enabled()) return dismiss();
 				const originElement = origin instanceof Node ? elementOf(origin) : null;
@@ -41652,11 +41657,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				};
 				const source = range === null ? readers.surface(synthetic) : readers.range(synthetic);
 				if (source === null) return dismiss();
-				show(source, anchor);
+				show(source, anchor, range?.commonAncestorContainer ?? target);
 			};
 			const settle = (origin, pointer) => {
-				cancelAnimationFrame(pending);
-				pending = requestAnimationFrame(() => evaluate(origin, pointer));
+				clearTimeout(pending);
+				pending = setTimeout(() => evaluate(origin, pointer), 0);
 			};
 			const down = (event) => {
 				if (event.target instanceof Element && event.target.closest("[data-citeciter-toolbar]") !== null) return;
@@ -41681,8 +41686,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				if (window.getSelection()?.isCollapsed !== false) dismiss();
 			};
 			const scroll = (event) => {
-				if (event.target instanceof Element && event.target.closest("[data-citeciter-toolbar]") !== null) return;
-				dismiss();
+				if (anchorNode === null) return;
+				if (event.target === document || event.target instanceof Node && event.target.contains(anchorNode)) dismiss();
 			};
 			document.addEventListener("pointerdown", down, true);
 			document.addEventListener("pointerup", up);
@@ -41691,7 +41696,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			document.addEventListener("selectionchange", selectionChange);
 			document.addEventListener("scroll", scroll, true);
 			window.addEventListener("resize", dismiss);
-			window.addEventListener("blur", dismiss);
 			return {
 				getSnapshot: store.getSnapshot,
 				subscribe: store.subscribe,
@@ -41705,7 +41709,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					document.removeEventListener("selectionchange", selectionChange);
 					document.removeEventListener("scroll", scroll, true);
 					window.removeEventListener("resize", dismiss);
-					window.removeEventListener("blur", dismiss);
 				}
 			};
 		}
