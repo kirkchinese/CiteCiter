@@ -1,14 +1,14 @@
 # CiteCiter
 
-[简体中文](README.zh.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
+[简体中文](README.zh.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.2/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
-![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.1/assets/hero/citeciter-hero.png)
+![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.2/assets/hero/citeciter-hero.png)
 
 **The AI finished the task. I still want to understand how it did it.**
 
 CiteCiter is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) plugin that helps you learn from your agent's real work. Select part of a conversation, a tool result or a document, ask about it in a separate Topic that keeps its source, use a blackboard to see how the pieces relate, then return to your work. The main conversation is never modified.
 
-[![CiteCiter demo](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.1/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
+[![CiteCiter demo](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.2/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
 [Watch the demo on Bilibili](https://www.bilibili.com/video/BV1tqeA65EJ8/) (recorded with an earlier version; the interface has changed slightly).
 
@@ -115,6 +115,6 @@ CiteCiter turns real AI work into material you can cite, question and check. Sta
 
 Bring a task where "the agent finished, but I still can't explain it" to the [issue tracker](https://github.com/kirkchinese/CiteCiter/issues). Include your DSH and plugin versions and whether you got stuck installing, citing and asking, or understanding the answer. Remove keys and private content before pasting material.
 
-See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
+See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.2/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.2/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
 
 MIT License.
