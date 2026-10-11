@@ -25,6 +25,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
+  corner-shape: round;
   pointer-events: none;
 }
 

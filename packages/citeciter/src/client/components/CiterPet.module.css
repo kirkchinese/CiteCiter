@@ -72,6 +72,7 @@
   height: 10px;
   background: var(--dsw-alias-state-business-primary, #3478f6);
   border-radius: 50%;
+  corner-shape: round;
   box-shadow: 0 0 0 2px var(--dsw-alias-bg-base, #fff);
 }
 

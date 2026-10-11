@@ -68,6 +68,9 @@ export function CiterPet({ attention, onOpen }: { readonly attention: boolean, r
     timer.current = window.setTimeout(() => { expandedRef.current = next; setExpanded(next) }, delay)
   }
 
+  // Keyboard focus keeps her standing; the focus a mouse press leaves behind does not.
+  const keyboardFocused = () => button.current?.matches(':focus-visible') === true
+
   useEffect(() => {
     const near = (event: PointerEvent) => {
       if (gesture.current !== null) return
@@ -75,9 +78,9 @@ export function CiterPet({ attention, onOpen }: { readonly attention: boolean, r
       if (rect === undefined) return
       const inside = event.clientX >= rect.left - REVEAL_DISTANCE && event.clientX <= rect.right + REVEAL_DISTANCE
         && event.clientY >= rect.top - REVEAL_DISTANCE && event.clientY <= rect.bottom + REVEAL_DISTANCE
-      if (button.current !== document.activeElement) setShown(inside, inside ? REVEAL_DELAY : HIDE_DELAY)
+      if (!keyboardFocused()) setShown(inside, inside ? REVEAL_DELAY : HIDE_DELAY)
     }
-    const leave = (event: PointerEvent) => { if (event.relatedTarget === null && button.current !== document.activeElement) setShown(false, HIDE_DELAY) }
+    const leave = (event: PointerEvent) => { if (event.relatedTarget === null && !keyboardFocused()) setShown(false, HIDE_DELAY) }
     const resize = () => setViewport(value => value + 1)
     document.addEventListener('pointermove', near, { passive: true })
     document.addEventListener('pointerout', leave)
@@ -125,7 +128,7 @@ export function CiterPet({ attention, onOpen }: { readonly attention: boolean, r
     <button ref={button} type="button" className={css.pet} style={style} data-side={place.side} data-expanded={shown || undefined} data-dragging={drag !== null || undefined}
       aria-label={attention ? '打开 Citer，有新的回答' : '打开 Citer'} title="打开 Citer · 可以拖动"
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}
-      onFocus={() => setShown(true, 0)} onBlur={() => setShown(false, HIDE_DELAY)}
+      onFocus={() => { if (keyboardFocused()) setShown(true, 0) }} onBlur={() => setShown(false, HIDE_DELAY)}
       onClick={event => { if (event.detail === 0) onOpen() }}>
       <img className={css.peek} src={peekUrl} alt="" draggable={false} />
       <img className={css.proud} src={proudUrl} alt="" draggable={false} />

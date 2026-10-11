@@ -83,12 +83,18 @@ export function installSelectionToolbar(readers: SelectionReaders, enabled: () =
     clearTimeout(pending)
     pending = setTimeout(() => evaluate(origin, pointer), 0)
   }
+  // Only a gesture that changed the selection shows the toolbar; clicking a button
+  // while an old selection is still highlighted must not bring it back.
+  let selectedDuringGesture = false
   const down = (event: PointerEvent) => {
     if (event.target instanceof Element && event.target.closest('[data-citeciter-toolbar]') !== null) return
+    selectedDuringGesture = false
     dismiss()
   }
   const up = (event: PointerEvent) => {
     if (event.button !== 0) return
+    // A read-only textarea surface may keep its selection out of document selection events.
+    if (!selectedDuringGesture && !(event.target instanceof HTMLTextAreaElement)) return
     settle(event.target, { x: event.clientX, y: event.clientY })
   }
   const keyup = (event: KeyboardEvent) => {
@@ -96,6 +102,7 @@ export function installSelectionToolbar(readers: SelectionReaders, enabled: () =
   }
   const keydown = (event: KeyboardEvent) => { if (event.key === 'Escape') dismiss() }
   const selectionChange = () => {
+    selectedDuringGesture = true
     const current = store.getSnapshot().current
     if (current === null || current.source.kind === 'document') return
     if (window.getSelection()?.isCollapsed !== false) dismiss()

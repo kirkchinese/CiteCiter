@@ -172,6 +172,7 @@
   height: 6px;
   background: var(--dsw-alias-state-business-primary);
   border-radius: 50%;
+  corner-shape: round;
 }
 
 @keyframes show {

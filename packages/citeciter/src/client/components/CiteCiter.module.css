@@ -220,6 +220,7 @@
   height: 72px;
   margin-bottom: 4px;
   border-radius: 50%;
+  corner-shape: round;
 }
 
 .emptyState h2 {

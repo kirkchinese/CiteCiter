@@ -52,6 +52,7 @@
   background: var(--dsw-alias-button-info-fill, #4176e6);
   border: 0;
   border-radius: 999px;
+  corner-shape: round;
   cursor: pointer;
   transition: background-color .1s;
 }
@@ -92,6 +93,7 @@
   background: transparent;
   border: 0;
   border-radius: 50%;
+  corner-shape: round;
   font-size: 20px;
   cursor: pointer;
 }

@@ -19,6 +19,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  corner-shape: round;
 }
 
 .intro h2 {

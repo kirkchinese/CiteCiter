@@ -21,6 +21,7 @@
   height: 18px;
   margin: 0 4px 0 2px;
   border-radius: 50%;
+  corner-shape: round;
 }
 
 .toolbar button {

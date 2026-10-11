@@ -98,6 +98,7 @@
 .elementInner::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 999px;
+  corner-shape: round;
 }
 
 .canvas:hover::-webkit-scrollbar-thumb,
