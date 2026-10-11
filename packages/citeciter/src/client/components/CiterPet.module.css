@@ -1,0 +1,91 @@
+/* The hit area always matches the visible figure: 54x84 peeking, 95x112 standing. */
+.pet {
+  position: fixed;
+  z-index: 200;
+  width: 54px;
+  height: 84px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-app-region: no-drag;
+  pointer-events: auto;
+  transition: width 200ms cubic-bezier(.2, .8, .2, 1), height 200ms cubic-bezier(.2, .8, .2, 1), margin-top 200ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.pet[data-side='right'] { right: 0; }
+.pet[data-side='left'] { left: 0; }
+
+.pet[data-expanded] {
+  width: 95px;
+  height: 112px;
+  margin-top: -28px;
+}
+
+.pet[data-dragging] {
+  margin-top: 0;
+  cursor: grabbing;
+  transition: none;
+}
+
+.pet:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+  border-radius: var(--dsw-radius-md, 8px);
+}
+
+.pet img {
+  position: absolute;
+  bottom: 0;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 160ms ease, transform 200ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.peek {
+  width: 54px;
+  height: 84px;
+}
+
+.proud {
+  width: 95px;
+  height: 112px;
+  opacity: 0;
+}
+
+.pet[data-side='right'] img { right: 0; }
+.pet[data-side='left'] img { left: 0; }
+.pet[data-side='right'] .proud { transform: translateX(20px) scale(.92); }
+.pet[data-side='left'] .peek { transform: scaleX(-1); }
+.pet[data-side='left'] .proud { transform: scaleX(-1) translateX(20px) scale(.92); }
+
+.pet[data-expanded] .peek { opacity: 0; }
+.pet[data-expanded][data-side='right'] .proud { opacity: 1; transform: none; }
+.pet[data-expanded][data-side='left'] .proud { opacity: 1; transform: scaleX(-1); }
+
+.dot {
+  position: absolute;
+  top: 10px;
+  width: 10px;
+  height: 10px;
+  background: var(--dsw-alias-state-business-primary, #3478f6);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--dsw-alias-bg-base, #fff);
+}
+
+.pet[data-side='right'] .dot { left: 6px; }
+.pet[data-side='left'] .dot { right: 6px; }
+.pet[data-expanded] .dot { top: 8px; }
+
+:global(body:has([role='dialog'][aria-modal='true'])) .pet,
+:global([data-rightbar-fullscreen]) .pet {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet,
+  .pet img { transition: none; }
+}

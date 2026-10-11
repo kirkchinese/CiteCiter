@@ -111,6 +111,20 @@ test('settings are read field by field and ignore keys from other versions', () 
   assert.deepEqual(settings.wheelSlots, DEFAULT_WHEEL_SLOTS)
 })
 
+test('selection entry settings default to the toolbar and direct send, and fall back one field at a time', () => {
+  assert.equal(DEFAULT_CITECITER_SETTINGS.selectionToolbar, true)
+  assert.equal(DEFAULT_CITECITER_SETTINGS.wheelEnabled, false)
+  assert.equal(DEFAULT_CITECITER_SETTINGS.actionDelivery, 'send')
+  const settings = readCiteCiterSettings({ actionDelivery: 'later', wheelEnabled: 'yes', selectionToolbar: false, wheelTrigger: 'Alt' })
+  assert.equal(settings.actionDelivery, 'send')
+  assert.equal(settings.wheelEnabled, false)
+  assert.equal(settings.selectionToolbar, false)
+  assert.equal(settings.wheelTrigger, 'Alt')
+  // Slots saved before 0.9.0-beta.2 carry a per-slot target that no longer changes where actions go.
+  const saved = DEFAULT_WHEEL_SLOTS.map(slot => slot === null ? null : { ...slot, target: 'new' })
+  assert.deepEqual(readCiteCiterSettings({ wheelSlots: saved }).wheelSlots, saved)
+})
+
 test('create commands carry exactly one optional anchor and no retired fields', () => {
   const base = { action: 'create', requestId: 'request-1', question: '  这里为什么成立？  ' }
   const anchors = [

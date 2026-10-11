@@ -1,3 +1,3 @@
-.back { display:inline-flex; align-items:center; justify-content:center; flex:none; width:40px; height:40px; padding:0; border:0; border-radius:12px; background:transparent; color:var(--dsw-alias-label-primary,#20232a); cursor:pointer; }
-.back:hover { background:color-mix(in srgb,var(--dsw-alias-label-primary,#20232a) 7%,transparent); }
-.back:focus-visible { outline:2px solid #3478f6; outline-offset:2px; }
+.back { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; color: var(--dsw-alias-label-secondary); background: transparent; border: 0; border-radius: var(--dsw-radius-md, 8px); cursor: pointer; }
+.back:hover { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover); }
+.back:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #3478f6); outline-offset: -2px; }

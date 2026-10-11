@@ -1,0 +1,103 @@
+.toolbar {
+  position: fixed;
+  z-index: 10020;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13, 13px/20px system-ui, sans-serif);
+  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-1, #fff));
+  backdrop-filter: var(--dsw-menu-backdrop-filter);
+  border-radius: var(--dsw-radius-lg, 10px);
+  box-shadow: var(--dsw-elevation-panel, 0 0 0 .5px #0000001f, 0 3px 8px #00000014);
+  pointer-events: auto;
+  user-select: none;
+  animation: toolbarIn 120ms ease-out;
+}
+
+.mark {
+  width: 18px;
+  height: 18px;
+  margin: 0 4px 0 2px;
+  border-radius: 50%;
+}
+
+.toolbar button {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 6px);
+  cursor: pointer;
+}
+
+.toolbar button:hover,
+.toolbar button[aria-expanded='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.toolbar button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -2px;
+}
+
+.more {
+  width: 28px;
+  justify-content: center;
+  padding: 0;
+}
+
+.more svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  display: grid;
+  min-width: 148px;
+  padding: 4px;
+  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-1, #fff));
+  backdrop-filter: var(--dsw-menu-backdrop-filter);
+  border-radius: var(--dsw-radius-lg, 10px);
+  box-shadow: var(--dsw-elevation-panel, 0 0 0 .5px #0000001f, 0 3px 8px #00000014);
+}
+
+.menu button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.menu hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+}
+
+:global(body:has([role='dialog'][aria-modal='true'])) .toolbar {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@keyframes toolbarIn {
+  from { opacity: 0; translate: 0 2px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar { animation: none; }
+}

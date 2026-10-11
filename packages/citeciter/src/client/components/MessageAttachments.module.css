@@ -1,14 +1,13 @@
 .attachments { display: flex; flex-wrap: wrap; align-items: start; gap: 8px; min-width: 0; margin-bottom: 8px; }
 .attachments:empty { display: none; }
-.imageButton { display: block; max-width: 100%; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: zoom-in; }
+.imageButton { display: block; max-width: 100%; padding: 0; background: transparent; border: 0; border-radius: var(--dsw-radius-md, 8px); cursor: zoom-in; }
 .imageButton img { display: block; max-width: 100%; max-height: 320px; object-fit: contain; border-radius: inherit; }
-.imageButton:focus-visible { outline: 2px solid var(--dsw-alias-link, #3478f6); outline-offset: 3px; }
+.imageButton:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #3478f6); outline-offset: 2px; }
 .file { display: flex; flex-direction: column; gap: 4px; min-width: 0; max-width: 100%; }
-.download { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; max-width: 100%; padding: 4px 9px; border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 8px; background: color-mix(in srgb, currentColor 3%, transparent); color: inherit; font: inherit; font-size: 13px; cursor: pointer; transition: background 120ms ease, border-color 120ms ease; }
-.download svg { flex: none; color: var(--dsw-alias-link, #3478f6); }
+.download { display: inline-flex; align-items: center; gap: 6px; height: 28px; max-width: 100%; padding: 0 10px; color: var(--dsw-alias-label-primary); background: transparent; border: .5px solid var(--dsw-alias-border-l3, #d9dde5); border-radius: var(--dsw-radius-sm, 6px); font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif); cursor: pointer; }
+.download svg { flex: none; color: var(--dsw-alias-label-secondary); }
 .download span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.download:hover { background: color-mix(in srgb, currentColor 8%, transparent); border-color: color-mix(in srgb, currentColor 25%, transparent); }
-.download:focus-visible { outline: 2px solid var(--dsw-alias-link, #3478f6); outline-offset: 2px; }
+.download:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.download:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #3478f6); outline-offset: 2px; }
 .download:disabled { opacity: .6; cursor: progress; }
-.error { font-size: 12px; color: var(--dsw-alias-label-secondary, #687080); overflow-wrap: anywhere; }
-@media (prefers-reduced-motion: reduce) { .download { transition: none; } }
+.error { overflow-wrap: anywhere; color: var(--dsw-alias-label-tertiary); font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif); }

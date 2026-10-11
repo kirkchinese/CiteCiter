@@ -1,6 +1,6 @@
 .reply { display: grid; gap: 8px; }
-.label { color: var(--dsw-alias-label-secondary, #64748b); font-size: 12px; }
+.label { color: var(--dsw-alias-label-tertiary); font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif); }
 .pairs { display: grid; gap: 12px; margin: 0; }
-.question { color: var(--dsw-alias-label-secondary, #64748b); white-space: pre-wrap; overflow-wrap: anywhere; }
-.answer { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.question { overflow-wrap: anywhere; white-space: pre-wrap; color: var(--dsw-alias-label-secondary); }
+.answer { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .answer p { margin: 2px 0; }

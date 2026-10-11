@@ -9,7 +9,7 @@ import z from '@deepseek-ai/schemastery'
 import { TopicRuntime } from './topic-runtime.ts'
 import type { CiteCiterService } from './service.ts'
 import { UpdateChecker, type UpdateCheckResponse } from './update.ts'
-import { actionTarget, DEFAULT_WHEEL_SLOTS } from './actions.ts'
+import { DEFAULT_WHEEL_SLOTS } from './actions.ts'
 import {
   CITECITER_SETTINGS_NAMESPACE,
   DEFAULT_CITECITER_SETTINGS,
@@ -40,6 +40,9 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
   defaultPermission: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
   learningRoute: z.boolean().default(false),
   updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
+  selectionToolbar: z.boolean().default(DEFAULT_CITECITER_SETTINGS.selectionToolbar ?? true),
+  actionDelivery: z.union(['send', 'draft']).default(DEFAULT_CITECITER_SETTINGS.actionDelivery ?? 'send'),
+  wheelEnabled: z.boolean().default(DEFAULT_CITECITER_SETTINGS.wheelEnabled ?? false),
   wheelTrigger: z.union(['right-button', 'Alt', 'Control', 'Shift', 'Meta']).default('right-button'),
   defaultCiterModel: z.union([z.const(null), z.object({ provider: z.string().min(1).max(200), model: z.string().min(1).max(200) })]).default(null),
   wheelSlots: z.array(z.union([z.const(null), z.object({
@@ -47,8 +50,9 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
     prompt: z.string().max(4000),
     ask: z.boolean(),
     presentation: z.union(['side', 'floating']),
+    // Kept so slots saved by earlier versions still validate; actions no longer choose their Topic.
     target: z.union(['current', 'new']),
-  })])).min(8).max(8).default(DEFAULT_WHEEL_SLOTS.map(slot => slot === null ? null : { ...slot, target: actionTarget(slot) })),
+  })])).min(8).max(8).default(DEFAULT_WHEEL_SLOTS.map(slot => slot === null ? null : { ...slot, target: 'current' as const })),
 })
 
 /** Root-scoped Remote service owning Topic metadata and native Topic contributions. */

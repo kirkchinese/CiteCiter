@@ -1,6 +1,5 @@
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { ReaderSnapshot } from '../reader-controller.ts'
-import type { CiteOverlaySnapshot } from '../types.ts'
 import type { ReaderActions } from '../view-actions.ts'
 import { type ChangeEvent, type FormEvent, useRef, useEffect } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -9,15 +8,20 @@ import { readTextareaSelection } from '../reader-selection.ts'
 import { OverlayPortal } from './OverlayPortal.tsx'
 import css from './DocumentReader.module.css'
 
-/** Reader shell-overlay entry: compact trigger plus the document library panel. */
-export function DocumentReader({ reader, useReader, useOverlay, registerSurface, sourceSessionId }: { readonly reader: ReaderActions
+/** Human-readable size for the document list. */
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** The document library panel, opened from the Topic menu. */
+export function DocumentReader({ reader, useReader, registerSurface, sourceSessionId }: { readonly reader: ReaderActions
   readonly useReader: SnapshotSelectorHook<ReaderSnapshot>
-  readonly useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>
   readonly registerSurface: SelectionSurfaces['register']
   readonly sourceSessionId: () => SessionId | null
 }) {
   const snapshot = useReader(value => value)
-  const panelOpen = useOverlay(value => value.panelOpen)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const importRef = useRef<HTMLInputElement | null>(null)
   useEffect(() => {
@@ -50,20 +54,11 @@ export function DocumentReader({ reader, useReader, useOverlay, registerSurface,
   return (
     <OverlayPortal>
     <div className={css.root}>
-      {!snapshot.open ? !panelOpen && (
-        <button
-          type="button"
-          className={css.trigger}
-          onClick={() => reader.setOpen(true)}
-          title="打开 CiteCiter 读书"
-        >
-          📖
-        </button>
-      ) : (
+      {snapshot.open && (
         <section className={css.panel} data-citeciter-reader>
           <header className={css.header}>
             <h2>文档阅读</h2>
-            <button type="button" onClick={() => reader.setOpen(false)} aria-label="关闭读书面板">×</button>
+            <button type="button" onClick={() => reader.setOpen(false)} aria-label="关闭文档阅读">×</button>
           </header>
           {snapshot.error !== null ? <p className={css.error}>{snapshot.error}</p> : null}
           <div className={css.import}>
@@ -79,7 +74,7 @@ export function DocumentReader({ reader, useReader, useOverlay, registerSurface,
                   className={snapshot.active?.documentId === document.documentId ? css.activeDocument : undefined}
                 >
                   {document.title}
-                  <span>{document.format} · {document.size} B</span>
+                  <span>{document.format === 'markdown' ? 'Markdown' : '文本'} · {formatSize(document.size)}</span>
                 </button>
               </li>
             ))}
@@ -109,11 +104,11 @@ export function DocumentReader({ reader, useReader, useOverlay, registerSurface,
               value={snapshot.question}
               maxLength={12_000}
               onChange={(event) => reader.setQuestion(event.target.value)}
-              placeholder="就选中内容问 CiteCiter…"
-              aria-label="读书面板的问题"
+              placeholder="选中正文后，写下你的问题"
+              aria-label="关于选中内容的问题"
             />
             <button type="submit" disabled={snapshot.creating || snapshot.loading || snapshot.selection === null || snapshot.question.trim() === ''}>
-              {snapshot.creating ? '创建中…' : '准备草稿'}
+              {snapshot.creating ? '正在打开…' : '在 Citer 中提问'}
             </button>
           </form>
         </section>

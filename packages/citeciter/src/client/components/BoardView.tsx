@@ -44,7 +44,7 @@ function ElementBody({ kind, content }: { readonly kind: BoardElementKind, reado
       <img
         className={css.svg}
         src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(content.trim())}`}
-        alt="CiteCiter 黑板图形"
+        alt="Citer 黑板图形"
       />
     )
   }
@@ -52,7 +52,7 @@ function ElementBody({ kind, content }: { readonly kind: BoardElementKind, reado
     return (
       <iframe
         className={css.html}
-        title="CiteCiter 黑板动画"
+        title="Citer 黑板动画"
         sandbox=""
         referrerPolicy="no-referrer"
         srcDoc={isolatedHtmlDocument(content)}
@@ -63,7 +63,7 @@ function ElementBody({ kind, content }: { readonly kind: BoardElementKind, reado
     if (!/^data:image\/(?:png|jpeg|webp|gif|svg\+xml);base64,/u.test(content)) {
       return <pre className={css.fallback}>黑板图片内容无效</pre>
     }
-    return <img className={css.image} src={content} alt="CiteCiter 黑板图片" />
+    return <img className={css.image} src={content} alt="Citer 黑板图片" />
   }
   return <div className={css.text}>{content}</div>
 }
@@ -97,9 +97,9 @@ export function BoardView({
   const [notes, setNotes] = useState(compact)
   const elements = notes ? [...board.elements].sort((a, b) => a.y - b.y || a.x - b.x) : board.elements
   return (
-    <section className={css.board} data-citeciter-board={sessionId ?? ''} data-board-revision={board.revision} data-compact={compact || undefined} data-notes={notes || undefined} data-animations={animations || undefined} aria-label="CiteCiter 黑板">
+    <section className={css.board} data-citeciter-board={sessionId ?? ''} data-board-revision={board.revision} data-compact={compact || undefined} data-notes={notes || undefined} data-animations={animations || undefined} aria-label="Citer 黑板">
       <header className={css.boardHeader}>
-        <div><strong>小黑板</strong><span>由 CiteCiter 随讲解实时整理</span></div>
+        <div><strong>小黑板</strong><span>由 Citer 随讲解实时整理</span></div>
         <span>{board.revision === 0 && board.elements.length === 0 ? '等待板书' : `第 ${board.revision} 次更新`}</span>
         {compact && <button className={css.viewToggle} type="button" onClick={() => setNotes(!notes)}>{notes ? '查看画布' : '条目阅读'}</button>}
       </header>

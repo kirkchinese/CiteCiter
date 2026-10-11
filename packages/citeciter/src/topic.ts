@@ -4,7 +4,7 @@ import { questionDraftKeySchema, questionDraftStateSchema } from './question-dra
 import { nativeStateSchema, nativeAttachmentRefSchema } from './native-session-contract.ts'
 import { boardSnapshotSchema } from './board.ts'
 import { boardCaptureJobSchema } from './board-capture-protocol.ts'
-import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from './actions.ts'
+import { actionDeliverySchema, actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from './actions.ts'
 import { QUESTION_TOOL_OUTCOME_CODES } from './tool-outcome-contract.ts'
 import { questionReplySchema } from './question-reply.ts'
 
@@ -37,6 +37,9 @@ export const citeCiterSettingsSchema = z.object({
   boardAnimations: z.boolean().optional(),
   activeRecall: z.boolean().optional(),
   updateNotifications: z.boolean().optional(),
+  selectionToolbar: z.boolean().optional(),
+  actionDelivery: actionDeliverySchema.optional(),
+  wheelEnabled: z.boolean().optional(),
   wheelSlots: wheelSlotsSchema.optional(),
   wheelTrigger: wheelTriggerSchema.optional(),
   defaultCiterModel: actionModelSchema.nullable().optional(),
@@ -57,6 +60,9 @@ export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   defaultPermission: 'read-only',
   learningRoute: false,
   updateNotifications: true,
+  selectionToolbar: true,
+  actionDelivery: 'send',
+  wheelEnabled: false,
 })
 
 /**

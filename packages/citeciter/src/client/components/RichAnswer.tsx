@@ -24,7 +24,7 @@ export function RichAnswer({ text, streaming }: RichAnswerProps) {
         if (segment.kind === 'svg') {
           return (
             <figure className={css.richFigure} key={key} data-citeciter-svg>
-              <img className={css.richSvg} src={segment.dataUrl} alt="CiteCiter SVG explanation" />
+              <img className={css.richSvg} src={segment.dataUrl} alt="Citer 图示" />
             </figure>
           )
         }
@@ -33,7 +33,7 @@ export function RichAnswer({ text, streaming }: RichAnswerProps) {
             <figure className={css.richFigure} key={key} data-citeciter-html>
               <iframe
                 className={css.richHtml}
-                title="CiteCiter HTML explanation"
+                title="Citer 网页图示"
                 sandbox=""
                 referrerPolicy="no-referrer"
                 srcDoc={segment.document}

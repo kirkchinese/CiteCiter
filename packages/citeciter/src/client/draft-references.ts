@@ -29,6 +29,23 @@ export function draftReferenceName(reference: DraftReference): string {
   return reference.content.split(/[\\/]/u).at(-1) || reference.label
 }
 
+function preview(text: string, limit = 24): string {
+  const compact = text.replaceAll(/\s+/gu, ' ').trim()
+  return compact.length > limit ? `${compact.slice(0, limit)}…` : compact
+}
+
+/**
+ * Chip text that shows what a reference contains instead of its kind. Serialized labels
+ * are unchanged, so sent messages still parse.
+ * @param sourceTitle - resolves a source session's display title; the generic label is used when it is unknown.
+ */
+export function draftReferenceTitle(reference: DraftReference, sourceTitle?: (sessionId: string) => string | undefined): string {
+  if (reference.kind === 'excerpt') return preview(reference.content.replace(/^文档：[^\n]*\n\n/u, '')) || reference.label
+  if (reference.kind === 'board') return `板书：${preview(reference.content, 20)}`
+  if (reference.label === '来源对话') return sourceTitle?.(reference.content) ?? reference.label
+  return draftReferenceName(reference)
+}
+
 /** Serialize the exact visible attachment collection only at manual submission. */
 export function serializeDraftReferences(question: string, references: readonly DraftReference[]): string {
   if (references.length === 0) return question.trim()

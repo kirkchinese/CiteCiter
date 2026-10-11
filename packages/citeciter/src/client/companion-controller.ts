@@ -27,9 +27,10 @@ import {
   type RequestIntent,
 } from './request-guard.ts'
 import { isCurrentTopicResponse, shouldReopenLastTopic } from './response-guard.ts'
-import type { ActionModel } from '../actions.ts'
+import type { ActionDelivery, ActionModel } from '../actions.ts'
 import type { CiteSelection } from './types.ts'
-import { topicDraftReferences, type DraftReference } from './draft-references.ts'
+import { serializeDraftReferences, topicDraftReferences, type DraftReference } from './draft-references.ts'
+import { withLearningRoute } from './learning-route.ts'
 
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error'
 export type TopicsStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -76,15 +77,24 @@ export interface CompanionFace {
   subscribe(listener: () => void): () => void
   setSource(sessionId: SessionId | null): void
   retainVisible(): () => void
-  create(selection: CiteSelection, question: string, modelRoute?: ActionModel): Promise<void>
+  /** Resolve once the Topic list refresh in progress, including reopening the last Topic, has finished. */
+  settle(): Promise<void>
+  /**
+   * Create a Topic from a conversation selection.
+   * @param delivery - `draft` fills the new Topic's composer; `send` sends the question with its references at once.
+   */
+  create(selection: CiteSelection, question: string, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>
   createFree(question: string): Promise<boolean>
   /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
-  createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>
+  createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>
   openTopic(sessionId: string): Promise<void>
   /** Resolve only the explicitly selected, unarchived Topic; null means create a new one. */
   resolveDraftTopic(sourceSessionId: SessionId): Promise<string | null>
-  /** Append to the exact still-selected Topic; never change its route, permissions or running turn. */
-  appendSelection(sourceSessionId: SessionId, topicSessionId: string, question: string, references: readonly DraftReference[]): void
+  /**
+   * Append to the exact still-selected Topic; never change its route, permissions, existing draft or running turn.
+   * @param delivery - `draft` adds the question and references to the composer; `send` queues them as their own message.
+   */
+  appendSelection(sourceSessionId: SessionId, topicSessionId: string, question: string, references: readonly DraftReference[], delivery?: ActionDelivery): Promise<void>
   /** Acknowledge a draft event only after its UI consumer accepted it. */
   consumeComposeSeed(id: string): void
   ask(question: string, attachments?: readonly DraftAttachmentId[], mode?: DeliveryMode, requestId?: string, expectedSessionId?: string): Promise<boolean>
@@ -330,7 +340,7 @@ export function createCompanionController(
     try {
       const response = await call({ action: 'get', topicSessionId: sessionId })
       if (response.kind === 'deleted') {
-        if (response.sessionId !== sessionId) throw new Error('CiteCiter 返回了不匹配的删除记录')
+        if (response.sessionId !== sessionId) throw new Error('Citer 返回了不匹配的删除记录')
         nativeComposer.retire(sessionId)
         if (!disposed && operationGeneration === activeGeneration) update((draft) => {
           draft.phase = 'ready'
@@ -338,7 +348,7 @@ export function createCompanionController(
         })
         return
       }
-      if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的 Topic 响应')
+      if (response.kind !== 'topic') throw new Error('Citer 返回了错误的 Topic 响应')
       acceptTopic(response.topic, operationGeneration, sessionId)
     } catch (error) {
       fail(error, operationGeneration)
@@ -600,11 +610,55 @@ export function createCompanionController(
     }
   }
 
+  /**
+   * Send a preset action as its own Topic message without touching the composer's draft.
+   * A definite refusal, such as an unavailable model, moves the request into the composer
+   * so nothing is lost; an uncertain transport result only asks the user to check.
+   */
+  const deliver = async (sessionId: string, question: string, references: readonly DraftReference[], generation: number): Promise<void> => {
+    const text = withLearningRoute(serializeDraftReferences(question, references), store.getSnapshot().settings.learningRoute ?? false)
+    // A manual send already in flight keeps its place in the Host queue.
+    await pendingAsks.get(sessionId)?.catch(() => false)
+    const operation = (async (): Promise<boolean> => {
+      try {
+        await nativeComposer.send(sessionId, text, [], 'queue')
+      } catch (error) {
+        if (error instanceof UncertainSubmissionError) {
+          fail(new Error('未收到发送结果，请在 Topic 中确认这条动作是否已发送'), generation)
+          return false
+        }
+        update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId, question, references, id: crypto.randomUUID() }] })
+        fail(new Error(`${error instanceof Error ? error.message : String(error)}；已放进输入框，可修改后发送`), generation)
+        return false
+      }
+      if (generation === activeGeneration) {
+        actionFailure = null
+        update(draft => { draft.notice = null })
+      }
+      try {
+        const response = await call({ action: 'get', topicSessionId: sessionId })
+        if (response.kind === 'topic') acceptTopic(response.topic, generation, sessionId)
+      } catch (error) { fail(error, generation, false) }
+      return true
+    })().finally(() => { if (pendingAsks.get(sessionId) === operation) pendingAsks.delete(sessionId) })
+    pendingAsks.set(sessionId, operation)
+    await operation
+  }
+
+  /** Hand a new Topic's first question to the composer, or send it with its references. */
+  const startTopic = async (topic: TopicSnapshot, question: string, requestId: string, delivery: ActionDelivery, generation: number): Promise<void> => {
+    if (generation !== activeGeneration) return
+    const references = topicDraftReferences(topic.topic, topic.documentTitle)
+    if (delivery === 'send') await deliver(topic.topic.sessionId, question, references, generation)
+    else update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: topic.topic.sessionId, question, id: requestId, references }] })
+  }
+
   async function runCreate(
     selection: CiteSelection,
     question: string,
     intent: RequestIntent,
     modelRoute?: ActionModel,
+    delivery: ActionDelivery = 'draft',
   ): Promise<void> {
     if (disposed) return
     const operationGeneration = ++activeGeneration
@@ -660,14 +714,14 @@ export function createCompanionController(
         writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey)
       }
       acceptTopic(response.topic, operationGeneration)
-      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: response.topic.topic.sessionId, question, id: intent.requestId, references: topicDraftReferences(response.topic.topic, response.topic.documentTitle) }] })
+      await startTopic(response.topic, question, intent.requestId, delivery, operationGeneration)
       await refreshTopics()
     } catch (error) {
       fail(error, operationGeneration)
     }
   }
 
-  const create = async (selection: CiteSelection, rawQuestion: string, modelRoute?: ActionModel): Promise<void> => {
+  const create = async (selection: CiteSelection, rawQuestion: string, modelRoute?: ActionModel, delivery: ActionDelivery = 'draft'): Promise<void> => {
     if (disposed) return
     const question = normalizeDraftQuestion(rawQuestion)
     const intent = await claimCreateTopicIntent(selection, question, modelRoute)
@@ -675,7 +729,7 @@ export function createCompanionController(
     if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
     const pending = pendingCreates.get(intent.requestId)
     if (pending !== undefined) return pending
-    const operation = runCreate(selection, question, intent, modelRoute).finally(() => {
+    const operation = runCreate(selection, question, intent, modelRoute, delivery).finally(() => {
       if (pendingCreates.get(intent.requestId) === operation) pendingCreates.delete(intent.requestId)
     })
     pendingCreates.set(intent.requestId, operation)
@@ -724,11 +778,11 @@ export function createCompanionController(
     }
   }
 
-  const createFromDocument = async (claim: DocumentClaimIntent, rawQuestion: string, capturedSource?: SessionId, modelRoute?: ActionModel): Promise<void> => {
+  const createFromDocument = async (claim: DocumentClaimIntent, rawQuestion: string, capturedSource?: SessionId, modelRoute?: ActionModel, delivery: ActionDelivery = 'draft'): Promise<void> => {
     if (disposed) return
     const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId
     if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
-    if (sourceSessionId === null) throw new Error('打开 CiteCiter 面板后即可创建文档 Topic')
+    if (sourceSessionId === null) throw new Error('打开 Citer 面板后即可创建文档 Topic')
     const question = normalizeDraftQuestion(rawQuestion)
     const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute)
     if (disposed) return
@@ -757,11 +811,11 @@ export function createCompanionController(
         question,
         modelRoute,
       })
-      if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的文档 Topic 响应')
+      if (response.kind !== 'topic') throw new Error('Citer 返回了错误的文档 Topic 响应')
       completeRequestIntent(intent)
       acceptTopic(response.topic, operationGeneration)
-      if (operationGeneration === activeGeneration) update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: response.topic.topic.sessionId, question, id: intent.requestId, references: topicDraftReferences(response.topic.topic, response.topic.documentTitle) }] })
       if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId) onAutoOpen()
+      await startTopic(response.topic, question, intent.requestId, delivery, operationGeneration)
       await refreshTopics()
     } catch (error) {
       fail(error, operationGeneration)
@@ -937,12 +991,12 @@ export function createCompanionController(
         topicSessionId: sessionId,
         confirmSessionId,
       })
-      if (response.kind !== 'deleted') throw new Error('CiteCiter 返回了错误的删除响应')
+      if (response.kind !== 'deleted') throw new Error('Citer 返回了错误的删除响应')
       if (
         response.sessionId !== sessionId
         || response.sourceSessionId !== sourceSessionId
         || response.topicId !== topicId
-      ) throw new Error('CiteCiter 返回的删除对象与当前 Topic 不一致')
+      ) throw new Error('Citer 返回的删除对象与当前 Topic 不一致')
       nativeComposer.retire(sessionId)
       clearLastTopic(sourceSessionId, sessionId)
       const current = store.getSnapshot()
@@ -1110,15 +1164,24 @@ export function createCompanionController(
     subscribe: store.subscribe,
     setSource,
     retainVisible,
+    settle: async () => {
+      // A refresh may queue another pass; wait until none is running.
+      while (topicsRefresh !== null && !disposed) await topicsRefresh.catch(() => undefined)
+    },
     create: (...args) => admit(undefined, () => create(...args)),
     createFree: question => admit(false, () => createFree(question)),
     createFromDocument: (...args) => admit(undefined, () => createFromDocument(...args)),
     openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
     resolveDraftTopic: sourceSessionId => admit(null, () => resolveDraftTopic(sourceSessionId)),
-    appendSelection: (sourceSessionId, topicSessionId, question, references) => {
+    appendSelection: async (sourceSessionId, topicSessionId, question, references, delivery = 'draft') => {
       const snapshot = store.getSnapshot()
       if (disposed || snapshot.sourceSessionId !== sourceSessionId || snapshot.active?.topic.sessionId !== topicSessionId || snapshot.active.topic.archived || snapshot.deleting || snapshot.archiving || snapshot.phase === 'creating') throw new Error('当前 Topic 已切换或不可编辑，请重新选文')
-      update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: topicSessionId, question, references, id: crypto.randomUUID() }] })
+      if (delivery === 'draft') {
+        update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: topicSessionId, question, references, id: crypto.randomUUID() }] })
+        return
+      }
+      const generation = activeGeneration
+      await admit(undefined, () => deliver(topicSessionId, question, references, generation))
     },
     consumeComposeSeed: id => update(draft => { draft.composeSeeds = draft.composeSeeds.filter(seed => seed.id !== id) }),
     ask: (...args) => admit(false, () => ask(...args)),

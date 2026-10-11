@@ -11,18 +11,23 @@ export function createSelectionSurfaces() {
 }
 export type SelectionSurfaces = ReturnType<typeof createSelectionSurfaces>
 
-/** Install hold/move/release gestures; returns a disposer removing every global listener. */
+/**
+ * Install the optional hold/move/release wheel. While `wheelEnabled` is off, every
+ * listener returns early and the browser keeps its native context menu.
+ * @returns a disposer removing every global listener.
+ */
 export function installWheelGesture(
   controller: ActionController,
   read: (event: MouseEvent) => ActionSource | null,
-  preferences: () => { wheelTrigger?: WheelTrigger | undefined, wheelSlots?: (CiteAction | null)[] | undefined },
+  preferences: () => { wheelEnabled?: boolean | undefined, wheelTrigger?: WheelTrigger | undefined, wheelSlots?: (CiteAction | null)[] | undefined },
 ): () => void {
   let held: { key: string, time: number } | null = null
   let suppressContextUntil = 0
   let pointer = { x: 0, y: 0, target: null as EventTarget | null }
+  const enabled = () => preferences().wheelEnabled === true
   const blocked = (target: EventTarget | null) => target instanceof Element && target.closest('[data-citeciter-menu], [role="dialog"][aria-modal="true"]') !== null
   const capture = (event: MouseEvent, key: string) => {
-    if (blocked(event.target) || controller.getSnapshot().pending !== null) return
+    if (!enabled() || blocked(event.target) || controller.getSnapshot().pending !== null) return
     const source = read(event)
     if (source === null) return
     event.preventDefault()
@@ -47,7 +52,7 @@ export function installWheelGesture(
   const up = (event: PointerEvent) => { if (event.button === 2) release('right-button') }
   const menu = (event: MouseEvent) => {
     if (held !== null || Date.now() < suppressContextUntil) { event.preventDefault(); return }
-    if ((preferences().wheelTrigger ?? 'right-button') !== 'right-button' || event.shiftKey || blocked(event.target)) return
+    if (!enabled() || (preferences().wheelTrigger ?? 'right-button') !== 'right-button' || event.shiftKey || blocked(event.target)) return
     const source = read(event)
     if (source === null) return
     event.preventDefault()
@@ -56,7 +61,7 @@ export function installWheelGesture(
   const keydown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') { held = null; controller.cancel(); return }
     if (held !== null && held.key !== 'right-button' && event.key !== held.key) { held = null; controller.cancel(); return }
-    if (event.repeat || event.isComposing || held !== null) return
+    if (event.repeat || event.isComposing || held !== null || !enabled()) return
     if (event.key !== preferences().wheelTrigger) return
     // Preserve typing, composition and editor shortcuts. Read-only registered viewers are allowed.
     if (event.target instanceof Element && event.target.closest('input, textarea:not([readonly]), [contenteditable="true"]')) return

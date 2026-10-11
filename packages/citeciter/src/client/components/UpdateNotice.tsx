@@ -64,12 +64,12 @@ export function UpdateNotice({ useUpdate, updateController }: UpdateNoticeProps)
       onFocusCapture={rememberFocus}
     >
       <p className={css.announcement} role="status" aria-live="polite">
-        CiteCiter 有新版本 {available.latestVersion}
+        Citer 有新版本 {available.latestVersion}
       </p>
       <div className={css.heading}>
         <span className={css.badge} aria-hidden="true">↑</span>
         <div>
-          <h2 id={titleId}>CiteCiter 有新版本</h2>
+          <h2 id={titleId}>Citer 有新版本</h2>
           <p className={css.version}>
             <span>v{available.currentVersion}</span>
             <span aria-hidden="true">→</span>
