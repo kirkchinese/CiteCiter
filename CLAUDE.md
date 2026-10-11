@@ -11,7 +11,7 @@ CiteCiter is an external DSH plugin (npm `@kirkchinese/dsh-citeciter`), not the 
 - Citer owns `<source session>/citeciter/`. Never modify source logs, other Topics or migration backups. Keep Topic metadata readable by earlier versions unless a migration is deliberately designed.
 - Validate at file, wire and configuration boundaries; trust typed same-process calls. Read persisted settings field by field.
 - Host and Client compile separately. React components receive snapshots and callbacks and never look up Cordis services.
-- The UI matches DSH: host `--dsw-*` tokens, `--dsh-content-font-size*` for message text, host primitives (`Button`, `Switch`, `SegmentedControl`) and no decorative colors. The UI name is Citer; the mascot only marks identity.
+- The UI matches DSH: host `--dsw-*` tokens, `--dsh-content-font-size*` for message text, host primitives (`Button`, `Switch`, `SegmentedControl`) and no decorative colors. The host squircles every radius, so circles also set `corner-shape: round`. The UI name is Citer; the mascot only marks identity.
 - ESM, strict TypeScript, `.ts` local imports, package names across packages. Exports carry concise JSDoc for non-obvious contracts; an empty `catch` names the error it swallows.
 
 ## Checks
