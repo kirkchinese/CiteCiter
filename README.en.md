@@ -43,12 +43,12 @@ Restart DSH and refresh the page after installing or upgrading. Do not use `dsh 
 
 Say your agent changed some code and you wonder: "Why does this async save affect typing?"
 
-1. Select the relevant text in the conversation, a tool result or a document, hold the right mouse button to open the wheel, and choose 自由提问 (free question) or 解释这段 (explain this).
-2. Citer opens a draft with the source address and the excerpt as removable attachments. Write your question, choose a model, and send it yourself.
+1. Select the relevant text in the conversation, a tool result or a document; the Citer toolbar appears next to it.
+2. Click 解释 (explain) to get an explanation right away, or 提问 (ask) to put the source and the excerpt into the composer as removable attachments, write your own question and send it.
 3. Keep asking about the material; when it helps, have the model draw the flow on the blackboard or summarize learning cards.
 4. Go back to the task and check your understanding against the code, a tool result or a small experiment.
 
-Creating a Topic or choosing a wheel action only prepares a draft; the model runs only after you send. Explanations and boards can still be wrong; they help you understand and check, not replace evidence.
+Creating a Topic or choosing 提问 only prepares a draft; preset actions such as 解释 and 翻译 send when you choose them, or only fill the composer if you change that in Settings. Explanations and boards can still be wrong; they help you understand and check, not replace evidence.
 
 ## Features
 
@@ -63,21 +63,23 @@ Creating a Topic or choosing a wheel action only prepares a draft; the model run
 
 ## Using CiteCiter
 
-**Wheel and citations.** After selecting text, hold the right mouse button to open the eight-slot wheel, move to an action and release. A short right click lets you click a slot, Shift + right click keeps the browser menu, the arrow keys, digits 1–8 and Enter also select, and Esc cancels. 自由提问 adds the selection to the selected, unarchived Topic, or creates one if none is available; other actions create a new Topic by default. Slots, prompts, the default model and where the panel opens are all configurable in Settings.
+**Toolbar and actions.** After you select text, a toolbar appears next to it: the first four actions are shown directly, and the rest plus 在新 Topic 中提问 (ask in a new Topic) are under "⋯". Actions go to the open Topic by default, or create one when there is none or it is archived. 提问 opens the composer for your own question; preset actions such as 解释, 找错误 and 翻译 send directly without touching an existing draft. Action names, prompts and order are configurable in Settings. If you prefer gestures, turn on the wheel in Settings: hold the right mouse button (or the chosen key) after selecting text, move to an action and release.
+
+**Desktop pet.** While Citer is closed, its mascot peeks over the window edge; she stands up when the pointer comes near, and a click opens Citer. Drag her to either side at any height and the place is remembered. A small dot appears next to her when an answer finishes or a question waits for you while Citer is closed.
 
 **Composer.** The composer offers attachments, permission mode, model and reasoning effort, and Send. Enter sends, Shift + Enter adds a line, and Enter never sends during IME composition. While a reply is generating, Enter follows DSH's queue/steer preference and Ctrl + Enter uses the other one. Add files from the attachment menu, paste images, or drop files onto the Citer panel.
 
 **Drafts.** Drafts save silently in the background. Edits to the same Topic from several windows merge automatically; where they overlap, the window you are typing in wins. After a successful send, only what was sent is cleared, and anything written meanwhile is kept.
 
-**Learning route and cards.** The learning route is off by default; when on, the model plans its explanation with DSH todos. You can ask for learning cards at any time; the model checks conclusions, conditions and calculations first, but self-checking does not guarantee correctness. Active recall is off by default; when on, cards show their self-test question first.
+**Learning route and cards.** The learning route is off by default and can be turned on in the Topic menu (⋯); when on, the model plans its explanation with DSH todos. You can ask for learning cards at any time; the model checks conclusions, conditions and calculations first, but self-checking does not guarantee correctness. Active recall is off by default; when on, cards show their self-test question first.
 
-**Images.** Image generation and viewing tools come from host plugins such as [Codex Connect](https://github.com/franksong2702/dsh-codex-connect), enabled separately in each profile.
+**Codex Connect.** CiteCiter is adapted to the community plugin [Codex Connect](https://github.com/franksong2702/dsh-codex-connect) (`dsh-codex-connect`). With it installed and enabled in the same profile, Topics can use its ChatGPT / Codex models and GPT Image tools, and generated images appear under the tool card. Its image tools are enabled separately in Codex Connect's settings; see its documentation for installation, sign-in and supported DSH versions.
 
 ## Permissions and data
 
 New Topics are **read-only** by default, even when the source session has more permissions. A Topic can change the workspace only after you choose another permission mode in the composer or change the default for new Topics in Settings; DSH approvals and sandboxing still apply.
 
-Topics appear only in the Citer list, never in DSH's session list. Double-click a title or press F2 to rename it; an archived Topic returns to the list when you send to it again. Permanent deletion asks for the full Session ID and removes only that Topic's records, drafts and attachments.
+Topics appear only in the Citer list, never in DSH's session list. A new Topic is titled by DSH's title service from its first message; rename it by double-clicking the title, pressing F2 or using the Topic menu, after which the title no longer changes on its own; an archived Topic returns to the list when you send to it again. Permanent deletion asks for the full Session ID and removes only that Topic's records, drafts and attachments.
 
 CiteCiter stores its data in each source session's directory:
 

@@ -2,6 +2,23 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## Unreleased
+
+### Selection and actions
+
+- Selecting text in the conversation, a tool result or a document shows a toolbar with the first four actions; the rest and "ask in a new Topic" are under "⋯". The right-button wheel is optional and off by default, so the browser keeps its context menu unless the wheel is turned on in Settings.
+- Preset actions (explain, find errors, translate, …) send at once as their own message with the selected source and excerpt, without touching an existing draft; the question action still opens the composer. A setting switches presets back to filling the composer. If the host refuses a direct send, for example because the model is unavailable, the action moves into the composer.
+- Actions go to the open, unarchived Topic by default and create a Topic only when there is none or the user asks for a new one. Per-slot targets saved by earlier versions are ignored.
+- New Topics get summary titles from DSH's own first-prompt title provider; a rename still pins the title. This adds the DSH peer `@deepseek-ai/dsh-session-title-first-prompt-llm`, which every supported host already includes.
+
+### Interface
+
+- The panel, menus, settings and dialogs use DSH's colors, type scale, radii, dividers and controls, and message text follows the DSH content font size. Decorative backgrounds, the byline above answers, internal status text and raw tool JSON are gone. The interface calls the plugin Citer.
+- Tool rows show readable titles and summaries, such as "读取来源对话 · 12 条记录"; reference chips show the excerpt and the source conversation's title.
+- The header shows a status only while answering or after an error. The Citer mark replaces the drag grip and the collapse button joins the header. Rename, archive, deletion, the document reader and the learning route are in the Topic menu; the learning-card tab appears once a Topic has cards.
+- While Citer is closed, a desktop pet peeks over the window edge, stands up when the pointer comes near, opens Citer on click and can be dragged to either side; a dot marks a finished answer or a waiting question. It replaces the large round launcher and its Topic count. The floating reader button, which covered the host status bar in narrow windows, is removed; open the reader from the Topic menu.
+- Settings are regrouped like DSH's own sections, with host switches and segmented controls.
+
 ## 0.9.0-beta.1 — 2026-10-10
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` and `0.2.1-alpha.2`. Includes everything from the unpublished 0.9.0-alpha.4 candidate.
