@@ -20,6 +20,12 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
     boardAnimations: z.ZodOptional<z.ZodBoolean>;
     activeRecall: z.ZodOptional<z.ZodBoolean>;
     updateNotifications: z.ZodOptional<z.ZodBoolean>;
+    selectionToolbar: z.ZodOptional<z.ZodBoolean>;
+    actionDelivery: z.ZodOptional<z.ZodEnum<{
+        send: "send";
+        draft: "draft";
+    }>>;
+    wheelEnabled: z.ZodOptional<z.ZodBoolean>;
     wheelSlots: z.ZodOptional<z.ZodArray<z.ZodNullable<z.ZodObject<{
         label: z.ZodString;
         prompt: z.ZodString;

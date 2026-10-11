@@ -538,8 +538,10 @@ z.object({ cards: z.array(learningCardSchema.extend({ example: z.union([learning
 //#endregion
 //#region lib/types/actions.js
 /**
-* One persisted wheel slot; its prompt is sent as a durable user message.
-* Fields saved by older versions, such as `scenario`, are dropped when read.
+* One persisted action slot, shown in the selection toolbar and the optional wheel.
+* An `ask` action opens the composer for the user's own question; any other action
+* sends its prompt as a durable user message. Fields saved by older versions, such as
+* `scenario` and `target`, are read but no longer change where an action goes.
 */
 const citeActionSchema = z.object({
 	label: z.string().trim().min(1).max(20),
@@ -556,21 +558,22 @@ const wheelTriggerSchema = z.enum([
 	"Shift",
 	"Meta"
 ]);
+/** Whether a preset action sends at once or only fills the composer. */
+const actionDeliverySchema = z.enum(["send", "draft"]);
 const actionModelSchema = z.object({
 	provider: z.string().min(1).max(200),
 	model: z.string().min(1).max(200)
 }).strict();
-/** Clockwise from twelve o'clock. Empty slots retain their positions. */
+/** Toolbar order, and clockwise from twelve o'clock on the wheel. Empty slots retain their positions. */
 const DEFAULT_WHEEL_SLOTS = [
 	{
-		label: "自由提问",
+		label: "提问",
 		prompt: "",
 		ask: true,
-		presentation: "side",
-		target: "current"
+		presentation: "side"
 	},
 	{
-		label: "解释这段",
+		label: "解释",
 		prompt: learningQuestion("logic"),
 		ask: false,
 		presentation: "side"
@@ -588,13 +591,13 @@ const DEFAULT_WHEEL_SLOTS = [
 		presentation: "floating"
 	},
 	{
-		label: "定量板书",
+		label: "板书",
 		prompt: learningQuestion("quantitative"),
 		ask: false,
 		presentation: "side"
 	},
 	{
-		label: "总结卡片",
+		label: "学习卡",
 		prompt: learningQuestion("summary", "围绕本次引用的内容整理。"),
 		ask: false,
 		presentation: "side"
@@ -602,11 +605,6 @@ const DEFAULT_WHEEL_SLOTS = [
 	null,
 	null
 ];
-/** Slots saved before targets existed append only when they are the unchanged built-in free question. */
-function actionTarget(action) {
-	if (action.target !== void 0) return action.target;
-	return action.label === "自由提问" && action.prompt === "" && action.ask && action.presentation === "side" ? "current" : "new";
-}
 //#endregion
 //#region lib/types/tool-outcome-contract.js
 /** Recognized question outcomes shared by Host and Client without importing either service face. */
@@ -703,6 +701,9 @@ const citeCiterSettingsSchema = z.object({
 	boardAnimations: z.boolean().optional(),
 	activeRecall: z.boolean().optional(),
 	updateNotifications: z.boolean().optional(),
+	selectionToolbar: z.boolean().optional(),
+	actionDelivery: actionDeliverySchema.optional(),
+	wheelEnabled: z.boolean().optional(),
 	wheelSlots: wheelSlotsSchema.optional(),
 	wheelTrigger: wheelTriggerSchema.optional(),
 	defaultCiterModel: actionModelSchema.nullable().optional(),
@@ -723,7 +724,10 @@ const DEFAULT_CITECITER_SETTINGS = Object.freeze({
 	activeRecall: false,
 	defaultPermission: "read-only",
 	learningRoute: false,
-	updateNotifications: true
+	updateNotifications: true,
+	selectionToolbar: true,
+	actionDelivery: "send",
+	wheelEnabled: false
 });
 /**
 * Read persisted settings field by field. Keys written by other versions are
@@ -1584,4 +1588,4 @@ function waitForCaller(operation, signal) {
 	});
 }
 //#endregion
-export { applyBoardOps as A, readQuestionReply as C, learningCardsInputSchema as D, LEARNING_CARD_FIELD_DESCRIPTIONS as E, DRAFT_CHUNK_BYTES as F, EMPTY_DRAFT_STATE as I, draftFileSchema as L, EMPTY_QUESTION_DRAFT_STATE as M, questionDraftKeySchema as N, LEARNING_EXAMPLE_PARAMETER as O, questionDraftRecordSchema as P, draftStateSchema as R, questionReplyText as S, actionTarget as T, readCiteCiterSettings as _, DEFAULT_CITECITER_SETTINGS as a, topicSnapshotSchema as b, citationDraftSchema as c, citeCiterRequestSchema as d, citeCiterResponseSchema as f, parseTopicMetadataFile as g, documentSummarySchema as h, CITECITER_SETTINGS_NAMESPACE as i, boardBatchSchema as j, EMPTY_BOARD_STATE as k, citationRecordSchema as l, documentEvidenceClaimSchema as m, updateCheckErrorCodeSchema as n, TUTOR_SECTION_NAME as o, documentContentSchema as p, updateCheckResponseSchema as r, canonicalCitationIdentity as s, UpdateChecker as t, citationSelectionClaimSchema as u, toolEvidenceClaimSchema as v, DEFAULT_WHEEL_SLOTS as w, topicSummarySchema as x, topicMetadataSchema as y, subtractSubmitted as z };
+export { boardBatchSchema as A, readQuestionReply as C, LEARNING_EXAMPLE_PARAMETER as D, learningCardsInputSchema as E, EMPTY_DRAFT_STATE as F, draftFileSchema as I, draftStateSchema as L, questionDraftKeySchema as M, questionDraftRecordSchema as N, EMPTY_BOARD_STATE as O, DRAFT_CHUNK_BYTES as P, subtractSubmitted as R, questionReplyText as S, LEARNING_CARD_FIELD_DESCRIPTIONS as T, readCiteCiterSettings as _, DEFAULT_CITECITER_SETTINGS as a, topicSnapshotSchema as b, citationDraftSchema as c, citeCiterRequestSchema as d, citeCiterResponseSchema as f, parseTopicMetadataFile as g, documentSummarySchema as h, CITECITER_SETTINGS_NAMESPACE as i, EMPTY_QUESTION_DRAFT_STATE as j, applyBoardOps as k, citationRecordSchema as l, documentEvidenceClaimSchema as m, updateCheckErrorCodeSchema as n, TUTOR_SECTION_NAME as o, documentContentSchema as p, updateCheckResponseSchema as r, canonicalCitationIdentity as s, UpdateChecker as t, citationSelectionClaimSchema as u, toolEvidenceClaimSchema as v, DEFAULT_WHEEL_SLOTS as w, topicSummarySchema as x, topicMetadataSchema as y };

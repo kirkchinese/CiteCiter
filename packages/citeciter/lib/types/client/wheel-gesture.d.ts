@@ -6,8 +6,13 @@ export declare function createSelectionSurfaces(): {
     read(target: EventTarget | null): ActionSource | null;
 };
 export type SelectionSurfaces = ReturnType<typeof createSelectionSurfaces>;
-/** Install hold/move/release gestures; returns a disposer removing every global listener. */
+/**
+ * Install the optional hold/move/release wheel. While `wheelEnabled` is off, every
+ * listener returns early and the browser keeps its native context menu.
+ * @returns a disposer removing every global listener.
+ */
 export declare function installWheelGesture(controller: ActionController, read: (event: MouseEvent) => ActionSource | null, preferences: () => {
+    wheelEnabled?: boolean | undefined;
     wheelTrigger?: WheelTrigger | undefined;
     wheelSlots?: (CiteAction | null)[] | undefined;
 }): () => void;

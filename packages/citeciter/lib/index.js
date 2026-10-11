@@ -1,4 +1,4 @@
-import { A as applyBoardOps, C as readQuestionReply, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_QUESTION_DRAFT_STATE, N as questionDraftKeySchema, O as LEARNING_EXAMPLE_PARAMETER, P as questionDraftRecordSchema, R as draftStateSchema, S as questionReplyText, T as actionTarget, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as DEFAULT_WHEEL_SLOTS, y as topicMetadataSchema, z as subtractSubmitted } from "./update-DDut5jKW.js";
+import { A as boardBatchSchema, C as readQuestionReply, D as LEARNING_EXAMPLE_PARAMETER, E as learningCardsInputSchema, F as EMPTY_DRAFT_STATE, I as draftFileSchema, L as draftStateSchema, M as questionDraftKeySchema, N as questionDraftRecordSchema, O as EMPTY_BOARD_STATE, P as DRAFT_CHUNK_BYTES, R as subtractSubmitted, S as questionReplyText, T as LEARNING_CARD_FIELD_DESCRIPTIONS, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as EMPTY_QUESTION_DRAFT_STATE, k as applyBoardOps, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as DEFAULT_WHEEL_SLOTS, y as topicMetadataSchema } from "./update-BYeOEk1e.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -1848,19 +1848,21 @@ function createCiterSessionStore(Base, access) {
 * File URLs bypass peer routing and can create a second private scope identity,
 * particularly when Electron ASAR paths use different casing on Windows.
 * Bare imports also leave CLI symlinks and Desktop packaging to the host resolver.
-* @returns the host's AgentLoop, SessionStore, title service and scope factory.
+* @returns the host's AgentLoop, SessionStore, title service and provider, and scope factory.
 */
 async function loadHostAgentModules() {
-	const [loop, scope, session, title] = await Promise.all([
+	const [loop, scope, session, title, titleProvider] = await Promise.all([
 		import("@deepseek-ai/dsh-agent-loop"),
 		import("@deepseek-ai/dsh-scope"),
 		import("@deepseek-ai/dsh-session"),
-		import("@deepseek-ai/dsh-session-title")
+		import("@deepseek-ai/dsh-session-title"),
+		import("@deepseek-ai/dsh-session-title-first-prompt-llm")
 	]);
 	return {
 		AgentLoop: loop.AgentLoop,
 		SessionStore: session.SessionStore,
 		SessionTitleService: title.SessionTitleService,
+		SessionTitleProvider: titleProvider,
 		createScope: scope.createScope
 	};
 }
@@ -1917,6 +1919,13 @@ var CiterSessionWorld = class {
 						fallbackMaxWords: 5,
 						fallbackMaxBytes: 40,
 						maxTitleBytes: 80
+					});
+					await ctx.plugin(modules.SessionTitleProvider, {
+						targetWords: 5,
+						targetCjkCharacters: 10,
+						maxInputBytes: 4096,
+						maxOutputTokens: 64,
+						timeoutMs: 6e4
 					});
 					await ctx.plugin({
 						name: "citeciter-session-factory",
@@ -19781,6 +19790,9 @@ const CITECITER_SETTINGS_SCHEMA = z$1.object({
 	]).default("read-only"),
 	learningRoute: z$1.boolean().default(false),
 	updateNotifications: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
+	selectionToolbar: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.selectionToolbar ?? true),
+	actionDelivery: z$1.union(["send", "draft"]).default(DEFAULT_CITECITER_SETTINGS.actionDelivery ?? "send"),
+	wheelEnabled: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.wheelEnabled ?? false),
 	wheelTrigger: z$1.union([
 		"right-button",
 		"Alt",
@@ -19800,7 +19812,7 @@ const CITECITER_SETTINGS_SCHEMA = z$1.object({
 		target: z$1.union(["current", "new"])
 	})])).min(8).max(8).default(DEFAULT_WHEEL_SLOTS.map((slot) => slot === null ? null : {
 		...slot,
-		target: actionTarget(slot)
+		target: "current"
 	}))
 });
 /** Root-scoped Remote service owning Topic metadata and native Topic contributions. */

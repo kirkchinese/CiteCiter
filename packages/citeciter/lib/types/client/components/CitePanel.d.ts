@@ -2,6 +2,7 @@ import type { NativeComposer, DeliveryMode } from '../native-composer.ts';
 import { type DraftController, type DraftSnapshot } from '../draft-controller.ts';
 import type { InteractionSnapshot } from '../host-ui-adapter.ts';
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store';
+import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client';
 import type { CiteOverlaySnapshot } from '../types.ts';
 import type { CompanionSnapshot } from '../companion-controller.ts';
 import type { CompanionActions, OverlayActions } from '../view-actions.ts';
@@ -18,10 +19,12 @@ export interface CitePanelProps {
     readonly closePanel: () => void;
     readonly openReader: () => void;
     readonly reportParseError: (messageId: string) => void;
+    /** Host standard prop: the session list, used to show source titles on reference chips. */
+    readonly useSessions?: UseSessions;
 }
 /**
  * Render the independent Topic workspace on the right edge of the shell.
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, bus, companion, closePanel, openReader, reportParseError }: CitePanelProps): import("react").JSX.Element | null;
+export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError }: CitePanelProps): import("react").JSX.Element | null;
