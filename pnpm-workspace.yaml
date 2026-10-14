@@ -8,3 +8,7 @@ minimumReleaseAgeExclude:
   - '@deepseek-ai/*'
   - 'node-addon-native-custom-loader'
   - 'node-addon-require-builtin*'
+# DSH 0.2.1-alpha.3 pins zod 4.4.3 in its Typert registry, so both SDK baselines type
+# Citer's schemas with that zod. At runtime zod is a peer that the host provides.
+overrides:
+  zod: 4.4.3

@@ -14,7 +14,6 @@ import { foldSessionTitle } from "@deepseek-ai/dsh-session-title";
 import { lstat, mkdir, open, readFile, readdir, realpath, rename, rmdir, unlink, writeFile } from "node:fs/promises";
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import { setTimeout as setTimeout$1 } from "node:timers/promises";
-import JsonlSessionPersistence from "@deepseek-ai/dsh-session-persistence-jsonl";
 import AgentRegistry from "@deepseek-ai/dsh-agent";
 import { isDeepStrictEqual } from "node:util";
 import { snapshotJsonValue } from "@deepseek-ai/dsh-util-values";
@@ -1844,25 +1843,34 @@ function createCiterSessionStore(Base, access) {
 //#endregion
 //#region lib/types/host-agent-modules.js
 /**
+* A Cordis plugin exported as a module (`name`, `Config`, `apply`) or as the module's default.
+* DSH 0.2.1-alpha.3 turned the JSONL persistence Service class into a module plugin.
+*/
+function modulePlugin(module) {
+	return "apply" in module ? module : module.default;
+}
+/**
 * Load the declared SDK peers through DSH's active profile resolver.
 * File URLs bypass peer routing and can create a second private scope identity,
 * particularly when Electron ASAR paths use different casing on Windows.
 * Bare imports also leave CLI symlinks and Desktop packaging to the host resolver.
-* @returns the host's AgentLoop, SessionStore, title service and provider, and scope factory.
+* @returns the host's AgentLoop, SessionStore, session persistence, title service and provider, and scope factory.
 */
 async function loadHostAgentModules() {
-	const [loop, scope, session, title, titleProvider] = await Promise.all([
+	const [loop, scope, session, persistence, title, titleProvider] = await Promise.all([
 		import("@deepseek-ai/dsh-agent-loop"),
 		import("@deepseek-ai/dsh-scope"),
 		import("@deepseek-ai/dsh-session"),
+		import("@deepseek-ai/dsh-session-persistence-jsonl"),
 		import("@deepseek-ai/dsh-session-title"),
 		import("@deepseek-ai/dsh-session-title-first-prompt-llm")
 	]);
 	return {
 		AgentLoop: loop.AgentLoop,
 		SessionStore: session.SessionStore,
+		SessionPersistence: modulePlugin(persistence),
 		SessionTitleService: title.SessionTitleService,
-		SessionTitleProvider: titleProvider,
+		SessionTitleProvider: modulePlugin(titleProvider),
 		createScope: scope.createScope
 	};
 }
@@ -1933,7 +1941,7 @@ var CiterSessionWorld = class {
 				apply: async (ctx) => {
 					await ctx.plugin(CiterAgentRegistry, { registry: host.agents });
 					await ctx.plugin(createCiterSessionStore(modules.SessionStore, access), { store: host.sessions });
-					await ctx.plugin(JsonlSessionPersistence, {
+					await ctx.plugin(modules.SessionPersistence, {
 						root,
 						compression: "none"
 					});
@@ -2317,10 +2325,11 @@ async function copySessionHistory(source, target, sessionId) {
 const LEGACY_SESSION_ROOT = dshHomePath("citeciter", "sessions");
 /** Open the old private log root read-only for copying; it is never written. */
 async function openLegacyPersistence() {
+	const { SessionPersistence } = await loadHostAgentModules();
 	const ctx = new Context();
 	const fibers = [await ctx.plugin(SessionStore)];
 	try {
-		fibers.push(await ctx.plugin(JsonlSessionPersistence, {
+		fibers.push(await ctx.plugin(SessionPersistence, {
 			root: LEGACY_SESSION_ROOT,
 			compression: "none"
 		}));

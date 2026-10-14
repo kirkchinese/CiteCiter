@@ -1,6 +1,7 @@
 import type { Context, Plugin } from '@deepseek-ai/cordis';
 import type AgentLoop from '@deepseek-ai/dsh-agent-loop';
 import type SessionStore from '@deepseek-ai/dsh-session';
+import type { Config as JsonlPersistenceConfig } from '@deepseek-ai/dsh-session-persistence-jsonl';
 import type SessionTitleService from '@deepseek-ai/dsh-session-title';
 interface HostScope {
     readonly ctx: Context;
@@ -17,6 +18,8 @@ export interface SessionTitleLlmConfig {
 export interface HostAgentModules {
     readonly AgentLoop: typeof AgentLoop;
     readonly SessionStore: typeof SessionStore;
+    /** DSH's JSONL session persistence, which registers `ctx.sessionPersistence`. */
+    readonly SessionPersistence: Plugin<JsonlPersistenceConfig>;
     readonly SessionTitleService: typeof SessionTitleService;
     /** DSH's own first-prompt model title provider, the one `dsh-base` mounts for host sessions. */
     readonly SessionTitleProvider: Plugin<SessionTitleLlmConfig>;
@@ -27,7 +30,7 @@ export interface HostAgentModules {
  * File URLs bypass peer routing and can create a second private scope identity,
  * particularly when Electron ASAR paths use different casing on Windows.
  * Bare imports also leave CLI symlinks and Desktop packaging to the host resolver.
- * @returns the host's AgentLoop, SessionStore, title service and provider, and scope factory.
+ * @returns the host's AgentLoop, SessionStore, session persistence, title service and provider, and scope factory.
  */
 export declare function loadHostAgentModules(): Promise<HostAgentModules>;
 export {};

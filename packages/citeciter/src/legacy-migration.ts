@@ -2,7 +2,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import { loadHostAgentModules } from './host-agent-modules.ts'
 import type { HostSessionAdapter } from './host-session-adapter.ts'
 import { copySessionHistory } from './session-migration.ts'
 import type { SourceStorage } from './source-storage.ts'
@@ -19,10 +19,11 @@ interface LegacyPersistence {
 
 /** Open the old private log root read-only for copying; it is never written. */
 async function openLegacyPersistence(): Promise<LegacyPersistence> {
+  const { SessionPersistence } = await loadHostAgentModules()
   const ctx = new Context()
   const fibers = [await ctx.plugin(SessionStore)]
   try {
-    fibers.push(await ctx.plugin(JsonlSessionPersistence, { root: LEGACY_SESSION_ROOT, compression: 'none' }))
+    fibers.push(await ctx.plugin(SessionPersistence, { root: LEGACY_SESSION_ROOT, compression: 'none' }))
   } catch (error) {
     await fibers[0]!.dispose()
     throw error

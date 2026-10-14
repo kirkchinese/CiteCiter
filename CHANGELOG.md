@@ -2,6 +2,12 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## Unreleased
+
+### Host support
+
+- Support DSH `0.2.1-alpha.3`, whose compatibility gate refuses 0.9.0-beta.2. Citer still supports the official Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1` / `0.2.1-alpha.2`.
+
 ## 0.9.0-beta.2 — 2026-10-15
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` and `0.2.1-alpha.2`.
