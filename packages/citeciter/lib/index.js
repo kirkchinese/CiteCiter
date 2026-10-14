@@ -30,6 +30,23 @@ var __exportAll = (all, no_symbols) => {
 	return target;
 };
 //#endregion
+//#region lib/types/model-admission.js
+/** Keep an unavailable inherited route visible until the user explicitly replaces it. */
+const MODEL_SELECTION_REQUIRED = "来源模型已不可用。草稿已保留，请选择可用模型后发送。";
+/** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
+async function selectInitialModel(metadata, select) {
+	try {
+		await select();
+	} catch (error) {
+		if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "session/model-unavailable") throw error;
+		metadata.modelSelectionRequired = true;
+	}
+}
+/** Check the durable flag before an explicit submission, without changing permissions or model defaults. */
+function requireSelectedModel(metadata) {
+	if (metadata.modelSelectionRequired === true) throw new Error(MODEL_SELECTION_REQUIRED);
+}
+//#endregion
 //#region lib/types/host-settings-adapter.js
 /** Keep settings live through the official Cordis configuration contract. */
 function settingsConfig(schema) {
@@ -2385,23 +2402,6 @@ async function migrateLegacyTopics(host, index, sources, native) {
 	} finally {
 		await legacy?.dispose();
 	}
-}
-//#endregion
-//#region lib/types/model-admission.js
-/** Keep an unavailable inherited route visible until the user explicitly replaces it. */
-const MODEL_SELECTION_REQUIRED = "来源模型已不可用。草稿已保留，请选择可用模型后发送。";
-/** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
-async function selectInitialModel(metadata, select) {
-	try {
-		await select();
-	} catch (error) {
-		if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "session/model-unavailable") throw error;
-		metadata.modelSelectionRequired = true;
-	}
-}
-/** Check the durable flag before an explicit submission, without changing permissions or model defaults. */
-function requireSelectedModel(metadata) {
-	if (metadata.modelSelectionRequired === true) throw new Error(MODEL_SELECTION_REQUIRED);
 }
 //#endregion
 //#region lib/types/native-attachment-read.js

@@ -32,6 +32,32 @@
 
 .composer textarea::placeholder { color: var(--dsw-alias-label-tertiary); }
 
+/* Notices the panel places above the references, in the host's secondary text. Their recovery
+   buttons (check or retry a send, reload the draft, drop a missing file) read as links. */
+.composer > p {
+  margin: 0 10px 6px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+}
+
+.composer > p[role='alert'] { color: var(--dsw-alias-state-error-primary, #c93f3f); }
+
+.composer > p > button,
+.composer > button:not([class]) {
+  padding: 0;
+  color: var(--dsw-alias-state-business-primary);
+  background: none;
+  border: 0;
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+  cursor: pointer;
+}
+
+.composer > p > button { margin-left: 8px; }
+.composer > button:not([class]) { display: block; margin: 0 10px 6px; }
+
+.composer > p > button:hover,
+.composer > button:not([class]):hover { text-decoration: underline; }
+
 .composerActions {
   display: flex;
   align-items: center;
@@ -62,7 +88,9 @@
 
 .sendButton:focus-visible,
 .expandButton:focus-visible,
-.attachButton:focus-visible {
+.attachButton:focus-visible,
+.composer > p > button:focus-visible,
+.composer > button:not([class]):focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary, #3478f6);
   outline-offset: 2px;
 }
