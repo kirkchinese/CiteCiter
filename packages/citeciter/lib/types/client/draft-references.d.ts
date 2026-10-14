@@ -8,6 +8,12 @@ export declare function mergeDraftReferences(current: readonly DraftReference[],
 export declare function topicDraftReferences(topic: TopicSummary, documentTitle?: string): readonly DraftReference[];
 /** Display a document filename while retaining the full title/path in its serialized content. Legacy ID-only references keep their generic label. */
 export declare function draftReferenceName(reference: DraftReference): string;
+/**
+ * Chip text that shows what a reference contains instead of its kind. Serialized labels
+ * are unchanged, so sent messages still parse.
+ * @param sourceTitle - resolves a source session's display title; the generic label is used when it is unknown.
+ */
+export declare function draftReferenceTitle(reference: DraftReference, sourceTitle?: (sessionId: string) => string | undefined): string;
 /** Serialize the exact visible attachment collection only at manual submission. */
 export declare function serializeDraftReferences(question: string, references: readonly DraftReference[]): string;
 /** Present sent reference blocks as expandable attachments while retaining the exact serialized model input in the Session log. Unrecognized text is preserved. */

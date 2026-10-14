@@ -7,7 +7,7 @@ import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
 import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type QuestionAnswer, type TopicSnapshot, type TopicSummary } from '../topic.ts';
 import { type DocumentClaimIntent } from './request-guard.ts';
-import type { ActionModel } from '../actions.ts';
+import type { ActionDelivery, ActionModel } from '../actions.ts';
 import type { CiteSelection } from './types.ts';
 import { type DraftReference } from './draft-references.ts';
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error';
@@ -48,15 +48,24 @@ export interface CompanionFace {
     subscribe(listener: () => void): () => void;
     setSource(sessionId: SessionId | null): void;
     retainVisible(): () => void;
-    create(selection: CiteSelection, question: string, modelRoute?: ActionModel): Promise<void>;
+    /** Resolve once the Topic list refresh in progress, including reopening the last Topic, has finished. */
+    settle(): Promise<void>;
+    /**
+     * Create a Topic from a conversation selection.
+     * @param delivery - `draft` fills the new Topic's composer; `send` sends the question with its references at once.
+     */
+    create(selection: CiteSelection, question: string, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>;
     createFree(question: string): Promise<boolean>;
     /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
-    createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel): Promise<void>;
+    createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>;
     openTopic(sessionId: string): Promise<void>;
     /** Resolve only the explicitly selected, unarchived Topic; null means create a new one. */
     resolveDraftTopic(sourceSessionId: SessionId): Promise<string | null>;
-    /** Append to the exact still-selected Topic; never change its route, permissions or running turn. */
-    appendSelection(sourceSessionId: SessionId, topicSessionId: string, question: string, references: readonly DraftReference[]): void;
+    /**
+     * Append to the exact still-selected Topic; never change its route, permissions, existing draft or running turn.
+     * @param delivery - `draft` adds the question and references to the composer; `send` queues them as their own message.
+     */
+    appendSelection(sourceSessionId: SessionId, topicSessionId: string, question: string, references: readonly DraftReference[], delivery?: ActionDelivery): Promise<void>;
     /** Acknowledge a draft event only after its UI consumer accepted it. */
     consumeComposeSeed(id: string): void;
     ask(question: string, attachments?: readonly DraftAttachmentId[], mode?: DeliveryMode, requestId?: string, expectedSessionId?: string): Promise<boolean>;

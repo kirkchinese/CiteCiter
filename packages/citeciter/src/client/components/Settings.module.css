@@ -1,0 +1,224 @@
+/* Settings rows follow the host's own settings sections: 16px rows, 0.5px dividers,
+   14px titles, 12px tertiary descriptions and the control on the right. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: min(760px, 100%);
+  padding-bottom: 32px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.intro img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  corner-shape: round;
+}
+
+.intro h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.intro p {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.group h3 {
+  margin: 0 0 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  border-bottom: .5px solid var(--dsw-alias-border-l2, #e4e7ec);
+}
+
+.row[data-stack] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-right: 48px;
+}
+
+.title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.desc {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.control {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.select,
+.textarea,
+.text {
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-module-platform, var(--dsw-specific-input-major, #fff));
+  border: 0;
+  border-radius: var(--dsw-radius-md, 8px);
+  font-size: 14px;
+  line-height: 22px;
+  font-family: inherit;
+}
+
+.select {
+  max-width: 260px;
+  height: 36px;
+  padding: 0 10px;
+}
+
+.text {
+  width: 220px;
+  height: 36px;
+  padding: 0 10px;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.select:focus-visible,
+.textarea:focus-visible,
+.text:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.range {
+  width: 180px;
+  accent-color: var(--dsw-alias-state-business-primary);
+}
+
+.value {
+  min-width: 40px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 14px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.status {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.status[data-status="error"] { color: var(--dsw-alias-state-error-primary); }
+.status[data-status="success"] { color: var(--dsw-alias-state-success-primary); }
+
+/* Action list: one compact row per slot, editing opens below it. */
+.slots {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.slot {
+  border-top: .5px solid var(--dsw-alias-border-l2, #e4e7ec);
+}
+
+.slot summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  list-style: none;
+  cursor: pointer;
+}
+
+.slot summary::-webkit-details-marker { display: none; }
+
+.slotIndex {
+  width: 16px;
+  color: var(--dsw-alias-label-caption, var(--dsw-alias-label-tertiary));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.slotLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.slotLabel[data-empty] { color: var(--dsw-alias-label-tertiary); }
+
+.slotKind {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.slotBody {
+  display: grid;
+  gap: 10px;
+  padding: 0 0 14px 26px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.slotButtons,
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footer {
+  justify-content: flex-end;
+  margin-top: 12px;
+}

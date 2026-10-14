@@ -5,8 +5,8 @@ import type { QuestionReply } from '../../question-reply.ts'
 import { QuestionReplyBody } from './QuestionReplyBody.tsx'
 
 /** Read-only presentation of a committed user message. Attachments remain inspectable and formulas are rendered without mutating the durable prompt. */
-export function UserMessageBody({ text, questionReply }: { readonly text: string; readonly questionReply?: QuestionReply | undefined }) {
+export function UserMessageBody({ text, questionReply, sourceTitle }: { readonly text: string; readonly questionReply?: QuestionReply | undefined; readonly sourceTitle?: ((sessionId: string) => string | undefined) | undefined }) {
   if (questionReply !== undefined) return <QuestionReplyBody reply={questionReply} />
   const { question, references } = parseSentReferences(text)
-  return <>{references.length > 0 && <ReferenceAttachments references={references} />}{question !== '' && <RichAnswer text={question} streaming={false} />}</>
+  return <>{references.length > 0 && <ReferenceAttachments references={references} sourceTitle={sourceTitle} />}{question !== '' && <RichAnswer text={question} streaming={false} />}</>
 }

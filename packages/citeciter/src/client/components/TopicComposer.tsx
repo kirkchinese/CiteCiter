@@ -44,7 +44,7 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
     {attachments}
     {folded && <button type="button" className={css.expandButton} onClick={onExpand}>{question.trim() === '' ? '补充问题' : '编辑草稿'}</button>}
     <textarea hidden={folded} ref={inputRef} rows={2} maxLength={11_000}
-      aria-label="继续向 CiteCiter 提问" value={question} disabled={route === undefined}
+      aria-label="继续向 Citer 提问" value={question} disabled={route === undefined}
       onChange={event => onQuestion(event.currentTarget.value)} placeholder={placeholder}
       onCompositionStart={() => onComposition(true)} onCompositionEnd={() => onComposition(false)}
       onBlur={() => onComposition(false)}

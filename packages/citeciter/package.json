@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.9.0-beta.1",
+  "version": "0.9.0-beta.2",
   "description": "Source-aware native DSH Topics with manual drafts, permissions, visual boards and learning cards",
   "keywords": [
     "deepseek-harness",
@@ -110,6 +110,7 @@
     "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2",
     "@deepseek-ai/dsh-session-query": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2",
     "@deepseek-ai/dsh-session-title": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2",
+    "@deepseek-ai/dsh-session-title-first-prompt-llm": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2",
     "@deepseek-ai/dsh-settings": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2",
     "@deepseek-ai/dsh-tools": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2",
     "@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2",
@@ -149,6 +150,7 @@
     "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-session-query": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-session-title": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-session-title-first-prompt-llm": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-settings": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-tools": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-typert-protocol": "0.2.1-alpha.2",

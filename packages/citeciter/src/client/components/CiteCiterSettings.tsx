@@ -4,12 +4,12 @@ import type { UpdateNoticeSnapshot } from '../update-controller.ts'
 import type { SettingsDocumentSnapshot } from '../settings-document.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, UpdateActions, SettingsDocumentActions } from '../view-actions.ts'
-import { useEffect, useRef, useState } from 'react'
-import { IconSettingsOutlineMedium } from '../host-icons.ts'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Button, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import mascotUrl from '../assets/citeciter-mascot.png'
-import css from './CiteCiter.module.css'
-import { WheelSettings } from './WheelSettings.tsx'
+import css from './Settings.module.css'
+import { ActionSettings } from './ActionSettings.tsx'
 
 export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
   readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
@@ -20,18 +20,25 @@ export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
   readonly updateController: UpdateActions
 }
 
-/** Native DSH settings page for CiteCiter-owned preferences. */
+/** One host-style settings row: title and description on the left, the control on the right. */
+function Row({ title, desc, children }: { readonly title: string, readonly desc?: string, readonly children: ReactNode }) {
+  return <div className={css.row}>
+    <div className={css.rowText}><span className={css.title}>{title}</span>{desc !== undefined && <span className={css.desc}>{desc}</span>}</div>
+    <div className={css.control}>{children}</div>
+  </div>
+}
+
+/** Native DSH settings page for Citer preferences. */
 export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
   const snapshot = useCompanion(value => value)
   const documentSnapshot = useDocument(value => value)
   const updateSnapshot = useUpdate(value => value)
   const settings = snapshot.settings
+  const saving = snapshot.settingsSaveStatus === 'saving'
   useEffect(() => companion.retainVisible(), [companion])
   const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent)
   const committedWidth = useRef(settings.panelWidthPercent)
-  useEffect(() => {
-    void settingsDocument.load()
-  }, [settingsDocument])
+  useEffect(() => { void settingsDocument.load() }, [settingsDocument])
   useEffect(() => {
     committedWidth.current = settings.panelWidthPercent
     setWidthDraft(settings.panelWidthPercent)
@@ -41,171 +48,84 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
     committedWidth.current = value
     void companion.setSetting('panelWidthPercent', value)
   }
+  const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations'>(key: Key, label: string, fallback: boolean) =>
+    <Switch label={label} checked={settings[key] ?? fallback} disabled={saving} onChange={value => { void companion.setSetting(key, value) }} />
   return (
-    <div className={css.settingsPage}>
-      <header className={css.settingsHero}>
-        <span className={css.settingsWhale} aria-hidden="true"><img src={mascotUrl} alt="" /></span>
+    <div className={css.page}>
+      <header className={css.intro}>
+        <img src={mascotUrl} alt="" aria-hidden="true" />
         <div>
-          <h2>CiteCiter</h2>
-          <p>保留 DSH 的编程主界面，把学习讨论放在右侧独立工作区。</p>
+          <h2>Citer</h2>
+          <p>选中 Agent 工作中的内容，在独立的 Topic 里追问，不改动主对话。</p>
         </div>
       </header>
       {snapshot.settingsSaveMessage !== null && (
-        <p
-          className={css.settingsSaveStatus}
-          data-status={snapshot.settingsSaveStatus}
-          role={snapshot.settingsSaveStatus === 'error' ? 'alert' : 'status'}
-        >{snapshot.settingsSaveMessage}</p>
+        <p className={css.status} data-status={snapshot.settingsSaveStatus === 'error' ? 'error' : undefined}
+          role={snapshot.settingsSaveStatus === 'error' ? 'alert' : 'status'}>{snapshot.settingsSaveMessage}</p>
       )}
 
-      <WheelSettings snapshot={snapshot} companion={companion} />
-      <section className={css.settingsGroup}>
-        <h3>权限与来源</h3>
-        <div className={css.settingToggle}><span><strong>新 Topic 默认权限</strong><small>使用 DSH 权限；此设置只影响新 Topic。</small></span><PermissionControl value={settings.defaultPermission ?? 'read-only'} onChange={mode => { void companion.setSetting('defaultPermission', mode) }} /></div>
-        <label className={css.settingToggle}>
-          <span><strong>包含来源 reasoning</strong><small>关闭后 read_source_session 不向 CiteCiter 返回主 Agent 的思考正文。</small></span>
-          <input
-            type="checkbox"
-            checked={settings.includeSourceReasoning}
-            onChange={(event) => { void companion.setSetting('includeSourceReasoning', event.currentTarget.checked) }}
-          />
-        </label>
+      <ActionSettings snapshot={snapshot} companion={companion} />
+
+      <section className={css.group}>
+        <h3>Topic</h3>
+        <Row title="新 Topic 的权限" desc="只影响之后新建的 Topic；DSH 的审批和沙箱照常生效。">
+          <PermissionControl value={settings.defaultPermission ?? 'read-only'} onChange={mode => { void companion.setSetting('defaultPermission', mode) }} />
+        </Row>
+        <Row title="重新打开上次的 Topic" desc="回到来源对话时自动展开 Citer 并恢复最近的 Topic。">{toggle('reopenLastTopic', '重新打开上次的 Topic', true)}</Row>
+        <Row title="读取来源时包含思考过程" desc="关闭后，Citer 读取来源对话时看不到主 Agent 的思考内容。">{toggle('includeSourceReasoning', '读取来源时包含思考过程', true)}</Row>
+        <Row title="首个回答附带追问建议" desc="在第一个回答末尾给出三个可以接着问的问题。">{toggle('followupQuestions', '首个回答附带追问建议', true)}</Row>
       </section>
 
-      <section className={css.settingsGroup}>
-        <h3>提示词与快捷键</h3>
-        <label className={css.settingToggle}>
-          <span><strong>主动回忆（可选）</strong><small>默认关闭，直接阅读学习卡片；开启后先显示自测问题，点击才展开结论和答案。不安排复习任务。</small></span>
-          <input type="checkbox" checked={settings.activeRecall ?? false}
-            onChange={(event) => { void companion.setSetting('activeRecall', event.currentTarget.checked) }} />
-        </label>
-        <label className={css.settingStack}>
-          <span><strong>自定义导师提示词</strong><small>补充教学偏好；留空使用内置提示词。从下次发送起生效。</small></span>
-          <textarea
-            className={css.promptTextarea}
-            value={settings.tutorPrompt ?? ''}
-            maxLength={4000}
-            rows={4}
-            placeholder="留空 = 使用内置导师提示词"
-            onChange={(event) => { void companion.setSetting('tutorPrompt', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }}
-          />
-        </label>
-        <label className={css.settingToggle}>
-          <span><strong>首答附追问建议</strong><small>在首个回答末尾生成三个追问候选；关闭后回答保持纯净。</small></span>
-          <input
-            type="checkbox"
-            checked={settings.followupQuestions ?? true}
-            onChange={(event) => { void companion.setSetting('followupQuestions', event.currentTarget.checked) }}
-          />
-        </label>
-        <label className={css.settingToggle}>
-          <span><strong>黑板动画</strong><small>关闭后 animate 只保留最终状态，不再播放淡入、滑入、脉冲或高亮动画。</small></span>
-          <input
-            type="checkbox"
-            checked={settings.boardAnimations ?? true}
-            onChange={(event) => { void companion.setSetting('boardAnimations', event.currentTarget.checked) }}
-          />
-        </label>
-        <label className={css.settingStack}>
-          <span><strong>打开学习栏快捷键</strong><small>格式如 Control+Shift+C；留空禁用。输入框和编辑器内的按键不会被拦截。</small></span>
-          <input
-            type="text"
-            value={settings.shortcutOpenPanel ?? ''}
-            maxLength={40}
-            placeholder="Control+Shift+C"
-            onChange={(event) => { void companion.setSetting('shortcutOpenPanel', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }}
-          />
-        </label>
-      </section>
-
-      <section className={css.settingsGroup}>
-        <h3>版本更新</h3>
-        <label className={css.settingToggle}>
-          <span>
-            <strong>版本更新提醒</strong>
-            <small>{updateSnapshot.preferencePersistence === 'browser'
-              ? '远程 Web 只在当前浏览器保存此选择；开启后会重新检查可用版本。'
-              : '在 DSH 设置中保存；关闭后可随时回到这里恢复。'}</small>
-          </span>
-          <input
-            type="checkbox"
-            checked={updateSnapshot.notificationsEnabled}
-            disabled={!updateSnapshot.preferenceReady || updateSnapshot.preferenceStatus === 'saving'}
-            aria-busy={updateSnapshot.preferenceStatus === 'saving'}
-            onChange={(event) => { void updateController.setNotificationsEnabled(event.currentTarget.checked) }}
-          />
-        </label>
-        {updateSnapshot.preferenceMessage !== null && (
-          <p
-            className={css.settingsSaveStatus}
-            data-status={updateSnapshot.preferenceStatus}
-            role={updateSnapshot.preferenceStatus === 'error' ? 'alert' : 'status'}
-          >{updateSnapshot.preferenceMessage}</p>
-        )}
-      </section>
-
-      <section className={css.settingsGroup}>
-        <h3>配置文件</h3>
-        <div className={css.settingsDocumentAction}>
-          <button
-            type="button"
-            className={css.settingsDocumentButton}
-            data-status={documentSnapshot.status}
-            disabled={['loading', 'missing', 'unavailable'].includes(documentSnapshot.status) || documentSnapshot.opening}
-            aria-busy={documentSnapshot.opening || documentSnapshot.status === 'loading'}
-            onClick={() => { void settingsDocument.open() }}
-          >
-            <IconSettingsOutlineMedium size={14} />
-            {documentSnapshot.opening
-              ? '正在打开…'
-              : documentSnapshot.status === 'loading' ? '正在检查…'
-                : documentSnapshot.status === 'unavailable' ? '宿主不支持打开'
-                  : documentSnapshot.status === 'missing' ? '配置文件不存在'
-                    : documentSnapshot.status === 'error' ? '重试打开配置文件' : '打开配置文件'}
-          </button>
-          {(documentSnapshot.error !== null || documentSnapshot.message !== null) && (
-            <p
-              className={css.settingsDocumentStatus}
-              data-status={documentSnapshot.error === null ? 'success' : 'error'}
-              role={documentSnapshot.error === null ? 'status' : 'alert'}
-            >{documentSnapshot.error ?? documentSnapshot.message}</p>
-          )}
+      <section className={css.group}>
+        <h3>学习</h3>
+        <Row title="主动回忆" desc="学习卡先显示自测问题，点开才看到结论和答案。">{toggle('activeRecall', '主动回忆', false)}</Row>
+        <Row title="板书动画" desc="关闭后板书直接显示最终状态。">{toggle('boardAnimations', '板书动画', true)}</Row>
+        <div className={css.row} data-stack>
+          <div className={css.rowText}><span className={css.title}>导师提示词</span><span className={css.desc}>补充你的讲解偏好，下次发送起生效；留空使用内置提示词。</span></div>
+          <textarea className={css.textarea} value={settings.tutorPrompt ?? ''} maxLength={4000} rows={4} aria-label="导师提示词" placeholder="例如：先给结论，再用一个小例子说明。"
+            onChange={(event) => { void companion.setSetting('tutorPrompt', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }} />
         </div>
       </section>
 
-      <section className={css.settingsGroup}>
-        <h3>学习栏</h3>
-        <label className={css.widthSetting}>
-          <span><strong>默认宽度</strong><output>{widthDraft}%</output></span>
-          <input
-            type="range"
-            min={28}
-            max={55}
-            step={1}
-            value={widthDraft}
+      <section className={css.group}>
+        <h3>面板</h3>
+        <Row title="默认宽度" desc="也可以拖动面板左边缘调整。">
+          <input className={css.range} type="range" min={28} max={55} step={1} value={widthDraft} aria-label="面板默认宽度"
             onChange={(event) => setWidthDraft(Number(event.currentTarget.value))}
             onPointerUp={(event) => commitWidth(Number(event.currentTarget.value))}
             onBlur={(event) => commitWidth(Number(event.currentTarget.value))}
-            onKeyUp={(event) => {
-              if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-                commitWidth(Number(event.currentTarget.value))
-              }
-            }}
-          />
-        </label>
-        <label className={css.settingToggle}>
-          <span><strong>重新打开上次 Topic</strong><small>刷新或重新进入来源 Session 时，自动展开学习栏并恢复最近讨论。</small></span>
-          <input
-            type="checkbox"
-            checked={settings.reopenLastTopic}
-            onChange={(event) => { void companion.setSetting('reopenLastTopic', event.currentTarget.checked) }}
-          />
-        </label>
-        <div className={css.dockPreview} aria-label="学习栏宽度预览">
-          <span className={css.previewSidebar} />
-          <span className={css.previewCoding}>DSH 编程对话</span>
-          <span className={css.previewDock} style={{ width: widthDraft + '%' }}>CiteCiter</span>
-        </div>
+            onKeyUp={(event) => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) commitWidth(Number(event.currentTarget.value)) }} />
+          <output className={css.value}>{widthDraft}%</output>
+        </Row>
+        <Row title="打开 Citer 的快捷键" desc="例如 Control+Shift+C；留空表示不使用。输入框里的按键不会被拦截。">
+          <input className={css.text} type="text" value={settings.shortcutOpenPanel ?? ''} maxLength={40} placeholder="Control+Shift+C" aria-label="打开 Citer 的快捷键"
+            onChange={(event) => { void companion.setSetting('shortcutOpenPanel', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }} />
+        </Row>
+      </section>
+
+      <section className={css.group}>
+        <h3>其他</h3>
+        <Row title="版本更新提醒" desc={updateSnapshot.preferencePersistence === 'browser' ? '远程 Web 只在当前浏览器保存这个选择。' : '有新版本时提醒你。'}>
+          <Switch label="版本更新提醒" checked={updateSnapshot.notificationsEnabled}
+            disabled={!updateSnapshot.preferenceReady || updateSnapshot.preferenceStatus === 'saving'}
+            onChange={value => { void updateController.setNotificationsEnabled(value) }} />
+        </Row>
+        {updateSnapshot.preferenceMessage !== null && <p className={css.status} data-status={updateSnapshot.preferenceStatus === 'error' ? 'error' : undefined} role={updateSnapshot.preferenceStatus === 'error' ? 'alert' : 'status'}>{updateSnapshot.preferenceMessage}</p>}
+        <Row title="配置文件" desc="直接编辑 Citer 的全部设置。">
+          <Button variant="outline" size="sm"
+            disabled={['loading', 'missing', 'unavailable'].includes(documentSnapshot.status) || documentSnapshot.opening}
+            aria-busy={documentSnapshot.opening || documentSnapshot.status === 'loading'}
+            onClick={() => { void settingsDocument.open() }}>
+            {documentSnapshot.opening ? '正在打开…'
+              : documentSnapshot.status === 'loading' ? '正在检查…'
+                : documentSnapshot.status === 'unavailable' ? '宿主不支持打开'
+                  : documentSnapshot.status === 'missing' ? '配置文件不存在'
+                    : documentSnapshot.status === 'error' ? '重新打开' : '打开配置文件'}
+          </Button>
+        </Row>
+        {(documentSnapshot.error !== null || documentSnapshot.message !== null) && (
+          <p className={css.status} data-status={documentSnapshot.error === null ? 'success' : 'error'} role={documentSnapshot.error === null ? 'status' : 'alert'}>{documentSnapshot.error ?? documentSnapshot.message}</p>
+        )}
       </section>
     </div>
   )

@@ -1,2 +1,2 @@
 /** Keep host icon imports behind a single official SDK boundary. */
-export { IconSettingsOutlineMedium, IconQuestionOutlineMedium, IconSparkleMedium, IconDownloadOutlineMedium, IconThinkOutlineMedium, IconStopFillMedium, IconArchiveOutlineMedium, } from '@deepseek-ai/dsh-client-ui-primitives';
+export { IconQuestionOutlineMedium, IconSparkleMedium, IconDownloadOutlineMedium, IconThinkOutlineMedium, IconStopFillMedium, } from '@deepseek-ai/dsh-client-ui-primitives';

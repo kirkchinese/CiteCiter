@@ -120,13 +120,13 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
   }
 
   return (
-    <form ref={surface} className={css.questionFrame} onSubmit={submit} aria-label="CiteCiter 提问"
+    <form ref={surface} className={css.questionFrame} onSubmit={submit} aria-label="Citer 提问"
       onFocus={event => { if (!event.currentTarget.contains(event.relatedTarget)) interaction?.focus() }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) interaction?.blur() }}>
       <div className={css.questionHeader}>
         <IconQuestionOutlineMedium />
         <div>
-          <span>{question.header ?? 'CiteCiter 需要你的回答'}</span>
+          <span>{question.header ?? 'Citer 需要你的回答'}</span>
           <strong>{question.question}</strong>
         </div>
         <span>{page + 1}/{pending.questions.length}</span>

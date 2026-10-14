@@ -1,10 +1,35 @@
 import type { Context, Fiber } from '@deepseek-ai/cordis'
 import type { AgentHandle } from '@deepseek-ai/dsh-agent'
+import type { Session } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-session-title'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { CiterAgentRegistry } from './citer-agent-registry.ts'
 import { createCiterSessionStore } from './citer-session-store.ts'
 import { loadHostAgentModules } from './host-agent-modules.ts'
 import type { CiterSessionAccess } from './citer-session-access.ts'
+
+/**
+ * DSH starts automatic first-prompt titles only for sessions without a parent, and a
+ * Topic's parent is its source session. When a Topic request starts while its title is
+ * still the fallback, ask the registered provider once, as the host does for its own
+ * sessions. Explicit renames are never replaced.
+ */
+const requestTopicTitles = {
+  name: 'citeciter-topic-titles',
+  inject: ['sessionTitle', 'sessions'],
+  apply(ctx: Context) {
+    const requested = new WeakSet<Session>()
+    ctx.on('session/event', (session, event) => {
+      if (event.type !== 'request/header' || requested.has(session)) return
+      const title = ctx.sessionTitle.get(session)
+      if (title !== undefined && title.source.kind !== 'fallback') return
+      requested.add(session)
+      ctx.sessionTitle.refresh(session).catch((error: unknown) => {
+        ctx.logger.warn(`CiteCiter could not title Topic ${session.id}`, error)
+      })
+    })
+  },
+}
 
 /** A Topic-owned DSH factory and JSONL backend; live conversation APIs stay shared, disk ownership does not. */
 export class CiterSessionWorld {
@@ -58,6 +83,16 @@ export class CiterSessionWorld {
             fallbackMaxBytes: 40,
             maxTitleBytes: 80,
           })
+          // The same first-prompt model provider and policy that dsh-base mounts for
+          // host sessions, so Topics get summary titles; a user rename still pins the title.
+          await ctx.plugin(modules.SessionTitleProvider, {
+            targetWords: 5,
+            targetCjkCharacters: 10,
+            maxInputBytes: 4096,
+            maxOutputTokens: 64,
+            timeoutMs: 60000,
+          })
+          await ctx.plugin(requestTopicTitles)
           await ctx.plugin({
             name: 'citeciter-session-factory',
             inject: ['agents', 'sessionPersistence', 'llm', 'sessions', 'sessionTitle', 'systemPrompt', 'tools', 'sessionProjections'],

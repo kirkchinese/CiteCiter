@@ -40,7 +40,7 @@ export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, o
 
   if (active === null) {
     return (
-      <section className={css.workspaceEmpty} aria-label="CiteCiter 小黑板">
+      <section className={css.workspaceEmpty} aria-label="Citer 小黑板">
         <strong>小黑板</strong>
         <p>在 Citer 中发送绘图或教学问题，板书会显示在这里。</p>
       </section>

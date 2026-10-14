@@ -20,6 +20,12 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
     boardAnimations: z.ZodOptional<z.ZodBoolean>;
     activeRecall: z.ZodOptional<z.ZodBoolean>;
     updateNotifications: z.ZodOptional<z.ZodBoolean>;
+    selectionToolbar: z.ZodOptional<z.ZodBoolean>;
+    actionDelivery: z.ZodOptional<z.ZodEnum<{
+        send: "send";
+        draft: "draft";
+    }>>;
+    wheelEnabled: z.ZodOptional<z.ZodBoolean>;
     wheelSlots: z.ZodOptional<z.ZodArray<z.ZodNullable<z.ZodObject<{
         label: z.ZodString;
         prompt: z.ZodString;
@@ -308,6 +314,17 @@ export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
  * @returns canonical TopicMetadata.
  */
 export declare function parseTopicMetadataFile(raw: unknown): TopicMetadata;
+/**
+ * The title a Topic shows. DSH's fallback title repeats the first prompt, which for a Topic
+ * is Citer's action instructions, so the excerpt or question it started from stays until a
+ * provider or the user names the Topic.
+ * @param metadata - the Topic's cached and temporary titles.
+ * @returns the display title and whether a real title is still pending.
+ */
+export declare function topicDisplayTitle(metadata: Pick<TopicMetadata, 'temporaryTitle' | 'cachedTitle' | 'cachedTitleSource'>): {
+    readonly title: string;
+    readonly pending: boolean;
+};
 export declare const permissionSchema: z.ZodEnum<{
     "read-only": "read-only";
     "workspace-write": "workspace-write";

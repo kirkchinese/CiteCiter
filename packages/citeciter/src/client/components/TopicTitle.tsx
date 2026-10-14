@@ -1,15 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import css from './TopicNavigation.module.css'
 
-/** Inline rename committed by Enter or blur, cancelled by Escape. Double-click and F2 start editing. */
-export function TopicTitle({ id, title, onRename }: { readonly id: string, readonly title: string, readonly onRename: (title: string) => Promise<boolean> }) {
+/**
+ * Inline rename committed by Enter or blur, cancelled by Escape. Double-click, F2 or a
+ * changed `renameRequest` (the Topic menu) start editing.
+ */
+export function TopicTitle({ id, title, onRename, renameRequest = 0 }: { readonly id: string, readonly title: string, readonly onRename: (title: string) => Promise<boolean>, readonly renameRequest?: number }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(title)
   const [error, setError] = useState(false)
   const saving = useRef(false)
   const cancelled = useRef(false)
+  const handledRequest = useRef(renameRequest)
   useEffect(() => { setEditing(false); setValue(title); setError(false) }, [id])
   const start = () => { cancelled.current = false; setValue(title); setError(false); setEditing(true) }
+  useEffect(() => {
+    if (renameRequest === handledRequest.current) return
+    handledRequest.current = renameRequest
+    start()
+  }, [renameRequest])
   const save = async () => {
     if (saving.current || cancelled.current) return
     if (!value.trim() || value.trim() === title) { setEditing(false); return }

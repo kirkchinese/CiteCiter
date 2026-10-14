@@ -12,5 +12,5 @@ export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
     readonly settingsDocument: SettingsDocumentActions;
     readonly updateController: UpdateActions;
 }
-/** Native DSH settings page for CiteCiter-owned preferences. */
+/** Native DSH settings page for Citer preferences. */
 export declare function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }: CiteCiterSettingsProps): import("react").JSX.Element;

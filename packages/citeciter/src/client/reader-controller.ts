@@ -116,7 +116,7 @@ export function createReaderController(
     try {
       const response = await call({ action: 'documents' })
       if (generation !== refreshGeneration) return
-      if (response.kind !== 'documents') throw new Error('CiteCiter 返回了错误的文档列表响应')
+      if (response.kind !== 'documents') throw new Error('Citer 返回了错误的文档列表响应')
       update((draft) => {
         draft.documents = response.documents
         draft.documentsStatus = 'ready'
@@ -148,7 +148,7 @@ export function createReaderController(
         format: formatFromName(name),
         content,
       })
-      if (response.kind !== 'document') throw new Error('CiteCiter 返回了错误的文档导入响应')
+      if (response.kind !== 'document') throw new Error('Citer 返回了错误的文档导入响应')
       await refresh()
       return response.document
     } catch (error) {

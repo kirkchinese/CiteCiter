@@ -1,7 +1,87 @@
-.header { display: flex; flex: none; align-items: center; gap: 8px; min-height: 64px; padding: 8px 42px 8px 12px; border-bottom: 1px solid var(--dsw-alias-border-l1, #e4e7ec); cursor: grab; user-select: none; touch-action: none; }
+/* Mirrors the host conversation header: 14px/500 title, 0.5px divider, ghost icon buttons. */
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: .5px solid var(--dsw-alias-border-l3, #e4e7ec);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
 .header:active { cursor: grabbing; }
-.header[data-compact] { min-height: 60px; padding: 6px 12px 6px 8px; cursor: default; touch-action: auto; }
-.heading { display: grid; flex: 1; min-width: 0; gap: 2px; }
-.heading strong { font-size: 14px; cursor: text; }
-.status { overflow: hidden; color: var(--dsw-alias-label-tertiary, #858c98); font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
-.grip { flex: none; color: var(--dsw-alias-label-tertiary, #858c98); font-size: 20px; }
+
+.header[data-compact] {
+  padding-left: 6px;
+  cursor: default;
+  touch-action: auto;
+}
+
+.mark {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  corner-shape: round;
+  pointer-events: none;
+}
+
+.heading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.heading > strong {
+  font-weight: 500;
+}
+
+.status {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+  white-space: nowrap;
+}
+
+.close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--dsw-radius-md, 8px);
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -2px;
+}
+
+.close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

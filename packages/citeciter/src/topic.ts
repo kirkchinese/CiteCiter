@@ -4,7 +4,7 @@ import { questionDraftKeySchema, questionDraftStateSchema } from './question-dra
 import { nativeStateSchema, nativeAttachmentRefSchema } from './native-session-contract.ts'
 import { boardSnapshotSchema } from './board.ts'
 import { boardCaptureJobSchema } from './board-capture-protocol.ts'
-import { actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from './actions.ts'
+import { actionDeliverySchema, actionModelSchema, wheelSlotsSchema, wheelTriggerSchema } from './actions.ts'
 import { QUESTION_TOOL_OUTCOME_CODES } from './tool-outcome-contract.ts'
 import { questionReplySchema } from './question-reply.ts'
 
@@ -37,6 +37,9 @@ export const citeCiterSettingsSchema = z.object({
   boardAnimations: z.boolean().optional(),
   activeRecall: z.boolean().optional(),
   updateNotifications: z.boolean().optional(),
+  selectionToolbar: z.boolean().optional(),
+  actionDelivery: actionDeliverySchema.optional(),
+  wheelEnabled: z.boolean().optional(),
   wheelSlots: wheelSlotsSchema.optional(),
   wheelTrigger: wheelTriggerSchema.optional(),
   defaultCiterModel: actionModelSchema.nullable().optional(),
@@ -57,6 +60,9 @@ export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   defaultPermission: 'read-only',
   learningRoute: false,
   updateNotifications: true,
+  selectionToolbar: true,
+  actionDelivery: 'send',
+  wheelEnabled: false,
 })
 
 /**
@@ -296,6 +302,20 @@ export function parseTopicMetadataFile(raw: unknown): TopicMetadata {
     scenario: scenario ?? DEFAULT_TOPIC_SCENARIO,
     documentId: documentId ?? null,
   }) as TopicMetadata
+}
+
+/**
+ * The title a Topic shows. DSH's fallback title repeats the first prompt, which for a Topic
+ * is Citer's action instructions, so the excerpt or question it started from stays until a
+ * provider or the user names the Topic.
+ * @param metadata - the Topic's cached and temporary titles.
+ * @returns the display title and whether a real title is still pending.
+ */
+export function topicDisplayTitle(
+  metadata: Pick<TopicMetadata, 'temporaryTitle' | 'cachedTitle' | 'cachedTitleSource'>,
+): { readonly title: string, readonly pending: boolean } {
+  const named = metadata.cachedTitleSource === 'fallback' ? null : metadata.cachedTitle
+  return { title: named ?? metadata.temporaryTitle, pending: named === null }
 }
 
 export const permissionSchema = z.enum(['read-only', 'workspace-write', 'danger-full-access'])

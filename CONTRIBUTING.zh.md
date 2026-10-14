@@ -63,7 +63,7 @@ pnpm 的 Git 安装读取仓库根目录，并且不认 `publishConfig.directory
 有三处有意保留的宿主适配，它们各自隔离在一个模块里，不要扩散：
 
 - `citer-session-access.ts` 在插件运行期间包装宿主的 `sessions.flush`，把 Citer 自己的会话写入它们自己的存储，并通过公开的 `llm/stream` 事件在每次模型请求前做检查点。卸载时恢复原来的 `flush`；宿主的 `get`/`list` 保持不变，因此 Topic 不会进入会话列表。
-- `host-agent-modules.ts` 通过 Profile 的依赖解析加载宿主的 AgentLoop、SessionStore、标题服务和 scope 工厂，使桌面版和通过符号链接启动的 CLI 共用同一个模块实例。
+- `host-agent-modules.ts` 通过 Profile 的依赖解析加载宿主的 AgentLoop、SessionStore、标题服务、首条消息标题生成器和 scope 工厂，使桌面版和通过符号链接启动的 CLI 共用同一个模块实例。每个 Topic 的会话环境按 `dsh-base` 给宿主会话的同一套配置挂载标题生成器。
 - `client/host-dock.ts` 及其 CSS 为面板预留布局空间，关闭时恢复宿主样式。
 
 其他规则：注册都是 effect（`ctx.effect()`、`ctx.on()`），随所有者一起释放；waterfall 监听器除非有意接管请求，否则必须调用 `next()`；在文件、网络和配置边界校验数据，同进程的类型化调用直接信任；模型可见的输入必须能从 Topic 日志重建；读取已保存的设置时逐字段解析，忽略其他版本的字段。

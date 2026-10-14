@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseTopicMetadataFile, topicMetadataSchema } from '../lib/types/topic.js'
+import { parseTopicMetadataFile, topicDisplayTitle, topicMetadataSchema } from '../lib/types/topic.js'
 
 const citationV3 = {
   schemaVersion: 3, sourceSessionId: 'source', anchorSeq: 7, startOffset: 0, endOffset: 5,
@@ -45,4 +45,12 @@ test('unknown fields and malformed identities are rejected at the reader', () =>
   assert.throws(() => parseTopicMetadataFile({ ...current, unexpected: true }))
   assert.throws(() => parseTopicMetadataFile({ ...current, topicId: 0 }))
   assert.throws(() => parseTopicMetadataFile({ ...current, storage: 'elsewhere' }))
+})
+
+test('a fallback title never replaces the excerpt a Topic started from', () => {
+  const quoted = { temporaryTitle: 'quote', cachedTitle: '【学习阶段：底层逻辑】请讲清', cachedTitleSource: 'fallback' }
+  assert.deepEqual(topicDisplayTitle(quoted), { title: 'quote', pending: true })
+  assert.deepEqual(topicDisplayTitle({ ...quoted, cachedTitle: null, cachedTitleSource: null }), { title: 'quote', pending: true })
+  assert.deepEqual(topicDisplayTitle({ ...quoted, cachedTitle: 'Summary', cachedTitleSource: 'provider' }), { title: 'Summary', pending: false })
+  assert.deepEqual(topicDisplayTitle({ ...quoted, cachedTitle: 'Renamed', cachedTitleSource: 'user' }), { title: 'Renamed', pending: false })
 })

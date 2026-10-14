@@ -27,7 +27,7 @@ export interface WheelSnapshot {
 }
 export interface ActionSnapshot {
   wheel: WheelSnapshot | null
-  pending: { readonly source: ActionSource, readonly action: CiteAction, readonly x: number, readonly y: number } | null
+  pending: { readonly source: ActionSource, readonly action: CiteAction, readonly x: number, readonly y: number, readonly newTopic: boolean } | null
   submitting: boolean
   error: string | null
   model: ActionModel | undefined
@@ -40,8 +40,11 @@ export function wheelSector(dx: number, dy: number): number | null {
   return Math.floor(((Math.atan2(dy, dx) + Math.PI / 2 + Math.PI * 2 + Math.PI / 8) % (Math.PI * 2)) / (Math.PI / 4))
 }
 
-/** Prepare a draft through the action's destination policy; the Topic composer owns input and submission. */
-export function createActionController(execute: (source: ActionSource, action: CiteAction, question: string, model?: ActionModel) => Promise<void>, defaultModel: () => ActionModel | undefined = () => undefined) {
+/**
+ * Run a chosen action through the executor: the selected Topic by default, a new Topic on request.
+ * Questions the user writes go to the composer; preset prompts follow the delivery setting.
+ */
+export function createActionController(execute: (source: ActionSource, action: CiteAction, question: string, model?: ActionModel, options?: { readonly newTopic?: boolean }) => Promise<void>, defaultModel: () => ActionModel | undefined = () => undefined) {
   const store = createSnapshotStore<ActionSnapshot>({ wheel: null, pending: null, submitting: false, error: null, model: undefined })
   let disposed = false
   let generation = 0
@@ -50,12 +53,12 @@ export function createActionController(execute: (source: ActionSource, action: C
   const submit = async () => {
     const snapshot = store.getSnapshot()
     if (disposed || snapshot.submitting || snapshot.pending === null) return
-    const { source, action } = snapshot.pending
+    const { source, action, newTopic } = snapshot.pending
     const question = actionQuestion(action, '')
     const ticket = generation
     update(d => { d.submitting = true; d.error = null })
     try {
-      await execute(source, action, question, snapshot.model)
+      await execute(source, action, question, snapshot.model, { newTopic })
       if (ticket === generation) update(d => { d.pending = null })
     } catch (error) {
       if (ticket === generation) update(d => { d.error = error instanceof Error ? error.message : String(error) })
@@ -66,7 +69,20 @@ export function createActionController(execute: (source: ActionSource, action: C
     if (disposed || submitting || wheel === null) return
     const action = index === null ? null : wheel.slots[index]
     if (action == null) { cancel(); return }
-    update(d => { d.wheel = null; d.pending = { source: wheel.source, action, x: wheel.x, y: wheel.y }; d.error = null })
+    update(d => { d.wheel = null; d.pending = { source: wheel.source, action, x: wheel.x, y: wheel.y, newTopic: false }; d.error = null })
+    void submit()
+  }
+  /**
+   * Run one action outside the wheel, such as from the selection toolbar.
+   * @param source - captured selection; later selection changes do not affect it.
+   * @param x - viewport x used to place a retry prompt if the action fails.
+   * @param y - viewport y used to place a retry prompt if the action fails.
+   */
+  const run = (source: ActionSource, action: CiteAction, x: number, y: number, newTopic = false) => {
+    const { submitting, pending } = store.getSnapshot()
+    if (disposed || submitting || pending !== null) return
+    generation++
+    update(d => { d.wheel = null; d.model = defaultModel(); d.pending = { source, action, x, y, newTopic }; d.error = null })
     void submit()
   }
   return {
@@ -94,7 +110,7 @@ export function createActionController(execute: (source: ActionSource, action: C
     },
     /** Focus loss cancels only the transient gesture; the Topic composer retains its draft. */
     dismissWheel() { update(d => { d.wheel = null }) },
-    choose, cancel, submit,
+    choose, run, cancel, submit,
     async dispose() { cancel(); disposed = true },
   }
 }

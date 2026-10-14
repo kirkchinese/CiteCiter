@@ -30,8 +30,8 @@ export function NativeLearningDocument({ content, resourceAddress, wrap, scrollp
   useEffect(() => { setError(null); setPage(0) }, [content, resourceAddress])
   useEffect(() => { field.current?.setSelectionRange(0,0); if (field.current !== null) field.current.scrollTop = 0 }, [currentPage, decoded.text])
   return <section className={css.document}>
-    <header><div><strong>CiteCiter 学习</strong><small>选文 → 按住触发键 → 移向动作 → 松开</small></div><button type="button" onClick={event => { try { const source = read(); if (source === null) { setError('请先在正文中选中文字'); return }; setError(null); const rect = event.currentTarget.getBoundingClientRect(); openActions(source, rect.left, rect.bottom) } catch (error) { setError(String(error)) } }}>选文动作</button></header>
-    <p>使用原生文件与刷新功能；开始学习时保存全文快照。Markdown 和代码以源文本显示。</p>
+    <header><div><strong>Citer 学习</strong><small>选中正文后，用工具条提问</small></div><button type="button" onClick={event => { try { const source = read(); if (source === null) { setError('请先在正文中选中文字'); return }; setError(null); const rect = event.currentTarget.getBoundingClientRect(); openActions(source, rect.left, rect.bottom) } catch (error) { setError(String(error)) } }}>Citer 动作</button></header>
+    <p>提问时会保存这份文件的快照。Markdown 和代码按源文本显示。</p>
     {(decoded.error ?? error) !== null && <p role="alert">{decoded.error ?? error}</p>}
     {pages.length > 1 && <nav aria-label="学习文档分页"><button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>上一页</button><span>{currentPage + 1} / {pages.length}</span><button type="button" disabled={currentPage === pages.length - 1} onClick={() => setPage(currentPage + 1)}>下一页</button></nav>}
     <textarea ref={element => { field.current = element; scrollportRef(element) }} readOnly aria-label="原生文件学习正文" value={pages[currentPage] ?? ''} wrap={wrap ? 'soft' : 'off'} spellCheck={false} />

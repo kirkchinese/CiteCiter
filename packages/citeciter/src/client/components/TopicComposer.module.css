@@ -1,22 +1,115 @@
-.composer { flex: none; margin: 8px 12px 12px; padding: 12px 8px 6px; color: var(--dsw-alias-label-primary, #20232a); background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1, #fff)); border: 1px solid var(--dsw-alias-border-l2-darkmode-thin, var(--dsw-alias-border-l2, #d9dde5)); border-radius: 22px; box-shadow: var(--dsw-shadow-lv2, 0 5px 18px rgb(29 34 47 / .08)); }
-.composer textarea { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 50px; max-height: 150px; padding: 4px 12px 0; resize: none; border: 0; outline: none; color: inherit; background: transparent; font: inherit; font-size: 14px; line-height: 22px; }
-.composer textarea::placeholder { color: var(--dsw-alias-label-tertiary, #858c98); }
-.composer:focus-within { border-color: #3478f6; box-shadow: 0 0 0 3px rgb(52 120 246 / .13), var(--dsw-shadow-lv2, 0 5px 18px rgb(29 34 47 / .08)); }
-.composerActions { display: flex; align-items: center; gap: 6px; margin-top: 6px; min-width: 0; }
-.sendButton { display: grid; flex: none; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; color: #fff; background: #3478f6; cursor: pointer; }
-.sendButton:disabled { opacity: .45; cursor: default; }
-.sendButton:hover:not(:disabled) { background: #245fd1; }
-.sendButton:focus-visible { outline: 2px solid #3478f6; outline-offset: 3px; }
+/* Mirrors the host composer card: input-major surface, panel radius, and the soft elevation's
+   0.5px stroke in the border-l2 color instead of a border. */
+.composer {
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l2);
+  flex: none;
+  margin: 8px 12px 12px;
+  padding: 10px 8px 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1, #fff));
+  border-radius: var(--dsw-radius-panel, 12px);
+  box-shadow: var(--dsw-elevation-soft, 0 0 0 .5px #0000001f, 0 1px 4px #0000000f);
+  container-type: inline-size;
+}
+
+.composer textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  max-height: 160px;
+  padding: 2px 10px 0;
+  resize: none;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-family: inherit;
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+}
+
+.composer textarea::placeholder { color: var(--dsw-alias-label-tertiary); }
+
+.composerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+/* The host composer's send button: info fill, 34px circle. */
+.sendButton {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: #fff;
+  background: var(--dsw-alias-button-info-fill, #4176e6);
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  cursor: pointer;
+  transition: background-color .1s;
+}
+
+.sendButton:hover:not(:disabled) { background: var(--dsw-alias-button-info-hover, #3567d1); }
+.sendButton:disabled { cursor: default; opacity: .4; }
+
+.sendButton:focus-visible,
+.expandButton:focus-visible,
+.attachButton:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary, #3478f6);
+  outline-offset: 2px;
+}
+
 .composer[data-folded] { padding-top: 6px; }
 .composer[data-folded] textarea { display: none; }
-.expandButton { padding: 6px 8px; color: inherit; background: transparent; border: 0; border-radius: 8px; font: inherit; font-size: 12px; cursor: pointer; }
-.expandButton:hover { background: color-mix(in srgb, var(--dsw-alias-label-primary, #20232a) 6%, transparent); }
-.expandButton:focus-visible { outline: 2px solid #3478f6; outline-offset: 2px; }
 
-.attachButton { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border: 0; border-radius: 50%; color: inherit; background: transparent; font-size: 22px; cursor: pointer; }
-.attachButton:hover { background: color-mix(in srgb, currentColor 7%, transparent); }
-.attachButton:focus-visible { outline: 2px solid #6898f2; outline-offset: 2px; }
+.expandButton {
+  height: 28px;
+  padding: 0 8px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 6px);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+  cursor: pointer;
+}
 
-.composer { container-type: inline-size; }
-.composerActions > button[aria-label^="权限"] { flex: none; max-width: 140px; white-space: nowrap; }
-@container (max-width: 430px) { .composerActions > button[aria-label^="权限"] > span { display: none; } .composerActions > button[aria-label^="权限"] { padding: 6px; } }
+.expandButton:hover { background: var(--dsw-alias-interactive-bg-hover); }
+
+.attachButton {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  corner-shape: round;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.attachButton:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.composerActions > button[aria-label^="权限"] {
+  flex: none;
+  max-width: 140px;
+  white-space: nowrap;
+}
+
+@container (max-width: 430px) {
+  .composerActions > button[aria-label^="权限"] > span { display: none; }
+  .composerActions > button[aria-label^="权限"] { padding: 6px; }
+}

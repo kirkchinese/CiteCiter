@@ -1,14 +1,14 @@
 # CiteCiter
 
-[English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [更新记录](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/CHANGELOG.md) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
+[English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [更新记录](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.2/CHANGELOG.md) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
-![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.1/assets/hero/citeciter-hero.png)
+![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.2/assets/hero/citeciter-hero.png)
 
 **AI 已经完成了任务，我还想弄明白它是怎么做的。**
 
 CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 的插件，帮助你从 Agent 的真实工作中学习。选中对话、工具结果或文档中的一段内容，在保留来源的独立 Topic 里追问，用小黑板理解关键关系，再回到原来的工作。主对话不会被改动。
 
-[![CiteCiter 演示](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.1/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
+[![CiteCiter 演示](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.2/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
 [在 B 站观看演示](https://www.bilibili.com/video/BV1tqeA65EJ8/)（早期版本录制，界面与当前版本略有不同）。
 
@@ -18,7 +18,7 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主�
 
 | DSH 版本 | CiteCiter 版本 |
 | --- | --- |
-| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1`、`0.2.1-alpha.2` | `0.9.0-beta.1` |
+| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1`、`0.2.1-alpha.2` | `0.9.0-beta.2` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -28,13 +28,13 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主�
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.1
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.2
 ```
 
 也可以从仓库安装某个发布标签，仓库内已包含构建好的插件，安装时无需构建：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.1"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.2"
 ```
 
 安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件。同一个 DSH 主目录不要同时运行两个宿主进程。
@@ -43,12 +43,12 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v
 
 例如，Agent 修改了程序，你想知道"为什么这段异步保存逻辑会影响输入？"
 
-1. 在主对话、工具结果或文档中选中相关内容，按住右键打开轮盘，选择"自由提问"或"解释这段"。
-2. Citer 打开草稿，来源地址和选文作为可移除的附件。写下问题、选择模型，再手动发送。
+1. 在主对话、工具结果或文档中选中相关内容，旁边会出现 Citer 工具条。
+2. 点"解释"直接得到讲解；或者点"提问"，来源和选文会作为可移除的附件放进输入框，写下自己的问题后发送。
 3. 围绕这段材料继续追问；需要时让模型在小黑板上画出流程，或整理成学习卡。
 4. 回到原任务，用代码、工具结果或一次小实验检查自己的理解。
 
-创建 Topic 或选择轮盘动作只会准备草稿，模型只在你手动发送后运行。解释和板书仍可能出错；它们帮助你理解和检查，不代替事实证据。
+新建 Topic 或选择"提问"只会准备草稿；"解释""翻译"这类预设动作在你点选时发送，也可以在设置里改成先放进输入框。解释和板书仍可能出错；它们帮助你理解和检查，不代替事实证据。
 
 ## 功能
 
@@ -63,21 +63,23 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v
 
 ## 使用说明
 
-**轮盘与引用。** 选中文字后按住右键打开八格轮盘，移向动作后松开；短按右键可点击选择，Shift + 右键保留浏览器菜单，方向键、数字 1–8 和 Enter 也可选择，Esc 取消。"自由提问"把选文加入当前选中的未归档 Topic，没有可用 Topic 时新建；其他动作默认新建。轮盘的八个槽位、提示词、默认模型和打开位置都可以在设置中修改。
+**工具条与动作。** 选中文字后，旁边出现工具条：前四个动作直接显示，其余动作和"在新 Topic 中提问"在"⋯"里。动作默认加入当前打开的 Topic，没有或已归档时新建。"提问"打开输入框让你写问题；"解释""找错误""翻译"等预设动作直接发送，不会改动输入框里已有的草稿。动作的名称、提示词和顺序都可以在设置中修改。喜欢手势的话，可以在设置中开启轮盘：选中文字后按住右键（或设定的键）移向动作，松开即执行。
+
+**桌宠。** Citer 收起时，她会扒在窗口边缘探头；鼠标靠近时站起来，点一下就打开 Citer。可以把她拖到左边或右边的任意高度，位置会被记住。收起期间有回答完成，或有问题在等你回答时，她旁边会出现一个小圆点。
 
 **输入。** 输入框依次提供附件、权限模式、模型与思考强度、发送。Enter 发送，Shift + Enter 换行，输入法组词时 Enter 不会发送。生成过程中 Enter 跟随 DSH 的排队／插话设置，Ctrl + Enter 临时使用另一种方式。可以从附件菜单选择文件、粘贴图片，或把文件拖到 Citer 面板上。
 
 **草稿。** 草稿在后台静默保存。多个窗口编辑同一个 Topic 时，各自的修改会自动合并；同一处有冲突时，以正在输入的窗口为准。发送成功后只清除已发送的部分，发送期间新写的内容会保留。
 
-**学习路线与学习卡。** 学习路线默认关闭；开启后，模型会根据问题用 DSH 待办安排讲解步骤。学习卡可以随时单独请求，生成前模型会核对结论、条件和计算，但自查不能保证正确。主动回忆默认关闭，开启后学习卡先显示自测问题。
+**学习路线与学习卡。** 学习路线默认关闭，可以在 Topic 菜单（⋯）中开启；开启后，模型会根据问题用 DSH 待办安排讲解步骤。学习卡可以随时单独请求，生成前模型会核对结论、条件和计算，但自查不能保证正确。主动回忆默认关闭，开启后学习卡先显示自测问题。
 
-**图像。** 生成和查看图片的工具由 [Codex Connect](https://github.com/franksong2702/dsh-codex-connect) 等宿主插件提供，需要在对应的 Profile 中单独开启。
+**Codex Connect。** CiteCiter 适配了社区插件 [Codex Connect](https://github.com/franksong2702/dsh-codex-connect)（`dsh-codex-connect`）。在同一个 Profile 中安装并开启它之后，Topic 可以使用它接入的 ChatGPT / Codex 模型和 GPT Image 图片工具，生成的图片直接显示在工具卡下方。图片工具需要在 Codex Connect 的设置中单独开启；它的安装、登录和支持的 DSH 版本请见该插件的说明。
 
 ## 权限与数据
 
 新 Topic 默认**只读**，即使来源会话拥有更高权限。只有你在输入框中选择其他权限模式，或在设置里修改新 Topic 的默认权限后，Topic 才能修改工作区；DSH 的审批和沙箱规则照常生效。
 
-Topic 只出现在 Citer 的列表里，不会出现在 DSH 的会话列表中。双击标题或按 F2 重命名；归档的 Topic 在你再次发送消息后自动恢复。永久删除需要输入完整的 Session ID，只删除这个 Topic 自己的记录、草稿和附件。
+Topic 只出现在 Citer 的列表里，不会出现在 DSH 的会话列表中。新 Topic 先以引用摘录或问题为标题，第一次回答时由 DSH 的标题服务生成摘要标题；双击标题、按 F2 或在 Topic 菜单中重命名，重命名后不再自动修改；归档的 Topic 在你再次发送消息后自动恢复。永久删除需要输入完整的 Session ID，只删除这个 Topic 自己的记录、草稿和附件。
 
 CiteCiter 的数据保存在每个来源会话的目录中：
 
@@ -113,6 +115,6 @@ CiteCiter 尝试把真实的 AI 工作过程变成可引用、可追问、可检
 
 欢迎带着"Agent 已经完成了，但我还讲不清"的任务来[反馈](https://github.com/kirkchinese/CiteCiter/issues)。请写明 DSH 和插件版本，以及卡在安装、引用追问还是理解回答。贴材料前请移除密钥和私人内容。
 
-开发说明见 [CONTRIBUTING.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/CONTRIBUTING.zh.md)，产品规则见 [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.1/docs/product.zh.md)。同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于在 Claude Code 与 DSH 之间迁移会话和资产。
+开发说明见 [CONTRIBUTING.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.2/CONTRIBUTING.zh.md)，产品规则见 [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.2/docs/product.zh.md)。同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于在 Claude Code 与 DSH 之间迁移会话和资产。
 
 MIT License.

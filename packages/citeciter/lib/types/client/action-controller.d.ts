@@ -33,6 +33,7 @@ export interface ActionSnapshot {
         readonly action: CiteAction;
         readonly x: number;
         readonly y: number;
+        readonly newTopic: boolean;
     } | null;
     submitting: boolean;
     error: string | null;
@@ -40,8 +41,13 @@ export interface ActionSnapshot {
 }
 /** Direction around the actual displayed centre; no action inside the dead zone or outside the wheel. */
 export declare function wheelSector(dx: number, dy: number): number | null;
-/** Prepare a draft through the action's destination policy; the Topic composer owns input and submission. */
-export declare function createActionController(execute: (source: ActionSource, action: CiteAction, question: string, model?: ActionModel) => Promise<void>, defaultModel?: () => ActionModel | undefined): {
+/**
+ * Run a chosen action through the executor: the selected Topic by default, a new Topic on request.
+ * Questions the user writes go to the composer; preset prompts follow the delivery setting.
+ */
+export declare function createActionController(execute: (source: ActionSource, action: CiteAction, question: string, model?: ActionModel, options?: {
+    readonly newTopic?: boolean;
+}) => Promise<void>, defaultModel?: () => ActionModel | undefined): {
     getSnapshot: () => ActionSnapshot;
     subscribe: (fn: () => void) => () => void;
     open(source: ActionSource, x: number, y: number, slots: readonly (CiteAction | null)[], held: boolean): void;
@@ -51,6 +57,7 @@ export declare function createActionController(execute: (source: ActionSource, a
     /** Focus loss cancels only the transient gesture; the Topic composer retains its draft. */
     dismissWheel(): void;
     choose: (index: number | null) => void;
+    run: (source: ActionSource, action: CiteAction, x: number, y: number, newTopic?: boolean) => void;
     cancel: () => void;
     submit: () => Promise<void>;
     dispose(): Promise<void>;
