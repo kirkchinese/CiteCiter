@@ -119,7 +119,7 @@ function renderArguments(raw: string, limit: number): Rendered {
     if (typeof value === 'string' && (value.includes('\n') || value.length > INLINE_ARGUMENT_CHARS)) {
       const clipped = clip(value, limit)
       shortened ||= clipped.shortened
-      parts.push(`${key}:\n${fence(clipped.text)}`)
+      parts.push(`- ${key}:\n${fence(clipped.text)}`)
       continue
     }
     const inline = typeof value === 'string' ? value : JSON.stringify(value)

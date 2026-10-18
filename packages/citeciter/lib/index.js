@@ -18151,7 +18151,7 @@ function renderArguments(raw, limit) {
 		if (typeof value === "string" && (value.includes("\n") || value.length > INLINE_ARGUMENT_CHARS)) {
 			const clipped = clip(value, limit);
 			shortened ||= clipped.shortened;
-			parts.push(`${key}:\n${fence(clipped.text)}`);
+			parts.push(`- ${key}:\n${fence(clipped.text)}`);
 			continue;
 		}
 		const clipped = clip(typeof value === "string" ? value : JSON.stringify(value), limit);
