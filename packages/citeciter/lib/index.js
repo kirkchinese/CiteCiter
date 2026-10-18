@@ -11,7 +11,7 @@ import { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { BlockAssembler, assembleAssistantStream, createUserMessage } from "@deepseek-ai/dsh-llm";
 import { foldSessionTitle } from "@deepseek-ai/dsh-session-title";
-import { lstat, mkdir, open, readFile, readdir, realpath, rename, rmdir, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from "node:fs/promises";
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import { setTimeout as setTimeout$1 } from "node:timers/promises";
 import AgentRegistry from "@deepseek-ai/dsh-agent";
@@ -18855,12 +18855,47 @@ var WorkspaceSnapshots = class {
 				previousTime: usable?.time ?? null
 			};
 			await this.save(state);
+			try {
+				await this.prune(staged.env, staged.root, [state.tree, ...state.previousTree === null ? [] : [state.previousTree]], signal);
+			} catch {}
 			return {
 				state,
 				files,
 				elapsedMs: usable === null ? null : Math.max(0, now - usable.time)
 			};
 		});
+	}
+	/**
+	* Delete loose objects in the Citer-owned store that the kept trees no longer reach.
+	* Only this store is touched; objects in the repository (the alternate) are never candidates.
+	*/
+	async prune(env, root, keep, signal) {
+		const reachable = new Set(keep);
+		for (const tree of keep) {
+			const listing = await git([
+				"ls-tree",
+				"-r",
+				"-t",
+				"-z",
+				tree
+			], {
+				cwd: root,
+				env,
+				...signal === void 0 ? {} : { signal }
+			});
+			for (const entry of listing.split("\0")) {
+				const oid = entry.slice(0, entry.indexOf("	")).split(" ")[2];
+				if (oid !== void 0) reachable.add(oid);
+			}
+		}
+		const objects = join(this.directory, "objects");
+		for (const fan of await readdir(objects)) {
+			if (!/^[0-9a-f]{2}$/u.test(fan)) continue;
+			for (const rest of await readdir(join(objects, fan))) {
+				if (!/^[0-9a-f]{38,62}$/u.test(rest) || reachable.has(fan + rest)) continue;
+				await rm(join(objects, fan, rest), { force: true });
+			}
+		}
 	}
 	/**
 	* Diff the snapshot taken when the previous turn began (or this turn, before a previous one exists) against the live working tree.

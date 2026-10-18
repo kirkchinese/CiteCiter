@@ -4,7 +4,7 @@
  * alternates point at the repository's objects, so the repository itself is never written.
  */
 import { execFile } from 'node:child_process'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { delimiter, isAbsolute, join, resolve } from 'node:path'
 import { atomicReplace } from './atomic-replace.ts'
 
@@ -205,8 +205,33 @@ export class WorkspaceSnapshots {
         previousTree: usable?.tree ?? null, previousTime: usable?.time ?? null,
       }
       await this.save(state)
+      try { await this.prune(staged.env, staged.root, [state.tree, ...(state.previousTree === null ? [] : [state.previousTree])], signal) }
+      catch { /* A failed prune only leaves unreachable objects for the next turn to remove. */ }
       return { state, files, elapsedMs: usable === null ? null : Math.max(0, now - usable.time) }
     })
+  }
+
+  /**
+   * Delete loose objects in the Citer-owned store that the kept trees no longer reach.
+   * Only this store is touched; objects in the repository (the alternate) are never candidates.
+   */
+  private async prune(env: NodeJS.ProcessEnv, root: string, keep: readonly string[], signal?: AbortSignal): Promise<void> {
+    const reachable = new Set(keep)
+    for (const tree of keep) {
+      const listing = await git(['ls-tree', '-r', '-t', '-z', tree], { cwd: root, env, ...(signal === undefined ? {} : { signal }) })
+      for (const entry of listing.split('\0')) {
+        const oid = entry.slice(0, entry.indexOf('\t')).split(' ')[2]
+        if (oid !== undefined) reachable.add(oid)
+      }
+    }
+    const objects = join(this.directory, 'objects')
+    for (const fan of await readdir(objects)) {
+      if (!/^[0-9a-f]{2}$/u.test(fan)) continue
+      for (const rest of await readdir(join(objects, fan))) {
+        if (!/^[0-9a-f]{38,62}$/u.test(rest) || reachable.has(fan + rest)) continue
+        await rm(join(objects, fan, rest), { force: true })
+      }
+    }
   }
 
   /**

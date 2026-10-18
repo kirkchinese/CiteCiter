@@ -53,6 +53,11 @@ export declare class WorkspaceSnapshots {
      */
     advance(now: number, signal?: AbortSignal): Promise<WorkspaceAdvance | null>;
     /**
+     * Delete loose objects in the Citer-owned store that the kept trees no longer reach.
+     * Only this store is touched; objects in the repository (the alternate) are never candidates.
+     */
+    private prune;
+    /**
      * Diff the snapshot taken when the previous turn began (or this turn, before a previous one exists) against the live working tree.
      * @param paths - optional repository-relative paths to restrict the patch.
      * @returns changed files and their unified patches, or null when nothing has been recorded.

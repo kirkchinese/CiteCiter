@@ -7,6 +7,7 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 ### Host support
 
 - Support DSH `0.2.1-alpha.3`, whose compatibility gate refuses 0.9.0-beta.2. Citer still supports the official Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1` / `0.2.1-alpha.2`.
+- The DSH peer `@deepseek-ai/dsh-util-values` is no longer required.
 
 ### Topic context
 

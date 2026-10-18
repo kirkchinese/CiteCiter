@@ -68,6 +68,29 @@ test('snapshots report line changes since the previous turn without writing the 
   }
 })
 
+test('the private store keeps only objects reachable from the last two snapshots', { skip: !gitAvailable }, async () => {
+  const { root, repo, store } = await repository()
+  try {
+    const workspace = new WorkspaceSnapshots(store, repo)
+    const blob = text => execFileSync('git', ['hash-object', '--stdin'], { input: text, encoding: 'utf8' }).trim()
+    const stored = async () => (await readdir(join(store, 'objects'), { recursive: true })).filter(name => /^[0-9a-f]{2}[\\/][0-9a-f]{38}$/u.test(name)).map(name => name.replace(/[\\/]/u, ''))
+    const versions = ['v1\n', 'v2\n', 'v3\n', 'v4\n', 'v5\n']
+    for (const [index, text] of versions.entries()) {
+      await writeFile(join(repo, 'draft.txt'), text)
+      await workspace.advance(index * 1000)
+    }
+    const objects = await stored()
+    assert.equal(objects.includes(blob('v1\n')), false)
+    assert.equal(objects.includes(blob('v3\n')), false)
+    assert.equal(objects.includes(blob('v4\n')), true)
+    assert.equal(objects.includes(blob('v5\n')), true)
+    // Two root trees plus the two draft blobs; committed files stay in the repository's own store.
+    assert.equal(objects.length, 4)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('a directory outside git yields no snapshot', { skip: !gitAvailable }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'citer-ws-plain-'))
   try {
