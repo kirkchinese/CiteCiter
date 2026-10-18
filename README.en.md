@@ -71,6 +71,8 @@ Creating a Topic or choosing 提问 only prepares a draft; preset actions such a
 
 **Drafts.** Drafts save silently in the background. Edits to the same Topic from several windows merge automatically; where they overlap, the window you are typing in wins. After a successful send, only what was sent is cleared, and anything written meanwhile is kept.
 
+**Source and codebase.** Citer reads the source conversation when it needs to, as a transcript of user and assistant messages, tool calls and results, each marked with its position; long tool output is shortened first and read in full only when needed. Turn on 自动附上来源摘录 (automatic source excerpt) in Settings to add the source's newest records at the start of each turn after the source attachment has been sent; it is off by default. 代码库变化感知 (codebase change awareness) lists, at the start of each turn, the files that changed in the git working tree since Citer's previous turn, uncommitted changes included; Citer reads line-level diffs with a tool when they matter. Settings can attach the diffs directly or turn the notice off. Both are recorded in the Topic log, and your repository is never written.
+
 **Learning route and cards.** The learning route is off by default and can be turned on in the Topic menu (⋯); when on, the model plans its explanation with DSH todos. You can ask for learning cards at any time; the model checks conclusions, conditions and calculations first, but self-checking does not guarantee correctness. Active recall is off by default; when on, cards show their self-test question first.
 
 **Codex Connect.** CiteCiter is adapted to the community plugin [Codex Connect](https://github.com/franksong2702/dsh-codex-connect) (`dsh-codex-connect`). With it installed and enabled in the same profile, Topics can use its ChatGPT / Codex models and GPT Image tools, and generated images appear under the tool card. Its image tools are enabled separately in Codex Connect's settings; see its documentation for installation, sign-in and supported DSH versions.
@@ -92,6 +94,7 @@ CiteCiter stores its data in each source session's directory:
     │   ├── topic.json        Topic information
     │   ├── draft/            unsent text, references and attachments
     │   ├── question-drafts/  unsubmitted question answers
+    │   ├── workspace/        codebase snapshots for change awareness (separate git objects)
     │   └── sessions/         the Topic's own session log
     └── deleted/              deletion records (identity only, no content)
 ```

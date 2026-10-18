@@ -4958,7 +4958,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				"workspace-write",
 				"danger-full-access"
 			]).optional(),
-			learningRoute: boolean().optional()
+			learningRoute: boolean().optional(),
+			autoReadSource: boolean().optional(),
+			workspaceChanges: _enum([
+				"off",
+				"summary",
+				"diff"
+			]).optional()
 		}).strict();
 		/** Settings used before an optional DSH settings provider becomes available. */
 		const DEFAULT_CITECITER_SETTINGS = Object.freeze({
@@ -4970,6 +4976,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			activeRecall: false,
 			defaultPermission: "read-only",
 			learningRoute: false,
+			autoReadSource: false,
+			workspaceChanges: "summary",
 			updateNotifications: true,
 			selectionToolbar: true,
 			actionDelivery: "send",
@@ -39793,6 +39801,38 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								title: "首个回答附带追问建议",
 								desc: "在第一个回答末尾给出三个可以接着问的问题。",
 								children: toggle("followupQuestions", "首个回答附带追问建议", true)
+							}),
+							(0, react_jsx_runtime.jsx)(Row, {
+								title: "自动附上来源摘录",
+								desc: "来源附件发送后，每轮开头附上来源对话最近的新内容。关闭时由 Citer 按需调用工具读取。",
+								children: toggle("autoReadSource", "自动附上来源摘录", false)
+							}),
+							(0, react_jsx_runtime.jsx)(Row, {
+								title: "代码库变化感知",
+								desc: "每轮开头告诉 Citer 上一轮以来 git 工作区改了哪些文件。“附带 diff”会直接附上逐行改动；“仅清单”只列文件，Citer 需要时再用工具读取。",
+								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.SegmentedControl, {
+									id: "citeciter-workspace-changes",
+									label: "代码库变化感知",
+									value: settings.workspaceChanges ?? "summary",
+									disabled: saving,
+									options: [
+										{
+											value: "off",
+											label: "关闭"
+										},
+										{
+											value: "summary",
+											label: "仅清单"
+										},
+										{
+											value: "diff",
+											label: "附带 diff"
+										}
+									],
+									onChange: (value) => {
+										companion.setSetting("workspaceChanges", value);
+									}
+								})
 							})
 						]
 					}),

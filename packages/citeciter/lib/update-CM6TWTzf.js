@@ -712,7 +712,13 @@ const citeCiterSettingsSchema = z.object({
 		"workspace-write",
 		"danger-full-access"
 	]).optional(),
-	learningRoute: z.boolean().optional()
+	learningRoute: z.boolean().optional(),
+	autoReadSource: z.boolean().optional(),
+	workspaceChanges: z.enum([
+		"off",
+		"summary",
+		"diff"
+	]).optional()
 }).strict();
 /** Settings used before an optional DSH settings provider becomes available. */
 const DEFAULT_CITECITER_SETTINGS = Object.freeze({
@@ -724,6 +730,8 @@ const DEFAULT_CITECITER_SETTINGS = Object.freeze({
 	activeRecall: false,
 	defaultPermission: "read-only",
 	learningRoute: false,
+	autoReadSource: false,
+	workspaceChanges: "summary",
 	updateNotifications: true,
 	selectionToolbar: true,
 	actionDelivery: "send",

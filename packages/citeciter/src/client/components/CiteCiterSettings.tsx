@@ -5,7 +5,8 @@ import type { SettingsDocumentSnapshot } from '../settings-document.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, UpdateActions, SettingsDocumentActions } from '../view-actions.ts'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Button, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, SegmentedControl, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { CiteCiterSettings as CiteCiterSettingsValue } from '../../topic.ts'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './Settings.module.css'
@@ -48,7 +49,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
     committedWidth.current = value
     void companion.setSetting('panelWidthPercent', value)
   }
-  const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations'>(key: Key, label: string, fallback: boolean) =>
+  const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations' | 'autoReadSource'>(key: Key, label: string, fallback: boolean) =>
     <Switch label={label} checked={settings[key] ?? fallback} disabled={saving} onChange={value => { void companion.setSetting(key, value) }} />
   return (
     <div className={css.page}>
@@ -74,6 +75,12 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
         <Row title="重新打开上次的 Topic" desc="回到来源对话时自动展开 Citer 并恢复最近的 Topic。">{toggle('reopenLastTopic', '重新打开上次的 Topic', true)}</Row>
         <Row title="读取来源时包含思考过程" desc="关闭后，Citer 读取来源对话时看不到主 Agent 的思考内容。">{toggle('includeSourceReasoning', '读取来源时包含思考过程', true)}</Row>
         <Row title="首个回答附带追问建议" desc="在第一个回答末尾给出三个可以接着问的问题。">{toggle('followupQuestions', '首个回答附带追问建议', true)}</Row>
+        <Row title="自动附上来源摘录" desc="来源附件发送后，每轮开头附上来源对话最近的新内容。关闭时由 Citer 按需调用工具读取。">{toggle('autoReadSource', '自动附上来源摘录', false)}</Row>
+        <Row title="代码库变化感知" desc="每轮开头告诉 Citer 上一轮以来 git 工作区改了哪些文件。“附带 diff”会直接附上逐行改动；“仅清单”只列文件，Citer 需要时再用工具读取。">
+          <SegmentedControl<NonNullable<CiteCiterSettingsValue['workspaceChanges']>> id="citeciter-workspace-changes" label="代码库变化感知" value={settings.workspaceChanges ?? 'summary'} disabled={saving}
+            options={[{ value: 'off', label: '关闭' }, { value: 'summary', label: '仅清单' }, { value: 'diff', label: '附带 diff' }]}
+            onChange={value => { void companion.setSetting('workspaceChanges', value) }} />
+        </Row>
       </section>
 
       <section className={css.group}>

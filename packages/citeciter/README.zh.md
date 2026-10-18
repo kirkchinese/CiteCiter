@@ -71,6 +71,8 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v
 
 **草稿。** 草稿在后台静默保存。多个窗口编辑同一个 Topic 时，各自的修改会自动合并；同一处有冲突时，以正在输入的窗口为准。发送成功后只清除已发送的部分，发送期间新写的内容会保留。
 
+**来源与代码库。** Citer 在需要时读取来源对话，看到的是带位置标记的对话记录：用户与助手的消息、工具调用和结果；过长的工具输出先缩短，需要时再读全文。在设置中开启"自动附上来源摘录"后，来源附件发送之后每轮开头会附上来源最近的新内容，默认关闭。"代码库变化感知"在每轮开头列出上一轮以来 git 工作区（含未提交的改动）改了哪些文件，Citer 需要时再用工具读取逐行改动；也可以在设置中改为直接附上 diff，或者关闭。这些内容都记录在 Topic 里，不会写入你的仓库。
+
 **学习路线与学习卡。** 学习路线默认关闭，可以在 Topic 菜单（⋯）中开启；开启后，模型会根据问题用 DSH 待办安排讲解步骤。学习卡可以随时单独请求，生成前模型会核对结论、条件和计算，但自查不能保证正确。主动回忆默认关闭，开启后学习卡先显示自测问题。
 
 **Codex Connect。** CiteCiter 适配了社区插件 [Codex Connect](https://github.com/franksong2702/dsh-codex-connect)（`dsh-codex-connect`）。在同一个 Profile 中安装并开启它之后，Topic 可以使用它接入的 ChatGPT / Codex 模型和 GPT Image 图片工具，生成的图片直接显示在工具卡下方。图片工具需要在 Codex Connect 的设置中单独开启；它的安装、登录和支持的 DSH 版本请见该插件的说明。
@@ -92,6 +94,7 @@ CiteCiter 的数据保存在每个来源会话的目录中：
     │   ├── topic.json        Topic 信息
     │   ├── draft/            未发送的文字、引用和附件
     │   ├── question-drafts/  未提交的问答
+    │   ├── workspace/        代码库变化感知的快照（独立的 git 对象）
     │   └── sessions/         Topic 自己的会话日志
     └── deleted/              删除记录（只含身份，不含内容）
 ```

@@ -45,9 +45,9 @@ export declare const citeCiterRequestDescriptor: {
                     callId: import("zod").ZodString;
                     displayText: import("zod").ZodString;
                     projection: import("zod").ZodOptional<import("zod").ZodEnum<{
+                        diff: "diff";
                         "result-text": "result-text";
                         terminal: "terminal";
-                        diff: "diff";
                     }>>;
                 }, import("zod/v4/core").$strict>;
                 action: import("zod").ZodLiteral<"create">;
@@ -549,9 +549,9 @@ export declare const citeCiterRequestDescriptor: {
                             callId: import("zod").ZodString;
                             toolName: import("zod").ZodString;
                             projection: import("zod").ZodEnum<{
+                                diff: "diff";
                                 "result-text": "result-text";
                                 terminal: "terminal";
-                                diff: "diff";
                             }>;
                             fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                             side: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -778,9 +778,9 @@ export declare const citeCiterRequestDescriptor: {
                         callId: import("zod").ZodString;
                         toolName: import("zod").ZodString;
                         projection: import("zod").ZodEnum<{
+                            diff: "diff";
                             "result-text": "result-text";
                             terminal: "terminal";
-                            diff: "diff";
                         }>;
                         fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                         side: import("zod").ZodOptional<import("zod").ZodEnum<{

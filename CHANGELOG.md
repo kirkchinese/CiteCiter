@@ -11,6 +11,8 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 ### Topic context
 
 - Citer reads the source conversation as a Markdown transcript: user and assistant messages, tool calls and tool results, each marked with its source position. Long tool output and edit diffs are shortened by default, and Citer can re-read a single record in full. Edits appear as line diffs.
+- Codebase change awareness: at the start of each turn Citer is told which files changed in the git working tree since its previous turn, uncommitted changes included, and can read line-level diffs with the new `workspace_changes` tool. Settings choose a file list (default), attached diffs, or off. Snapshots live in the Topic's own directory as separate git objects; the repository is never written.
+- An optional automatic source excerpt, off by default, adds the source's newest records at the start of each turn once the source attachment has been sent.
 
 ### Fixes
 

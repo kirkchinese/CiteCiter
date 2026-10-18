@@ -1,10 +1,10 @@
-import { A as applyBoardOps, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_QUESTION_DRAFT_STATE, N as questionDraftKeySchema, O as LEARNING_EXAMPLE_PARAMETER, P as questionDraftRecordSchema, R as draftStateSchema, T as DEFAULT_WHEEL_SLOTS, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as subtractSubmitted } from "./update-B_0nN1_f.js";
+import { A as applyBoardOps, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as DRAFT_CHUNK_BYTES, I as EMPTY_DRAFT_STATE, L as draftFileSchema, M as EMPTY_QUESTION_DRAFT_STATE, N as questionDraftKeySchema, O as LEARNING_EXAMPLE_PARAMETER, P as questionDraftRecordSchema, R as draftStateSchema, T as DEFAULT_WHEEL_SLOTS, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as subtractSubmitted } from "./update-CM6TWTzf.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import z$1 from "@deepseek-ai/schemastery";
 import { createHash, randomUUID } from "node:crypto";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { setSandboxMode } from "@deepseek-ai/dsh-sandbox-policy";
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId, foldRequestHeader } from "@deepseek-ai/dsh-session";
 import { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
@@ -16,6 +16,7 @@ import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import { setTimeout as setTimeout$1 } from "node:timers/promises";
 import AgentRegistry from "@deepseek-ai/dsh-agent";
 import { isDeepStrictEqual } from "node:util";
+import { execFile } from "node:child_process";
 import { AsyncLocalStorage } from "node:async_hooks";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
@@ -461,16 +462,23 @@ function recoverBlockingQuestion(sessionId, record, events, inheritedEventCount)
 }
 //#endregion
 //#region lib/types/message-projection.js
+/** Producer kind of messages Citer appends itself; mirrors `CITER_CONTEXT_KIND` without importing Host-only modules. */
+const CITER_KIND = "plugin:@kirkchinese/dsh-citeciter";
+const CITER_LABELS = {
+	"source-window": "来源摘录",
+	"workspace-changes": "代码库变化"
+};
 /** Project the installed SDK's validated log. 0.1.7 split plugin context into developer/message. */
-function contextMessage(event) {
+function contextMessage$1(event) {
 	let message;
 	if (event.type === "developer/message") message = event.data.message;
 	else if (event.type === "user/message" && event.data.source.kind !== "user") message = event.data;
 	else return void 0;
+	const citer = message.source.kind === CITER_KIND && typeof message.source.form === "string" ? CITER_LABELS[message.source.form] : void 0;
 	const system = message.source.kind === "system-prompt" || message.source.plugin === "@deepseek-ai/dsh-system-prompt";
 	return {
 		...message,
-		label: system ? "提示词注入" : "上下文注入"
+		label: citer ?? (system ? "提示词注入" : "上下文注入")
 	};
 }
 //#endregion
@@ -648,7 +656,7 @@ function topicMessages(log) {
 			});
 			continue;
 		}
-		const context = contextMessage(event);
+		const context = contextMessage$1(event);
 		if (context !== void 0) {
 			const text = textBlocks(context.content, "text");
 			if (text !== "") messages.push({
@@ -1138,7 +1146,11 @@ async function readSourceSession(ctx, id) {
 }
 /** Only an explicitly sent attachment enables later tool reads; unsent metadata grants nothing. */
 function hasSentSource(session, address) {
-	return session?.snapshotEvents().some((event) => event.type === "user/message" && event.data.source.kind === "user" && event.data.content.some((block) => block.type === "text" && block.text.includes(address))) ?? false;
+	return session?.snapshotEvents().some((event) => event.type === "user/message" && mentionsSource(event.data, address)) ?? false;
+}
+/** Whether one user-sent message carries the source address. */
+function mentionsSource(message, address) {
+	return message.source.kind === "user" && message.content.some((block) => block.type === "text" && block.text.includes(address));
 }
 //#endregion
 //#region lib/types/document-access.js
@@ -18081,6 +18093,40 @@ function formatSourceTranscript(source, options) {
 		markdown: `${header}\n\n---\n\n${body}\n\n---\n\n${footer.join("\n")}`
 	};
 }
+/**
+* Pick the start of an automatic source window: the newest records that fit the budget,
+* or the records leading up to an anchor so a cited answer and its context come first.
+* @param source - one atomic source snapshot.
+* @param options - reasoning preference, budget and an optional anchor seq to end on.
+* @returns the first seq of the window.
+*/
+function sourceWindowStart(source, options) {
+	const names = /* @__PURE__ */ new Map();
+	for (const event of source.events) {
+		const call = toolCallRecord(event);
+		if (call !== void 0) names.set(call.callId, call.name);
+	}
+	const context = {
+		names,
+		includeReasoning: options.includeReasoning,
+		payloadLimit: COMPACT_PAYLOAD_CHARS,
+		messageLimit: Number.POSITIVE_INFINITY
+	};
+	let start = options.afterSeq === void 0 ? source.events[0]?.seq ?? 0 : options.afterSeq + 1;
+	let used = 0;
+	for (let index = source.events.length - 1; index >= 0; index -= 1) {
+		const event = source.events[index];
+		if (options.endSeq !== void 0 && event.seq > options.endSeq) continue;
+		if (options.afterSeq !== void 0 && event.seq <= options.afterSeq) break;
+		const rendered = renderEvent(event, context);
+		if (rendered === null) continue;
+		const size = utf8(rendered.text) + utf8(SEPARATOR);
+		if (used + size > options.maxBytes && used > 0) break;
+		used += size;
+		start = event.seq;
+	}
+	return start;
+}
 //#endregion
 //#region lib/types/source-read-tool.js
 const SOURCE_READ_SECTION_NAME = "@kirkchinese/dsh-citeciter:source-read";
@@ -18310,6 +18356,569 @@ var SourceStorage = class {
 		return roots;
 	}
 };
+//#endregion
+//#region lib/types/workspace-changes.js
+/**
+* Line-level workspace change tracking for a Topic, using a Citer-owned git object store.
+* Snapshots stage the working tree into a private index and object directory whose
+* alternates point at the repository's objects, so the repository itself is never written.
+*/
+const STATE_FILE = "state.json";
+const GIT_TIMEOUT_MS = 6e4;
+const GIT_MAX_BUFFER = 67108864;
+const TREE_PATTERN = /^[0-9a-f]{40,64}$/u;
+const locks = /* @__PURE__ */ new Map();
+function serialize(key, operation) {
+	const next = (locks.get(key) ?? Promise.resolve()).catch(() => void 0).then(operation);
+	locks.set(key, next);
+	next.finally(() => {
+		if (locks.get(key) === next) locks.delete(key);
+	}).catch(() => {});
+	return next;
+}
+function git(args, options) {
+	return new Promise((resolvePromise, reject) => {
+		execFile("git", [
+			"-c",
+			"core.fsmonitor=false",
+			"-c",
+			"core.quotepath=false",
+			...args
+		], {
+			cwd: options.cwd,
+			env: options.env ?? process.env,
+			encoding: "utf8",
+			maxBuffer: GIT_MAX_BUFFER,
+			timeout: GIT_TIMEOUT_MS,
+			windowsHide: true,
+			...options.signal === void 0 ? {} : { signal: options.signal }
+		}, (error, stdout, stderr) => {
+			if (error !== null) reject(new Error(`git ${args[0]} failed: ${stderr.trim() || error.message}`, { cause: error }));
+			else resolvePromise(stdout);
+		});
+	});
+}
+/** Parse the persisted cursor field by field; anything malformed means no snapshot. */
+function readWorkspaceState(raw) {
+	if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+	const value = raw;
+	const tree = value["tree"];
+	const previousTree = value["previousTree"];
+	const time = value["time"];
+	const previousTime = value["previousTime"];
+	if (value["version"] !== 1 || typeof value["root"] !== "string" || typeof tree !== "string" || !TREE_PATTERN.test(tree)) return null;
+	if (typeof time !== "number" || !Number.isFinite(time)) return null;
+	if (previousTree !== null && (typeof previousTree !== "string" || !TREE_PATTERN.test(previousTree))) return null;
+	if (previousTime !== null && (typeof previousTime !== "number" || !Number.isFinite(previousTime))) return null;
+	return {
+		version: 1,
+		root: value["root"],
+		tree,
+		time,
+		previousTree,
+		previousTime
+	};
+}
+/** Parse `git diff --numstat -z` and `--name-status -z` output (without rename detection). */
+function parseWorkspaceChanges(numstat, nameStatus) {
+	const statuses = /* @__PURE__ */ new Map();
+	const parts = nameStatus.split("\0");
+	for (let index = 0; index + 1 < parts.length; index += 2) {
+		const code = parts[index];
+		const path = parts[index + 1];
+		if (code === "" || path === "") continue;
+		statuses.set(path, code.startsWith("A") ? "added" : code.startsWith("D") ? "deleted" : code.startsWith("M") ? "modified" : "changed");
+	}
+	const files = [];
+	for (const record of numstat.split("\0")) {
+		const match = /^(\d+|-)\t(\d+|-)\t(.+)$/su.exec(record);
+		if (match === null) continue;
+		const path = match[3];
+		files.push({
+			path,
+			status: statuses.get(path) ?? "changed",
+			added: match[1] === "-" ? null : Number(match[1]),
+			deleted: match[2] === "-" ? null : Number(match[2])
+		});
+	}
+	return files;
+}
+/** Snapshots of one Topic's working directory, stored under a Citer-owned directory. */
+var WorkspaceSnapshots = class {
+	directory;
+	cwd;
+	/**
+	* @param directory - Citer-owned directory for the private index, objects and cursor.
+	* @param cwd - the Topic's working directory inside a git work tree.
+	*/
+	constructor(directory, cwd) {
+		this.directory = directory;
+		this.cwd = cwd;
+	}
+	async repository(signal) {
+		if (this.cwd === "" || !isAbsolute(this.cwd)) return null;
+		let root;
+		let common;
+		try {
+			root = (await git(["rev-parse", "--show-toplevel"], {
+				cwd: this.cwd,
+				...signal === void 0 ? {} : { signal }
+			})).trim();
+			common = (await git(["rev-parse", "--git-common-dir"], {
+				cwd: this.cwd,
+				...signal === void 0 ? {} : { signal }
+			})).trim();
+		} catch (error) {
+			signal?.throwIfAborted();
+			if (error instanceof Error && /ENOENT|not a git repository/iu.test(`${error.message} ${String(error.cause)}`)) return null;
+			throw error;
+		}
+		if (root === "" || common === "") return null;
+		return {
+			root: resolve(root),
+			objects: join(resolve(this.cwd, common), "objects")
+		};
+	}
+	environment(objects) {
+		const env = { ...process.env };
+		for (const key of [
+			"GIT_DIR",
+			"GIT_WORK_TREE",
+			"GIT_INDEX_FILE",
+			"GIT_OBJECT_DIRECTORY",
+			"GIT_ALTERNATE_OBJECT_DIRECTORIES",
+			"GIT_NAMESPACE"
+		]) delete env[key];
+		return {
+			...env,
+			GIT_INDEX_FILE: join(this.directory, "index"),
+			GIT_OBJECT_DIRECTORY: join(this.directory, "objects"),
+			GIT_ALTERNATE_OBJECT_DIRECTORIES: objects,
+			GIT_OPTIONAL_LOCKS: "0"
+		};
+	}
+	async stage(signal) {
+		const repository = await this.repository(signal);
+		if (repository === null) return null;
+		await mkdir(join(this.directory, "objects"), {
+			recursive: true,
+			mode: 448
+		});
+		if (repository.objects.includes(delimiter)) throw new Error("repository object path contains the path delimiter");
+		const env = this.environment(repository.objects);
+		const options = {
+			cwd: repository.root,
+			env,
+			...signal === void 0 ? {} : { signal }
+		};
+		await git([
+			"add",
+			"--all",
+			"--",
+			"."
+		], options);
+		const tree = (await git(["write-tree"], options)).trim();
+		if (!TREE_PATTERN.test(tree)) throw new Error("git write-tree returned an invalid tree id");
+		return {
+			root: repository.root,
+			tree,
+			env
+		};
+	}
+	/** Read the persisted cursor, or null before the first snapshot. */
+	async state() {
+		let raw;
+		try {
+			raw = await readFile(join(this.directory, STATE_FILE), "utf8");
+		} catch (error) {
+			if (error.code === "ENOENT") return null;
+			throw error;
+		}
+		try {
+			return readWorkspaceState(JSON.parse(raw));
+		} catch {
+			return null;
+		}
+	}
+	async save(state) {
+		const destination = join(this.directory, STATE_FILE);
+		const temporary = `${destination}.${process.pid}.${Date.now()}.tmp`;
+		await writeFile(temporary, `${JSON.stringify(state)}\n`, { mode: 384 });
+		await atomicReplace(temporary, destination);
+	}
+	async changes(env, root, from, to, signal) {
+		const options = {
+			cwd: root,
+			env,
+			...signal === void 0 ? {} : { signal }
+		};
+		const [numstat, nameStatus] = await Promise.all([git([
+			"diff",
+			"--no-renames",
+			"--numstat",
+			"-z",
+			from,
+			to
+		], options), git([
+			"diff",
+			"--no-renames",
+			"--name-status",
+			"-z",
+			from,
+			to
+		], options)]);
+		return parseWorkspaceChanges(numstat, nameStatus);
+	}
+	/**
+	* Record a new snapshot at the start of a turn and report what changed since the previous one.
+	* @param now - snapshot time.
+	* @returns the new cursor and changes, or null outside a git work tree.
+	*/
+	advance(now, signal) {
+		return serialize(this.directory, async () => {
+			const staged = await this.stage(signal);
+			if (staged === null) return null;
+			const previous = await this.state();
+			const usable = previous !== null && previous.root === staged.root ? previous : null;
+			const files = usable === null ? null : await this.changes(staged.env, staged.root, usable.tree, staged.tree, signal);
+			const state = {
+				version: 1,
+				root: staged.root,
+				tree: staged.tree,
+				time: now,
+				previousTree: usable?.tree ?? null,
+				previousTime: usable?.time ?? null
+			};
+			await this.save(state);
+			return {
+				state,
+				files,
+				elapsedMs: usable === null ? null : Math.max(0, now - usable.time)
+			};
+		});
+	}
+	/**
+	* Diff the snapshot taken when the previous turn began (or this turn, before a previous one exists) against the live working tree.
+	* @param paths - optional repository-relative paths to restrict the patch.
+	* @returns changed files and their unified patches, or null when nothing has been recorded.
+	*/
+	live(paths, signal) {
+		return serialize(this.directory, async () => {
+			const state = await this.state();
+			if (state === null) return null;
+			const staged = await this.stage(signal);
+			if (staged === null || staged.root !== state.root) return null;
+			const base = state.previousTree ?? state.tree;
+			const options = {
+				cwd: staged.root,
+				env: staged.env,
+				...signal === void 0 ? {} : { signal }
+			};
+			const scope = paths.length === 0 ? [] : ["--", ...paths];
+			const files = (await this.changes(staged.env, staged.root, base, staged.tree, signal)).filter((file) => paths.length === 0 || paths.some((path) => file.path === path || file.path.startsWith(`${path.replace(/\/+$/u, "")}/`)));
+			const patch = files.length === 0 ? "" : await git([
+				"diff",
+				"--no-renames",
+				"--no-color",
+				"--unified=2",
+				base,
+				staged.tree,
+				...scope
+			], options);
+			return {
+				baseTime: state.previousTree === null ? state.time : state.previousTime ?? state.time,
+				files,
+				patch
+			};
+		});
+	}
+	/** Unified patch of one path between two recorded trees. */
+	filePatch(from, to, path, signal) {
+		return serialize(this.directory, async () => {
+			const repository = await this.repository(signal);
+			if (repository === null) return "";
+			return git([
+				"diff",
+				"--no-renames",
+				"--no-color",
+				"--unified=2",
+				from,
+				to,
+				"--",
+				path
+			], {
+				cwd: repository.root,
+				env: this.environment(repository.objects),
+				...signal === void 0 ? {} : { signal }
+			});
+		});
+	}
+};
+/** Human-readable elapsed time such as "2h 13m" or "45s". */
+function formatElapsed(ms) {
+	const seconds = Math.round(ms / 1e3);
+	if (seconds < 60) return `${seconds}s`;
+	const minutes = Math.floor(seconds / 60);
+	if (minutes < 60) return `${minutes}m`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 48) return `${hours}h ${minutes % 60}m`;
+	return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+}
+function lineCounts(file) {
+	if (file.added === null || file.deleted === null) return "binary";
+	return [file.added > 0 ? `+${file.added}` : "", file.deleted > 0 ? `−${file.deleted}` : ""].filter(Boolean).join(" ") || "no line changes";
+}
+const STATUS_CODE = {
+	added: "A",
+	modified: "M",
+	deleted: "D",
+	changed: "T"
+};
+const LISTED_FILES = 60;
+/** Markdown list of changed files with a total line count. */
+function renderFileList(files) {
+	const added = files.reduce((sum, file) => sum + (file.added ?? 0), 0);
+	const deleted = files.reduce((sum, file) => sum + (file.deleted ?? 0), 0);
+	const listed = files.slice(0, LISTED_FILES).map((file) => `- ${STATUS_CODE[file.status]} ${file.path} (${lineCounts(file)})`);
+	if (files.length > LISTED_FILES) listed.push(`- … and ${files.length - LISTED_FILES} more files`);
+	return [`${files.length} file${files.length === 1 ? "" : "s"} changed (+${added} −${deleted}):`, ...listed].join("\n");
+}
+function fenced(text) {
+	let longest = 0;
+	for (const run of text.matchAll(/`+/gu)) longest = Math.max(longest, run[0].length);
+	const marks = "`".repeat(Math.max(3, longest + 1));
+	return `${marks}diff\n${text.replace(/\n$/u, "")}\n${marks}`;
+}
+/** Name of the model tool that reads workspace changes. */
+const WORKSPACE_CHANGES_TOOL = "workspace_changes";
+/**
+* Compose the per-turn workspace notice injected before the first step of a turn.
+* @param input - elapsed time, repository root, changed files, per-file patches (diff mode) and byte budget.
+* @returns the Markdown notice.
+*/
+function renderWorkspaceNotice(input) {
+	const lines = [
+		`# Workspace changes · ${formatElapsed(input.elapsedMs)} since your previous turn began`,
+		`Repository ${input.root}, git working tree including uncommitted changes. Edits made during your previous turn, by you or anyone else, are included. This is context, not a request.`,
+		"",
+		renderFileList(input.files)
+	];
+	if (input.patches === void 0) {
+		lines.push("", `Call ${WORKSPACE_CHANGES_TOOL} (optionally with paths) to read line-level diffs when they matter for the current request.`);
+		return lines.join("\n");
+	}
+	const budget = input.budgetBytes ?? 16384;
+	let used = 0;
+	const skipped = [];
+	for (const file of input.files) {
+		const patch = input.patches.get(file.path);
+		if (patch === void 0 || patch.trim() === "") continue;
+		const section = `\n## ${file.path}\n${fenced(patch)}`;
+		const size = Buffer.byteLength(section, "utf8");
+		if (used + size > budget) {
+			skipped.push(file.path);
+			continue;
+		}
+		lines.push(section);
+		used += size;
+	}
+	if (skipped.length > 0) lines.push("", `Not shown within the notice budget: ${skipped.slice(0, 20).join(", ")}${skipped.length > 20 ? ", …" : ""}. Call ${WORKSPACE_CHANGES_TOOL} with paths to read them.`);
+	return lines.join("\n");
+}
+//#endregion
+//#region lib/types/topic-context.js
+/** Producer kind of every message Citer itself appends to a Topic (DSH format v4 `plugin:<package>`). */
+const CITER_CONTEXT_KIND = "plugin:@kirkchinese/dsh-citeciter";
+/** System prompt section describing workspace notices and their tool. */
+const WORKSPACE_SECTION_NAME = "@kirkchinese/dsh-citeciter:workspace";
+/** Byte budget of one automatic source excerpt. */
+const SOURCE_WINDOW_BYTES = 24576;
+/** Byte budget for patches inside one workspace notice in diff mode. */
+const WORKSPACE_NOTICE_PATCH_BYTES = 16384;
+const WORKSPACE_TOOL_BYTES = 65536;
+const NOTICE_PATCH_FILES = 30;
+/** Static guidance; the changes themselves arrive as per-turn context messages. */
+const WORKSPACE_PROMPT = `Before your first step in a turn, Citer may add a "Workspace changes" context message listing files that changed in this Topic's git working tree since your previous turn began, with line counts and sometimes diffs. It is background awareness, not a request: mention or act on it only when it bears on the user's current request, and never assume a file's current content from a summary. Call ${WORKSPACE_CHANGES_TOOL} to read line-level diffs since your previous turn began, optionally limited to paths; read files directly when you need their full current content.`;
+/** Text of one Citer-produced context message, or undefined for other messages. */
+function citerContextForm(source) {
+	return source.kind === "plugin:@kirkchinese/dsh-citeciter" && typeof source["form"] === "string" ? source["form"] : void 0;
+}
+/** The last source seq an automatic excerpt in this Topic log covered. */
+function lastSourceWindowSeq(events) {
+	let last = null;
+	for (const event of events) {
+		if (event.type !== "user/message") continue;
+		const source = event.data.source;
+		if (citerContextForm(source) !== "source-window") continue;
+		const through = source["throughSeq"];
+		if (typeof through === "number" && Number.isSafeInteger(through)) last = through;
+	}
+	return last;
+}
+function contextMessage(form, text, extra = {}) {
+	return createUserMessage({
+		content: [{
+			type: "text",
+			text
+		}],
+		source: {
+			kind: CITER_CONTEXT_KIND,
+			form,
+			...extra
+		}
+	});
+}
+/**
+* Compose an automatic source excerpt: the records leading to a cited anchor, the newest records,
+* or the records added since the previous excerpt.
+* @returns the message, or null when there is nothing new.
+*/
+function composeSourceWindow(source, options) {
+	const sourceMaxSeq = source.events.at(-1)?.seq ?? null;
+	if (sourceMaxSeq === null || options.afterSeq !== null && sourceMaxSeq <= options.afterSeq) return null;
+	const fromSeq = sourceWindowStart(source, {
+		includeReasoning: options.includeReasoning,
+		maxBytes: SOURCE_WINDOW_BYTES,
+		...options.afterSeq !== null ? { afterSeq: options.afterSeq } : options.anchorSeq !== null ? { endSeq: options.anchorSeq } : {}
+	});
+	const page = formatSourceTranscript(source, {
+		fromSeq,
+		includeReasoning: options.includeReasoning,
+		maxBytes: Math.floor(SOURCE_WINDOW_BYTES * 1.25),
+		detail: "compact"
+	});
+	if (page.records === 0 || page.capturedThroughSeq === null) return null;
+	return contextMessage("source-window", `# Source excerpt (automatic)\n${options.afterSeq !== null ? `Source records added since the previous automatic excerpt (which ended at seq ${options.afterSeq})` : options.anchorSeq !== null ? `Source records leading to the cited location (seq ${options.anchorSeq})` : "The most recent source records"}. Citer added this because automatic source reading is on; read_source_session reads any other range.${options.afterSeq !== null && fromSeq > options.afterSeq + 1 ? ` Records seq ${options.afterSeq + 1}–${fromSeq - 1} did not fit; read them with read_source_session if needed.` : ""}\n\n${page.markdown}`, { throughSeq: page.capturedThroughSeq });
+}
+async function workspaceNotice(options, mode, signal) {
+	if (options.workspace === null || mode === "off") return null;
+	const advance = await options.workspace.advance(Date.now(), signal);
+	if (advance === null || advance.files === null || advance.files.length === 0 || advance.elapsedMs === null) return null;
+	const { previousTree, tree, root } = advance.state;
+	let patches;
+	if (mode === "diff" && previousTree !== null) {
+		patches = /* @__PURE__ */ new Map();
+		for (const file of advance.files.filter((file) => file.added !== null).slice(0, NOTICE_PATCH_FILES)) patches.set(file.path, await options.workspace.filePatch(previousTree, tree, file.path, signal));
+	}
+	return contextMessage("workspace-changes", renderWorkspaceNotice({
+		elapsedMs: advance.elapsedMs,
+		root,
+		files: advance.files,
+		...patches === void 0 ? {} : {
+			patches,
+			budgetBytes: WORKSPACE_NOTICE_PATCH_BYTES
+		}
+	}));
+}
+/**
+* Append Citer's per-turn context to one Topic Agent. The listener delegates first, adds messages
+* only when the step is entered, and never fails the turn because a context source is unavailable.
+*/
+function attachTopicContext(agentCtx, options) {
+	agentCtx.on("agent/pre-step", async ({ agent, step, signal }, next) => {
+		const decision = await next();
+		if (decision.kind === "reject" || signal.aborted || agent !== options.agent || step !== 1) return decision;
+		const added = [];
+		if (options.autoReadSource() && options.sourceSent(decision.messages)) try {
+			const message = composeSourceWindow(await options.readSource(signal), {
+				includeReasoning: options.includeReasoning(),
+				anchorSeq: options.anchorSeq,
+				afterSeq: lastSourceWindowSeq(agent.session.snapshotEvents())
+			});
+			if (message !== null) added.push(message);
+		} catch (error) {
+			if (signal.aborted) return decision;
+			options.warn("Citer could not add the automatic source excerpt", error);
+		}
+		try {
+			const notice = await workspaceNotice(options, options.workspaceMode(), signal);
+			if (notice !== null) added.push(notice);
+		} catch (error) {
+			if (signal.aborted) return decision;
+			options.warn("Citer could not compute workspace changes", error);
+		}
+		return added.length === 0 ? decision : {
+			...decision,
+			messages: [...decision.messages, ...added]
+		};
+	}, { prepend: true });
+}
+/**
+* The `workspace_changes` tool: line-level diffs since the previous turn began, against the live tree.
+* @param workspace - this Topic's snapshot store.
+*/
+function createWorkspaceChangesTool(workspace) {
+	return defineTool({
+		name: WORKSPACE_CHANGES_TOOL,
+		description: "Read line-level diffs of this Topic's git working tree since your previous turn began (or since this turn began, in a first turn), up to now, including uncommitted changes. Optionally limit to repository-relative paths. Returns a file list and unified diffs within a 64 KiB budget.",
+		parameters: { paths: {
+			type: "array",
+			items: { type: "string" },
+			description: "Optional repository-relative files or directories. Omit for all changes."
+		} },
+		output: {
+			schema: {
+				type: "object",
+				additionalProperties: false,
+				properties: {
+					markdown: {
+						type: "string",
+						required: true
+					},
+					files: {
+						type: "integer",
+						required: true
+					}
+				}
+			},
+			render: (_args, value) => [{
+				type: "text",
+				text: value.markdown
+			}],
+			presentationMeta: (_args, value) => ({ files: value.files })
+		},
+		execute: async (args, exec) => {
+			const paths = (args.paths ?? []).filter((path) => path.trim() !== "").slice(0, 50);
+			let result = await workspace.live(paths, exec.signal);
+			if (result === null) {
+				if (await workspace.advance(Date.now(), exec.signal) === null) return {
+					markdown: "This Topic's working directory is not inside a git work tree, so Citer cannot track its changes.",
+					files: 0
+				};
+				result = await workspace.live(paths, exec.signal);
+				if (result === null) return {
+					markdown: "Workspace tracking has just started; there are no recorded changes yet.",
+					files: 0
+				};
+			}
+			if (result.files.length === 0) return {
+				markdown: `No changes${paths.length === 0 ? "" : ` under ${paths.join(", ")}`} since ${new Date(result.baseTime).toISOString()}.`,
+				files: 0
+			};
+			let patch = result.patch;
+			let note = "";
+			if (Buffer.byteLength(patch, "utf8") > WORKSPACE_TOOL_BYTES) {
+				patch = Buffer.from(patch, "utf8").subarray(0, WORKSPACE_TOOL_BYTES).toString("utf8").replace(/\uFFFD$/u, "");
+				note = "\n\nThe diff was cut at the 64 KiB budget; call again with fewer paths for the rest.";
+			}
+			let longest = 0;
+			for (const run of patch.matchAll(/`+/gu)) longest = Math.max(longest, run[0].length);
+			const marks = "`".repeat(Math.max(3, longest + 1));
+			return {
+				markdown: `Changes since ${new Date(result.baseTime).toISOString()}, up to now:\n\n${renderFileList(result.files)}\n\n${marks}diff\n${patch.replace(/\n$/u, "")}\n${marks}${note}`,
+				files: result.files.length
+			};
+		},
+		presentCall: () => ({
+			card: "generic",
+			title: "查看代码库变化"
+		}),
+		presentResult: (_args, result) => ({
+			card: "generic",
+			title: result.isError ? "读取代码库变化失败" : "已读取代码库变化"
+		})
+	});
+}
 //#endregion
 //#region lib/types/topic-archive.js
 /** Return the admission time of a user inbox insertion; claims and canceled items do not qualify. */
@@ -18814,6 +19423,10 @@ var TopicStreamProjection = class {
 //#region lib/types/topic-runtime.js
 /** Topic use cases on native DSH Sessions: creation, questions, drafts, deletion and model routing. */
 const CITECITER_SHUTTING_DOWN = "CiteCiter is shutting down";
+/** The source address a user must send before Citer reads the source. */
+function sourceAddress(metadata) {
+	return `dsh://session/${encodeURIComponent(metadata.sourceSessionId)}`;
+}
 function citeCiterShuttingDownError() {
 	return /* @__PURE__ */ new Error(CITECITER_SHUTTING_DOWN);
 }
@@ -19358,6 +19971,7 @@ var TopicRuntime = class {
 			text: () => composeHostedTopicPrompt(this.settings().tutorPrompt, Boolean(this.settings().followupQuestions ?? DEFAULT_CITECITER_SETTINGS.followupQuestions), this.settings().learningRoute ?? false)
 		});
 		this.registerSourceTool(agentCtx, metadata, agent);
+		this.registerTopicContext(agentCtx, metadata, agent);
 		this.registerDocumentTools(agentCtx);
 		agentCtx.tools.register(createBlackboardApplyTool());
 		agentCtx.tools.register(this.boardCapture.tool(agentCtx, (current) => projectBoardFromLog({
@@ -19391,20 +20005,48 @@ var TopicRuntime = class {
 		agentCtx.tools.register(createSourceReadTool({
 			includeReasoning: () => this.settings().includeSourceReasoning,
 			read: async (signal) => {
-				if (!hasSentSource(agent.session, `dsh://session/${encodeURIComponent(metadata.sourceSessionId)}`)) throw new Error("来源会话未作为附件发送。请让用户附加来源后再读取。");
-				let source;
-				try {
-					source = await readSourceSession(this.host, metadata.sourceSessionId);
-				} catch (error) {
-					signal.throwIfAborted();
-					await this.rememberSourceAvailability(metadata, false);
-					throw error;
-				}
-				signal.throwIfAborted();
-				await this.rememberSourceAvailability(metadata, true);
-				return source;
+				if (!hasSentSource(agent.session, sourceAddress(metadata))) throw new Error("来源会话未作为附件发送。请让用户附加来源后再读取。");
+				return this.readAuthorizedSource(metadata, signal);
 			}
 		}));
+	}
+	/** Read a source the caller has already authorized, recording its availability. */
+	async readAuthorizedSource(metadata, signal) {
+		let source;
+		try {
+			source = await readSourceSession(this.host, metadata.sourceSessionId);
+		} catch (error) {
+			signal.throwIfAborted();
+			await this.rememberSourceAvailability(metadata, false);
+			throw error;
+		}
+		signal.throwIfAborted();
+		await this.rememberSourceAvailability(metadata, true);
+		return source;
+	}
+	/** Per-turn source excerpt and workspace notice, plus the workspace tool when the Topic has a working directory. */
+	registerTopicContext(agentCtx, metadata, agent) {
+		const workspace = metadata.sourceCwd === "" ? null : new WorkspaceSnapshots(resolve(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId), "workspace"), metadata.sourceCwd);
+		if (workspace !== null) {
+			agentCtx.systemPrompt.section({
+				name: WORKSPACE_SECTION_NAME,
+				order: 22,
+				text: WORKSPACE_PROMPT
+			});
+			agentCtx.tools.register(createWorkspaceChangesTool(workspace));
+		}
+		const address = sourceAddress(metadata);
+		attachTopicContext(agentCtx, {
+			agent,
+			autoReadSource: () => this.settings().autoReadSource ?? false,
+			workspaceMode: () => this.settings().workspaceChanges ?? "summary",
+			includeReasoning: () => this.settings().includeSourceReasoning,
+			sourceSent: (pending) => hasSentSource(agent.session, address) || pending.some((message) => mentionsSource(message, address)),
+			readSource: (signal) => this.readAuthorizedSource(metadata, signal),
+			anchorSeq: metadata.citation === null || metadata.citation.entry.kind === "document-range" ? null : metadata.citation.anchorSeq,
+			workspace,
+			warn: (message, error) => this.host.logger.warn(`${message} for ${metadata.sessionId}`, error)
+		});
 	}
 	async ensureHandle(metadata, signal) {
 		this.assertOpen(signal);
@@ -20069,6 +20711,12 @@ const CITECITER_SETTINGS_SCHEMA = z$1.object({
 		"danger-full-access"
 	]).default("read-only"),
 	learningRoute: z$1.boolean().default(false),
+	autoReadSource: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.autoReadSource ?? false),
+	workspaceChanges: z$1.union([
+		"off",
+		"summary",
+		"diff"
+	]).default(DEFAULT_CITECITER_SETTINGS.workspaceChanges ?? "summary"),
 	updateNotifications: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
 	selectionToolbar: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.selectionToolbar ?? true),
 	actionDelivery: z$1.union(["send", "draft"]).default(DEFAULT_CITECITER_SETTINGS.actionDelivery ?? "send"),

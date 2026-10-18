@@ -56,6 +56,12 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
         "danger-full-access": "danger-full-access";
     }>>;
     learningRoute: z.ZodOptional<z.ZodBoolean>;
+    autoReadSource: z.ZodOptional<z.ZodBoolean>;
+    workspaceChanges: z.ZodOptional<z.ZodEnum<{
+        off: "off";
+        summary: "summary";
+        diff: "diff";
+    }>>;
 }, z.core.$strict>;
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>;
 /** Settings used before an optional DSH settings provider becomes available. */
@@ -104,9 +110,9 @@ export declare const citationEntrySchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     callId: z.ZodString;
     toolName: z.ZodString;
     projection: z.ZodEnum<{
+        diff: "diff";
         "result-text": "result-text";
         terminal: "terminal";
-        diff: "diff";
     }>;
     fileIndex: z.ZodOptional<z.ZodNumber>;
     side: z.ZodOptional<z.ZodEnum<{
@@ -132,9 +138,9 @@ export declare const citationRecordSchema: z.ZodObject<{
         callId: z.ZodString;
         toolName: z.ZodString;
         projection: z.ZodEnum<{
+            diff: "diff";
             "result-text": "result-text";
             terminal: "terminal";
-            diff: "diff";
         }>;
         fileIndex: z.ZodOptional<z.ZodNumber>;
         side: z.ZodOptional<z.ZodEnum<{
@@ -174,9 +180,9 @@ declare const citationRecordFileSchema: z.ZodObject<{
         callId: z.ZodString;
         toolName: z.ZodString;
         projection: z.ZodEnum<{
+            diff: "diff";
             "result-text": "result-text";
             terminal: "terminal";
-            diff: "diff";
         }>;
         fileIndex: z.ZodOptional<z.ZodNumber>;
         side: z.ZodOptional<z.ZodEnum<{
@@ -235,9 +241,9 @@ export declare const topicMetadataSchema: z.ZodObject<{
             callId: z.ZodString;
             toolName: z.ZodString;
             projection: z.ZodEnum<{
+                diff: "diff";
                 "result-text": "result-text";
                 terminal: "terminal";
-                diff: "diff";
             }>;
             fileIndex: z.ZodOptional<z.ZodNumber>;
             side: z.ZodOptional<z.ZodEnum<{
@@ -351,9 +357,9 @@ export declare const topicSummarySchema: z.ZodObject<{
             callId: z.ZodString;
             toolName: z.ZodString;
             projection: z.ZodEnum<{
+                diff: "diff";
                 "result-text": "result-text";
                 terminal: "terminal";
-                diff: "diff";
             }>;
             fileIndex: z.ZodOptional<z.ZodNumber>;
             side: z.ZodOptional<z.ZodEnum<{
@@ -546,9 +552,9 @@ export declare const topicSnapshotSchema: z.ZodObject<{
                 callId: z.ZodString;
                 toolName: z.ZodString;
                 projection: z.ZodEnum<{
+                    diff: "diff";
                     "result-text": "result-text";
                     terminal: "terminal";
-                    diff: "diff";
                 }>;
                 fileIndex: z.ZodOptional<z.ZodNumber>;
                 side: z.ZodOptional<z.ZodEnum<{
@@ -782,9 +788,9 @@ export declare const toolEvidenceClaimSchema: z.ZodObject<{
     callId: z.ZodString;
     displayText: z.ZodString;
     projection: z.ZodOptional<z.ZodEnum<{
+        diff: "diff";
         "result-text": "result-text";
         terminal: "terminal";
-        diff: "diff";
     }>>;
 }, z.core.$strict>;
 /** Browser-submitted claim that anchors one Topic on a committed tool result. */
@@ -863,9 +869,9 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
         callId: z.ZodString;
         displayText: z.ZodString;
         projection: z.ZodOptional<z.ZodEnum<{
+            diff: "diff";
             "result-text": "result-text";
             terminal: "terminal";
-            diff: "diff";
         }>>;
     }, z.core.$strict>;
     action: z.ZodLiteral<"create">;
@@ -1361,9 +1367,9 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                     callId: z.ZodString;
                     toolName: z.ZodString;
                     projection: z.ZodEnum<{
+                        diff: "diff";
                         "result-text": "result-text";
                         terminal: "terminal";
-                        diff: "diff";
                     }>;
                     fileIndex: z.ZodOptional<z.ZodNumber>;
                     side: z.ZodOptional<z.ZodEnum<{
@@ -1590,9 +1596,9 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 callId: z.ZodString;
                 toolName: z.ZodString;
                 projection: z.ZodEnum<{
+                    diff: "diff";
                     "result-text": "result-text";
                     terminal: "terminal";
-                    diff: "diff";
                 }>;
                 fileIndex: z.ZodOptional<z.ZodNumber>;
                 side: z.ZodOptional<z.ZodEnum<{

@@ -45,6 +45,8 @@ export const citeCiterSettingsSchema = z.object({
   defaultCiterModel: actionModelSchema.nullable().optional(),
   defaultPermission: z.enum(['read-only', 'workspace-write', 'danger-full-access']).optional(),
   learningRoute: z.boolean().optional(),
+  autoReadSource: z.boolean().optional(),
+  workspaceChanges: z.enum(['off', 'summary', 'diff']).optional(),
 }).strict()
 
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>
@@ -59,6 +61,8 @@ export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   activeRecall: false,
   defaultPermission: 'read-only',
   learningRoute: false,
+  autoReadSource: false,
+  workspaceChanges: 'summary',
   updateNotifications: true,
   selectionToolbar: true,
   actionDelivery: 'send',
