@@ -35269,7 +35269,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		function resultSummary(message, args, result) {
 			const data = fields(result);
 			switch (message.name) {
-				case "read_source_session": return Array.isArray(data?.events) ? `${data.events.length} 条记录${data.hasMore === true ? "，还有更多" : ""}` : null;
+				case "read_source_session": {
+					if (Array.isArray(data?.events)) return `${data.events.length} 条记录${data.hasMore === true ? "，还有更多" : ""}`;
+					const records = typeof result === "string" ? /· (\d+) records ·/u.exec(result)?.[1] : void 0;
+					return records === void 0 ? null : `${records} 条记录${result.includes("\nMore source after seq ") ? "，还有更多" : ""}`;
+				}
 				case "read_document": return typeof data?.throughOffset === "number" && typeof data.documentLength === "number" && data.documentLength > 0 ? `读到 ${Math.min(100, Math.round(data.throughOffset / data.documentLength * 100))}%` : null;
 				case "learning_cards": return Array.isArray(args?.cards) ? `${args.cards.length} 张` : null;
 				case "todo_write": return Array.isArray(args?.todos) ? `${args.todos.length} 步` : null;

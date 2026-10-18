@@ -70,8 +70,12 @@ function verdict(message: ToolMessage): string | null {
 function resultSummary(message: ToolMessage, args: Readonly<Record<string, unknown>> | null, result: unknown): string | null {
   const data = fields(result)
   switch (message.name) {
-    case 'read_source_session':
-      return Array.isArray(data?.events) ? `${data.events.length} 条记录${data.hasMore === true ? '，还有更多' : ''}` : null
+    case 'read_source_session': {
+      // Older Topics recorded JSON event pages; current pages are Markdown with a cursor header.
+      if (Array.isArray(data?.events)) return `${data.events.length} 条记录${data.hasMore === true ? '，还有更多' : ''}`
+      const records = typeof result === 'string' ? /· (\d+) records ·/u.exec(result)?.[1] : undefined
+      return records === undefined ? null : `${records} 条记录${(result as string).includes('\nMore source after seq ') ? '，还有更多' : ''}`
+    }
     case 'read_document':
       return typeof data?.throughOffset === 'number' && typeof data.documentLength === 'number' && data.documentLength > 0
         ? `读到 ${Math.min(100, Math.round(data.throughOffset / data.documentLength * 100))}%`

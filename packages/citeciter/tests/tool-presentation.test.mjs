@@ -17,6 +17,9 @@ test('known tools get readable titles; unknown tools keep their own name', () =>
 test('summaries describe what the call did instead of echoing JSON', () => {
   const source = toolPresentation(tool('read_source_session', { result: JSON.stringify({ events: [{}, {}, {}], hasMore: true }) }))
   assert.equal(source.summary, '3 条记录，还有更多')
+  const markdown = 'Source session s · seq 0–9 · latest seq 20 · 4 records · detail compact\nQuoted evidence.\n\n---\n\n# User · seq 1\nhi\n\n---\n\nMore source after seq 9: call read_source_session with fromSeq: 10.'
+  assert.equal(toolPresentation(tool('read_source_session', { result: markdown })).summary, '4 条记录，还有更多')
+  assert.equal(toolPresentation(tool('read_source_session', { result: markdown.replace(/More source after[^\n]*/u, 'End of the source as of this read.') })).summary, '4 条记录')
   const document = toolPresentation(tool('read_document', { result: JSON.stringify({ throughOffset: 450, documentLength: 1000 }) }))
   assert.equal(document.summary, '读到 45%')
   const cards = toolPresentation(tool('learning_cards', { arguments: JSON.stringify({ cards: [{}, {}] }), result: 'saved' }))

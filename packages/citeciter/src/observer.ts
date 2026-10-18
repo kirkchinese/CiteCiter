@@ -1,4 +1,4 @@
-/** Pure Observer citation validation and source-session evidence formatting. */
+/** Pure Observer citation validation against a source-session snapshot. */
 /** Shared tool-evidence projections also consumed by the browser entry layer. */
 import { createHash } from 'node:crypto'
 import { toolCallRecord, toolResultRecord } from './tool-events.ts'
@@ -10,7 +10,6 @@ export {
   type ToolEvidenceProjection,
 } from './evidence-text.ts'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
-import { snapshotJsonValue, type JsonValue } from '@deepseek-ai/dsh-util-values'
 import {
   canonicalCitationIdentity,
   citationSelectionClaimSchema,
@@ -54,36 +53,6 @@ export interface ValidatedDocumentEvidence {
   readonly evidence: CitationEvidence
 }
 
-/** Options for one bounded `read_source_session` result. */
-export interface SourceReadOptions {
-  readonly fromSeq?: number
-  readonly throughSeq?: number
-  readonly includeReasoning: boolean
-  /** Maximum UTF-8 bytes occupied by the serialized `events` array. */
-  readonly maxBytes: number
-}
-
-/** One lossless-JSON evidence record emitted by `read_source_session`. */
-export type SourceEvidenceEvent = JsonValue
-
-/** Complete bounded source-read payload recorded as the Topic tool result. */
-export interface SourceReadResult {
-  readonly sourceSessionId: string
-  /** Highest sequence in the entire readable snapshot, independent of request bounds. */
-  readonly sourceMaxSeq: number | null
-  readonly requestedFromSeq: number
-  readonly requestedThroughSeq: number | null
-  /** Last scanned sequence; filtered records can advance this without adding evidence. */
-  readonly capturedThroughSeq: number | null
-  /** A byte-budget stop within the requested range, not a source exhaustion flag. */
-  readonly truncated: boolean
-  readonly hasMore: boolean
-  /** First unscanned sequence at or after fromSeq, including beyond a requested range cap. */
-  readonly nextFromSeq: number | null
-  readonly bytesUsed: number
-  readonly events: readonly SourceEvidenceEvent[]
-}
-
 type MessageContent = SessionEvent<'assistant/message'>['data']['message']['content']
 
 function messageText(content: MessageContent): string {
@@ -91,19 +60,6 @@ function messageText(content: MessageContent): string {
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('')
-}
-
-function assistantReasoning(content: MessageContent): string {
-  return content
-    .filter((block) => block.type === 'reasoning')
-    .map((block) => block.text)
-    .join('')
-}
-
-function evidence(value: unknown): SourceEvidenceEvent {
-  const snapshot = snapshotJsonValue(value)
-  if (snapshot === undefined) throw new Error('source Session evidence is not lossless JSON')
-  return snapshot as JsonValue
 }
 
 /** Compute the SHA-256 identity carried by the current CitationDraft schema. */
@@ -264,148 +220,5 @@ export function resolveDocumentEvidence(
       prefixText: range.prefixText,
       suffixText: range.suffixText,
     },
-  }
-}
-
-function formatEvidenceEvent(
-  event: SessionEvent,
-  includeReasoning: boolean,
-): SourceEvidenceEvent | null {
-  if (event.type === 'tool/ptc-dispatch-start') return evidence({ type: event.type, seq: event.seq, callId: event.data.subCallId, parentCallId: event.data.parentCallId, name: event.data.name, arguments: event.data.arguments })
-  if (event.type === 'tool/ptc-dispatch') return evidence({ type: event.type, seq: event.seq, callId: event.data.subCallId, parentCallId: event.data.parentCallId, name: event.data.name, content: event.data.content, isError: event.data.isError })
-  switch (event.type) {
-    case 'turn/start':
-      return evidence({ type: event.type, seq: event.seq, turn: event.data.turn })
-    case 'turn/end':
-      return evidence({ type: event.type, seq: event.seq, turn: event.data.turn, reason: event.data.reason })
-    case 'step/start':
-    case 'step/end':
-      return evidence({
-        type: event.type,
-        seq: event.seq,
-        turn: event.data.turn,
-        step: event.data.step,
-      })
-    case 'user/message':
-      return event.data.source.kind === 'user'
-        ? evidence({ type: event.type, seq: event.seq, text: messageText(event.data.content) })
-        : null
-    case 'assistant/message': {
-      const text = messageText(event.data.message.content)
-      const reasoning = includeReasoning ? assistantReasoning(event.data.message.content) : ''
-      return evidence({
-        type: event.type,
-        seq: event.seq,
-        turn: event.data.turn,
-        step: event.data.step,
-        text,
-        ...(reasoning === '' ? {} : { reasoning }),
-      })
-    }
-    case 'tool/call':
-      return evidence({
-        type: event.type,
-        seq: event.seq,
-        turn: event.data.turn,
-        step: event.data.step,
-        callId: event.data.callId,
-        name: event.data.name,
-        arguments: event.data.arguments,
-      })
-    case 'tool/result': {
-      const result = toolResultRecord(event)!
-      return evidence({
-        type: event.type,
-        seq: event.seq,
-        turn: event.data.turn,
-        step: event.data.step,
-        callId: result.callId,
-        content: result.content,
-        isError: result.isError ?? false,
-        ...(event.data.error === undefined ? {} : { error: event.data.error }),
-        ...(event.data.meta === undefined ? {} : { meta: event.data.meta }),
-      })
-    }
-    // Chunks and unrelated log state are intentionally absent from model evidence.
-    default:
-      return null
-  }
-}
-
-/** Format a range plus the readable snapshot horizon and cursor, without exposing chunks or exceeding the event-array byte budget. */
-export function formatSourceSessionRead(
-  source: ObserverSourceSnapshot,
-  options: SourceReadOptions,
-): SourceReadResult {
-  const fromSeq = options.fromSeq ?? 0
-  if (!Number.isSafeInteger(fromSeq) || fromSeq < 0) throw new Error('fromSeq must be a non-negative safe integer')
-  if (
-    options.throughSeq !== undefined
-    && (!Number.isSafeInteger(options.throughSeq) || options.throughSeq < fromSeq)
-  ) throw new Error('throughSeq must be a safe integer greater than or equal to fromSeq')
-  if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes < 2) {
-    throw new Error('maxBytes must be a safe integer of at least 2')
-  }
-
-  const events: SourceEvidenceEvent[] = []
-  let bytesUsed = 2 // JSON array brackets.
-  let capturedThroughSeq: number | null = null
-  let truncated = false
-
-  for (let index = 0; index < source.events.length; index += 1) {
-    const event = source.events[index]
-    if (event === undefined) continue
-    if (event.seq < fromSeq) continue
-    if (options.throughSeq !== undefined && event.seq > options.throughSeq) break
-    const formatted = formatEvidenceEvent(event, options.includeReasoning)
-    if (formatted === null) {
-      capturedThroughSeq = event.seq
-      continue
-    }
-    const serializedBytes = Buffer.byteLength(JSON.stringify(formatted), 'utf8')
-    const eventBytes = serializedBytes + (events.length === 0 ? 0 : 1)
-    if (bytesUsed + eventBytes > options.maxBytes) {
-      if (serializedBytes <= options.maxBytes - 2) {
-        truncated = true
-        break
-      }
-      const placeholder = evidence({
-        type: event.type,
-        seq: event.seq,
-        oversized: true,
-      })
-      const serializedPlaceholderBytes = Buffer.byteLength(JSON.stringify(placeholder), 'utf8')
-      const placeholderBytes = serializedPlaceholderBytes + (events.length === 0 ? 0 : 1)
-      if (bytesUsed + placeholderBytes > options.maxBytes) {
-        if (serializedPlaceholderBytes <= options.maxBytes - 2) {
-          truncated = true
-          break
-        }
-        capturedThroughSeq = event.seq
-        truncated = true
-        break
-      }
-      events.push(placeholder)
-      bytesUsed += placeholderBytes
-      capturedThroughSeq = event.seq
-      continue
-    }
-    events.push(formatted)
-    bytesUsed += eventBytes
-    capturedThroughSeq = event.seq
-  }
-
-  const nextFromSeq = source.events.find(event => event.seq >= fromSeq && (capturedThroughSeq === null || event.seq > capturedThroughSeq))?.seq ?? null
-  return {
-    sourceSessionId: source.session.id,
-    sourceMaxSeq: source.events.at(-1)?.seq ?? null,
-    requestedFromSeq: fromSeq,
-    requestedThroughSeq: options.throughSeq ?? null,
-    capturedThroughSeq,
-    truncated,
-    hasMore: nextFromSeq !== null,
-    nextFromSeq,
-    bytesUsed,
-    events,
   }
 }

@@ -8,6 +8,10 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 
 - Support DSH `0.2.1-alpha.3`, whose compatibility gate refuses 0.9.0-beta.2. Citer still supports the official Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1` / `0.2.1-alpha.2`.
 
+### Topic context
+
+- Citer reads the source conversation as a Markdown transcript: user and assistant messages, tool calls and tool results, each marked with its source position. Long tool output and edit diffs are shortened by default, and Citer can re-read a single record in full. Edits appear as line diffs.
+
 ### Fixes
 
 - When a preset action cannot be sent and moves into the composer, the panel says so once instead of repeating the composer's own notice. Notices above the composer (an unavailable model, draft errors, an unconfirmed send) use the host's small secondary text, and their recovery buttons look like links.
