@@ -10,6 +10,8 @@ const TITLES: Readonly<Record<string, string>> = {
   search_document: '搜索文档',
   blackboard_apply: '更新板书',
   blackboard_view: '查看板书',
+  blackboard_animate: '编排板书动画',
+  workspace_changes: '查看代码库变化',
   learning_cards: '整理学习卡',
   todo_write: '更新学习路线',
   ask_user_question: '向你提问',

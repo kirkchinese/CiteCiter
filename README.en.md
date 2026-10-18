@@ -55,7 +55,7 @@ Creating a Topic or choosing 提问 only prepares a draft; preset actions such a
 | You want to | CiteCiter provides |
 | --- | --- |
 | Understand an answer, code or tool result | A separate Topic with a source citation; follow-ups never touch the main conversation |
-| See relationships and processes | A blackboard with Markdown, formulas, tables, SVG, images and sandboxed HTML; vision models can inspect the rendered board and fix it |
+| See relationships and processes | A blackboard with Markdown, formulas, tables, SVG, images and sandboxed HTML; vision models can inspect the rendered board and fix it; board elements can be animated with keyframes, paths or formulas, and you can play, pause, scrub and step through the animation |
 | Keep what you learned | Learning cards you can export and revise, with prose and code examples shown separately |
 | Discuss real files | File and image attachments, a `.txt` / `.md` document reader, and a "CiteCiter 学习" entry in native file previews |
 | Act on what you understood | DSH models, tools, approvals, permissions, queueing and steering; new Topics are read-only by default |

@@ -13,7 +13,7 @@ import {
   type AskUserQuestionItem,
   type AskUserQuestionRequest,
 } from '@deepseek-ai/dsh-user-questions'
-import { createBlackboardApplyTool } from './blackboard-tool.ts'
+import { createBlackboardAnimateTool, createBlackboardApplyTool } from './blackboard-tool.ts'
 import { BoardCaptureBroker } from './board-capture.ts'
 import { recoverBlockingQuestion } from './blocking-question-recovery.ts'
 import { resolveReadableDocument } from './document-access.ts'
@@ -653,6 +653,7 @@ export class TopicRuntime {
     this.registerTopicContext(agentCtx, metadata, agent)
     this.registerDocumentTools(agentCtx)
     agentCtx.tools.register(createBlackboardApplyTool())
+    agentCtx.tools.register(createBlackboardAnimateTool())
     agentCtx.tools.register(this.boardCapture.tool(agentCtx, current => projectBoardFromLog({
       header: current.session.header, events: current.session.snapshotEvents(), inheritedEventCount: current.session.inheritedEventCount,
     })))

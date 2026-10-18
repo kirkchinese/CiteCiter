@@ -1,5 +1,6 @@
 /** Shared blackboard protocol v4 and deterministic state folding. */
 import { z } from 'zod'
+import { boardTimelineSchema } from './board-animation.ts'
 
 /** Wire/version identity carried by every board snapshot. */
 export const BOARD_PROTOCOL_VERSION = 4 as const
@@ -291,6 +292,8 @@ export const boardSnapshotSchema = z.object({
   revision: z.number().int().nonnegative(),
   elements: z.array(boardElementStateSchema).max(BOARD_MAX_ELEMENTS),
   invalid: z.number().int().nonnegative(),
+  /** Latest animation timeline; absent in snapshots from earlier versions. */
+  timeline: boardTimelineSchema.nullable().optional(),
 }).strict()
 export type BoardSnapshot = z.infer<typeof boardSnapshotSchema>
 

@@ -2,6 +2,8 @@ import type { Context } from '@deepseek-ai/cordis';
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import type { BoardSnapshot } from './board.ts';
 import type { BoardCaptureJob } from './board-capture-protocol.ts';
+/** Most frames one blackboard_view call may request. */
+export declare const BOARD_VIEW_MAX_FRAMES = 6;
 /** Correlates one model-requested render with one client reply; bytes become a durable DSH attachment. */
 export declare class BoardCaptureBroker {
     private readonly pending;

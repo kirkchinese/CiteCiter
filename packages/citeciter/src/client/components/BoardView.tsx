@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { beatAt, compileTimeline, sampleTimeline } from '../../board-animation.ts'
+import { frameStyle, useTimelinePlayer } from '../board-timeline.ts'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
@@ -86,16 +88,28 @@ export function BoardView({
   onQuoteElement,
   compact = false,
   sessionId,
+  frameAtMs,
 }: {
   readonly snapshot: BoardSnapshot | undefined
   readonly animations: boolean
   readonly onQuoteElement?: (element: BoardElementState) => void
   readonly compact?: boolean
   readonly sessionId?: string
+  /** Freeze the board's timeline at this time, for frame capture. */
+  readonly frameAtMs?: number
 }) {
   const board = snapshot ?? EMPTY_BOARD_SNAPSHOT
   const [notes, setNotes] = useState(compact)
   const elements = notes ? [...board.elements].sort((a, b) => a.y - b.y || a.x - b.x) : board.elements
+  const timeline = board.timeline ?? null
+  const compiled = useMemo(() => {
+    if (timeline === null) return null
+    try { return compileTimeline(timeline.spec, board.elements) }
+    catch { return null } // A timeline whose targets were later removed or changed simply stops playing.
+  }, [timeline, board.elements])
+  const player = useTimelinePlayer(compiled, timeline?.id ?? null, { autoplay: animations, frozenAt: frameAtMs })
+  const frames = compiled === null || notes ? null : sampleTimeline(compiled, player.t)
+  const caption = compiled === null || notes ? null : beatAt(compiled, player.t)
   return (
     <section className={css.board} data-citeciter-board={sessionId ?? ''} data-board-revision={board.revision} data-compact={compact || undefined} data-notes={notes || undefined} data-animations={animations || undefined} aria-label="Citer 黑板">
       <header className={css.boardHeader}>
@@ -119,6 +133,7 @@ export function BoardView({
                 top: `${element.y}%`,
                 width: `${element.w}%`,
                 height: `${element.h}%`,
+                ...(frames?.has(element.id) === true ? frameStyle(frames.get(element.id)!, element) : {}),
               }}
             >
               <div
@@ -148,7 +163,25 @@ export function BoardView({
               )}
             </div>
           ))}
+          {caption !== null && <p className={css.caption} aria-live="polite">{caption}</p>}
       </div>
+      {compiled !== null && !notes && frameAtMs === undefined && (
+        <div className={css.player} role="group" aria-label="板书动画" data-capture-exclude="">
+          <button type="button" className={css.playButton} onClick={player.toggle} aria-label={player.playing ? '暂停动画' : '播放动画'}>{player.playing ? '❚❚' : '▶'}</button>
+          <input className={css.scrubber} type="range" min={0} max={compiled.durationMs} step={10} value={Math.round(player.t)} aria-label="动画进度"
+            onChange={event => player.seek(Number(event.currentTarget.value))} />
+          <span className={css.time}>{(player.t / 1000).toFixed(1)} / {(compiled.durationMs / 1000).toFixed(1)} s</span>
+          {compiled.beats.length > 0 && (
+            <div className={css.beats}>
+              {compiled.beats.map((beat, index) => (
+                <button key={`${beat.atMs}:${index}`} type="button" className={css.beat} title={beat.caption} aria-label={`跳到第 ${index + 1} 步：${beat.caption}`}
+                  data-active={caption === beat.caption && player.t >= beat.atMs && (compiled.beats[index + 1]?.atMs ?? Number.POSITIVE_INFINITY) > player.t ? true : undefined}
+                  onClick={() => player.seek(beat.atMs)}>{index + 1}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   )
 }

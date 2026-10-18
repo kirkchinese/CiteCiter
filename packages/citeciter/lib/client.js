@@ -2005,6 +2005,98 @@ window.__ModuleLoader__.load({
 			result.value = merged.data;
 			return result;
 		}
+		const $ZodTuple = /*@__PURE__*/ $constructor("$ZodTuple", (inst, def) => {
+			$ZodType.init(inst, def);
+			const items = def.items;
+			inst._zod.parse = (payload, ctx) => {
+				const input = payload.value;
+				if (!Array.isArray(input)) {
+					payload.issues.push({
+						input,
+						inst,
+						expected: "tuple",
+						code: "invalid_type"
+					});
+					return payload;
+				}
+				payload.value = [];
+				const proms = [];
+				const optinStart = getTupleOptStart(items, "optin");
+				const optoutStart = getTupleOptStart(items, "optout");
+				if (!def.rest) {
+					if (input.length < optinStart) {
+						payload.issues.push({
+							code: "too_small",
+							minimum: optinStart,
+							inclusive: true,
+							input,
+							inst,
+							origin: "array"
+						});
+						return payload;
+					}
+					if (input.length > items.length) payload.issues.push({
+						code: "too_big",
+						maximum: items.length,
+						inclusive: true,
+						input,
+						inst,
+						origin: "array"
+					});
+				}
+				const itemResults = new Array(items.length);
+				for (let i = 0; i < items.length; i++) {
+					const r = items[i]._zod.run({
+						value: input[i],
+						issues: []
+					}, ctx);
+					if (r instanceof Promise) proms.push(r.then((rr) => {
+						itemResults[i] = rr;
+					}));
+					else itemResults[i] = r;
+				}
+				if (def.rest) {
+					let i = items.length - 1;
+					const rest = input.slice(items.length);
+					for (const el of rest) {
+						i++;
+						const result = def.rest._zod.run({
+							value: el,
+							issues: []
+						}, ctx);
+						if (result instanceof Promise) proms.push(result.then((r) => handleTupleResult(r, payload, i)));
+						else handleTupleResult(result, payload, i);
+					}
+				}
+				if (proms.length) return Promise.all(proms).then(() => handleTupleResults(itemResults, payload, items, input, optoutStart));
+				return handleTupleResults(itemResults, payload, items, input, optoutStart);
+			};
+		});
+		function getTupleOptStart(items, key) {
+			for (let i = items.length - 1; i >= 0; i--) if (items[i]._zod[key] !== "optional") return i + 1;
+			return 0;
+		}
+		function handleTupleResult(result, final, index) {
+			if (result.issues.length) final.issues.push(...prefixIssues(index, result.issues));
+			final.value[index] = result.value;
+		}
+		function handleTupleResults(itemResults, final, items, input, optoutStart) {
+			for (let i = 0; i < items.length; i++) {
+				const r = itemResults[i];
+				const isPresent = i < input.length;
+				if (r.issues.length) {
+					if (!isPresent && i >= optoutStart) {
+						final.value.length = i;
+						break;
+					}
+					final.issues.push(...prefixIssues(i, r.issues));
+				}
+				final.value[i] = r.value;
+			}
+			for (let i = final.value.length - 1; i >= input.length; i--) if (items[i]._zod.optout === "optional" && final.value[i] === void 0) final.value.length = i;
+			else break;
+			return final;
+		}
 		const $ZodRecord = /*@__PURE__*/ $constructor("$ZodRecord", (inst, def) => {
 			$ZodType.init(inst, def);
 			inst._zod.parse = (payload, ctx) => {
@@ -3394,6 +3486,44 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const isSimpleIntersection = (val) => "allOf" in val && Object.keys(val).length === 1;
 			json.allOf = [...isSimpleIntersection(a) ? a.allOf : [a], ...isSimpleIntersection(b) ? b.allOf : [b]];
 		};
+		const tupleProcessor = (schema, ctx, _json, params) => {
+			const json = _json;
+			const def = schema._zod.def;
+			json.type = "array";
+			const prefixPath = ctx.target === "draft-2020-12" ? "prefixItems" : "items";
+			const restPath = ctx.target === "draft-2020-12" ? "items" : ctx.target === "openapi-3.0" ? "items" : "additionalItems";
+			const prefixItems = def.items.map((x, i) => process$1(x, ctx, {
+				...params,
+				path: [
+					...params.path,
+					prefixPath,
+					i
+				]
+			}));
+			const rest = def.rest ? process$1(def.rest, ctx, {
+				...params,
+				path: [
+					...params.path,
+					restPath,
+					...ctx.target === "openapi-3.0" ? [def.items.length] : []
+				]
+			}) : null;
+			if (ctx.target === "draft-2020-12") {
+				json.prefixItems = prefixItems;
+				if (rest) json.items = rest;
+			} else if (ctx.target === "openapi-3.0") {
+				json.items = { anyOf: prefixItems };
+				if (rest) json.items.anyOf.push(rest);
+				json.minItems = prefixItems.length;
+				if (!rest) json.maxItems = prefixItems.length;
+			} else {
+				json.items = prefixItems;
+				if (rest) json.additionalItems = rest;
+			}
+			const { minimum, maximum } = schema._zod.bag;
+			if (typeof minimum === "number") json.minItems = minimum;
+			if (typeof maximum === "number") json.maxItems = maximum;
+		};
 		const recordProcessor = (schema, ctx, _json, params) => {
 			const json = _json;
 			const def = schema._zod.def;
@@ -4125,6 +4255,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				right
 			});
 		}
+		const ZodTuple = /*@__PURE__*/ $constructor("ZodTuple", (inst, def) => {
+			$ZodTuple.init(inst, def);
+			ZodType.init(inst, def);
+			inst._zod.processJSONSchema = (ctx, json, params) => tupleProcessor(inst, ctx, json, params);
+			inst.rest = (rest) => inst.clone({
+				...inst._zod.def,
+				rest
+			});
+		});
+		function tuple(items, _paramsOrRest, _params) {
+			const hasRest = _paramsOrRest instanceof $ZodType;
+			return new ZodTuple({
+				type: "tuple",
+				items,
+				rest: hasRest ? _paramsOrRest : null,
+				...normalizeParams(hasRest ? _params : _paramsOrRest)
+			});
+		}
 		const ZodRecord = /*@__PURE__*/ $constructor("ZodRecord", (inst, def) => {
 			$ZodRecord.init(inst, def);
 			ZodType.init(inst, def);
@@ -4519,6 +4667,671 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				attachments: array(nativeAttachmentSchema)
 			}).strict())
 		}).strict();
+		const ANIMATION_MAX_DURATION_MS = 3e4;
+		/** Offset in canvas percent used by directional appear and disappear. */
+		const SLIDE_DISTANCE = 6;
+		const easingSchema = _enum([
+			"linear",
+			"ease-in",
+			"ease-out",
+			"ease-in-out"
+		]);
+		const directionSchema = _enum([
+			"left",
+			"right",
+			"up",
+			"down"
+		]);
+		const timeSchema = number().int().min(0).max(ANIMATION_MAX_DURATION_MS);
+		const coordinateSchema = number().min(-50).max(150);
+		const expressionSchema = string().min(1).max(240);
+		/** One verb applied to one board element. */
+		const animationTrackSchema = object({
+			target: string().min(1).max(80),
+			verb: _enum([
+				"appear",
+				"disappear",
+				"move",
+				"scale",
+				"rotate",
+				"highlight",
+				"reveal",
+				"follow",
+				"keyframes",
+				"parametric"
+			]),
+			startMs: timeSchema.optional(),
+			endMs: timeSchema.optional(),
+			easing: easingSchema.optional(),
+			to: object({
+				x: coordinateSchema,
+				y: coordinateSchema
+			}).strict().optional(),
+			scale: number().min(.05).max(10).optional(),
+			degrees: number().min(-3600).max(3600).optional(),
+			direction: directionSchema.optional(),
+			path: string().min(1).max(4e3).optional(),
+			orient: boolean().optional(),
+			frames: array(object({
+				atMs: timeSchema,
+				x: coordinateSchema.optional(),
+				y: coordinateSchema.optional(),
+				opacity: number().min(0).max(1).optional(),
+				scale: number().min(.05).max(10).optional(),
+				rotate: number().min(-3600).max(3600).optional()
+			}).strict()).min(1).max(40).optional(),
+			x: expressionSchema.optional(),
+			y: expressionSchema.optional(),
+			t: tuple([number().min(-1e6).max(1e6), number().min(-1e6).max(1e6)]).optional()
+		}).strict();
+		/** One complete timeline as written by the model. */
+		const animationSpecSchema = object({
+			durationMs: number().int().min(200).max(ANIMATION_MAX_DURATION_MS),
+			loop: boolean().optional(),
+			beats: array(object({
+				atMs: timeSchema,
+				caption: string().min(1).max(160)
+			}).strict()).max(20).optional(),
+			tracks: array(animationTrackSchema).min(1).max(40)
+		}).strict();
+		/** The board's current timeline: the spec of the latest successful call, keyed by that call. */
+		const boardTimelineSchema = object({
+			id: string().min(1),
+			spec: animationSpecSchema
+		}).strict();
+		const FUNCTIONS = {
+			sin: Math.sin,
+			cos: Math.cos,
+			tan: Math.tan,
+			asin: Math.asin,
+			acos: Math.acos,
+			atan: Math.atan,
+			atan2: Math.atan2,
+			sqrt: Math.sqrt,
+			abs: Math.abs,
+			exp: Math.exp,
+			log: Math.log,
+			min: Math.min,
+			max: Math.max,
+			pow: Math.pow,
+			floor: Math.floor,
+			ceil: Math.ceil,
+			round: Math.round,
+			sign: Math.sign
+		};
+		const CONSTANTS = {
+			pi: Math.PI,
+			e: Math.E,
+			tau: Math.PI * 2
+		};
+		/**
+		* Compile a restricted arithmetic expression of `t`: numbers, `+ - * / ^`, parentheses,
+		* the constants pi, e, tau and a fixed set of Math functions. Nothing else is accepted.
+		* @throws an Error naming the first unexpected token.
+		*/
+		function compileExpression(source) {
+			const tokens = source.match(/\d+(?:\.\d+)?(?:e[+-]?\d+)?|\.\d+|[a-z_][a-z0-9_]*|\*\*|[-+*/^(),]|\S/giu) ?? [];
+			let index = 0;
+			const peek = () => tokens[index];
+			const take = (expected) => {
+				const token = tokens[index];
+				if (token === void 0 || expected !== void 0 && token !== expected) throw new Error(`expression "${source}": expected ${expected ?? "a value"} at ${token ?? "end"}`);
+				index += 1;
+				return token;
+			};
+			const primary = () => {
+				const token = take();
+				if (/^(?:\d|\.\d)/u.test(token)) {
+					const value = Number(token);
+					return () => value;
+				}
+				if (token === "(") {
+					const inner = sum();
+					take(")");
+					return inner;
+				}
+				if (token === "-") {
+					const inner = power();
+					return (t) => -inner(t);
+				}
+				if (token === "+") return power();
+				const name = token.toLowerCase();
+				if (name === "t") return (t) => t;
+				if (Object.hasOwn(CONSTANTS, name)) {
+					const value = CONSTANTS[name];
+					return () => value;
+				}
+				if (Object.hasOwn(FUNCTIONS, name)) {
+					const fn = FUNCTIONS[name];
+					take("(");
+					const args = [sum()];
+					while (peek() === ",") {
+						take(",");
+						args.push(sum());
+					}
+					take(")");
+					return (t) => fn(...args.map((arg) => arg(t)));
+				}
+				throw new Error(`expression "${source}": unknown name or symbol "${token}"`);
+			};
+			const power = () => {
+				const base = primary();
+				if (peek() === "^" || peek() === "**") {
+					take();
+					const exponent = power();
+					return (t) => base(t) ** exponent(t);
+				}
+				return base;
+			};
+			const product = () => {
+				let left = power();
+				while (peek() === "*" || peek() === "/") {
+					const op = take();
+					const right = power();
+					const previous = left;
+					left = op === "*" ? (t) => previous(t) * right(t) : (t) => previous(t) / right(t);
+				}
+				return left;
+			};
+			const sum = () => {
+				let left = product();
+				while (peek() === "+" || peek() === "-") {
+					const op = take();
+					const right = product();
+					const previous = left;
+					left = op === "+" ? (t) => previous(t) + right(t) : (t) => previous(t) - right(t);
+				}
+				return left;
+			};
+			const expression = sum();
+			if (index !== tokens.length) throw new Error(`expression "${source}": unexpected "${tokens[index]}"`);
+			return expression;
+		}
+		const CURVE_STEPS = 24;
+		function arcPoints(from, rx, ry, rotation, large, sweep, to) {
+			if (rx === 0 || ry === 0) return [to];
+			const phi = rotation * Math.PI / 180;
+			const cos = Math.cos(phi);
+			const sin = Math.sin(phi);
+			const dx = (from.x - to.x) / 2;
+			const dy = (from.y - to.y) / 2;
+			const x1 = cos * dx + sin * dy;
+			const y1 = -sin * dx + cos * dy;
+			let a = Math.abs(rx);
+			let b = Math.abs(ry);
+			const lambda = x1 * x1 / (a * a) + y1 * y1 / (b * b);
+			if (lambda > 1) {
+				a *= Math.sqrt(lambda);
+				b *= Math.sqrt(lambda);
+			}
+			const numerator = a * a * b * b - a * a * y1 * y1 - b * b * x1 * x1;
+			const factor = (large === sweep ? -1 : 1) * Math.sqrt(Math.max(0, numerator / (a * a * y1 * y1 + b * b * x1 * x1)));
+			const cx1 = factor * (a * y1) / b;
+			const cy1 = factor * -(b * x1) / a;
+			const cx = cos * cx1 - sin * cy1 + (from.x + to.x) / 2;
+			const cy = sin * cx1 + cos * cy1 + (from.y + to.y) / 2;
+			const angle = (ux, uy, vx, vy) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+			const start = angle(1, 0, (x1 - cx1) / a, (y1 - cy1) / b);
+			let delta = angle((x1 - cx1) / a, (y1 - cy1) / b, (-x1 - cx1) / a, (-y1 - cy1) / b);
+			if (!sweep && delta > 0) delta -= Math.PI * 2;
+			if (sweep && delta < 0) delta += Math.PI * 2;
+			const points = [];
+			for (let step = 1; step <= CURVE_STEPS; step += 1) {
+				const theta = start + delta * step / CURVE_STEPS;
+				points.push({
+					x: cos * a * Math.cos(theta) - sin * b * Math.sin(theta) + cx,
+					y: sin * a * Math.cos(theta) + cos * b * Math.sin(theta) + cy
+				});
+			}
+			return points;
+		}
+		/**
+		* Sample an SVG path (M L H V C S Q T A Z, absolute and relative) into a polyline.
+		* @throws an Error for unsupported commands or malformed numbers.
+		*/
+		function samplePath(d) {
+			const tokens = d.match(/[a-z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/giu) ?? [];
+			if (tokens.join("").length < d.replace(/[\s,]/gu, "").length) throw new Error("path contains unsupported characters");
+			const points = [];
+			let index = 0;
+			let command = "";
+			let current = {
+				x: 0,
+				y: 0
+			};
+			let start = {
+				x: 0,
+				y: 0
+			};
+			let control = null;
+			const number = () => {
+				const token = tokens[index];
+				if (token === void 0 || /^[a-z]$/iu.test(token)) throw new Error(`path command ${command} is missing a number`);
+				index += 1;
+				return Number(token);
+			};
+			const flag = () => number() !== 0;
+			while (index < tokens.length) {
+				if (/^[a-z]$/iu.test(tokens[index])) command = tokens[index++];
+				else if (command === "") throw new Error("path must start with a command");
+				const relative = command === command.toLowerCase();
+				const base = relative ? current : {
+					x: 0,
+					y: 0
+				};
+				const at = (x, y) => ({
+					x: base.x + x,
+					y: base.y + y
+				});
+				switch (command.toUpperCase()) {
+					case "M":
+						current = at(number(), number());
+						start = current;
+						points.push(current);
+						control = null;
+						command = relative ? "l" : "L";
+						break;
+					case "L":
+						current = at(number(), number());
+						points.push(current);
+						control = null;
+						break;
+					case "H":
+						current = {
+							x: (relative ? current.x : 0) + number(),
+							y: current.y
+						};
+						points.push(current);
+						control = null;
+						break;
+					case "V":
+						current = {
+							x: current.x,
+							y: (relative ? current.y : 0) + number()
+						};
+						points.push(current);
+						control = null;
+						break;
+					case "Z":
+						current = start;
+						points.push(current);
+						control = null;
+						break;
+					case "C":
+					case "S": {
+						const first = command.toUpperCase() === "C" ? at(number(), number()) : control === null ? current : {
+							x: 2 * current.x - control.x,
+							y: 2 * current.y - control.y
+						};
+						const second = at(number(), number());
+						const end = at(number(), number());
+						for (let step = 1; step <= CURVE_STEPS; step += 1) {
+							const s = step / CURVE_STEPS;
+							const r = 1 - s;
+							points.push({
+								x: r ** 3 * current.x + 3 * r * r * s * first.x + 3 * r * s * s * second.x + s ** 3 * end.x,
+								y: r ** 3 * current.y + 3 * r * r * s * first.y + 3 * r * s * s * second.y + s ** 3 * end.y
+							});
+						}
+						control = second;
+						current = end;
+						break;
+					}
+					case "Q":
+					case "T": {
+						const middle = command.toUpperCase() === "Q" ? at(number(), number()) : control === null ? current : {
+							x: 2 * current.x - control.x,
+							y: 2 * current.y - control.y
+						};
+						const end = at(number(), number());
+						for (let step = 1; step <= CURVE_STEPS; step += 1) {
+							const s = step / CURVE_STEPS;
+							const r = 1 - s;
+							points.push({
+								x: r * r * current.x + 2 * r * s * middle.x + s * s * end.x,
+								y: r * r * current.y + 2 * r * s * middle.y + s * s * end.y
+							});
+						}
+						control = middle;
+						current = end;
+						break;
+					}
+					case "A": {
+						const rx = number();
+						const ry = number();
+						const rotation = number();
+						const large = flag();
+						const sweep = flag();
+						const end = at(number(), number());
+						points.push(...arcPoints(current, rx, ry, rotation, large, sweep, end));
+						current = end;
+						control = null;
+						break;
+					}
+					default: throw new Error(`unsupported path command ${command}`);
+				}
+				if (command.toUpperCase() === "Z" && index < tokens.length && !/^[a-z]$/iu.test(tokens[index])) throw new Error("numbers after Z need a command");
+			}
+			if (points.length < 2) throw new Error("path needs at least two points");
+			if (points.some((point) => !Number.isFinite(point.x) || !Number.isFinite(point.y))) throw new Error("path has non-finite coordinates");
+			const lengths = [0];
+			for (let i = 1; i < points.length; i += 1) lengths.push(lengths[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y));
+			return {
+				points,
+				lengths,
+				total: lengths.at(-1)
+			};
+		}
+		/** Position and tangent angle (degrees) at a fraction of a sampled path's length. */
+		function pointAlong(path, fraction) {
+			const target = Math.min(1, Math.max(0, fraction)) * path.total;
+			let i = 1;
+			while (i < path.points.length - 1 && path.lengths[i] < target) i += 1;
+			const a = path.points[i - 1];
+			const b = path.points[i];
+			const span = path.lengths[i] - path.lengths[i - 1];
+			const local = span === 0 ? 0 : (target - path.lengths[i - 1]) / span;
+			return {
+				x: a.x + (b.x - a.x) * local,
+				y: a.y + (b.y - a.y) * local,
+				angle: Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI
+			};
+		}
+		const BASE = {
+			dx: 0,
+			dy: 0,
+			scale: 1,
+			rotate: 0,
+			opacity: 1,
+			clip: 0,
+			glow: 0,
+			slideX: 0,
+			slideY: 0
+		};
+		function ease(kind, p) {
+			if (kind === "ease-in") return p ** 3;
+			if (kind === "ease-out") return 1 - (1 - p) ** 3;
+			if (kind === "ease-in-out") return p < .5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2;
+			return p;
+		}
+		const lerp = (a, b, p) => a + (b - a) * p;
+		function direction(value) {
+			if (value === "left") return {
+				x: -1,
+				y: 0
+			};
+			if (value === "right") return {
+				x: 1,
+				y: 0
+			};
+			if (value === "up") return {
+				x: 0,
+				y: -1
+			};
+			return {
+				x: 0,
+				y: 1
+			};
+		}
+		function valueAt(segments, from, base, t) {
+			let active;
+			for (const segment of segments) {
+				if (segment.start > t) break;
+				active = segment;
+			}
+			if (active === void 0) return segments[0]?.before ?? base;
+			return active.at(t, from.get(active) ?? base);
+		}
+		/**
+		* Validate and compile a timeline against the current board.
+		* @param spec - parsed timeline spec.
+		* @param targets - current board element envelopes.
+		* @returns the compiled timeline.
+		* @throws an Error describing the first invalid track.
+		*/
+		function compileTimeline(spec, targets) {
+			const byId = new Map(targets.map((target) => [target.id, target]));
+			const pending = /* @__PURE__ */ new Map();
+			const clipSides = /* @__PURE__ */ new Map();
+			spec.tracks.forEach((track, index) => {
+				const label = `track ${index + 1} (${track.verb} ${track.target})`;
+				const target = byId.get(track.target);
+				if (target === void 0) throw new Error(`${label}: no board element with id "${track.target}"`);
+				const cx = target.x + target.w / 2;
+				const cy = target.y + target.h / 2;
+				const start = track.startMs ?? 0;
+				const end = track.endMs ?? spec.durationMs;
+				if (track.verb !== "keyframes" && (end <= start || end > spec.durationMs)) throw new Error(`${label}: needs 0 <= startMs < endMs <= durationMs`);
+				const easing = track.easing ?? (track.verb === "follow" || track.verb === "parametric" ? "linear" : "ease-in-out");
+				const progress = (t) => ease(easing, Math.min(1, Math.max(0, (t - start) / (end - start))));
+				const props = pending.get(track.target) ?? /* @__PURE__ */ new Map();
+				pending.set(track.target, props);
+				const add = (prop, segment) => {
+					props.set(prop, [...props.get(prop) ?? [], segment]);
+				};
+				const require$1 = (value, name) => {
+					if (value === void 0) throw new Error(`${label}: ${track.verb} requires ${name}`);
+					return value;
+				};
+				switch (track.verb) {
+					case "appear":
+					case "disappear": {
+						const showing = track.verb === "appear";
+						add("opacity", {
+							start,
+							end,
+							...showing ? { before: 0 } : {},
+							at: (t, from) => showing ? progress(t) : lerp(from, 0, progress(t))
+						});
+						if (track.direction !== void 0) {
+							const unit = direction(track.direction);
+							add("slideX", {
+								start,
+								end,
+								at: (t) => (showing ? -unit.x * (1 - progress(t)) : unit.x * progress(t)) * SLIDE_DISTANCE
+							});
+							add("slideY", {
+								start,
+								end,
+								at: (t) => (showing ? -unit.y * (1 - progress(t)) : unit.y * progress(t)) * SLIDE_DISTANCE
+							});
+						}
+						break;
+					}
+					case "move": {
+						const to = require$1(track.to, "to");
+						add("dx", {
+							start,
+							end,
+							at: (t, from) => lerp(from, to.x - cx, progress(t))
+						});
+						add("dy", {
+							start,
+							end,
+							at: (t, from) => lerp(from, to.y - cy, progress(t))
+						});
+						break;
+					}
+					case "scale": {
+						const factor = require$1(track.scale, "scale");
+						add("scale", {
+							start,
+							end,
+							at: (t, from) => lerp(from, factor, progress(t))
+						});
+						break;
+					}
+					case "rotate": {
+						const degrees = require$1(track.degrees, "degrees");
+						add("rotate", {
+							start,
+							end,
+							at: (t, from) => from + degrees * progress(t)
+						});
+						break;
+					}
+					case "highlight":
+						add("glow", {
+							start,
+							end,
+							at: (t) => t >= end ? 0 : Math.sin(Math.PI * Math.min(1, Math.max(0, (t - start) / (end - start))))
+						});
+						break;
+					case "reveal": {
+						const side = track.direction ?? "right";
+						clipSides.set(track.target, side === "right" ? "right" : side === "left" ? "left" : side === "up" ? "top" : "bottom");
+						add("clip", {
+							start,
+							end,
+							before: 100,
+							at: (t) => 100 * (1 - progress(t))
+						});
+						break;
+					}
+					case "follow": {
+						let path;
+						try {
+							path = samplePath(require$1(track.path, "path"));
+						} catch (error) {
+							throw new Error(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+						}
+						add("dx", {
+							start,
+							end,
+							at: (t) => pointAlong(path, progress(t)).x - cx
+						});
+						add("dy", {
+							start,
+							end,
+							at: (t) => pointAlong(path, progress(t)).y - cy
+						});
+						if (track.orient === true) add("rotate", {
+							start,
+							end,
+							at: (t) => pointAlong(path, progress(t)).angle
+						});
+						break;
+					}
+					case "parametric": {
+						let x;
+						let y;
+						try {
+							x = compileExpression(require$1(track.x, "x"));
+							y = compileExpression(require$1(track.y, "y"));
+						} catch (error) {
+							throw new Error(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+						}
+						const [t0, t1] = track.t ?? [0, 1];
+						const param = (t) => lerp(t0, t1, Math.min(1, Math.max(0, (t - start) / (end - start))));
+						for (let step = 0; step <= 16; step += 1) {
+							const value = lerp(t0, t1, step / 16);
+							if (!Number.isFinite(x(value)) || !Number.isFinite(y(value))) throw new Error(`${label}: x or y is not finite at t = ${value}`);
+						}
+						add("dx", {
+							start,
+							end,
+							at: (t) => x(param(t)) - cx
+						});
+						add("dy", {
+							start,
+							end,
+							at: (t) => y(param(t)) - cy
+						});
+						break;
+					}
+					case "keyframes": {
+						const frames = [...require$1(track.frames, "frames")].sort((a, b) => a.atMs - b.atMs);
+						if (frames.some((frame) => frame.atMs > spec.durationMs)) throw new Error(`${label}: frame atMs exceeds durationMs`);
+						const channels = [
+							["dx", (frame) => frame.x === void 0 ? void 0 : frame.x - cx],
+							["dy", (frame) => frame.y === void 0 ? void 0 : frame.y - cy],
+							["opacity", (frame) => frame.opacity],
+							["scale", (frame) => frame.scale],
+							["rotate", (frame) => frame.rotate]
+						];
+						for (const [prop, read] of channels) {
+							const stops = frames.flatMap((frame) => {
+								const value = read(frame);
+								return value === void 0 ? [] : [{
+									at: frame.atMs,
+									value
+								}];
+							});
+							if (stops.length === 0) continue;
+							const first = stops[0];
+							const last = stops.at(-1);
+							add(prop, {
+								start: first.at,
+								end: Math.max(first.at + 1, last.at),
+								at: (t) => {
+									if (t >= last.at) return last.value;
+									let i = 1;
+									while (i < stops.length - 1 && stops[i].at <= t) i += 1;
+									const a = stops[i - 1];
+									const b = stops[i];
+									return lerp(a.value, b.value, ease(easing, b.at === a.at ? 1 : Math.min(1, Math.max(0, (t - a.at) / (b.at - a.at)))));
+								}
+							});
+						}
+						break;
+					}
+					default: return track.verb;
+				}
+			});
+			const elements = /* @__PURE__ */ new Map();
+			for (const [id, props] of pending) {
+				const segments = /* @__PURE__ */ new Map();
+				const from = /* @__PURE__ */ new Map();
+				for (const [prop, list] of props) {
+					const sorted = [...list].sort((a, b) => a.start - b.start);
+					sorted.forEach((segment, index) => {
+						from.set(segment, valueAt(sorted.slice(0, index), from, BASE[prop], segment.start));
+					});
+					segments.set(prop, sorted);
+				}
+				elements.set(id, {
+					segments,
+					from,
+					clipSide: clipSides.get(id) ?? "right"
+				});
+			}
+			return {
+				durationMs: spec.durationMs,
+				loop: spec.loop ?? false,
+				beats: [...spec.beats ?? []].sort((a, b) => a.atMs - b.atMs),
+				elements
+			};
+		}
+		/**
+		* Sample every animated element at one time.
+		* @param timeline - compiled timeline.
+		* @param atMs - time within the timeline; clamped to its duration.
+		* @returns frames keyed by element id; elements without tracks are absent.
+		*/
+		function sampleTimeline(timeline, atMs) {
+			const t = Math.min(timeline.durationMs, Math.max(0, atMs));
+			const frames = /* @__PURE__ */ new Map();
+			for (const [id, element] of timeline.elements) {
+				const read = (prop) => valueAt(element.segments.get(prop) ?? [], element.from, BASE[prop], t);
+				frames.set(id, {
+					dx: read("dx") + read("slideX"),
+					dy: read("dy") + read("slideY"),
+					scale: read("scale"),
+					rotate: read("rotate"),
+					opacity: Math.min(1, Math.max(0, read("opacity"))),
+					clip: Math.min(100, Math.max(0, read("clip"))),
+					clipSide: element.clipSide,
+					glow: Math.min(1, Math.max(0, read("glow")))
+				});
+			}
+			return frames;
+		}
+		/** Caption of the latest beat at or before a time, or null. */
+		function beatAt(timeline, atMs) {
+			let caption = null;
+			for (const beat of timeline.beats) if (beat.atMs <= atMs) caption = beat.caption;
+			return caption;
+		}
 		/** Element kinds the blackboard renders safely on the chalk canvas. */
 		const boardElementKindSchema = _enum([
 			"text",
@@ -4659,7 +5472,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			version: literal(4),
 			revision: number().int().nonnegative(),
 			elements: array(boardElementStateSchema).max(50),
-			invalid: number().int().nonnegative()
+			invalid: number().int().nonnegative(),
+			/** Latest animation timeline; absent in snapshots from earlier versions. */
+			timeline: boardTimelineSchema.nullable().optional()
 		}).strict();
 		/** Empty snapshot used before any board commit. */
 		const EMPTY_BOARD_SNAPSHOT = Object.freeze({
@@ -4674,7 +5489,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const boardCaptureJobSchema = object({
 			id: string().min(1),
 			sessionId: string().min(1),
-			board: boardSnapshotSchema
+			board: boardSnapshotSchema,
+			/** Render the board's timeline frozen at this time instead of its resting state. */
+			atMs: number().int().min(0).max(ANIMATION_MAX_DURATION_MS).optional()
 		}).strict();
 		//#endregion
 		//#region lib/types/learning-example.js
@@ -8622,6 +9439,90 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const text = diagramText(element);
 			const reference = `板书${element.kind === "image" ? "图片" : "图示"}「${literalLines(element.id)}」`;
 			return text === "" ? `${reference}：请结合当前板书查看图形内容后回答。` : `${reference}中的文字：\n\n${literalLines(text)}\n\n图形关系请结合当前板书核对。`;
+		}
+		//#endregion
+		//#region lib/types/client/board-timeline.js
+		/**
+		* Inline style for one sampled element frame. Translation is converted from canvas percent
+		* to the element's own percent, so no layout measurement is needed.
+		* @param frame - sampled frame.
+		* @param size - the element envelope's width and height in canvas percent.
+		*/
+		function frameStyle(frame, size) {
+			const clip = frame.clip <= 0 ? void 0 : frame.clipSide === "right" ? `inset(0 ${frame.clip}% 0 0)` : frame.clipSide === "left" ? `inset(0 0 0 ${frame.clip}%)` : frame.clipSide === "top" ? `inset(${frame.clip}% 0 0 0)` : `inset(0 0 ${frame.clip}% 0)`;
+			return {
+				transform: `translate(${frame.dx / size.w * 100}%, ${frame.dy / size.h * 100}%) rotate(${frame.rotate}deg) scale(${frame.scale})`,
+				opacity: frame.opacity,
+				...clip === void 0 ? {} : { clipPath: clip },
+				...frame.glow <= 0 ? {} : { filter: `drop-shadow(0 0 ${(10 * frame.glow).toFixed(2)}px rgb(255 224 130 / ${(.95 * frame.glow).toFixed(2)}))` }
+			};
+		}
+		function reducedMotion() {
+			return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+		}
+		/**
+		* Drive a compiled timeline with requestAnimationFrame. A new timeline plays once when motion is
+		* allowed; otherwise it rests on its final frame. A frozen time (frame capture) never plays.
+		* @param timeline - compiled timeline, or null.
+		* @param key - identity of the timeline; a new key restarts playback.
+		* @param options - whether to autoplay and an optional frozen time.
+		*/
+		function useTimelinePlayer(timeline, key, options) {
+			const duration = timeline?.durationMs ?? 0;
+			const [t, setT] = (0, react.useState)(options.frozenAt ?? duration);
+			const [playing, setPlaying] = (0, react.useState)(false);
+			const time = (0, react.useRef)(t);
+			time.current = t;
+			(0, react.useEffect)(() => {
+				if (options.frozenAt !== void 0) {
+					setT(options.frozenAt);
+					setPlaying(false);
+					return;
+				}
+				const play = options.autoplay && timeline !== null && !reducedMotion();
+				setT(play ? 0 : duration);
+				setPlaying(play);
+			}, [key, options.frozenAt]);
+			(0, react.useEffect)(() => {
+				if (!playing || timeline === null) return;
+				let frame = 0;
+				let last = performance.now();
+				const step = (now) => {
+					let next = time.current + (now - last);
+					last = now;
+					if (next >= duration) {
+						if (timeline.loop) next %= duration;
+						else {
+							setT(duration);
+							setPlaying(false);
+							return;
+						}
+					}
+					setT(next);
+					frame = requestAnimationFrame(step);
+				};
+				frame = requestAnimationFrame(step);
+				return () => cancelAnimationFrame(frame);
+			}, [
+				playing,
+				timeline,
+				duration
+			]);
+			return {
+				t,
+				playing,
+				toggle: (0, react.useCallback)(() => {
+					if (timeline === null) return;
+					setPlaying((current) => {
+						if (!current && time.current >= duration) setT(0);
+						return !current;
+					});
+				}, [timeline, duration]),
+				seek: (0, react.useCallback)((atMs) => {
+					setPlaying(false);
+					setT(Math.min(duration, Math.max(0, atMs)));
+				}, [duration])
+			};
 		}
 		//#endregion
 		//#region node_modules/katex/dist/katex.mjs
@@ -34964,7 +35865,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/BoardView.module.css.mjs
-		const css$24 = ".o6kE_a_board{--dsw-alias-markdown-inline-code:#0c211b;--dsw-alias-markdown-code-block:#0c211b;--dsw-alias-markdown-code-block-banner:#244438;--dsw-alias-bg-base:#16302a;--dsw-alias-border-l1:#f2ead83d;box-sizing:border-box;color:#f2ead8;background:radial-gradient(120% 160% at 12% 0,#ffffff14,#0000 46%),linear-gradient(160deg,#1e3a2f 0%,#16302a 55%,#12251f 100%);flex-direction:column;flex:1;gap:12px;min-width:0;min-height:0;padding:clamp(14px,2.4vw,28px);font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:flex;box-shadow:inset 0 0 0 1px #00000040}.o6kE_a_board[data-compact]{min-height:350px;padding:16px;overflow:auto}.o6kE_a_board[data-compact] .o6kE_a_boardHeader{flex-wrap:wrap}.o6kE_a_board[data-compact]:not([data-notes]) .o6kE_a_canvas{flex:none;min-width:640px;height:480px}.o6kE_a_board[data-notes] .o6kE_a_canvas{box-sizing:border-box;flex-direction:column;gap:16px;padding:16px;display:flex;overflow:visible}.o6kE_a_board[data-notes] .o6kE_a_elementWrap{border-bottom:1px solid #ffffff14;padding-bottom:22px;position:relative;width:100%!important;height:auto!important;top:auto!important;left:auto!important}.o6kE_a_board[data-notes] .o6kE_a_elementInner{height:auto;min-height:24px}.o6kE_a_board[data-notes] [data-kind=svg] .o6kE_a_elementInner,.o6kE_a_board[data-notes] [data-kind=html] .o6kE_a_elementInner{min-height:180px}.o6kE_a_board[data-notes] .o6kE_a_html{min-height:220px}.o6kE_a_board[data-notes] .o6kE_a_svg{max-height:320px}.o6kE_a_board[data-notes] .o6kE_a_quoteButton{opacity:.8;pointer-events:auto}.o6kE_a_viewToggle{cursor:pointer;font:inherit;color:#f2ead8;background:#ffffff0d;border:1px solid #fff3;border-radius:7px;padding:6px 8px;font-size:11px}.o6kE_a_boardHeader{justify-content:space-between;align-items:center;gap:8px;min-height:38px;font-size:12px;display:flex}.o6kE_a_boardHeader>div{flex-direction:column;gap:2px;display:flex}.o6kE_a_boardHeader strong{letter-spacing:.04em;font-size:18px}.o6kE_a_boardHeader span,.o6kE_a_boardHeader>div span{opacity:.72;font-size:11px}.o6kE_a_canvas{background:repeating-linear-gradient(0deg,#ffffff06 0 1px,#0000 1px 34px),linear-gradient(#0000002e,#0000000f);border:1px solid #ffffff1a;border-radius:14px;flex:1;width:100%;min-width:0;max-width:1280px;min-height:320px;margin:0 auto;position:relative;overflow:auto}.o6kE_a_canvas,.o6kE_a_elementInner{scrollbar-width:thin;scrollbar-color:transparent transparent}.o6kE_a_canvas:hover,.o6kE_a_canvas:focus-within,.o6kE_a_elementInner:hover,.o6kE_a_elementInner:focus-within{scrollbar-color:#f2ead847 transparent}.o6kE_a_canvas::-webkit-scrollbar,.o6kE_a_elementInner::-webkit-scrollbar{width:6px;height:6px}.o6kE_a_canvas::-webkit-scrollbar-thumb,.o6kE_a_elementInner::-webkit-scrollbar-thumb{corner-shape:round;background:0 0;border-radius:999px}.o6kE_a_canvas:hover::-webkit-scrollbar-thumb,.o6kE_a_canvas:focus-within::-webkit-scrollbar-thumb,.o6kE_a_elementInner:hover::-webkit-scrollbar-thumb,.o6kE_a_elementInner:focus-within::-webkit-scrollbar-thumb{background:#f2ead847}.o6kE_a_boardHint{opacity:.6;text-align:center;place-items:center;margin:0;padding:12px;font-size:12px;display:grid;position:absolute;inset:0}.o6kE_a_elementWrap{box-sizing:border-box;position:absolute;overflow:visible}.o6kE_a_elementInner{box-sizing:border-box;border-radius:4px;width:100%;height:100%;padding:2px 4px;font-size:14px;line-height:1.5;overflow:auto}.o6kE_a_elementInner *{color:inherit!important}.o6kE_a_text,.o6kE_a_math,.o6kE_a_fallback{white-space:pre-wrap;overflow-wrap:anywhere}.o6kE_a_math{font-size:inherit}.o6kE_a_svg{object-fit:contain;width:100%;height:100%;display:block}.o6kE_a_html{background:0 0;border:0;width:100%;height:100%}.o6kE_a_fallback{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}.o6kE_a_elementWrap[data-focused] .o6kE_a_elementInner{outline-offset:2px;outline:2px solid #ffe082e6}.o6kE_a_quoteButton{z-index:2;color:#f8f0dc;cursor:pointer;opacity:0;background:#081814e0;border:1px solid #ffffff3d;border-radius:7px;padding:4px 8px;font-size:11px;transition:opacity .12s,transform .12s;position:absolute;bottom:4px;right:4px;transform:translateY(3px)}.o6kE_a_elementWrap:hover .o6kE_a_quoteButton,.o6kE_a_quoteButton:focus-visible{opacity:1;transform:translateY(0)}.o6kE_a_boardWarning{color:#f3d58a;margin:-4px 0 0;font-size:11px}.o6kE_a_workspaceEmpty{text-align:center;min-height:0;color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-alias-bg-base,#fff);flex:1;place-content:center;padding:28px;display:grid}.o6kE_a_workspaceEmpty strong{color:var(--dsw-alias-label-primary,#20232a);font-size:20px}.o6kE_a_workspaceEmpty p{max-width:420px;line-height:1.7}.o6kE_a_image{object-fit:contain;width:100%;height:100%;display:block}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animFadeIn{animation-name:o6kE_a_board-fade-in;animation-timing-function:ease}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animSlideIn{animation-name:o6kE_a_board-slide-in;animation-timing-function:ease-out}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animPulse{animation-name:o6kE_a_board-pulse;animation-timing-function:ease-in-out}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animHighlight{animation-name:o6kE_a_board-highlight;animation-timing-function:ease}@keyframes o6kE_a_board-fade-in{0%{opacity:0}to{opacity:1}}@keyframes o6kE_a_board-slide-in{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes o6kE_a_board-pulse{0%,to{transform:scale(1)}50%{transform:scale(1.03)}}@keyframes o6kE_a_board-highlight{0%{box-shadow:0 0 0 3px #ffe082d9}to{box-shadow:0 0 #ffe08200}}@media (prefers-reduced-motion:reduce){.o6kE_a_elementInner,.o6kE_a_quoteButton{transition:none}.o6kE_a_board[data-animations] .o6kE_a_elementInner{animation:none}}";
+		const css$24 = ".o6kE_a_board{--dsw-alias-markdown-inline-code:#0c211b;--dsw-alias-markdown-code-block:#0c211b;--dsw-alias-markdown-code-block-banner:#244438;--dsw-alias-bg-base:#16302a;--dsw-alias-border-l1:#f2ead83d;box-sizing:border-box;color:#f2ead8;background:radial-gradient(120% 160% at 12% 0,#ffffff14,#0000 46%),linear-gradient(160deg,#1e3a2f 0%,#16302a 55%,#12251f 100%);flex-direction:column;flex:1;gap:12px;min-width:0;min-height:0;padding:clamp(14px,2.4vw,28px);font-family:system-ui,-apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:flex;box-shadow:inset 0 0 0 1px #00000040}.o6kE_a_board[data-compact]{min-height:350px;padding:16px;overflow:auto}.o6kE_a_board[data-compact] .o6kE_a_boardHeader{flex-wrap:wrap}.o6kE_a_board[data-compact]:not([data-notes]) .o6kE_a_canvas{flex:none;min-width:640px;height:480px}.o6kE_a_board[data-notes] .o6kE_a_canvas{box-sizing:border-box;flex-direction:column;gap:16px;padding:16px;display:flex;overflow:visible}.o6kE_a_board[data-notes] .o6kE_a_elementWrap{border-bottom:1px solid #ffffff14;padding-bottom:22px;position:relative;width:100%!important;height:auto!important;top:auto!important;left:auto!important}.o6kE_a_board[data-notes] .o6kE_a_elementInner{height:auto;min-height:24px}.o6kE_a_board[data-notes] [data-kind=svg] .o6kE_a_elementInner,.o6kE_a_board[data-notes] [data-kind=html] .o6kE_a_elementInner{min-height:180px}.o6kE_a_board[data-notes] .o6kE_a_html{min-height:220px}.o6kE_a_board[data-notes] .o6kE_a_svg{max-height:320px}.o6kE_a_board[data-notes] .o6kE_a_quoteButton{opacity:.8;pointer-events:auto}.o6kE_a_viewToggle{cursor:pointer;font:inherit;color:#f2ead8;background:#ffffff0d;border:1px solid #fff3;border-radius:7px;padding:6px 8px;font-size:11px}.o6kE_a_boardHeader{justify-content:space-between;align-items:center;gap:8px;min-height:38px;font-size:12px;display:flex}.o6kE_a_boardHeader>div{flex-direction:column;gap:2px;display:flex}.o6kE_a_boardHeader strong{letter-spacing:.04em;font-size:18px}.o6kE_a_boardHeader span,.o6kE_a_boardHeader>div span{opacity:.72;font-size:11px}.o6kE_a_canvas{background:repeating-linear-gradient(0deg,#ffffff06 0 1px,#0000 1px 34px),linear-gradient(#0000002e,#0000000f);border:1px solid #ffffff1a;border-radius:14px;flex:1;width:100%;min-width:0;max-width:1280px;min-height:320px;margin:0 auto;position:relative;overflow:auto}.o6kE_a_canvas,.o6kE_a_elementInner{scrollbar-width:thin;scrollbar-color:transparent transparent}.o6kE_a_canvas:hover,.o6kE_a_canvas:focus-within,.o6kE_a_elementInner:hover,.o6kE_a_elementInner:focus-within{scrollbar-color:#f2ead847 transparent}.o6kE_a_canvas::-webkit-scrollbar,.o6kE_a_elementInner::-webkit-scrollbar{width:6px;height:6px}.o6kE_a_canvas::-webkit-scrollbar-thumb,.o6kE_a_elementInner::-webkit-scrollbar-thumb{corner-shape:round;background:0 0;border-radius:999px}.o6kE_a_canvas:hover::-webkit-scrollbar-thumb,.o6kE_a_canvas:focus-within::-webkit-scrollbar-thumb,.o6kE_a_elementInner:hover::-webkit-scrollbar-thumb,.o6kE_a_elementInner:focus-within::-webkit-scrollbar-thumb{background:#f2ead847}.o6kE_a_boardHint{opacity:.6;text-align:center;place-items:center;margin:0;padding:12px;font-size:12px;display:grid;position:absolute;inset:0}.o6kE_a_elementWrap{box-sizing:border-box;position:absolute;overflow:visible}.o6kE_a_elementInner{box-sizing:border-box;border-radius:4px;width:100%;height:100%;padding:2px 4px;font-size:14px;line-height:1.5;overflow:auto}.o6kE_a_elementInner *{color:inherit!important}.o6kE_a_text,.o6kE_a_math,.o6kE_a_fallback{white-space:pre-wrap;overflow-wrap:anywhere}.o6kE_a_math{font-size:inherit}.o6kE_a_svg{object-fit:contain;width:100%;height:100%;display:block}.o6kE_a_html{background:0 0;border:0;width:100%;height:100%}.o6kE_a_fallback{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}.o6kE_a_elementWrap[data-focused] .o6kE_a_elementInner{outline-offset:2px;outline:2px solid #ffe082e6}.o6kE_a_quoteButton{z-index:2;color:#f8f0dc;cursor:pointer;opacity:0;background:#081814e0;border:1px solid #ffffff3d;border-radius:7px;padding:4px 8px;font-size:11px;transition:opacity .12s,transform .12s;position:absolute;bottom:4px;right:4px;transform:translateY(3px)}.o6kE_a_elementWrap:hover .o6kE_a_quoteButton,.o6kE_a_quoteButton:focus-visible{opacity:1;transform:translateY(0)}.o6kE_a_boardWarning{color:#f3d58a;margin:-4px 0 0;font-size:11px}.o6kE_a_workspaceEmpty{text-align:center;min-height:0;color:var(--dsw-alias-label-secondary,#606875);background:var(--dsw-alias-bg-base,#fff);flex:1;place-content:center;padding:28px;display:grid}.o6kE_a_workspaceEmpty strong{color:var(--dsw-alias-label-primary,#20232a);font-size:20px}.o6kE_a_workspaceEmpty p{max-width:420px;line-height:1.7}.o6kE_a_image{object-fit:contain;width:100%;height:100%;display:block}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animFadeIn{animation-name:o6kE_a_board-fade-in;animation-timing-function:ease}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animSlideIn{animation-name:o6kE_a_board-slide-in;animation-timing-function:ease-out}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animPulse{animation-name:o6kE_a_board-pulse;animation-timing-function:ease-in-out}.o6kE_a_board[data-animations] .o6kE_a_elementInner.o6kE_a_animHighlight{animation-name:o6kE_a_board-highlight;animation-timing-function:ease}@keyframes o6kE_a_board-fade-in{0%{opacity:0}to{opacity:1}}@keyframes o6kE_a_board-slide-in{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes o6kE_a_board-pulse{0%,to{transform:scale(1)}50%{transform:scale(1.03)}}@keyframes o6kE_a_board-highlight{0%{box-shadow:0 0 0 3px #ffe082d9}to{box-shadow:0 0 #ffe08200}}.o6kE_a_caption{z-index:3;text-align:center;pointer-events:none;background:#081814d1;border-radius:8px;max-width:80%;margin:0;padding:6px 12px;font-size:13px;line-height:1.5;position:absolute;bottom:12px;left:50%;transform:translate(-50%)}.o6kE_a_player{flex-wrap:wrap;align-items:center;gap:10px;width:100%;max-width:1280px;margin:0 auto;font-size:12px;display:flex}.o6kE_a_playButton,.o6kE_a_beat{cursor:pointer;font:inherit;color:#f2ead8;background:#ffffff0f;border:1px solid #fff3;border-radius:7px}.o6kE_a_playButton{min-width:32px;height:28px;padding:0 8px}.o6kE_a_scrubber{accent-color:#f3d58a;flex:1;min-width:120px}.o6kE_a_time{opacity:.72;font-variant-numeric:tabular-nums}.o6kE_a_beats{flex-wrap:wrap;gap:4px;display:flex}.o6kE_a_beat{corner-shape:round;border-radius:50%;width:24px;height:24px;padding:0;font-size:11px}.o6kE_a_beat[data-active]{color:#12251f;background:#f3d58a;border-color:#f3d58a}@media (prefers-reduced-motion:reduce){.o6kE_a_elementInner,.o6kE_a_quoteButton{transition:none}.o6kE_a_board[data-animations] .o6kE_a_elementInner{animation:none}}";
 		const tagId$24 = "@kirkchinese/dsh-citeciter/BoardView.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$24) + "]") === null) {
 			const tag = document.createElement("style");
@@ -34978,6 +35879,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"animHighlight": "o6kE_a_animHighlight",
 			"animPulse": "o6kE_a_animPulse",
 			"animSlideIn": "o6kE_a_animSlideIn",
+			"beat": "o6kE_a_beat",
+			"beats": "o6kE_a_beats",
 			"board": "o6kE_a_board",
 			"board-fade-in": "o6kE_a_board-fade-in",
 			"board-highlight": "o6kE_a_board-highlight",
@@ -34987,15 +35890,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"boardHint": "o6kE_a_boardHint",
 			"boardWarning": "o6kE_a_boardWarning",
 			"canvas": "o6kE_a_canvas",
+			"caption": "o6kE_a_caption",
 			"elementInner": "o6kE_a_elementInner",
 			"elementWrap": "o6kE_a_elementWrap",
 			"fallback": "o6kE_a_fallback",
 			"html": "o6kE_a_html",
 			"image": "o6kE_a_image",
 			"math": "o6kE_a_math",
+			"playButton": "o6kE_a_playButton",
+			"player": "o6kE_a_player",
 			"quoteButton": "o6kE_a_quoteButton",
+			"scrubber": "o6kE_a_scrubber",
 			"svg": "o6kE_a_svg",
 			"text": "o6kE_a_text",
+			"time": "o6kE_a_time",
 			"viewToggle": "o6kE_a_viewToggle",
 			"workspaceEmpty": "o6kE_a_workspaceEmpty"
 		};
@@ -35100,10 +36008,25 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param props - snapshot, motion preference, optional compact reading mode and citation action.
 		* @returns the safe blackboard canvas.
 		*/
-		function BoardView({ snapshot, animations, onQuoteElement, compact = false, sessionId }) {
+		function BoardView({ snapshot, animations, onQuoteElement, compact = false, sessionId, frameAtMs }) {
 			const board = snapshot ?? EMPTY_BOARD_SNAPSHOT;
 			const [notes, setNotes] = (0, react.useState)(compact);
 			const elements = notes ? [...board.elements].sort((a, b) => a.y - b.y || a.x - b.x) : board.elements;
+			const timeline = board.timeline ?? null;
+			const compiled = (0, react.useMemo)(() => {
+				if (timeline === null) return null;
+				try {
+					return compileTimeline(timeline.spec, board.elements);
+				} catch {
+					return null;
+				}
+			}, [timeline, board.elements]);
+			const player = useTimelinePlayer(compiled, timeline?.id ?? null, {
+				autoplay: animations,
+				frozenAt: frameAtMs
+			});
+			const frames = compiled === null || notes ? null : sampleTimeline(compiled, player.t);
+			const caption = compiled === null || notes ? null : beatAt(compiled, player.t);
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: BoardView_module_css_default.board,
 				"data-citeciter-board": sessionId ?? "",
@@ -35135,9 +36058,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							" 批无效板书提交"
 						]
 					}),
-					(0, react_jsx_runtime.jsx)("div", {
+					(0, react_jsx_runtime.jsxs)("div", {
 						className: BoardView_module_css_default.canvas,
-						children: board.elements.length === 0 ? (0, react_jsx_runtime.jsx)("p", {
+						children: [board.elements.length === 0 ? (0, react_jsx_runtime.jsx)("p", {
 							className: BoardView_module_css_default.boardHint,
 							children: "发送需要板书的问题，公式、推导和图示会整理到这里。"
 						}) : elements.map((element) => (0, react_jsx_runtime.jsxs)("div", {
@@ -35149,7 +36072,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								left: `${element.x}%`,
 								top: `${element.y}%`,
 								width: `${element.w}%`,
-								height: `${element.h}%`
+								height: `${element.h}%`,
+								...frames?.has(element.id) === true ? frameStyle(frames.get(element.id), element) : {}
 							},
 							children: [(0, react_jsx_runtime.jsx)("div", {
 								className: [BoardView_module_css_default.elementInner, element.animation === void 0 || !animations ? void 0 : animationClass(element.animation.name)].filter((entry) => entry !== void 0).join(" "),
@@ -35171,7 +36095,57 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								"aria-label": `引用黑板元素 ${element.id} 到提问`,
 								children: "引用到提问"
 							})]
-						}, `${element.id}:${element.animation?.run ?? 0}`))
+						}, `${element.id}:${element.animation?.run ?? 0}`)), caption !== null && (0, react_jsx_runtime.jsx)("p", {
+							className: BoardView_module_css_default.caption,
+							"aria-live": "polite",
+							children: caption
+						})]
+					}),
+					compiled !== null && !notes && frameAtMs === void 0 && (0, react_jsx_runtime.jsxs)("div", {
+						className: BoardView_module_css_default.player,
+						role: "group",
+						"aria-label": "板书动画",
+						"data-capture-exclude": "",
+						children: [
+							(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: BoardView_module_css_default.playButton,
+								onClick: player.toggle,
+								"aria-label": player.playing ? "暂停动画" : "播放动画",
+								children: player.playing ? "❚❚" : "▶"
+							}),
+							(0, react_jsx_runtime.jsx)("input", {
+								className: BoardView_module_css_default.scrubber,
+								type: "range",
+								min: 0,
+								max: compiled.durationMs,
+								step: 10,
+								value: Math.round(player.t),
+								"aria-label": "动画进度",
+								onChange: (event) => player.seek(Number(event.currentTarget.value))
+							}),
+							(0, react_jsx_runtime.jsxs)("span", {
+								className: BoardView_module_css_default.time,
+								children: [
+									(player.t / 1e3).toFixed(1),
+									" / ",
+									(compiled.durationMs / 1e3).toFixed(1),
+									" s"
+								]
+							}),
+							compiled.beats.length > 0 && (0, react_jsx_runtime.jsx)("div", {
+								className: BoardView_module_css_default.beats,
+								children: compiled.beats.map((beat, index) => (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: BoardView_module_css_default.beat,
+									title: beat.caption,
+									"aria-label": `跳到第 ${index + 1} 步：${beat.caption}`,
+									"data-active": caption === beat.caption && player.t >= beat.atMs && (compiled.beats[index + 1]?.atMs ?? Number.POSITIVE_INFINITY) > player.t ? true : void 0,
+									onClick: () => player.seek(beat.atMs),
+									children: index + 1
+								}, `${beat.atMs}:${index}`))
+							})
+						]
 					})
 				]
 			});
@@ -35213,6 +36187,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			search_document: "搜索文档",
 			blackboard_apply: "更新板书",
 			blackboard_view: "查看板书",
+			blackboard_animate: "编排板书动画",
+			workspace_changes: "查看代码库变化",
 			learning_cards: "整理学习卡",
 			todo_write: "更新学习路线",
 			ask_user_question: "向你提问",
@@ -44754,7 +45730,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#endregion
 		//#region lib/types/client/components/BoardCaptureSurface.js
 		/** Reuses the exact board renderer when its visible tab is closed; no synthetic drawing or extra conversation is created. */
-		function BoardCaptureSurface({ id, sessionId, board, reply }) {
+		function BoardCaptureSurface({ id, sessionId, board, atMs, reply }) {
 			const ref = (0, react.useRef)(null);
 			const sent = (0, react.useRef)(false);
 			(0, react.useEffect)(() => {
@@ -44765,12 +45741,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (disposed || sent.current || ref.current === null) return;
 					sent.current = true;
 					try {
-						const target = findVisibleCaptureBoard(sessionId, board?.revision ?? 0, ref.current) ?? ref.current.firstElementChild;
+						const target = (atMs === void 0 ? findVisibleCaptureBoard(sessionId, board?.revision ?? 0, ref.current) : null) ?? ref.current.firstElementChild;
 						if (target.querySelector("iframe")) throw new Error("隔离 HTML 动画不能截取；请改用 SVG 板书");
 						const data = await (0, import_lib.toPng)(target, {
 							pixelRatio: 1,
 							cacheBust: false,
-							filter: (node) => !(node instanceof Element) || node.tagName !== "BUTTON",
+							filter: (node) => !(node instanceof Element) || node.tagName !== "BUTTON" && !node.hasAttribute("data-capture-exclude"),
 							style: {
 								animation: "none",
 								transform: "none"
@@ -44805,7 +45781,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				children: (0, react_jsx_runtime.jsx)(BoardView, {
 					sessionId,
 					snapshot: board,
-					animations: false
+					animations: false,
+					...atMs === void 0 ? {} : { frameAtMs: atMs }
 				})
 			});
 		}
@@ -44818,6 +45795,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				id: job.id,
 				sessionId: job.sessionId,
 				board: job.board,
+				atMs: job.atMs,
 				reply
 			}, job.id)) });
 		}

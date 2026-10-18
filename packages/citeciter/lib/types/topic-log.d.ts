@@ -1,6 +1,8 @@
 import type { SessionEvent, SessionHeader, SessionLogOffset } from '@deepseek-ai/dsh-session';
 import { foldSessionTitle } from '@deepseek-ai/dsh-session-title';
 import { type BoardSnapshot } from './board.ts';
+/** Name of the model tool that records a board animation timeline. */
+export declare const BOARD_ANIMATE_TOOL = "blackboard_animate";
 import type { TopicMessage, TopicMetadata } from './topic.ts';
 /** Session header and events used to project one Topic. */
 export interface TopicLog {

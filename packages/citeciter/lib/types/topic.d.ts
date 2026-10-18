@@ -269,9 +269,9 @@ export declare const topicMetadataSchema: z.ZodObject<{
         schemaVersion: z.ZodLiteral<4>;
     }, z.core.$strict>>;
     scenario: z.ZodEnum<{
+        read: "read";
         qa: "qa";
         present: "present";
-        read: "read";
         investigate: "investigate";
     }>;
     documentId: z.ZodNullable<z.ZodString>;
@@ -745,10 +745,10 @@ export declare const topicSnapshotSchema: z.ZodObject<{
             focused: z.ZodBoolean;
             animation: z.ZodOptional<z.ZodObject<{
                 name: z.ZodEnum<{
+                    highlight: "highlight";
                     "fade-in": "fade-in";
                     "slide-in": "slide-in";
                     pulse: "pulse";
-                    highlight: "highlight";
                 }>;
                 durationMs: z.ZodNumber;
                 iterations: z.ZodNumber;
@@ -756,6 +756,65 @@ export declare const topicSnapshotSchema: z.ZodObject<{
             }, z.core.$strict>>;
         }, z.core.$strict>>;
         invalid: z.ZodNumber;
+        timeline: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            id: z.ZodString;
+            spec: z.ZodObject<{
+                durationMs: z.ZodNumber;
+                loop: z.ZodOptional<z.ZodBoolean>;
+                beats: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                    atMs: z.ZodNumber;
+                    caption: z.ZodString;
+                }, z.core.$strict>>>;
+                tracks: z.ZodArray<z.ZodObject<{
+                    target: z.ZodString;
+                    verb: z.ZodEnum<{
+                        appear: "appear";
+                        disappear: "disappear";
+                        move: "move";
+                        scale: "scale";
+                        rotate: "rotate";
+                        highlight: "highlight";
+                        reveal: "reveal";
+                        follow: "follow";
+                        keyframes: "keyframes";
+                        parametric: "parametric";
+                    }>;
+                    startMs: z.ZodOptional<z.ZodNumber>;
+                    endMs: z.ZodOptional<z.ZodNumber>;
+                    easing: z.ZodOptional<z.ZodEnum<{
+                        linear: "linear";
+                        "ease-in": "ease-in";
+                        "ease-out": "ease-out";
+                        "ease-in-out": "ease-in-out";
+                    }>>;
+                    to: z.ZodOptional<z.ZodObject<{
+                        x: z.ZodNumber;
+                        y: z.ZodNumber;
+                    }, z.core.$strict>>;
+                    scale: z.ZodOptional<z.ZodNumber>;
+                    degrees: z.ZodOptional<z.ZodNumber>;
+                    direction: z.ZodOptional<z.ZodEnum<{
+                        left: "left";
+                        right: "right";
+                        up: "up";
+                        down: "down";
+                    }>>;
+                    path: z.ZodOptional<z.ZodString>;
+                    orient: z.ZodOptional<z.ZodBoolean>;
+                    frames: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                        atMs: z.ZodNumber;
+                        x: z.ZodOptional<z.ZodNumber>;
+                        y: z.ZodOptional<z.ZodNumber>;
+                        opacity: z.ZodOptional<z.ZodNumber>;
+                        scale: z.ZodOptional<z.ZodNumber>;
+                        rotate: z.ZodOptional<z.ZodNumber>;
+                    }, z.core.$strict>>>;
+                    x: z.ZodOptional<z.ZodString>;
+                    y: z.ZodOptional<z.ZodString>;
+                    t: z.ZodOptional<z.ZodTuple<[z.ZodNumber, z.ZodNumber], null>>;
+                }, z.core.$strict>>;
+            }, z.core.$strict>;
+        }, z.core.$strict>>>;
     }, z.core.$strict>>;
 }, z.core.$strict>;
 export type TopicSnapshot = z.infer<typeof topicSnapshotSchema>;
@@ -1194,10 +1253,10 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 focused: z.ZodBoolean;
                 animation: z.ZodOptional<z.ZodObject<{
                     name: z.ZodEnum<{
+                        highlight: "highlight";
                         "fade-in": "fade-in";
                         "slide-in": "slide-in";
                         pulse: "pulse";
-                        highlight: "highlight";
                     }>;
                     durationMs: z.ZodNumber;
                     iterations: z.ZodNumber;
@@ -1205,7 +1264,67 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 }, z.core.$strict>>;
             }, z.core.$strict>>;
             invalid: z.ZodNumber;
+            timeline: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+                id: z.ZodString;
+                spec: z.ZodObject<{
+                    durationMs: z.ZodNumber;
+                    loop: z.ZodOptional<z.ZodBoolean>;
+                    beats: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                        atMs: z.ZodNumber;
+                        caption: z.ZodString;
+                    }, z.core.$strict>>>;
+                    tracks: z.ZodArray<z.ZodObject<{
+                        target: z.ZodString;
+                        verb: z.ZodEnum<{
+                            appear: "appear";
+                            disappear: "disappear";
+                            move: "move";
+                            scale: "scale";
+                            rotate: "rotate";
+                            highlight: "highlight";
+                            reveal: "reveal";
+                            follow: "follow";
+                            keyframes: "keyframes";
+                            parametric: "parametric";
+                        }>;
+                        startMs: z.ZodOptional<z.ZodNumber>;
+                        endMs: z.ZodOptional<z.ZodNumber>;
+                        easing: z.ZodOptional<z.ZodEnum<{
+                            linear: "linear";
+                            "ease-in": "ease-in";
+                            "ease-out": "ease-out";
+                            "ease-in-out": "ease-in-out";
+                        }>>;
+                        to: z.ZodOptional<z.ZodObject<{
+                            x: z.ZodNumber;
+                            y: z.ZodNumber;
+                        }, z.core.$strict>>;
+                        scale: z.ZodOptional<z.ZodNumber>;
+                        degrees: z.ZodOptional<z.ZodNumber>;
+                        direction: z.ZodOptional<z.ZodEnum<{
+                            left: "left";
+                            right: "right";
+                            up: "up";
+                            down: "down";
+                        }>>;
+                        path: z.ZodOptional<z.ZodString>;
+                        orient: z.ZodOptional<z.ZodBoolean>;
+                        frames: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                            atMs: z.ZodNumber;
+                            x: z.ZodOptional<z.ZodNumber>;
+                            y: z.ZodOptional<z.ZodNumber>;
+                            opacity: z.ZodOptional<z.ZodNumber>;
+                            scale: z.ZodOptional<z.ZodNumber>;
+                            rotate: z.ZodOptional<z.ZodNumber>;
+                        }, z.core.$strict>>>;
+                        x: z.ZodOptional<z.ZodString>;
+                        y: z.ZodOptional<z.ZodString>;
+                        t: z.ZodOptional<z.ZodTuple<[z.ZodNumber, z.ZodNumber], null>>;
+                    }, z.core.$strict>>;
+                }, z.core.$strict>;
+            }, z.core.$strict>>>;
         }, z.core.$strict>;
+        atMs: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>;
 }, z.core.$strict>, z.ZodObject<{
     kind: z.ZodLiteral<"board-capture-accepted">;
@@ -1560,10 +1679,10 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 focused: z.ZodBoolean;
                 animation: z.ZodOptional<z.ZodObject<{
                     name: z.ZodEnum<{
+                        highlight: "highlight";
                         "fade-in": "fade-in";
                         "slide-in": "slide-in";
                         pulse: "pulse";
-                        highlight: "highlight";
                     }>;
                     durationMs: z.ZodNumber;
                     iterations: z.ZodNumber;
@@ -1571,6 +1690,65 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
                 }, z.core.$strict>>;
             }, z.core.$strict>>;
             invalid: z.ZodNumber;
+            timeline: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+                id: z.ZodString;
+                spec: z.ZodObject<{
+                    durationMs: z.ZodNumber;
+                    loop: z.ZodOptional<z.ZodBoolean>;
+                    beats: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                        atMs: z.ZodNumber;
+                        caption: z.ZodString;
+                    }, z.core.$strict>>>;
+                    tracks: z.ZodArray<z.ZodObject<{
+                        target: z.ZodString;
+                        verb: z.ZodEnum<{
+                            appear: "appear";
+                            disappear: "disappear";
+                            move: "move";
+                            scale: "scale";
+                            rotate: "rotate";
+                            highlight: "highlight";
+                            reveal: "reveal";
+                            follow: "follow";
+                            keyframes: "keyframes";
+                            parametric: "parametric";
+                        }>;
+                        startMs: z.ZodOptional<z.ZodNumber>;
+                        endMs: z.ZodOptional<z.ZodNumber>;
+                        easing: z.ZodOptional<z.ZodEnum<{
+                            linear: "linear";
+                            "ease-in": "ease-in";
+                            "ease-out": "ease-out";
+                            "ease-in-out": "ease-in-out";
+                        }>>;
+                        to: z.ZodOptional<z.ZodObject<{
+                            x: z.ZodNumber;
+                            y: z.ZodNumber;
+                        }, z.core.$strict>>;
+                        scale: z.ZodOptional<z.ZodNumber>;
+                        degrees: z.ZodOptional<z.ZodNumber>;
+                        direction: z.ZodOptional<z.ZodEnum<{
+                            left: "left";
+                            right: "right";
+                            up: "up";
+                            down: "down";
+                        }>>;
+                        path: z.ZodOptional<z.ZodString>;
+                        orient: z.ZodOptional<z.ZodBoolean>;
+                        frames: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                            atMs: z.ZodNumber;
+                            x: z.ZodOptional<z.ZodNumber>;
+                            y: z.ZodOptional<z.ZodNumber>;
+                            opacity: z.ZodOptional<z.ZodNumber>;
+                            scale: z.ZodOptional<z.ZodNumber>;
+                            rotate: z.ZodOptional<z.ZodNumber>;
+                        }, z.core.$strict>>>;
+                        x: z.ZodOptional<z.ZodString>;
+                        y: z.ZodOptional<z.ZodString>;
+                        t: z.ZodOptional<z.ZodTuple<[z.ZodNumber, z.ZodNumber], null>>;
+                    }, z.core.$strict>>;
+                }, z.core.$strict>;
+            }, z.core.$strict>>>;
         }, z.core.$strict>>;
     }, z.core.$strict>;
 }, z.core.$strict>, z.ZodObject<{
