@@ -18,6 +18,7 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 
 ### Fixes
 
+- The arrow on the composer's model button is centered on the text instead of sitting below it.
 - When a preset action cannot be sent and moves into the composer, the panel says so once instead of repeating the composer's own notice. Notices above the composer (an unavailable model, draft errors, an unconfirmed send) use the host's small secondary text, and their recovery buttons look like links.
 - When another plugin adds a message to a Topic with a source that DSH's session format no longer saves (no source, or the retired `{ kind: "plugin" }` form), Citer logs a warning naming that source, so the plugin that breaks the Topic's persistence can be identified.
 

@@ -20,7 +20,8 @@ export function TopicModelControls({ providers, route, saving, onModel, onReason
   const finish = (action: () => void) => { action(); close(); anchor.current?.focus() }
   return <div className={css.controls}>
     <button ref={anchor} type="button" className={css.trigger} aria-disabled={saving} aria-busy={saving} aria-label={`模型与思考强度：${name}，${effort}`} aria-haspopup="menu" aria-expanded={page !== 'closed'} onClick={() => { if (!saving) setPage(page === 'closed' ? 'root' : 'closed') }}>
-      <span>{name}</span><small>{effort}</small><span aria-hidden="true">⌄</span>
+      <span>{name}</span><small>{effort}</small>
+      <svg className={css.chevron} width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </button>
     {page !== 'closed' && <ChoicePopover anchor={anchor} label="模型与思考强度" onClose={close}>
       {page === 'root' ? <>

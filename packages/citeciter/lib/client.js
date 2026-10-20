@@ -38979,7 +38979,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/TopicModelControls.module.css.mjs
-		const css$8 = ".pasBHW_controls{flex:1 1 0;min-width:0;margin-left:auto}.pasBHW_controls>.pasBHW_trigger{width:100%;min-width:0;max-width:none}.pasBHW_controls>.pasBHW_trigger>span:first-child{text-align:right;flex:1;min-width:0}.pasBHW_trigger{max-width:240px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;align-items:center;gap:6px;padding:0 8px;display:flex}.pasBHW_trigger>span:first-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.pasBHW_trigger small{color:var(--dsw-alias-label-tertiary)}.pasBHW_trigger:hover,.pasBHW_trigger[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.pasBHW_trigger:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:-2px}.pasBHW_trigger[aria-disabled=true]{cursor:wait;opacity:.5}";
+		const css$8 = ".pasBHW_controls{flex:1 1 0;min-width:0;margin-left:auto}.pasBHW_controls>.pasBHW_trigger{width:100%;min-width:0;max-width:none}.pasBHW_controls>.pasBHW_trigger>span:first-child{text-align:right;flex:1;min-width:0}.pasBHW_trigger{max-width:240px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;align-items:center;gap:6px;padding:0 8px;display:flex}.pasBHW_trigger>span:first-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.pasBHW_trigger small{color:var(--dsw-alias-label-tertiary)}.pasBHW_chevron{color:var(--dsw-alias-label-tertiary);flex:none}.pasBHW_trigger:hover,.pasBHW_trigger[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.pasBHW_trigger:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:-2px}.pasBHW_trigger[aria-disabled=true]{cursor:wait;opacity:.5}";
 		const tagId$8 = "@kirkchinese/dsh-citeciter/TopicModelControls.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$8) + "]") === null) {
 			const tag = document.createElement("style");
@@ -38989,6 +38989,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			document.head.appendChild(tag);
 		}
 		var TopicModelControls_module_css_default = {
+			"chevron": "pasBHW_chevron",
 			"controls": "pasBHW_controls",
 			"trigger": "pasBHW_trigger"
 		};
@@ -39024,9 +39025,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					children: [
 						(0, react_jsx_runtime.jsx)("span", { children: name }),
 						(0, react_jsx_runtime.jsx)("small", { children: effort }),
-						(0, react_jsx_runtime.jsx)("span", {
+						(0, react_jsx_runtime.jsx)("svg", {
+							className: TopicModelControls_module_css_default.chevron,
+							width: "12",
+							height: "12",
+							viewBox: "0 0 12 12",
+							fill: "none",
 							"aria-hidden": "true",
-							children: "⌄"
+							children: (0, react_jsx_runtime.jsx)("path", {
+								d: "m3 4.5 3 3 3-3",
+								stroke: "currentColor",
+								strokeWidth: "1.3",
+								strokeLinecap: "round",
+								strokeLinejoin: "round"
+							})
 						})
 					]
 				}), page !== "closed" && (0, react_jsx_runtime.jsx)(ChoicePopover, {
