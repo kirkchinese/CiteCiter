@@ -19,6 +19,19 @@ export declare const SOURCE_WINDOW_BYTES: number;
 export declare const WORKSPACE_NOTICE_PATCH_BYTES: number;
 /** Static guidance; the changes themselves arrive as per-turn context messages. */
 export declare const WORKSPACE_PROMPT = "Before your first step in a turn, Citer may add a \"Workspace changes\" context message listing files that changed in this Topic's git working tree since your previous turn began, with line counts and sometimes diffs. It is background awareness, not a request: mention or act on it only when it bears on the user's current request, and never assume a file's current content from a summary. Call workspace_changes to read line-level diffs since your previous turn began, optionally limited to paths; read files directly when you need their full current content.";
+/**
+ * Message sources in one Topic event that DSH's format v4 persistence refuses: a missing
+ * source, an empty kind, or the retired `{ kind: 'plugin', plugin }` wrapper. Only the
+ * attribution fields are returned, never message content, so they can be logged to name
+ * the plugin that produced them.
+ */
+export declare function refusedMessageSources(event: {
+    readonly type: string;
+    readonly data?: unknown;
+}): Array<{
+    readonly kind: unknown;
+    readonly plugin?: unknown;
+}>;
 /** Text of one Citer-produced context message, or undefined for other messages. */
 export declare function citerContextForm(source: {
     readonly kind: string;

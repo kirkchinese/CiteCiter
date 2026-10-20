@@ -40,7 +40,7 @@ import { QuestionDraftStore } from './question-draft-store.ts'
 import { createSourceReadTool, SOURCE_READ_PROMPT, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
 import { readSourceSession, hasSentSource, mentionsSource } from './source-session.ts'
 import { SourceStorage } from './source-storage.ts'
-import { attachTopicContext, createWorkspaceChangesTool, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
+import { attachTopicContext, createWorkspaceChangesTool, refusedMessageSources, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
 import { WorkspaceSnapshots } from './workspace-changes.ts'
 import { toolCallRecord } from './tool-events.ts'
 import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
@@ -629,8 +629,15 @@ export class TopicRuntime {
     // The owned Session's event carrier belongs to its factory service view, not
     // the Agent child scope. Public global observation still filters the exact
     // owned object and is disposed with this contribution.
+    let reportedRefusedSource = false
     agentCtx.on('session/event', (session, event) => {
       if (session !== agent.session) return
+      const refused = refusedMessageSources(event)
+      // DSH would reject this row when it persists the Topic; name its producer once.
+      if (refused.length > 0 && !reportedRefusedSource) {
+        reportedRefusedSource = true
+        this.host.logger.warn(`Topic ${metadata.sessionId} received a message whose source DSH format v4 refuses (event ${event.type} at seq ${event.seq}); another plugin produced it: ${JSON.stringify(refused)}`)
+      }
       const submittedAt = topicSubmissionTime(event)
       if (submittedAt === null) return
       // Never await the admission chain inside the host's synchronous log dispatch.

@@ -6,7 +6,7 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 
 ### Host support
 
-- Support DSH `0.2.1-alpha.3`, whose compatibility gate refuses 0.9.0-beta.2. Citer still supports the official Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1` / `0.2.1-alpha.2`.
+- Support DSH `0.2.1-rc.1` and `0.2.1-rc.2` (npm `latest`, also the base of the community DSH NEXT shell) and the preview line `0.2.1-alpha.3` through `0.2.1-alpha.5`; their compatibility gates refuse 0.9.0-beta.2. Citer still supports the official Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1` / `0.2.1-alpha.2`.
 - The DSH peer `@deepseek-ai/dsh-util-values` is no longer required.
 
 ### Topic context
@@ -19,6 +19,7 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 ### Fixes
 
 - When a preset action cannot be sent and moves into the composer, the panel says so once instead of repeating the composer's own notice. Notices above the composer (an unavailable model, draft errors, an unconfirmed send) use the host's small secondary text, and their recovery buttons look like links.
+- When another plugin adds a message to a Topic with a source that DSH's session format no longer saves (no source, or the retired `{ kind: "plugin" }` form), Citer logs a warning naming that source, so the plugin that breaks the Topic's persistence can be identified.
 
 ## 0.9.0-beta.2 — 2026-10-15
 

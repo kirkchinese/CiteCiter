@@ -19039,6 +19039,33 @@ const WORKSPACE_TOOL_BYTES = 65536;
 const NOTICE_PATCH_FILES = 30;
 /** Static guidance; the changes themselves arrive as per-turn context messages. */
 const WORKSPACE_PROMPT = `Before your first step in a turn, Citer may add a "Workspace changes" context message listing files that changed in this Topic's git working tree since your previous turn began, with line counts and sometimes diffs. It is background awareness, not a request: mention or act on it only when it bears on the user's current request, and never assume a file's current content from a summary. Call ${WORKSPACE_CHANGES_TOOL} to read line-level diffs since your previous turn began, optionally limited to paths; read files directly when you need their full current content.`;
+/**
+* Message sources in one Topic event that DSH's format v4 persistence refuses: a missing
+* source, an empty kind, or the retired `{ kind: 'plugin', plugin }` wrapper. Only the
+* attribution fields are returned, never message content, so they can be logged to name
+* the plugin that produced them.
+*/
+function refusedMessageSources(event) {
+	const data = event.data;
+	if (data === null || typeof data !== "object") return [];
+	const fields = data;
+	const messages = event.type === "user/message" ? [data] : event.type === "system/message" || event.type === "assistant/message" || event.type === "tool/result" ? [fields["message"]] : event.type === "agent/inbox/spliced" ? Array.isArray(fields["inserted"]) ? fields["inserted"] : [] : event.type === "session/title-llm-request" ? Array.isArray(fields["messages"]) ? fields["messages"] : [] : [];
+	const refused = [];
+	for (const message of messages) {
+		if (message === null || typeof message !== "object") continue;
+		const source = message.source;
+		if (source === null || typeof source !== "object") {
+			refused.push({ kind: source ?? null });
+			continue;
+		}
+		const { kind, plugin } = source;
+		if (typeof kind !== "string" || kind === "" || kind === "plugin") refused.push({
+			kind: kind ?? null,
+			...plugin === void 0 ? {} : { plugin }
+		});
+	}
+	return refused;
+}
 /** Text of one Citer-produced context message, or undefined for other messages. */
 function citerContextForm(source) {
 	return source.kind === "plugin:@kirkchinese/dsh-citeciter" && typeof source["form"] === "string" ? source["form"] : void 0;
@@ -20251,8 +20278,14 @@ var TopicRuntime = class {
 	async setupAgent(agentCtx, agent, metadata) {
 		await this.questionReplies.attach(agentCtx, agent);
 		this.trackQuestionDraftReceipts(agentCtx, agent, metadata);
+		let reportedRefusedSource = false;
 		agentCtx.on("session/event", (session, event) => {
 			if (session !== agent.session) return;
+			const refused = refusedMessageSources(event);
+			if (refused.length > 0 && !reportedRefusedSource) {
+				reportedRefusedSource = true;
+				this.host.logger.warn(`Topic ${metadata.sessionId} received a message whose source DSH format v4 refuses (event ${event.type} at seq ${event.seq}); another plugin produced it: ${JSON.stringify(refused)}`);
+			}
 			const submittedAt = topicSubmissionTime(event);
 			if (submittedAt === null) return;
 			this.restoreSubmittedTopic(metadata, submittedAt).catch((error) => {

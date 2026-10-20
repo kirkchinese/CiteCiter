@@ -28,6 +28,32 @@ const NOTICE_PATCH_FILES = 30
 /** Static guidance; the changes themselves arrive as per-turn context messages. */
 export const WORKSPACE_PROMPT = `Before your first step in a turn, Citer may add a "Workspace changes" context message listing files that changed in this Topic's git working tree since your previous turn began, with line counts and sometimes diffs. It is background awareness, not a request: mention or act on it only when it bears on the user's current request, and never assume a file's current content from a summary. Call ${WORKSPACE_CHANGES_TOOL} to read line-level diffs since your previous turn began, optionally limited to paths; read files directly when you need their full current content.`
 
+/**
+ * Message sources in one Topic event that DSH's format v4 persistence refuses: a missing
+ * source, an empty kind, or the retired `{ kind: 'plugin', plugin }` wrapper. Only the
+ * attribution fields are returned, never message content, so they can be logged to name
+ * the plugin that produced them.
+ */
+export function refusedMessageSources(event: { readonly type: string, readonly data?: unknown }): Array<{ readonly kind: unknown, readonly plugin?: unknown }> {
+  const data = event.data
+  if (data === null || typeof data !== 'object') return []
+  const fields = data as Record<string, unknown>
+  const messages: unknown[] = event.type === 'user/message' ? [data]
+    : event.type === 'system/message' || event.type === 'assistant/message' || event.type === 'tool/result' ? [fields['message']]
+      : event.type === 'agent/inbox/spliced' ? (Array.isArray(fields['inserted']) ? fields['inserted'] : [])
+        : event.type === 'session/title-llm-request' ? (Array.isArray(fields['messages']) ? fields['messages'] : [])
+          : []
+  const refused: Array<{ readonly kind: unknown, readonly plugin?: unknown }> = []
+  for (const message of messages) {
+    if (message === null || typeof message !== 'object') continue
+    const source = (message as { readonly source?: unknown }).source
+    if (source === null || typeof source !== 'object') { refused.push({ kind: source ?? null }); continue }
+    const { kind, plugin } = source as { readonly kind?: unknown, readonly plugin?: unknown }
+    if (typeof kind !== 'string' || kind === '' || kind === 'plugin') refused.push({ kind: kind ?? null, ...(plugin === undefined ? {} : { plugin }) })
+  }
+  return refused
+}
+
 /** Text of one Citer-produced context message, or undefined for other messages. */
 export function citerContextForm(source: { readonly kind: string } & Record<string, unknown>): string | undefined {
   return source.kind === CITER_CONTEXT_KIND && typeof source['form'] === 'string' ? source['form'] : undefined

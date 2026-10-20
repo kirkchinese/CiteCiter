@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { CITER_CONTEXT_KIND, composeSourceWindow, lastSourceWindowSeq } from '../lib/types/topic-context.js'
+import { CITER_CONTEXT_KIND, composeSourceWindow, lastSourceWindowSeq, refusedMessageSources } from '../lib/types/topic-context.js'
 import { contextMessage } from '../lib/types/message-projection.js'
 
 function assistant(seq, text) {
@@ -38,4 +38,14 @@ test('the excerpt cursor and its label are recovered from the Topic log', () => 
   assert.equal(lastSourceWindowSeq(events), 3)
   assert.equal(lastSourceWindowSeq(events.slice(0, 1)), null)
   assert.equal(contextMessage(events[1]).label, '来源摘录')
+})
+
+test('sources refused by format v4 are named by their attribution only', () => {
+  const user = source => ({ type: 'user/message', data: { id: 'u', role: 'user', content: [{ type: 'text', text: 'secret' }], ...(source === undefined ? {} : { source }) } })
+  assert.deepEqual(refusedMessageSources(user({ kind: 'plugin', plugin: 'old-plugin', form: 'notice' })), [{ kind: 'plugin', plugin: 'old-plugin' }])
+  assert.deepEqual(refusedMessageSources(user(undefined)), [{ kind: null }])
+  assert.deepEqual(refusedMessageSources(user({ kind: '' })), [{ kind: '' }])
+  assert.deepEqual(refusedMessageSources(user({ kind: CITER_CONTEXT_KIND })), [])
+  assert.deepEqual(refusedMessageSources({ type: 'agent/inbox/spliced', data: { inserted: [{ source: { kind: 'user' } }, { source: { kind: 'plugin', plugin: 'x' } }] } }), [{ kind: 'plugin', plugin: 'x' }])
+  assert.deepEqual(refusedMessageSources({ type: 'turn/start', data: { turn: 1 } }), [])
 })
