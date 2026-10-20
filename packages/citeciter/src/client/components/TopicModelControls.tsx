@@ -1,9 +1,12 @@
-import { useCallback, useRef, useState } from 'react'
+import { useState } from 'react'
+import { IconChevronDownOutlineRegular, Menu, type MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ProviderOption, TopicModelConfig } from '../../topic.ts'
-import { ChoicePopover } from './ChoicePopover.tsx'
 import css from './TopicModelControls.module.css'
 
-/** Model and reasoning hierarchy. Route changes are committed by the injected controller. */
+const MODEL = 'model:'
+const EFFORT = 'effort:'
+
+/** Model and reasoning choices in the host's menu. Route changes are committed by the injected controller. */
 export function TopicModelControls({ providers, route, saving, onModel, onReasoning }: {
   readonly providers: readonly ProviderOption[]
   readonly route: TopicModelConfig
@@ -11,32 +14,43 @@ export function TopicModelControls({ providers, route, saving, onModel, onReason
   readonly onModel: (provider: string, model: string) => void
   readonly onReasoning: (effort: string | null) => void
 }) {
-  const [page, setPage] = useState<'closed' | 'root' | 'model' | 'effort'>('closed')
-  const anchor = useRef<HTMLButtonElement>(null)
-  const close = useCallback(() => setPage('closed'), [])
+  const [open, setOpen] = useState(false)
   const model = providers.find(provider => provider.id === route.provider)?.models.find(model => model.id === route.model)
   const name = model?.name ?? route.model
   const effort = model?.reasoningEfforts.find(item => item.id === route.reasoningEffort)?.name ?? '默认'
-  const finish = (action: () => void) => { action(); close(); anchor.current?.focus() }
-  return <div className={css.controls}>
-    <button ref={anchor} type="button" className={css.trigger} aria-disabled={saving} aria-busy={saving} aria-label={`模型与思考强度：${name}，${effort}`} aria-haspopup="menu" aria-expanded={page !== 'closed'} onClick={() => { if (!saving) setPage(page === 'closed' ? 'root' : 'closed') }}>
-      <span>{name}</span><small>{effort}</small>
-      <svg className={css.chevron} width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
-    </button>
-    {page !== 'closed' && <ChoicePopover anchor={anchor} label="模型与思考强度" onClose={close}>
-      {page === 'root' ? <>
-        <button type="button" role="menuitem" onClick={() => setPage('model')}><span>模型</span><span>{name} ›</span></button>
-        <button type="button" role="menuitem" disabled={!model?.reasoningEfforts.length} onClick={() => setPage('effort')}><span>思考强度</span><span>{effort} ›</span></button>
-      </> : <>
-        <button type="button" role="menuitem" onClick={() => setPage('root')}><span>‹ {page === 'model' ? '模型' : '思考强度'}</span></button>
-        {page === 'model' ? providers.map(provider => <div key={provider.id} role="group" aria-label={provider.name}>
-          <small>{provider.name}</small>
-          {provider.models.map(item => <button type="button" role="menuitemradio" aria-checked={provider.id === route.provider && item.id === route.model} key={item.id} onClick={() => finish(() => onModel(provider.id, item.id))}><span>{item.name}</span>{provider.id === route.provider && item.id === route.model && <span aria-hidden="true">✓</span>}</button>)}
-        </div>) : <>
-          <button type="button" role="menuitemradio" aria-checked={route.reasoningEffort === undefined} onClick={() => finish(() => onReasoning(null))}>模型默认</button>
-          {model?.reasoningEfforts.map(item => <button type="button" role="menuitemradio" aria-checked={item.id === route.reasoningEffort} key={item.id} onClick={() => finish(() => onReasoning(item.id))}>{item.name}</button>)}
-        </>}
-      </>}
-    </ChoicePopover>}
-  </div>
+  const items: MenuEntry[] = [
+    ...providers.filter(provider => provider.models.length > 0).flatMap((provider): MenuEntry[] => [
+      { type: 'label', id: `provider:${provider.id}`, text: provider.name },
+      ...provider.models.map(item => ({ id: MODEL + JSON.stringify([provider.id, item.id]), label: item.name })),
+    ]),
+    // A flat group rather than a submenu: the panel sits at the window's right edge,
+    // where a submenu opening to the right would be clipped.
+    ...(model?.reasoningEfforts.length ? [
+      { type: 'separator', id: 'efforts' } as const,
+      { type: 'label', id: 'effort-label', text: '思考强度' } as const,
+      { id: EFFORT, label: '模型默认' },
+      ...model.reasoningEfforts.map(item => ({ id: EFFORT + item.id, label: item.name })),
+    ] : []),
+  ]
+  const select = (id: string) => {
+    setOpen(false)
+    if (id.startsWith(MODEL)) {
+      const [provider, next] = JSON.parse(id.slice(MODEL.length)) as [string, string]
+      onModel(provider, next)
+    } else if (id.startsWith(EFFORT)) onReasoning(id === EFFORT ? null : id.slice(EFFORT.length))
+  }
+  return <Menu
+    className={css.controls}
+    open={open}
+    onClose={() => setOpen(false)}
+    side="top"
+    align="end"
+    portal
+    items={items}
+    selectedIds={[MODEL + JSON.stringify([route.provider, route.model]), EFFORT + (route.reasoningEffort ?? '')]}
+    onSelect={select}
+    anchor={<button type="button" className={css.trigger} aria-disabled={saving} aria-busy={saving} aria-label={`模型与思考强度：${name}，${effort}`} aria-haspopup="menu" aria-expanded={open} onClick={() => { if (!saving) setOpen(value => !value) }}>
+      <span>{name}</span><small>{effort}</small><IconChevronDownOutlineRegular className={css.chevron} />
+    </button>}
+  />
 }

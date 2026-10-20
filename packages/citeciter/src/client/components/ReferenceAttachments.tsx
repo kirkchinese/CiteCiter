@@ -1,3 +1,4 @@
+import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useState } from 'react'
 import { draftReferenceTitle, type DraftReference } from '../draft-references.ts'
 import { RichAnswer } from './RichAnswer.tsx'
@@ -21,7 +22,7 @@ export function ReferenceAttachments({ references, onRemove, sourceTitle }: {
         <button type="button" title={reference.kind === 'source' ? title : reference.label} aria-label={`${reference.label}：${title}`} aria-expanded={expanded === reference.id} onClick={() => setExpanded(expanded === reference.id ? null : reference.id)}>
           <span aria-hidden="true">{reference.kind === 'source' ? '↳' : reference.kind === 'board' ? '▧' : '❝'}</span>{title}
         </button>
-        {onRemove !== undefined && <button type="button" className={css.remove} title="移除" aria-label={`移除${reference.label}`} onClick={() => onRemove(reference.id)}>×</button>}
+        {onRemove !== undefined && <button type="button" className={css.remove} title="移除" aria-label={`移除${reference.label}`} onClick={() => onRemove(reference.id)}><IconCloseOutlineRegular /></button>}
       </div>
     })}</div>
     {current !== undefined && <div className={css.preview}>

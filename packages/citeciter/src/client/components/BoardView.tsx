@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { beatAt, compileTimeline, sampleTimeline } from '../../board-animation.ts'
 import { frameStyle, useTimelinePlayer } from '../board-timeline.ts'
-import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPauseOutlineRegular, IconPlayOutlineRegular, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import {
@@ -167,7 +167,7 @@ export function BoardView({
       </div>
       {compiled !== null && !notes && frameAtMs === undefined && (
         <div className={css.player} role="group" aria-label="板书动画" data-capture-exclude="">
-          <button type="button" className={css.playButton} onClick={player.toggle} aria-label={player.playing ? '暂停动画' : '播放动画'}>{player.playing ? '❚❚' : '▶'}</button>
+          <button type="button" className={css.playButton} onClick={player.toggle} aria-label={player.playing ? '暂停动画' : '播放动画'}>{player.playing ? <IconPauseOutlineRegular /> : <IconPlayOutlineRegular />}</button>
           <input className={css.scrubber} type="range" min={0} max={compiled.durationMs} step={10} value={Math.round(player.t)} aria-label="动画进度"
             onChange={event => player.seek(Number(event.currentTarget.value))} />
           <span className={css.time}>{(player.t / 1000).toFixed(1)} / {(compiled.durationMs / 1000).toFixed(1)} s</span>

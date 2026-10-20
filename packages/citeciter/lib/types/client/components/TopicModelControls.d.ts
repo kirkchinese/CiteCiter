@@ -1,5 +1,5 @@
 import type { ProviderOption, TopicModelConfig } from '../../topic.ts';
-/** Model and reasoning hierarchy. Route changes are committed by the injected controller. */
+/** Model and reasoning choices in the host's menu. Route changes are committed by the injected controller. */
 export declare function TopicModelControls({ providers, route, saving, onModel, onReasoning }: {
     readonly providers: readonly ProviderOption[];
     readonly route: TopicModelConfig;

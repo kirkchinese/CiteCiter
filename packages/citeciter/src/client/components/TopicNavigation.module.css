@@ -58,7 +58,8 @@
   outline-offset: -2px;
 }
 
-.actions svg {
+/* Only Citer's own line glyph; host icons keep their artwork. */
+.actions svg.drawn {
   width: 16px;
   height: 16px;
   fill: none;

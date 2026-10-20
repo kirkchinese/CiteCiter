@@ -1,6 +1,6 @@
 import type { CiteCiterSettings } from '../../topic.ts';
 export type PermissionMode = NonNullable<CiteCiterSettings['defaultPermission']>;
-/** Explicit permission selection; receives the Host's effective value. */
+/** Explicit permission selection in the host's menu; receives the Host's effective value. */
 export declare function PermissionControl({ value, onChange }: {
     readonly value: PermissionMode;
     readonly onChange: (mode: PermissionMode) => void;
