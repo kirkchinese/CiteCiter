@@ -8,5 +8,5 @@ export function BoardCaptureWorker({ useCapture, reply }: {
   readonly reply: ReturnType<typeof createBoardCaptureController>['reply']
 }) {
   const jobs = useCapture(value => value.jobs)
-  return <>{jobs.map(job => <BoardCaptureSurface key={job.id} id={job.id} sessionId={job.sessionId} board={job.board} reply={reply} />)}</>
+  return <>{jobs.map(job => <BoardCaptureSurface key={job.id} id={job.id} sessionId={job.sessionId} board={job.board} atMs={job.atMs} reply={reply} />)}</>
 }

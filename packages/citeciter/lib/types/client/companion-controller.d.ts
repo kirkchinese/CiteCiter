@@ -7,7 +7,7 @@ import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol';
 import { type CiteCiterRequest, type CiteCiterResponse, type CiteCiterSettings, type ProviderOption, type QuestionAnswer, type TopicSnapshot, type TopicSummary } from '../topic.ts';
 import { type DocumentClaimIntent } from './request-guard.ts';
-import type { ActionDelivery, ActionModel } from '../actions.ts';
+import { type ActionDelivery, type ActionModel } from '../actions.ts';
 import type { CiteSelection } from './types.ts';
 import { type DraftReference } from './draft-references.ts';
 export type CompanionPhase = 'idle' | 'creating' | 'ready' | 'running' | 'stopping' | 'stopped' | 'error';

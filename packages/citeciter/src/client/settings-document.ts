@@ -70,12 +70,14 @@ export function createSettingsDocumentController(
 
   const derive = () => {
     const mirrored = describe.getSnapshot()
+    // Hosts before DSH 0.2.1-alpha.3 report `unavailable` to non-loopback clients.
+    const status = mirrored.status as typeof mirrored.status | 'unavailable'
     if (mirrored.view === undefined) {
       store.update((state) => {
-        state.status = mirrored.status === 'loading'
+        state.status = status === 'loading'
           ? 'loading'
-          : mirrored.status === 'unavailable' ? 'unavailable' : mirrored.error === null ? 'idle' : 'error'
-        state.error = mirrored.status === 'unavailable'
+          : status === 'unavailable' ? 'unavailable' : mirrored.error === null ? 'idle' : 'error'
+        state.error = status === 'unavailable'
           ? mirrored.error ?? '当前宿主不支持打开配置文件'
           : mirrored.error
         state.message = null

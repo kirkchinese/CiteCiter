@@ -1,9 +1,11 @@
-.controls { flex: 1 1 0; min-width: 0; margin-left: auto; }
-.controls > .trigger { width: 100%; min-width: 0; max-width: none; }
-.controls > .trigger > span:first-child { flex: 1; min-width: 0; text-align: right; }
+.controls { display: flex; flex: 1 1 0; min-width: 0; margin-left: auto; }
+.controls .trigger { width: 100%; min-width: 0; max-width: none; }
+.controls .trigger > span:first-child { flex: 1; min-width: 0; text-align: right; }
 .trigger { display: flex; align-items: center; gap: 6px; max-width: 240px; height: 28px; padding: 0 8px; color: var(--dsw-alias-label-secondary); background: transparent; border: 0; border-radius: var(--dsw-radius-md, 8px); font: var(--dsw-font-xs-13, 13px/20px system-ui, sans-serif); cursor: pointer; }
 .trigger > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .trigger small { color: var(--dsw-alias-label-tertiary); }
+.trigger svg { flex: none; }
+.chevron { color: var(--dsw-alias-label-tertiary); }
 .trigger:hover, .trigger[aria-expanded="true"] { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover); }
 .trigger:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #3478f6); outline-offset: -2px; }
 .trigger[aria-disabled="true"] { cursor: wait; opacity: .5; }

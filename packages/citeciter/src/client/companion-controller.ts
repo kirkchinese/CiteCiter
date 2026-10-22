@@ -27,7 +27,7 @@ import {
   type RequestIntent,
 } from './request-guard.ts'
 import { isCurrentTopicResponse, shouldReopenLastTopic } from './response-guard.ts'
-import type { ActionDelivery, ActionModel } from '../actions.ts'
+import { undeliveredActionMessage, type ActionDelivery, type ActionModel } from '../actions.ts'
 import type { CiteSelection } from './types.ts'
 import { serializeDraftReferences, topicDraftReferences, type DraftReference } from './draft-references.ts'
 import { withLearningRoute } from './learning-route.ts'
@@ -628,7 +628,7 @@ export function createCompanionController(
           return false
         }
         update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId, question, references, id: crypto.randomUUID() }] })
-        fail(new Error(`${error instanceof Error ? error.message : String(error)}；已放进输入框，可修改后发送`), generation)
+        fail(new Error(undeliveredActionMessage(error instanceof Error ? error.message : String(error))), generation)
         return false
       }
       if (generation === activeGeneration) {

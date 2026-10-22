@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { SESSION_FORMAT_VERSION, Session, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import { loadHostAgentModules } from '../lib/types/host-agent-modules.js'
 import { topicMessages } from '../lib/types/topic-log.js'
 
 const userEvent = (seq, text) => ({
@@ -31,7 +31,8 @@ test('reading a version-0 Topic log for migration restores its prefix without wr
   const root = await mkdtemp(join(tmpdir(), 'citeciter-legacy-jsonl-'))
   const ctx = new Context()
   const sessions = await ctx.plugin(SessionStore)
-  const persistence = await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
+  const { SessionPersistence } = await loadHostAgentModules()
+  const persistence = await ctx.plugin(SessionPersistence, { root, compression: 'none' })
   try {
     const meta = {
       version: 0, id: SessionId('old-exact-topic'), createdAt: 1,

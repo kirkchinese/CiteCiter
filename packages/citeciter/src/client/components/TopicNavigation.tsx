@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { TopicSummary } from '../../topic.ts'
 import css from './TopicNavigation.module.css'
 import { TopicActions, type TopicMenu } from './TopicActions.tsx'
@@ -25,8 +26,8 @@ export function TopicNavigation({ topics, activeId, archived, onOpen, onNew, onA
   const rows = topics.filter(topic => topic.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   return <div ref={ref} className={css.navigation}>
     <div className={css.actions}>
-      <button type="button" title="Topic 列表" aria-label="Topic 列表" aria-expanded={open} onClick={() => setOpen(!open)}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5.5h10M7 10h10M7 14.5h10M3 5.5h.01M3 10h.01M3 14.5h.01" /></svg></button>
-      <button type="button" title="新建 Topic" aria-label="新建 Topic" onClick={() => { setOpen(false); onNew() }}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg></button>
+      <button type="button" title="Topic 列表" aria-label="Topic 列表" aria-expanded={open} onClick={() => setOpen(!open)}><svg className={css.drawn} viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5.5h10M7 10h10M7 14.5h10M3 5.5h.01M3 10h.01M3 14.5h.01" /></svg></button>
+      <button type="button" title="新建 Topic" aria-label="新建 Topic" onClick={() => { setOpen(false); onNew() }}><IconPlusOutlineRegular /></button>
       <TopicActions menu={menu} />
     </div>
     {open && <section className={css.list} aria-label="Topic 列表" onKeyDown={event => { if (event.key === 'Escape') setOpen(false) }}>

@@ -18,7 +18,7 @@ CiteCiter needs DSH and a working model. The plugin declares exact host versions
 
 | DSH version | CiteCiter version |
 | --- | --- |
-| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1`, `0.2.1-alpha.2` | `0.9.0-beta.2` |
+| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.9.0-beta.3` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -28,13 +28,13 @@ CiteCiter needs DSH and a working model. The plugin declares exact host versions
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.3
 ```
 
 You can also install a release tag straight from the repository, which contains the built plugin, so nothing is built at install time:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.2"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.3"
 ```
 
 Restart DSH and refresh the page after installing or upgrading. Do not use `dsh plugin allow-version` to force a plugin that does not match your host version. Do not run two host processes on the same DSH home.
@@ -55,7 +55,7 @@ Creating a Topic or choosing 提问 only prepares a draft; preset actions such a
 | You want to | CiteCiter provides |
 | --- | --- |
 | Understand an answer, code or tool result | A separate Topic with a source citation; follow-ups never touch the main conversation |
-| See relationships and processes | A blackboard with Markdown, formulas, tables, SVG, images and sandboxed HTML; vision models can inspect the rendered board and fix it |
+| See relationships and processes | A blackboard with Markdown, formulas, tables, SVG, images and sandboxed HTML; vision models can inspect the rendered board and fix it; board elements can be animated with keyframes, paths or formulas, and you can play, pause, scrub and step through the animation |
 | Keep what you learned | Learning cards you can export and revise, with prose and code examples shown separately |
 | Discuss real files | File and image attachments, a `.txt` / `.md` document reader, and a "CiteCiter 学习" entry in native file previews |
 | Act on what you understood | DSH models, tools, approvals, permissions, queueing and steering; new Topics are read-only by default |
@@ -70,6 +70,8 @@ Creating a Topic or choosing 提问 only prepares a draft; preset actions such a
 **Composer.** The composer offers attachments, permission mode, model and reasoning effort, and Send. Enter sends, Shift + Enter adds a line, and Enter never sends during IME composition. While a reply is generating, Enter follows DSH's queue/steer preference and Ctrl + Enter uses the other one. Add files from the attachment menu, paste images, or drop files onto the Citer panel.
 
 **Drafts.** Drafts save silently in the background. Edits to the same Topic from several windows merge automatically; where they overlap, the window you are typing in wins. After a successful send, only what was sent is cleared, and anything written meanwhile is kept.
+
+**Source and codebase.** Citer reads the source conversation when it needs to, as a transcript of user and assistant messages, tool calls and results, each marked with its position; long tool output is shortened first and read in full only when needed. Turn on 自动附上来源摘录 (automatic source excerpt) in Settings to add the source's newest records at the start of each turn after the source attachment has been sent; it is off by default. 代码库变化感知 (codebase change awareness) lists, at the start of each turn, the files that changed in the git working tree since Citer's previous turn, uncommitted changes included; Citer reads line-level diffs with a tool when they matter. Settings can attach the diffs directly or turn the notice off. Both are recorded in the Topic log, and your repository is never written.
 
 **Learning route and cards.** The learning route is off by default and can be turned on in the Topic menu (⋯); when on, the model plans its explanation with DSH todos. You can ask for learning cards at any time; the model checks conclusions, conditions and calculations first, but self-checking does not guarantee correctness. Active recall is off by default; when on, cards show their self-test question first.
 
@@ -92,6 +94,7 @@ CiteCiter stores its data in each source session's directory:
     │   ├── topic.json        Topic information
     │   ├── draft/            unsent text, references and attachments
     │   ├── question-drafts/  unsubmitted question answers
+    │   ├── workspace/        codebase snapshots for change awareness (separate git objects)
     │   └── sessions/         the Topic's own session log
     └── deleted/              deletion records (identity only, no content)
 ```

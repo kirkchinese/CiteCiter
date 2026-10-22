@@ -32,9 +32,9 @@ CI 在 Ubuntu 和 Windows 上运行同样的命令。`pnpm --dir packages/citeci
 
 ## 两套 SDK 基线
 
-包的 `devDependencies` 固定主 SDK（目前为 DSH `0.2.1-alpha.2`），`peerDependencies` 列出插件支持的全部 DSH 版本。`citeciter-compat-desktop` 固定官方桌面版 SDK（`0.2.0-rc.2`），`scripts/check-desktop.mjs` 用它编译同一套 Host 和 Client 源码。Host 与 Client 是两个独立的 TypeScript 程序（`tsconfig.host.json`、`tsconfig.client.json`），因为两侧声明了同名的服务。
+包的 `devDependencies` 固定主 SDK（目前为 DSH `0.2.1-rc.2`），`peerDependencies` 列出插件支持的全部 DSH 版本。`citeciter-compat-desktop` 固定官方桌面版 SDK（`0.2.0-rc.2`），`scripts/check-desktop.mjs` 用它编译同一套 Host 和 Client 源码。Host 与 Client 是两个独立的 TypeScript 程序（`tsconfig.host.json`、`tsconfig.client.json`），因为两侧声明了同名的服务。
 
-支持新的 DSH 版本时：更新 `devDependencies` 中的 DSH 版本（桌面版更新则改 compat 包），把新版本加入每个 DSH peer 范围，运行 `pnpm sync:git-entry` 和 `pnpm install`，再运行全部检查。只有 `src/` 不再引用某个包时才删除对应的 peer。
+支持新的 DSH 版本时：更新 `devDependencies` 中的 DSH 版本（桌面版更新则改 compat 包），把新版本加入每个 DSH peer 范围，运行 `pnpm sync:git-entry` 和 `pnpm install`，再运行全部检查。`@deepseek-ai/cordis`、`@deepseek-ai/schemastery` 和 `cordis-plugin-*` 各有自己的版本号：用 `npm view @deepseek-ai/dsh@<版本> dependencies` 查出新版本对应的版本，同样扩展这些 peer 并更新固定版本。只有 `src/` 不再引用某个包时才删除对应的 peer。
 
 ## 提交构建产物与 Git 安装
 

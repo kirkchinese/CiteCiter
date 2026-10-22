@@ -69,6 +69,10 @@ export declare class TopicRuntime {
     private registerDocumentTools;
     /** Read the source only after the user has sent its address as an attachment. */
     private registerSourceTool;
+    /** Read a source the caller has already authorized, recording its availability. */
+    private readAuthorizedSource;
+    /** Per-turn source excerpt and workspace notice, plus the workspace tool when the Topic has a working directory. */
+    private registerTopicContext;
     private ensureHandle;
     /** Submit a question through the Host session controller, as the composer would. */
     private ask;

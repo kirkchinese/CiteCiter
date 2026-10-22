@@ -3,6 +3,10 @@ import { assembleAssistantStream, type ContentBlock } from '@deepseek-ai/dsh-llm
 import type { SessionEvent, SessionHeader, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import { foldSessionTitle } from '@deepseek-ai/dsh-session-title'
 import { applyBoardOps, boardBatchSchema, EMPTY_BOARD_STATE, type BoardSnapshot } from './board.ts'
+import { animationSpecSchema, compileTimeline, type BoardTimeline } from './board-animation.ts'
+
+/** Name of the model tool that records a board animation timeline. */
+export const BOARD_ANIMATE_TOOL = 'blackboard_animate'
 import { hasInterruptedPtcParent } from './blocking-question-recovery.ts'
 import { contextMessage } from './message-projection.ts'
 import { readQuestionReply, questionReplyText } from './question-reply.ts'
@@ -199,37 +203,46 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
  * @returns versioned final state, successful commit revision, and invalid-commit count.
  */
 export function projectBoardFromLog(log: TopicLog): BoardSnapshot {
-  const calls = new Map<string, string>()
+  const calls = new Map<string, { readonly name: string, readonly args: string }>()
   let state = EMPTY_BOARD_STATE
+  let timeline: BoardTimeline | null = null
   let revision = 0
   let invalid = 0
   const start = log.inheritedEventCount
   for (const event of log.events.slice(start)) {
     const call = toolCallRecord(event)
-    if (call?.name === 'blackboard_apply') {
-      calls.set(call.callId, call.arguments)
+    if (call?.name === 'blackboard_apply' || call?.name === BOARD_ANIMATE_TOOL) {
+      calls.set(call.callId, { name: call.name, args: call.arguments })
       continue
     }
     const result = toolResultRecord(event)
     if (result === undefined) continue
     const callId = result.callId
-    const args = calls.get(callId)
-    if (args === undefined) continue
+    const pending = calls.get(callId)
+    if (pending === undefined) continue
     calls.delete(callId)
     if (result.isError) continue
     try {
-      const raw: unknown = JSON.parse(args)
+      const raw: unknown = JSON.parse(pending.args)
       if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
-        throw new Error('expected blackboard_apply arguments')
+        throw new Error(`expected ${pending.name} arguments`)
       }
-      const batch = boardBatchSchema.parse((raw as { readonly ops?: unknown }).ops)
-      state = applyBoardOps(state, batch).state
+      if (pending.name === BOARD_ANIMATE_TOOL) {
+        const spec = animationSpecSchema.parse(raw)
+        compileTimeline(spec, [...state.values()])
+        timeline = { id: callId, spec }
+      } else {
+        const batch = boardBatchSchema.parse((raw as { readonly ops?: unknown }).ops)
+        state = applyBoardOps(state, batch).state
+        // A cleared board has nothing left to animate.
+        if (batch.some(op => op.op === 'clear')) timeline = null
+      }
       revision += 1
     } catch {
       invalid += 1
     }
   }
-  return { version: 4, revision, elements: [...state.values()], invalid }
+  return { version: 4, revision, elements: [...state.values()], invalid, timeline }
 }
 
 /**

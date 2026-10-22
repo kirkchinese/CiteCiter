@@ -6,6 +6,7 @@ interface ContextMessage {
     source: {
         kind: string;
         plugin?: string;
+        form?: unknown;
     };
 }
 /** Project the installed SDK's validated log. 0.1.7 split plugin context into developer/message. */

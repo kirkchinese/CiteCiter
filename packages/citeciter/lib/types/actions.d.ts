@@ -61,5 +61,12 @@ export declare const DEFAULT_WHEEL_SLOTS: readonly (CiteAction | null)[];
  * @returns `draft` for questions the user writes, otherwise the preference.
  */
 export declare function actionDelivery(action: CiteAction, preference: ActionDelivery | undefined): ActionDelivery;
+/**
+ * Explain a preset action the host refused to send, which then moves into the composer.
+ * The composer already explains a missing model, so that reason is not repeated.
+ * @param reason - the host's refusal message.
+ * @returns one message for the panel.
+ */
+export declare function undeliveredActionMessage(reason: string): string;
 /** Combine a mode and optional user question without hidden system state. */
 export declare function actionQuestion(action: CiteAction, question: string): string;

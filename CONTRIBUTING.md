@@ -32,9 +32,9 @@ CI runs the same commands on Ubuntu and Windows. `pnpm --dir packages/citeciter 
 
 ## Two SDK baselines
 
-The package's `devDependencies` pin the main SDK (currently DSH `0.2.1-alpha.2`); `peerDependencies` list every DSH version the plugin supports. `citeciter-compat-desktop` pins the official Desktop SDK (`0.2.0-rc.2`), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
+The package's `devDependencies` pin the main SDK (currently DSH `0.2.1-rc.2`); `peerDependencies` list every DSH version the plugin supports. `citeciter-compat-desktop` pins the official Desktop SDK (`0.2.0-rc.2`), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
 
-To support a new DSH release: update the DSH versions in `devDependencies` (or in the compat package for a Desktop release), add the version to every DSH peer range, run `pnpm sync:git-entry` and `pnpm install`, then run all checks. Remove a peer only when nothing in `src/` imports it.
+To support a new DSH release: update the DSH versions in `devDependencies` (or in the compat package for a Desktop release), add the version to every DSH peer range, run `pnpm sync:git-entry` and `pnpm install`, then run all checks. `@deepseek-ai/cordis`, `@deepseek-ai/schemastery` and the `cordis-plugin-*` packages have their own version lines: read the new release's versions with `npm view @deepseek-ai/dsh@<version> dependencies` and extend those peers and pins too. Remove a peer only when nothing in `src/` imports it.
 
 ## Committed build output and Git installs
 

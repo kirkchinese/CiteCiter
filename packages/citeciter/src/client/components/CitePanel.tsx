@@ -16,6 +16,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { CiteOverlaySnapshot } from '../types.ts'
+import { MODEL_SELECTION_REQUIRED } from '../../model-admission.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, OverlayActions } from '../view-actions.ts'
 import {
@@ -524,7 +525,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                     onComposition={value => drafts.setComposing(draftKey, value)}
                     placeholder="继续提问"
                     attachments={<>
-                      {active?.topic.modelSelectionRequired === true && <p role="status">来源模型已不可用。草稿已保留，请选择可用模型后发送。</p>}
+                      {active?.topic.modelSelectionRequired === true && <p role="status">{MODEL_SELECTION_REQUIRED}</p>}
                       {(attachmentError || draft.error) && <p role="alert">{attachmentError || draft.error}</p>}
                       {draft.pending && !draft.sending && <p role="status">上次发送状态待核对。<button type="button" onClick={() => runDraft(drafts.reconcile(draftKey))}>核对发送状态</button><button type="button" onClick={event => submit(event, delivery, true)}>重试上次发送</button></p>}
                       {!draft.ready && draft.error && <button type="button" onClick={() => runDraft(drafts.ensure(draftKey))}>重新读取草稿</button>}

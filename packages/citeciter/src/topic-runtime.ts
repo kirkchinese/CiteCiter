@@ -13,7 +13,7 @@ import {
   type AskUserQuestionItem,
   type AskUserQuestionRequest,
 } from '@deepseek-ai/dsh-user-questions'
-import { createBlackboardApplyTool } from './blackboard-tool.ts'
+import { createBlackboardAnimateTool, createBlackboardApplyTool } from './blackboard-tool.ts'
 import { BoardCaptureBroker } from './board-capture.ts'
 import { recoverBlockingQuestion } from './blocking-question-recovery.ts'
 import { resolveReadableDocument } from './document-access.ts'
@@ -38,8 +38,10 @@ import type { QuestionDraftContent } from './question-draft-contract.ts'
 import { questionDraftLogStatus, questionDraftReceiptKey } from './question-draft-lifecycle.ts'
 import { QuestionDraftStore } from './question-draft-store.ts'
 import { createSourceReadTool, SOURCE_READ_PROMPT, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
-import { readSourceSession, hasSentSource } from './source-session.ts'
+import { readSourceSession, hasSentSource, mentionsSource } from './source-session.ts'
 import { SourceStorage } from './source-storage.ts'
+import { attachTopicContext, createWorkspaceChangesTool, refusedMessageSources, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
+import { WorkspaceSnapshots } from './workspace-changes.ts'
 import { toolCallRecord } from './tool-events.ts'
 import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
 import { TopicIndex, type TopicDeletionMarker, unlinkIfPresent, rmdirIfEmpty } from './topic-index.ts'
@@ -78,6 +80,11 @@ type TopicChangeListener = (
 ) => void
 
 const CITECITER_SHUTTING_DOWN = 'CiteCiter is shutting down'
+
+/** The source address a user must send before Citer reads the source. */
+function sourceAddress(metadata: TopicMetadata): string {
+  return `dsh://session/${encodeURIComponent(metadata.sourceSessionId)}`
+}
 
 function citeCiterShuttingDownError(): Error {
   return new Error(CITECITER_SHUTTING_DOWN)
@@ -622,8 +629,15 @@ export class TopicRuntime {
     // The owned Session's event carrier belongs to its factory service view, not
     // the Agent child scope. Public global observation still filters the exact
     // owned object and is disposed with this contribution.
+    let reportedRefusedSource = false
     agentCtx.on('session/event', (session, event) => {
       if (session !== agent.session) return
+      const refused = refusedMessageSources(event)
+      // DSH would reject this row when it persists the Topic; name its producer once.
+      if (refused.length > 0 && !reportedRefusedSource) {
+        reportedRefusedSource = true
+        this.host.logger.warn(`Topic ${metadata.sessionId} received a message whose source DSH format v4 refuses (event ${event.type} at seq ${event.seq}); another plugin produced it: ${JSON.stringify(refused)}`)
+      }
       const submittedAt = topicSubmissionTime(event)
       if (submittedAt === null) return
       // Never await the admission chain inside the host's synchronous log dispatch.
@@ -643,8 +657,10 @@ export class TopicRuntime {
       text: () => composeHostedTopicPrompt(this.settings().tutorPrompt, Boolean(this.settings().followupQuestions ?? DEFAULT_CITECITER_SETTINGS.followupQuestions), this.settings().learningRoute ?? false),
     })
     this.registerSourceTool(agentCtx, metadata, agent)
+    this.registerTopicContext(agentCtx, metadata, agent)
     this.registerDocumentTools(agentCtx)
     agentCtx.tools.register(createBlackboardApplyTool())
+    agentCtx.tools.register(createBlackboardAnimateTool())
     agentCtx.tools.register(this.boardCapture.tool(agentCtx, current => projectBoardFromLog({
       header: current.session.header, events: current.session.snapshotEvents(), inheritedEventCount: current.session.inheritedEventCount,
     })))
@@ -669,22 +685,50 @@ export class TopicRuntime {
     agentCtx.tools.register(createSourceReadTool({
       includeReasoning: () => this.settings().includeSourceReasoning,
       read: async (signal) => {
-        if (!hasSentSource(agent.session, `dsh://session/${encodeURIComponent(metadata.sourceSessionId)}`)) {
+        if (!hasSentSource(agent.session, sourceAddress(metadata))) {
           throw new Error('来源会话未作为附件发送。请让用户附加来源后再读取。')
         }
-        let source: ObserverSourceSnapshot
-        try {
-          source = await readSourceSession(this.host, metadata.sourceSessionId)
-        } catch (error) {
-          signal.throwIfAborted()
-          await this.rememberSourceAvailability(metadata, false)
-          throw error
-        }
-        signal.throwIfAborted()
-        await this.rememberSourceAvailability(metadata, true)
-        return source
+        return this.readAuthorizedSource(metadata, signal)
       },
     }))
+  }
+
+  /** Read a source the caller has already authorized, recording its availability. */
+  private async readAuthorizedSource(metadata: TopicMetadata, signal: AbortSignal): Promise<ObserverSourceSnapshot> {
+    let source: ObserverSourceSnapshot
+    try {
+      source = await readSourceSession(this.host, metadata.sourceSessionId)
+    } catch (error) {
+      signal.throwIfAborted()
+      await this.rememberSourceAvailability(metadata, false)
+      throw error
+    }
+    signal.throwIfAborted()
+    await this.rememberSourceAvailability(metadata, true)
+    return source
+  }
+
+  /** Per-turn source excerpt and workspace notice, plus the workspace tool when the Topic has a working directory. */
+  private registerTopicContext(agentCtx: Context, metadata: TopicMetadata, agent: Agent): void {
+    const workspace = metadata.sourceCwd === ''
+      ? null
+      : new WorkspaceSnapshots(resolve(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId), 'workspace'), metadata.sourceCwd)
+    if (workspace !== null) {
+      agentCtx.systemPrompt.section({ name: WORKSPACE_SECTION_NAME, order: 22, text: WORKSPACE_PROMPT })
+      agentCtx.tools.register(createWorkspaceChangesTool(workspace))
+    }
+    const address = sourceAddress(metadata)
+    attachTopicContext(agentCtx, {
+      agent,
+      autoReadSource: () => this.settings().autoReadSource ?? false,
+      workspaceMode: () => this.settings().workspaceChanges ?? 'summary',
+      includeReasoning: () => this.settings().includeSourceReasoning,
+      sourceSent: pending => hasSentSource(agent.session, address) || pending.some(message => mentionsSource(message, address)),
+      readSource: signal => this.readAuthorizedSource(metadata, signal),
+      anchorSeq: metadata.citation === null || metadata.citation.entry.kind === 'document-range' ? null : metadata.citation.anchorSeq,
+      workspace,
+      warn: (message, error) => this.host.logger.warn(`${message} for ${metadata.sessionId}`, error),
+    })
   }
 
   private async ensureHandle(metadata: TopicMetadata, signal?: AbortSignal): Promise<AgentHandle> {

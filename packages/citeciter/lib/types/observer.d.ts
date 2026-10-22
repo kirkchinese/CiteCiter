@@ -1,6 +1,5 @@
 export { projectDiffMeta, projectToolEvidence, projectToolResultText, type ToolEvidenceProjection, } from './evidence-text.ts';
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session';
-import { type JsonValue } from '@deepseek-ai/dsh-util-values';
 import { type CitationEvidence, type CitationSelectionClaim, type CitationDraft, type DocumentEvidenceClaim, type ToolEvidenceClaim } from './topic.ts';
 /** One atomic live-preferred SessionQuery observation. */
 export interface ObserverSourceSnapshot {
@@ -22,33 +21,6 @@ export interface ValidatedToolEvidence {
 export interface ValidatedDocumentEvidence {
     readonly evidence: CitationEvidence;
 }
-/** Options for one bounded `read_source_session` result. */
-export interface SourceReadOptions {
-    readonly fromSeq?: number;
-    readonly throughSeq?: number;
-    readonly includeReasoning: boolean;
-    /** Maximum UTF-8 bytes occupied by the serialized `events` array. */
-    readonly maxBytes: number;
-}
-/** One lossless-JSON evidence record emitted by `read_source_session`. */
-export type SourceEvidenceEvent = JsonValue;
-/** Complete bounded source-read payload recorded as the Topic tool result. */
-export interface SourceReadResult {
-    readonly sourceSessionId: string;
-    /** Highest sequence in the entire readable snapshot, independent of request bounds. */
-    readonly sourceMaxSeq: number | null;
-    readonly requestedFromSeq: number;
-    readonly requestedThroughSeq: number | null;
-    /** Last scanned sequence; filtered records can advance this without adding evidence. */
-    readonly capturedThroughSeq: number | null;
-    /** A byte-budget stop within the requested range, not a source exhaustion flag. */
-    readonly truncated: boolean;
-    readonly hasMore: boolean;
-    /** First unscanned sequence at or after fromSeq, including beyond a requested range cap. */
-    readonly nextFromSeq: number | null;
-    readonly bytesUsed: number;
-    readonly events: readonly SourceEvidenceEvent[];
-}
 /** Compute the SHA-256 identity carried by the current CitationDraft schema. */
 export declare function fingerprintCitationDraft(draft: Omit<CitationDraft, 'selectionFingerprint'>): string;
 /** Compute the SHA-256 identity of a canonical v4 Citation evidence record. */
@@ -69,5 +41,3 @@ export declare function resolveToolEvidence(source: ObserverSourceSnapshot, rawC
  * @returns verified evidence with document offsets in its entry.
  */
 export declare function resolveDocumentEvidence(content: string, rawClaim: DocumentEvidenceClaim): ValidatedDocumentEvidence;
-/** Format a range plus the readable snapshot horizon and cursor, without exposing chunks or exceeding the event-array byte budget. */
-export declare function formatSourceSessionRead(source: ObserverSourceSnapshot, options: SourceReadOptions): SourceReadResult;

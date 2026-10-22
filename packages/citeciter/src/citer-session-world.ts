@@ -2,7 +2,6 @@ import type { Context, Fiber } from '@deepseek-ai/cordis'
 import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-title'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { CiterAgentRegistry } from './citer-agent-registry.ts'
 import { createCiterSessionStore } from './citer-session-store.ts'
 import { loadHostAgentModules } from './host-agent-modules.ts'
@@ -74,7 +73,7 @@ export class CiterSessionWorld {
         apply: async (ctx: Context) => {
           await ctx.plugin(CiterAgentRegistry, { registry: host.agents })
           await ctx.plugin(createCiterSessionStore(modules.SessionStore, access), { store: host.sessions })
-          await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
+          await ctx.plugin(modules.SessionPersistence, { root, compression: 'none' })
           // Title writes require membership in the service's own SessionStore.
           // Resolve the class from this host so shared projection definitions
           // have exactly the installed official host's schema versions.

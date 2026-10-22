@@ -1,3 +1,4 @@
+import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useEffect, useRef, type CSSProperties } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import { OverlayPortal } from './OverlayPortal.tsx'
@@ -42,7 +43,7 @@ export function ActionWheel({ useActions, useCompanion, actions }: {
       <div className={css.caption} role="status">{active == null ? '移向动作 · 回到中心取消' : `${active.label} · 松开后${outcome(active)}`}</div>
     </div>}
     {pending !== null && state.error !== null && <form className={css.prompt} data-citeciter-menu role="dialog" aria-label={`${pending.action.label}：未完成`} style={{ '--prompt-x': `${pending.x - 210}px`, '--prompt-y': `${pending.y - 100}px` } as CSSProperties} onSubmit={event => { event.preventDefault(); void actions.submit() }}>
-      <header><strong>{pending.action.label}</strong><button type="button" onClick={actions.cancel} aria-label="关闭提问">×</button></header>
+      <header><strong>{pending.action.label}</strong><button type="button" onClick={actions.cancel} aria-label="关闭提问"><IconCloseOutlineRegular /></button></header>
       <blockquote>{actionSourceQuote(pending.source).slice(0, 180)}</blockquote>
       {state.error !== null && <p role="alert" className={css.error}>{state.error}</p>}
       <footer><span>选中的内容已保留</span><button type="submit" disabled={state.submitting}>重试</button></footer>

@@ -11,7 +11,7 @@ export interface TopicMenu {
     readonly onArchive: (archived: boolean) => void;
     readonly onDelete: () => void;
 }
-/** The "⋯" menu: rename, learning route, document reader, archive and permanent deletion. */
+/** The "⋯" menu in the host's menu: rename, learning route, document reader, archive and permanent deletion. */
 export declare function TopicActions({ menu }: {
     readonly menu: TopicMenu;
 }): import("react").JSX.Element;

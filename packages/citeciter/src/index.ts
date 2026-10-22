@@ -39,6 +39,8 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
   activeRecall: z.boolean().default(DEFAULT_CITECITER_SETTINGS.activeRecall ?? false),
   defaultPermission: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
   learningRoute: z.boolean().default(false),
+  autoReadSource: z.boolean().default(DEFAULT_CITECITER_SETTINGS.autoReadSource ?? false),
+  workspaceChanges: z.union(['off', 'summary', 'diff']).default(DEFAULT_CITECITER_SETTINGS.workspaceChanges ?? 'summary'),
   updateNotifications: z.boolean().default(DEFAULT_CITECITER_SETTINGS.updateNotifications ?? true),
   selectionToolbar: z.boolean().default(DEFAULT_CITECITER_SETTINGS.selectionToolbar ?? true),
   actionDelivery: z.union(['send', 'draft']).default(DEFAULT_CITECITER_SETTINGS.actionDelivery ?? 'send'),

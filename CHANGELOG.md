@@ -2,6 +2,28 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## 0.9.0-beta.3 — 2026-10-22
+
+Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1` and `0.2.1-rc.2`.
+
+### Host support
+
+- Support DSH `0.2.1-rc.1` and `0.2.1-rc.2` (npm `latest`, also the base of the community DSH NEXT shell) and the preview line `0.2.1-alpha.3` through `0.2.1-alpha.5`; their compatibility gates refuse 0.9.0-beta.2. Citer still supports the official Desktop `0.2.0-rc.2` and DSH `0.2.1-alpha.1` / `0.2.1-alpha.2`.
+- The DSH peer `@deepseek-ai/dsh-util-values` is no longer required.
+
+### Topic context
+
+- Citer reads the source conversation as a Markdown transcript: user and assistant messages, tool calls and tool results, each marked with its source position. Long tool output and edit diffs are shortened by default, and Citer can re-read a single record in full. Edits appear as line diffs.
+- Codebase change awareness: at the start of each turn Citer is told which files changed in the git working tree since its previous turn, uncommitted changes included, and can read line-level diffs with the new `workspace_changes` tool. Settings choose a file list (default), attached diffs, or off. Snapshots live in the Topic's own directory as separate git objects; the repository is never written.
+- Board animations: the new `blackboard_animate` tool moves existing board elements along one timeline with verbs (appear, move, scale, rotate, highlight, reveal), keyframes, SVG paths or restricted math expressions, with narration beats. The board can be played, paused, scrubbed and stepped by beat; it rests on the final frame when board animations are off or the system asks for reduced motion. `blackboard_view` can render chosen moments of the timeline so Citer checks its own animation.
+- An optional automatic source excerpt, off by default, adds the source's newest records at the start of each turn once the source attachment has been sent.
+
+### Fixes
+
+- The composer's model, reasoning and permission choices and the Topic menu use DSH's own menu, and Citer's buttons use DSH's icons (including its permission glyphs), so they look and behave like the host and follow host themes. This also centers the arrow on the model button, which used to sit below the text.
+- When a preset action cannot be sent and moves into the composer, the panel says so once instead of repeating the composer's own notice. Notices above the composer (an unavailable model, draft errors, an unconfirmed send) use the host's small secondary text, and their recovery buttons look like links.
+- When another plugin adds a message to a Topic with a source that DSH's session format no longer saves (no source, or the retired `{ kind: "plugin" }` form), Citer logs a warning naming that source, so the plugin that breaks the Topic's persistence can be identified.
+
 ## 0.9.0-beta.2 — 2026-10-15
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` and `0.2.1-alpha.2`.

@@ -1,3 +1,4 @@
+import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ComposerAttachment, DraftAttachmentId } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import css from './ReferenceAttachments.module.css'
 import { useState, useSyncExternalStore } from 'react'
@@ -19,6 +20,6 @@ export function FileAttachments({ files, remove, native, sessionId }: { readonly
     <span>{item.file.name}</span>
     {uploads[item.id]?.status === 'uploading' && <small role="status">上传中</small>}
     {uploads[item.id]?.status === 'error' && <button type="button" title="上传失败，点击重试" onClick={() => native.retry(sessionId, item.id)}>重试</button>}
-    <button type="button" aria-label={`移除附件 ${item.file.name}`} onClick={() => remove(item.id)}>×</button>
+    <button type="button" aria-label={`移除附件 ${item.file.name}`} onClick={() => remove(item.id)}><IconCloseOutlineRegular /></button>
   </span>)}</div>
 }

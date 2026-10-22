@@ -18,7 +18,7 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主�
 
 | DSH 版本 | CiteCiter 版本 |
 | --- | --- |
-| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1`、`0.2.1-alpha.2` | `0.9.0-beta.2` |
+| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` | `0.9.0-beta.3` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -28,13 +28,13 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主�
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.2
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.3
 ```
 
 也可以从仓库安装某个发布标签，仓库内已包含构建好的插件，安装时无需构建：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.2"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.3"
 ```
 
 安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件。同一个 DSH 主目录不要同时运行两个宿主进程。
@@ -55,7 +55,7 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v
 | 你想做什么 | CiteCiter 提供什么 |
 | --- | --- |
 | 理解一段回答、代码或工具结果 | 带来源引用的独立 Topic，追问不会写入主对话 |
-| 看懂关系与过程 | 支持 Markdown、公式、表格、SVG、图片和隔离 HTML 的小黑板；支持视觉的模型可以查看渲染后的板书并自行修正 |
+| 看懂关系与过程 | 支持 Markdown、公式、表格、SVG、图片和隔离 HTML 的小黑板；支持视觉的模型可以查看渲染后的板书并自行修正；板书还能编排动画，元素按关键帧、路径或公式运动，可以播放、暂停、拖动进度和按步骤跳转 |
 | 留下可回看的理解 | 可导出、可修订的学习卡，文字与代码示例分开展示 |
 | 围绕真实文件讨论 | 文件与图片附件、`.txt` / `.md` 文档阅读器、原生文件预览中的"CiteCiter 学习"入口 |
 | 从理解继续动手 | 复用 DSH 的模型、工具、审批、权限、排队和插话；新 Topic 默认只读 |
@@ -70,6 +70,8 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v
 **输入。** 输入框依次提供附件、权限模式、模型与思考强度、发送。Enter 发送，Shift + Enter 换行，输入法组词时 Enter 不会发送。生成过程中 Enter 跟随 DSH 的排队／插话设置，Ctrl + Enter 临时使用另一种方式。可以从附件菜单选择文件、粘贴图片，或把文件拖到 Citer 面板上。
 
 **草稿。** 草稿在后台静默保存。多个窗口编辑同一个 Topic 时，各自的修改会自动合并；同一处有冲突时，以正在输入的窗口为准。发送成功后只清除已发送的部分，发送期间新写的内容会保留。
+
+**来源与代码库。** Citer 在需要时读取来源对话，看到的是带位置标记的对话记录：用户与助手的消息、工具调用和结果；过长的工具输出先缩短，需要时再读全文。在设置中开启"自动附上来源摘录"后，来源附件发送之后每轮开头会附上来源最近的新内容，默认关闭。"代码库变化感知"在每轮开头列出上一轮以来 git 工作区（含未提交的改动）改了哪些文件，Citer 需要时再用工具读取逐行改动；也可以在设置中改为直接附上 diff，或者关闭。这些内容都记录在 Topic 里，不会写入你的仓库。
 
 **学习路线与学习卡。** 学习路线默认关闭，可以在 Topic 菜单（⋯）中开启；开启后，模型会根据问题用 DSH 待办安排讲解步骤。学习卡可以随时单独请求，生成前模型会核对结论、条件和计算，但自查不能保证正确。主动回忆默认关闭，开启后学习卡先显示自测问题。
 
@@ -92,6 +94,7 @@ CiteCiter 的数据保存在每个来源会话的目录中：
     │   ├── topic.json        Topic 信息
     │   ├── draft/            未发送的文字、引用和附件
     │   ├── question-drafts/  未提交的问答
+    │   ├── workspace/        代码库变化感知的快照（独立的 git 对象）
     │   └── sessions/         Topic 自己的会话日志
     └── deleted/              删除记录（只含身份，不含内容）
 ```

@@ -1,3 +1,4 @@
+import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useEffect, useState } from 'react'
 import type { CiterSessionSnapshot } from '../citer-session-face.ts'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
@@ -21,7 +22,7 @@ export function NativeQueue({ sessionId, native }: { readonly sessionId: string,
       <span title={row.placement === 'steering' ? '将在当前回答的下一步处理' : '当前回答完成后处理'}>{row.placement === 'steering' ? '插话' : '排队'}</span>
       <p title={row.text || '附件'}>{row.text || '附件'}</p>
       {row.placement === 'queued' && <button type="button" title="现在插话" aria-label="将此条排队消息改为插话" onClick={() => { void native.queue(sessionId, row.id as MessageId, { kind: 'steer' }).catch(error => setError(String(error))) }}>↗</button>}
-      <button type="button" title="移出队列" aria-label="移除此条待处理消息" onClick={() => { void native.queue(sessionId, row.id as MessageId, { kind: 'remove' }).catch(error => setError(String(error))) }}>×</button>
+      <button type="button" title="移出队列" aria-label="移除此条待处理消息" onClick={() => { void native.queue(sessionId, row.id as MessageId, { kind: 'remove' }).catch(error => setError(String(error))) }}><IconCloseOutlineRegular /></button>
     </div>)}
   </section>
 }

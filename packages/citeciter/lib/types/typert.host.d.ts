@@ -27,9 +27,9 @@ export declare const TYPERT: {
                 callId: import("zod").ZodString;
                 toolName: import("zod").ZodString;
                 projection: import("zod").ZodEnum<{
+                    diff: "diff";
                     "result-text": "result-text";
                     terminal: "terminal";
-                    diff: "diff";
                 }>;
                 fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                 side: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -77,9 +77,9 @@ export declare const TYPERT: {
                     callId: import("zod").ZodString;
                     toolName: import("zod").ZodString;
                     projection: import("zod").ZodEnum<{
+                        diff: "diff";
                         "result-text": "result-text";
                         terminal: "terminal";
-                        diff: "diff";
                     }>;
                     fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                     side: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -147,9 +147,9 @@ export declare const TYPERT: {
                         callId: import("zod").ZodString;
                         toolName: import("zod").ZodString;
                         projection: import("zod").ZodEnum<{
+                            diff: "diff";
                             "result-text": "result-text";
                             terminal: "terminal";
-                            diff: "diff";
                         }>;
                         fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                         side: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -340,10 +340,10 @@ export declare const TYPERT: {
                     focused: import("zod").ZodBoolean;
                     animation: import("zod").ZodOptional<import("zod").ZodObject<{
                         name: import("zod").ZodEnum<{
+                            highlight: "highlight";
                             "fade-in": "fade-in";
                             "slide-in": "slide-in";
                             pulse: "pulse";
-                            highlight: "highlight";
                         }>;
                         durationMs: import("zod").ZodNumber;
                         iterations: import("zod").ZodNumber;
@@ -351,6 +351,65 @@ export declare const TYPERT: {
                     }, import("zod/v4/core").$strict>>;
                 }, import("zod/v4/core").$strict>>;
                 invalid: import("zod").ZodNumber;
+                timeline: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodObject<{
+                    id: import("zod").ZodString;
+                    spec: import("zod").ZodObject<{
+                        durationMs: import("zod").ZodNumber;
+                        loop: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                        beats: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                            atMs: import("zod").ZodNumber;
+                            caption: import("zod").ZodString;
+                        }, import("zod/v4/core").$strict>>>;
+                        tracks: import("zod").ZodArray<import("zod").ZodObject<{
+                            target: import("zod").ZodString;
+                            verb: import("zod").ZodEnum<{
+                                appear: "appear";
+                                disappear: "disappear";
+                                move: "move";
+                                scale: "scale";
+                                rotate: "rotate";
+                                highlight: "highlight";
+                                reveal: "reveal";
+                                follow: "follow";
+                                keyframes: "keyframes";
+                                parametric: "parametric";
+                            }>;
+                            startMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                            endMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                            easing: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                linear: "linear";
+                                "ease-in": "ease-in";
+                                "ease-out": "ease-out";
+                                "ease-in-out": "ease-in-out";
+                            }>>;
+                            to: import("zod").ZodOptional<import("zod").ZodObject<{
+                                x: import("zod").ZodNumber;
+                                y: import("zod").ZodNumber;
+                            }, import("zod/v4/core").$strict>>;
+                            scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                            degrees: import("zod").ZodOptional<import("zod").ZodNumber>;
+                            direction: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                left: "left";
+                                right: "right";
+                                up: "up";
+                                down: "down";
+                            }>>;
+                            path: import("zod").ZodOptional<import("zod").ZodString>;
+                            orient: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                            frames: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                atMs: import("zod").ZodNumber;
+                                x: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                y: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                opacity: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                rotate: import("zod").ZodOptional<import("zod").ZodNumber>;
+                            }, import("zod/v4/core").$strict>>>;
+                            x: import("zod").ZodOptional<import("zod").ZodString>;
+                            y: import("zod").ZodOptional<import("zod").ZodString>;
+                            t: import("zod").ZodOptional<import("zod").ZodTuple<[import("zod").ZodNumber, import("zod").ZodNumber], null>>;
+                        }, import("zod/v4/core").$strict>>;
+                    }, import("zod/v4/core").$strict>;
+                }, import("zod/v4/core").$strict>>>;
             }, import("zod/v4/core").$strict>>;
         }, import("zod/v4/core").$strict>;
     }, {
@@ -386,9 +445,9 @@ export declare const TYPERT: {
                 callId: import("zod").ZodString;
                 displayText: import("zod").ZodString;
                 projection: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    diff: "diff";
                     "result-text": "result-text";
                     terminal: "terminal";
-                    diff: "diff";
                 }>>;
             }, import("zod/v4/core").$strict>;
             action: import("zod").ZodLiteral<"create">;
@@ -711,10 +770,10 @@ export declare const TYPERT: {
                         focused: import("zod").ZodBoolean;
                         animation: import("zod").ZodOptional<import("zod").ZodObject<{
                             name: import("zod").ZodEnum<{
+                                highlight: "highlight";
                                 "fade-in": "fade-in";
                                 "slide-in": "slide-in";
                                 pulse: "pulse";
-                                highlight: "highlight";
                             }>;
                             durationMs: import("zod").ZodNumber;
                             iterations: import("zod").ZodNumber;
@@ -722,7 +781,67 @@ export declare const TYPERT: {
                         }, import("zod/v4/core").$strict>>;
                     }, import("zod/v4/core").$strict>>;
                     invalid: import("zod").ZodNumber;
+                    timeline: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodObject<{
+                        id: import("zod").ZodString;
+                        spec: import("zod").ZodObject<{
+                            durationMs: import("zod").ZodNumber;
+                            loop: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                            beats: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                atMs: import("zod").ZodNumber;
+                                caption: import("zod").ZodString;
+                            }, import("zod/v4/core").$strict>>>;
+                            tracks: import("zod").ZodArray<import("zod").ZodObject<{
+                                target: import("zod").ZodString;
+                                verb: import("zod").ZodEnum<{
+                                    appear: "appear";
+                                    disappear: "disappear";
+                                    move: "move";
+                                    scale: "scale";
+                                    rotate: "rotate";
+                                    highlight: "highlight";
+                                    reveal: "reveal";
+                                    follow: "follow";
+                                    keyframes: "keyframes";
+                                    parametric: "parametric";
+                                }>;
+                                startMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                endMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                easing: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                    linear: "linear";
+                                    "ease-in": "ease-in";
+                                    "ease-out": "ease-out";
+                                    "ease-in-out": "ease-in-out";
+                                }>>;
+                                to: import("zod").ZodOptional<import("zod").ZodObject<{
+                                    x: import("zod").ZodNumber;
+                                    y: import("zod").ZodNumber;
+                                }, import("zod/v4/core").$strict>>;
+                                scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                degrees: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                direction: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                    left: "left";
+                                    right: "right";
+                                    up: "up";
+                                    down: "down";
+                                }>>;
+                                path: import("zod").ZodOptional<import("zod").ZodString>;
+                                orient: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                                frames: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                    atMs: import("zod").ZodNumber;
+                                    x: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    y: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    opacity: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    rotate: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                }, import("zod/v4/core").$strict>>>;
+                                x: import("zod").ZodOptional<import("zod").ZodString>;
+                                y: import("zod").ZodOptional<import("zod").ZodString>;
+                                t: import("zod").ZodOptional<import("zod").ZodTuple<[import("zod").ZodNumber, import("zod").ZodNumber], null>>;
+                            }, import("zod/v4/core").$strict>>;
+                        }, import("zod/v4/core").$strict>;
+                    }, import("zod/v4/core").$strict>>>;
                 }, import("zod/v4/core").$strict>;
+                atMs: import("zod").ZodOptional<import("zod").ZodNumber>;
             }, import("zod/v4/core").$strict>>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             kind: import("zod").ZodLiteral<"board-capture-accepted">;
@@ -884,9 +1003,9 @@ export declare const TYPERT: {
                             callId: import("zod").ZodString;
                             toolName: import("zod").ZodString;
                             projection: import("zod").ZodEnum<{
+                                diff: "diff";
                                 "result-text": "result-text";
                                 terminal: "terminal";
-                                diff: "diff";
                             }>;
                             fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                             side: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -1077,10 +1196,10 @@ export declare const TYPERT: {
                         focused: import("zod").ZodBoolean;
                         animation: import("zod").ZodOptional<import("zod").ZodObject<{
                             name: import("zod").ZodEnum<{
+                                highlight: "highlight";
                                 "fade-in": "fade-in";
                                 "slide-in": "slide-in";
                                 pulse: "pulse";
-                                highlight: "highlight";
                             }>;
                             durationMs: import("zod").ZodNumber;
                             iterations: import("zod").ZodNumber;
@@ -1088,6 +1207,65 @@ export declare const TYPERT: {
                         }, import("zod/v4/core").$strict>>;
                     }, import("zod/v4/core").$strict>>;
                     invalid: import("zod").ZodNumber;
+                    timeline: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodObject<{
+                        id: import("zod").ZodString;
+                        spec: import("zod").ZodObject<{
+                            durationMs: import("zod").ZodNumber;
+                            loop: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                            beats: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                atMs: import("zod").ZodNumber;
+                                caption: import("zod").ZodString;
+                            }, import("zod/v4/core").$strict>>>;
+                            tracks: import("zod").ZodArray<import("zod").ZodObject<{
+                                target: import("zod").ZodString;
+                                verb: import("zod").ZodEnum<{
+                                    appear: "appear";
+                                    disappear: "disappear";
+                                    move: "move";
+                                    scale: "scale";
+                                    rotate: "rotate";
+                                    highlight: "highlight";
+                                    reveal: "reveal";
+                                    follow: "follow";
+                                    keyframes: "keyframes";
+                                    parametric: "parametric";
+                                }>;
+                                startMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                endMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                easing: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                    linear: "linear";
+                                    "ease-in": "ease-in";
+                                    "ease-out": "ease-out";
+                                    "ease-in-out": "ease-in-out";
+                                }>>;
+                                to: import("zod").ZodOptional<import("zod").ZodObject<{
+                                    x: import("zod").ZodNumber;
+                                    y: import("zod").ZodNumber;
+                                }, import("zod/v4/core").$strict>>;
+                                scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                degrees: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                direction: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                    left: "left";
+                                    right: "right";
+                                    up: "up";
+                                    down: "down";
+                                }>>;
+                                path: import("zod").ZodOptional<import("zod").ZodString>;
+                                orient: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                                frames: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                    atMs: import("zod").ZodNumber;
+                                    x: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    y: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    opacity: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    rotate: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                }, import("zod/v4/core").$strict>>>;
+                                x: import("zod").ZodOptional<import("zod").ZodString>;
+                                y: import("zod").ZodOptional<import("zod").ZodString>;
+                                t: import("zod").ZodOptional<import("zod").ZodTuple<[import("zod").ZodNumber, import("zod").ZodNumber], null>>;
+                            }, import("zod/v4/core").$strict>>;
+                        }, import("zod/v4/core").$strict>;
+                    }, import("zod/v4/core").$strict>>>;
                 }, import("zod/v4/core").$strict>>;
             }, import("zod/v4/core").$strict>;
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
@@ -1113,9 +1291,9 @@ export declare const TYPERT: {
                         callId: import("zod").ZodString;
                         toolName: import("zod").ZodString;
                         projection: import("zod").ZodEnum<{
+                            diff: "diff";
                             "result-text": "result-text";
                             terminal: "terminal";
-                            diff: "diff";
                         }>;
                         fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                         side: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -1294,9 +1472,9 @@ export declare const TYPERT: {
                         callId: import("zod").ZodString;
                         displayText: import("zod").ZodString;
                         projection: import("zod").ZodOptional<import("zod").ZodEnum<{
+                            diff: "diff";
                             "result-text": "result-text";
                             terminal: "terminal";
-                            diff: "diff";
                         }>>;
                     }, import("zod/v4/core").$strict>;
                     action: import("zod").ZodLiteral<"create">;
@@ -1625,10 +1803,10 @@ export declare const TYPERT: {
                             focused: import("zod").ZodBoolean;
                             animation: import("zod").ZodOptional<import("zod").ZodObject<{
                                 name: import("zod").ZodEnum<{
+                                    highlight: "highlight";
                                     "fade-in": "fade-in";
                                     "slide-in": "slide-in";
                                     pulse: "pulse";
-                                    highlight: "highlight";
                                 }>;
                                 durationMs: import("zod").ZodNumber;
                                 iterations: import("zod").ZodNumber;
@@ -1636,7 +1814,67 @@ export declare const TYPERT: {
                             }, import("zod/v4/core").$strict>>;
                         }, import("zod/v4/core").$strict>>;
                         invalid: import("zod").ZodNumber;
+                        timeline: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodObject<{
+                            id: import("zod").ZodString;
+                            spec: import("zod").ZodObject<{
+                                durationMs: import("zod").ZodNumber;
+                                loop: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                                beats: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                    atMs: import("zod").ZodNumber;
+                                    caption: import("zod").ZodString;
+                                }, import("zod/v4/core").$strict>>>;
+                                tracks: import("zod").ZodArray<import("zod").ZodObject<{
+                                    target: import("zod").ZodString;
+                                    verb: import("zod").ZodEnum<{
+                                        appear: "appear";
+                                        disappear: "disappear";
+                                        move: "move";
+                                        scale: "scale";
+                                        rotate: "rotate";
+                                        highlight: "highlight";
+                                        reveal: "reveal";
+                                        follow: "follow";
+                                        keyframes: "keyframes";
+                                        parametric: "parametric";
+                                    }>;
+                                    startMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    endMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    easing: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                        linear: "linear";
+                                        "ease-in": "ease-in";
+                                        "ease-out": "ease-out";
+                                        "ease-in-out": "ease-in-out";
+                                    }>>;
+                                    to: import("zod").ZodOptional<import("zod").ZodObject<{
+                                        x: import("zod").ZodNumber;
+                                        y: import("zod").ZodNumber;
+                                    }, import("zod/v4/core").$strict>>;
+                                    scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    degrees: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    direction: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                        left: "left";
+                                        right: "right";
+                                        up: "up";
+                                        down: "down";
+                                    }>>;
+                                    path: import("zod").ZodOptional<import("zod").ZodString>;
+                                    orient: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                                    frames: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                        atMs: import("zod").ZodNumber;
+                                        x: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        y: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        opacity: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        rotate: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    }, import("zod/v4/core").$strict>>>;
+                                    x: import("zod").ZodOptional<import("zod").ZodString>;
+                                    y: import("zod").ZodOptional<import("zod").ZodString>;
+                                    t: import("zod").ZodOptional<import("zod").ZodTuple<[import("zod").ZodNumber, import("zod").ZodNumber], null>>;
+                                }, import("zod/v4/core").$strict>>;
+                            }, import("zod/v4/core").$strict>;
+                        }, import("zod/v4/core").$strict>>>;
                     }, import("zod/v4/core").$strict>;
+                    atMs: import("zod").ZodOptional<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>>;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 kind: import("zod").ZodLiteral<"board-capture-accepted">;
@@ -1798,9 +2036,9 @@ export declare const TYPERT: {
                                 callId: import("zod").ZodString;
                                 toolName: import("zod").ZodString;
                                 projection: import("zod").ZodEnum<{
+                                    diff: "diff";
                                     "result-text": "result-text";
                                     terminal: "terminal";
-                                    diff: "diff";
                                 }>;
                                 fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                                 side: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -1991,10 +2229,10 @@ export declare const TYPERT: {
                             focused: import("zod").ZodBoolean;
                             animation: import("zod").ZodOptional<import("zod").ZodObject<{
                                 name: import("zod").ZodEnum<{
+                                    highlight: "highlight";
                                     "fade-in": "fade-in";
                                     "slide-in": "slide-in";
                                     pulse: "pulse";
-                                    highlight: "highlight";
                                 }>;
                                 durationMs: import("zod").ZodNumber;
                                 iterations: import("zod").ZodNumber;
@@ -2002,6 +2240,65 @@ export declare const TYPERT: {
                             }, import("zod/v4/core").$strict>>;
                         }, import("zod/v4/core").$strict>>;
                         invalid: import("zod").ZodNumber;
+                        timeline: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodObject<{
+                            id: import("zod").ZodString;
+                            spec: import("zod").ZodObject<{
+                                durationMs: import("zod").ZodNumber;
+                                loop: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                                beats: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                    atMs: import("zod").ZodNumber;
+                                    caption: import("zod").ZodString;
+                                }, import("zod/v4/core").$strict>>>;
+                                tracks: import("zod").ZodArray<import("zod").ZodObject<{
+                                    target: import("zod").ZodString;
+                                    verb: import("zod").ZodEnum<{
+                                        appear: "appear";
+                                        disappear: "disappear";
+                                        move: "move";
+                                        scale: "scale";
+                                        rotate: "rotate";
+                                        highlight: "highlight";
+                                        reveal: "reveal";
+                                        follow: "follow";
+                                        keyframes: "keyframes";
+                                        parametric: "parametric";
+                                    }>;
+                                    startMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    endMs: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    easing: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                        linear: "linear";
+                                        "ease-in": "ease-in";
+                                        "ease-out": "ease-out";
+                                        "ease-in-out": "ease-in-out";
+                                    }>>;
+                                    to: import("zod").ZodOptional<import("zod").ZodObject<{
+                                        x: import("zod").ZodNumber;
+                                        y: import("zod").ZodNumber;
+                                    }, import("zod/v4/core").$strict>>;
+                                    scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    degrees: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    direction: import("zod").ZodOptional<import("zod").ZodEnum<{
+                                        left: "left";
+                                        right: "right";
+                                        up: "up";
+                                        down: "down";
+                                    }>>;
+                                    path: import("zod").ZodOptional<import("zod").ZodString>;
+                                    orient: import("zod").ZodOptional<import("zod").ZodBoolean>;
+                                    frames: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                                        atMs: import("zod").ZodNumber;
+                                        x: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        y: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        opacity: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        scale: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                        rotate: import("zod").ZodOptional<import("zod").ZodNumber>;
+                                    }, import("zod/v4/core").$strict>>>;
+                                    x: import("zod").ZodOptional<import("zod").ZodString>;
+                                    y: import("zod").ZodOptional<import("zod").ZodString>;
+                                    t: import("zod").ZodOptional<import("zod").ZodTuple<[import("zod").ZodNumber, import("zod").ZodNumber], null>>;
+                                }, import("zod/v4/core").$strict>>;
+                            }, import("zod/v4/core").$strict>;
+                        }, import("zod/v4/core").$strict>>>;
                     }, import("zod/v4/core").$strict>>;
                 }, import("zod/v4/core").$strict>;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
@@ -2027,9 +2324,9 @@ export declare const TYPERT: {
                             callId: import("zod").ZodString;
                             toolName: import("zod").ZodString;
                             projection: import("zod").ZodEnum<{
+                                diff: "diff";
                                 "result-text": "result-text";
                                 terminal: "terminal";
-                                diff: "diff";
                             }>;
                             fileIndex: import("zod").ZodOptional<import("zod").ZodNumber>;
                             side: import("zod").ZodOptional<import("zod").ZodEnum<{

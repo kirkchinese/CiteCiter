@@ -1,3 +1,4 @@
+import { IconChevronLeftOutlineRegular, IconChevronRightOutlineRegular, IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { ReaderSnapshot } from '../reader-controller.ts'
 import type { ReaderActions } from '../view-actions.ts'
@@ -58,7 +59,7 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
         <section className={css.panel} data-citeciter-reader>
           <header className={css.header}>
             <h2>文档阅读</h2>
-            <button type="button" onClick={() => reader.setOpen(false)} aria-label="关闭文档阅读">×</button>
+            <button type="button" onClick={() => reader.setOpen(false)} aria-label="关闭文档阅读"><IconCloseOutlineRegular /></button>
           </header>
           {snapshot.error !== null ? <p className={css.error}>{snapshot.error}</p> : null}
           <div className={css.import}>
@@ -94,9 +95,9 @@ export function DocumentReader({ reader, useReader, registerSurface, sourceSessi
           />
           {snapshot.active !== null ? (
             <nav className={css.pagination} aria-label="文档分页">
-              <button type="button" aria-label="上一页" disabled={snapshot.loading || snapshot.active.page === 0} onClick={() => void reader.openPage(snapshot.active!.page - 1)}>‹</button>
+              <button type="button" aria-label="上一页" disabled={snapshot.loading || snapshot.active.page === 0} onClick={() => void reader.openPage(snapshot.active!.page - 1)}><IconChevronLeftOutlineRegular /></button>
               <span role="status">{snapshot.loading ? '加载中…' : `第 ${snapshot.active.page + 1} / ${snapshot.active.pageCount} 页`}</span>
-              <button type="button" aria-label="下一页" disabled={snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount} onClick={() => void reader.openPage(snapshot.active!.page + 1)}>›</button>
+              <button type="button" aria-label="下一页" disabled={snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount} onClick={() => void reader.openPage(snapshot.active!.page + 1)}><IconChevronRightOutlineRegular /></button>
             </nav>
           ) : null}
           <form className={css.ask} onSubmit={onCreate}>

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { learningQuestion } from './learning.ts'
+import { MODEL_SELECTION_REQUIRED } from './model-admission.ts'
 
 /**
  * One persisted action slot, shown in the selection toolbar and the optional wheel.
@@ -45,6 +46,18 @@ export const DEFAULT_WHEEL_SLOTS: readonly (CiteAction | null)[] = [
  */
 export function actionDelivery(action: CiteAction, preference: ActionDelivery | undefined): ActionDelivery {
   return action.ask ? 'draft' : preference ?? 'send'
+}
+
+/**
+ * Explain a preset action the host refused to send, which then moves into the composer.
+ * The composer already explains a missing model, so that reason is not repeated.
+ * @param reason - the host's refusal message.
+ * @returns one message for the panel.
+ */
+export function undeliveredActionMessage(reason: string): string {
+  return reason === MODEL_SELECTION_REQUIRED
+    ? '动作没有发送，已放进输入框'
+    : `${reason.replace(/[。；;.\s]+$/u, '')}。动作已放进输入框，可修改后发送`
 }
 
 /** Combine a mode and optional user question without hidden system state. */
