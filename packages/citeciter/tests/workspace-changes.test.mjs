@@ -25,6 +25,9 @@ async function repository() {
   execFileSync('git', ['init', '-q', repo])
   execFileSync('git', ['-C', repo, 'config', 'user.email', 'citer@example.invalid'])
   execFileSync('git', ['-C', repo, 'config', 'user.name', 'Citer Test'])
+  // Newer git runs background maintenance after commits; keep the object store still.
+  execFileSync('git', ['-C', repo, 'config', 'maintenance.auto', 'false'])
+  execFileSync('git', ['-C', repo, 'config', 'gc.auto', '0'])
   await writeFile(join(repo, 'a.txt'), 'one\ntwo\nthree\n')
   await writeFile(join(repo, '.gitignore'), 'ignored.txt\n')
   execFileSync('git', ['-C', repo, 'add', '-A'])
@@ -35,7 +38,9 @@ async function repository() {
 test('snapshots report line changes since the previous turn without writing the repository', { skip: !gitAvailable }, async () => {
   const { root, repo, store } = await repository()
   try {
-    const objectsBefore = await readdir(join(repo, '.git', 'objects'), { recursive: true })
+    // Object files only; git may create and remove transient lock files on its own.
+    const repositoryObjects = async () => (await readdir(join(repo, '.git', 'objects'), { recursive: true })).filter(name => /^[0-9a-f]{2}[\\/][0-9a-f]{38,62}$|^pack[\\/]/u.test(name)).sort()
+    const objectsBefore = await repositoryObjects()
     const workspace = new WorkspaceSnapshots(store, repo)
     const first = await workspace.advance(1_000)
     assert.equal(first.files, null)
@@ -60,7 +65,7 @@ test('snapshots report line changes since the previous turn without writing the 
     assert.deepEqual(third.files, [])
 
     // The repository's own index and object store are untouched; uncommitted edits stay unstaged.
-    assert.deepEqual(await readdir(join(repo, '.git', 'objects'), { recursive: true }), objectsBefore)
+    assert.deepEqual(await repositoryObjects(), objectsBefore)
     assert.match(execFileSync('git', ['-C', repo, 'status', '--porcelain'], { encoding: 'utf8' }), / M a\.txt\n\?\? b\.txt/u)
     assert.equal(existsSync(join(store, 'objects')), true)
   } finally {
