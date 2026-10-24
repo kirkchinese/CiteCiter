@@ -30,6 +30,8 @@ const topicScenarioSchema = z.enum(['qa', 'present', 'read', 'investigate'])
 export const citeCiterSettingsSchema = z.object({
   includeSourceReasoning: z.boolean(),
   panelWidthPercent: z.number().int().min(28).max(55),
+  /** Use Citer's own panel instead of a tab in DSH's right sidebar. */
+  standalonePanel: z.boolean().optional(),
   reopenLastTopic: z.boolean(),
   tutorPrompt: z.string().max(4000).optional(),
   followupQuestions: z.boolean().optional(),
@@ -55,6 +57,7 @@ export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>
 export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   includeSourceReasoning: true,
   panelWidthPercent: 34,
+  standalonePanel: false,
   reopenLastTopic: true,
   followupQuestions: true,
   boardAnimations: true,

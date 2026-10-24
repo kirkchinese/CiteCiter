@@ -49,6 +49,7 @@ export function CiterPluginConfig(props: CiteCiterSettingsProps & { readonly vie
 export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, useOverlay, companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
   useLocale()
   const host = useOverlay?.(value => value.host) ?? 'overlay'
+  const sidebarAvailable = useOverlay?.(value => value.sidebarAvailable) ?? false
   const snapshot = useCompanion(value => value)
   const documentSnapshot = useDocument(value => value)
   const updateSnapshot = useUpdate(value => value)
@@ -80,7 +81,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, useOve
     if (value === (settings.shortcutOpenPanel ?? '')) return
     void companion.setSetting('shortcutOpenPanel', value === '' ? undefined : value)
   }
-  const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations' | 'autoReadSource'>(key: Key, label: string, fallback: boolean) =>
+  const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations' | 'autoReadSource' | 'standalonePanel'>(key: Key, label: string, fallback: boolean) =>
     <Switch label={label} checked={settings[key] ?? fallback} disabled={saving} onChange={value => { void companion.setSetting(key, value) }} />
   return (
     <div className={css.page}>
@@ -130,6 +131,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, useOve
 
       <section className={css.group}>
         <h3>{t('settings.panel.title')}</h3>
+        {sidebarAvailable && <Row title={t('settings.panel.standalone')} desc={t('settings.panel.standaloneDesc')}>{toggle('standalonePanel', t('settings.panel.standalone'), false)}</Row>}
         {/* In DSH's right sidebar the sidebar owns Citer's width. */}
         {host !== 'tab' && <Row title={t('settings.panel.width')} desc={t('settings.panel.widthDesc')}>
           <input className={css.range} type="range" min={28} max={55} step={1} value={widthDraft} aria-label={t('settings.panel.widthAria')}

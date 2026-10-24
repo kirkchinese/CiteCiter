@@ -20,6 +20,7 @@
     "@deepseek-ai/dsh-client-ui-approval": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-chat": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-conversation": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-input-trigger": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-layout": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",

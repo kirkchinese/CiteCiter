@@ -11,7 +11,6 @@ import css from './SelectionToolbar.module.css'
 
 const INLINE_ACTIONS = 4
 const GAP = 8
-/** The explicit way to start a separate Topic: the user's own question about the selection. */
 
 /** Toolbar callbacks; the controllers stay with the Client plugin. */
 export interface SelectionToolbarActions {
@@ -28,8 +27,8 @@ function place(anchor: SelectionAnchor, width: number, height: number): { left: 
 }
 
 /**
- * Actions for the current selection: the first configured actions inline, the rest and
- * "新 Topic" under a menu. Pressing a button never moves focus or clears the selection first.
+ * Actions for the current selection: the first configured actions inline with Quote second, the
+ * rest and "Ask in a new Topic" under a menu. Pressing a button never moves focus or clears the selection first.
  */
 export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
   readonly useToolbar: SnapshotSelectorHook<SelectionToolbarSnapshot>
@@ -80,9 +79,11 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
     <div ref={ref} className={css.toolbar} style={style} role="toolbar" aria-label={t('settings.toolbar.title')} data-citeciter-toolbar
       onMouseDown={event => event.preventDefault()} onPointerDown={event => event.preventDefault()}>
       <img className={css.mark} src={mascotUrl} alt="" aria-hidden="true" />
+      {/* The first action keeps its place; Quote follows it, then the other actions. */}
+      {inline.slice(0, 1).map(action => <button key={0} type="button" title={action.ask ? t('settings.toolbar.ask') : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
       <button type="button" disabled={quoting} title={inTopic ? t('settings.toolbar.quoteTopic') : current.source.kind === 'document' ? t('settings.toolbar.quoteCiter') : t('settings.toolbar.quoteMain')} onClick={() => { void quote() }}>{t('settings.toolbar.quote')}</button>
       {quoteError !== null && <span className={css.error} role="alert" title={quoteError}>{quoteError}</span>}
-      {inline.map((action, index) => <button key={index} type="button" title={action.ask ? t('settings.toolbar.ask') : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
+      {inline.slice(1).map((action, index) => <button key={index + 1} type="button" title={action.ask ? t('settings.toolbar.ask') : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
       {(more.length > 0 || !inTopic) && <button type="button" className={css.more} aria-label={t('settings.toolbar.more')} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h.01M10 10h.01M15 10h.01" /></svg>
       </button>}

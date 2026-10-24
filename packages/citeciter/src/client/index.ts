@@ -31,7 +31,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { CiteLauncher } from './components/CiteLauncher.tsx'
 import { UpdateNotice } from './components/UpdateNotice.tsx'
 import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry, readUserMessageQuote } from './entries.ts'
-import { appendMainQuote } from './main-quote.ts'
+import { insertMainQuote, installQuoteSource } from './main-quote.ts'
+import { installQuoteRendering } from './user-text-quote.ts'
 import { installDynamicAccelerator } from './hotkeys.ts'
 import { createReaderController } from './reader-controller.ts'
 import { createSettingsDocumentController } from './settings-document.ts'
@@ -63,6 +64,8 @@ export async function apply(ctx: Context): Promise<void> {
   const unmountRemote = await ctx.remote.$mount(TYPERT_REMOTE)
   ctx.effect(() => unmountRemote, 'citeciter: Remote contribution')
   installLocale(ctx)
+  installQuoteSource(ctx)
+  installQuoteRendering(ctx)
 
   ctx.inject(['remote.citeciter'], (remoteCtx) => {
     const readChat = createSourceChatReader(remoteCtx)
@@ -252,7 +255,11 @@ export async function apply(ctx: Context): Promise<void> {
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay', id: 'citeciter.selection-toolbar',
       inject: () => ({ toolbar: { dismiss: toolbar.dismiss, run: actions.run, quote: async (source: import('./action-controller.ts').ActionSource) => {
-        if (source.kind === 'conversation' || source.kind === 'quote') await appendMainQuote(remoteCtx, source.kind === 'conversation' ? source.selection.sourceSessionId : source.sourceSessionId, source.kind === 'conversation' ? source.quoteText ?? source.selection.displayText : source.displayText)
+        if (source.kind === 'conversation') insertMainQuote(remoteCtx, source.selection.sourceSessionId, {
+          from: source.selection.kind === 'tool-result' ? 'tool' : 'assistant',
+          text: source.quoteText ?? source.selection.displayText,
+        })
+        else if (source.kind === 'quote') insertMainQuote(remoteCtx, source.sourceSessionId, { from: 'user', text: source.displayText })
         else await execute.quote(source)
       } }, hooks: { toolbar, companion } }),
     }, SelectionToolbar))
@@ -292,7 +299,7 @@ export async function apply(ctx: Context): Promise<void> {
         key: CITER_TAB_ID,
         inject: panelInject,
       }, CiterTab))
-      openTab = presentation => {
+      const openSidebarTab = (presentation: import('../actions.ts').PanelPresentation) => {
         try {
           // A floating action opens beside the current tab instead of taking its place.
           sideCtx.sidebarRight.openTab(CITER_TAB_KIND, presentation === 'floating' ? { preferNewPane: true } : {})
@@ -301,10 +308,22 @@ export async function apply(ctx: Context): Promise<void> {
           remoteCtx.logger.warn('Citer could not open its sidebar tab', error)
         }
       }
-      bus.setHost('tab')
+      // The user may keep Citer's own panel instead; a Citer tab opened then hands over to it.
+      const followPanelSetting = () => {
+        const standalone = settings.getSnapshot().value?.standalonePanel === true
+        const { host, panelOpen, presentation } = bus.getSnapshot()
+        openTab = standalone ? undefined : openSidebarTab
+        bus.setHost(standalone ? 'overlay' : 'tab')
+        // An open standalone panel continues in the sidebar.
+        if (!standalone && host === 'overlay' && panelOpen) openSidebarTab(presentation)
+      }
+      bus.setSidebarAvailable(true)
+      followPanelSetting()
+      sideCtx.effect(() => settings.subscribe(followPanelSetting), 'citeciter: panel host setting')
       sideCtx.effect(() => () => {
         openTab = undefined
         bus.setHost('overlay')
+        bus.setSidebarAvailable(false)
       }, 'citeciter: sidebar host')
     })
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({

@@ -3,7 +3,6 @@ import { type CiteAction } from '../../actions.ts';
 import type { ActionSource } from '../action-controller.ts';
 import type { CompanionSnapshot } from '../companion-controller.ts';
 import type { SelectionToolbarSnapshot } from '../selection-toolbar.ts';
-/** The explicit way to start a separate Topic: the user's own question about the selection. */
 /** Toolbar callbacks; the controllers stay with the Client plugin. */
 export interface SelectionToolbarActions {
     readonly dismiss: () => void;
@@ -11,8 +10,8 @@ export interface SelectionToolbarActions {
     readonly quote: (source: ActionSource) => Promise<void>;
 }
 /**
- * Actions for the current selection: the first configured actions inline, the rest and
- * "新 Topic" under a menu. Pressing a button never moves focus or clears the selection first.
+ * Actions for the current selection: the first configured actions inline with Quote second, the
+ * rest and "Ask in a new Topic" under a menu. Pressing a button never moves focus or clears the selection first.
  */
 export declare function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
     readonly useToolbar: SnapshotSelectorHook<SelectionToolbarSnapshot>;

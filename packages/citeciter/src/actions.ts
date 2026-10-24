@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { learningQuestion } from './learning.ts'
-import { MODEL_SELECTION_REQUIRED } from './model-admission.ts'
 
 /**
  * One persisted action slot, shown in the selection toolbar and the optional wheel.
@@ -28,7 +27,7 @@ export type ActionModel = z.infer<typeof actionModelSchema>
 
 /** Toolbar order, and clockwise from twelve o'clock on the wheel. Empty slots retain their positions. */
 export const DEFAULT_WHEEL_SLOTS: readonly (CiteAction | null)[] = [
-  { label: '提问', prompt: '', ask: true, presentation: 'side' },
+  { label: '问 Citer', prompt: '', ask: true, presentation: 'side' },
   { label: '解释', prompt: learningQuestion('logic'), ask: false, presentation: 'side' },
   { label: '找错误', prompt: '请审查引用内容的错误、遗漏和成立条件。区分可确认的错误与需要补充的信息。', ask: false, presentation: 'floating' },
   { label: '翻译', prompt: '请将引用内容翻译为中文，保留重要术语的原文。', ask: false, presentation: 'floating' },
@@ -40,7 +39,7 @@ export const DEFAULT_WHEEL_SLOTS: readonly (CiteAction | null)[] = [
 
 /** English built-in actions, used only when the active UI language is not Chinese. */
 export const ENGLISH_WHEEL_SLOTS: readonly (CiteAction | null)[] = [
-  { label: 'Ask', prompt: '', ask: true, presentation: 'side' },
+  { label: 'Ask Citer', prompt: '', ask: true, presentation: 'side' },
   { label: 'Explain', prompt: englishLearningQuestion('Underlying logic'), ask: false, presentation: 'side' },
   { label: 'Find errors', prompt: 'Review the quoted content for errors, omissions, and conditions under which its claims hold. Distinguish confirmed errors from information that still needs to be checked.', ask: false, presentation: 'floating' },
   { label: 'Translate', prompt: 'Translate the quoted content into English, preserving important terms in their original language.', ask: false, presentation: 'floating' },
@@ -59,23 +58,36 @@ function englishLearningQuestion(stage: 'Underlying logic' | 'Quantitative analy
   return `[Learning stage: ${stage}]\n${instructions[stage]}${question.trim() === '' ? '' : `\n\nMy question: ${question.trim()}`}`
 }
 
-/** The English counterpart of one unchanged built-in Chinese action, wherever it now sits; else undefined. */
-function englishDefault(slot: CiteAction): CiteAction | undefined {
-  const index = DEFAULT_WHEEL_SLOTS.findIndex(original => original !== null && slot.label === original.label
-    && slot.prompt === original.prompt && slot.ask === original.ask && slot.presentation === original.presentation)
-  const english = index < 0 ? undefined : ENGLISH_WHEEL_SLOTS[index]
-  return english == null ? undefined : { ...english, ...(slot.target === undefined ? {} : { target: slot.target }) }
+/** Built-in actions as earlier versions saved them, by their position in the built-in list. */
+const EARLIER_BUILT_INS: readonly (readonly [number, CiteAction])[] = [
+  [0, { label: '提问', prompt: '', ask: true, presentation: 'side' }],
+  [0, { label: 'Ask', prompt: '', ask: true, presentation: 'side' }],
+]
+
+/** Which built-in action `slot` is, in any language or earlier version; -1 when the user changed it. */
+function builtInIndex(slot: CiteAction): number {
+  const same = (original: CiteAction | null) => original !== null && slot.label === original.label
+    && slot.prompt === original.prompt && slot.ask === original.ask && slot.presentation === original.presentation
+  const current = [DEFAULT_WHEEL_SLOTS, ENGLISH_WHEEL_SLOTS].map(list => list.findIndex(same)).find(index => index >= 0)
+  return current ?? EARLIER_BUILT_INS.find(([, original]) => same(original))?.[0] ?? -1
 }
 
 /**
  * Resolve the actions for the current UI language without changing persisted settings. Saving
  * actions stores the whole list, so each slot is judged on its own: a built-in action the user
- * left unchanged (even if moved) follows the language; an edited or added action stays as written.
+ * left unchanged (even if moved, saved in another language or by an earlier version) shows in the
+ * current language; an edited or added action stays as written.
  */
 export function localizedWheelSlots(slots: readonly (CiteAction | null)[] | undefined, chinese: boolean): readonly (CiteAction | null)[] {
-  if (chinese) return slots ?? DEFAULT_WHEEL_SLOTS
-  if (slots === undefined) return ENGLISH_WHEEL_SLOTS
-  return slots.map(slot => slot === null ? null : englishDefault(slot) ?? slot)
+  const builtIns = chinese ? DEFAULT_WHEEL_SLOTS : ENGLISH_WHEEL_SLOTS
+  if (slots === undefined) return builtIns
+  const localized = slots.map((slot) => {
+    if (slot === null) return null
+    const builtIn = builtIns[builtInIndex(slot)]
+    if (builtIn == null || builtIn.label === slot.label && builtIn.prompt === slot.prompt) return slot
+    return { ...builtIn, ...(slot.target === undefined ? {} : { target: slot.target }) }
+  })
+  return localized.every((slot, index) => slot === slots[index]) ? slots : localized
 }
 
 /**
@@ -86,18 +98,6 @@ export function localizedWheelSlots(slots: readonly (CiteAction | null)[] | unde
  */
 export function actionDelivery(action: CiteAction, preference: ActionDelivery | undefined): ActionDelivery {
   return action.ask ? 'draft' : preference ?? 'send'
-}
-
-/**
- * Explain a preset action the host refused to send, which then moves into the composer.
- * The composer already explains a missing model, so that reason is not repeated.
- * @param reason - the host's refusal message.
- * @returns one message for the panel.
- */
-export function undeliveredActionMessage(reason: string): string {
-  return reason === MODEL_SELECTION_REQUIRED
-    ? '动作没有发送，已放进输入框'
-    : `${reason.replace(/[。；;.\s]+$/u, '')}。动作已放进输入框，可修改后发送`
 }
 
 /** Combine a mode and optional user question without hidden system state. */
