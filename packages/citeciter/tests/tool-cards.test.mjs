@@ -3,8 +3,22 @@ import test from 'node:test'
 
 import {
   deriveDiffCard, deriveQuestionReply, deriveReadCard, deriveSearchCard,
-  deriveTerminalCard, deriveToolCard, isShellTool,
+  deriveTerminalCard, deriveToolCard, isShellTool, lineTotals, parseWorkspaceDiff,
 } from '../lib/types/client/tool-cards.js'
+
+test('workspace_changes diffs become old and new text per hunk, with the file list kept', () => {
+  const markdown = 'Changes since 2026-10-24T00:00:00.000Z, up to now:\n\n- notes.md (+1 −1)\n\n```diff\ndiff --git a/notes.md b/notes.md\nindex 1..2 100644\n--- a/notes.md\n+++ b/notes.md\n@@ -1,3 +1,3 @@\n # Notes\n-old line\n+new line\n context\n\\ No newline at end of file\n```\n\nThe diff was cut at the 64 KiB budget.'
+  const parsed = parseWorkspaceDiff(markdown)
+  assert.equal(parsed.lead, 'Changes since 2026-10-24T00:00:00.000Z, up to now:\n\n- notes.md (+1 −1)')
+  assert.deepEqual(parsed.diffs, [{ path: 'notes.md', oldText: '# Notes\nold line\ncontext', newText: '# Notes\nnew line\ncontext' }])
+  assert.equal(parsed.tail, 'The diff was cut at the 64 KiB budget.')
+  assert.equal(parseWorkspaceDiff('No changes since then.'), null)
+})
+
+test('line totals count a final newline as the end of a line', () => {
+  assert.deepEqual(lineTotals([{ path: 'a', oldText: null, newText: 'alpha\nbeta\n' }]), { added: 2, removed: 0 })
+  assert.deepEqual(lineTotals([{ path: 'a', oldText: 'x\ny\n', newText: 'x\nz\n' }]), { added: 1, removed: 1 })
+})
 
 const tool = (name, overrides = {}) => ({
   id: `call-${name}`, seq: 1, role: 'tool', name,

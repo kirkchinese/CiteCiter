@@ -56,6 +56,17 @@ export declare function lineTotals(diffs: readonly DiffHunk[]): {
     added: number;
     removed: number;
 };
+/**
+ * Turn the unified diff in a `workspace_changes` result into DiffBlock hunks: each `@@` hunk becomes
+ * its old and new text, context lines on both sides. Returns null when the result carries no diff.
+ * @param markdown - the tool's Markdown result: a file list, then one fenced `diff` block.
+ * @returns the text before and after the fence and the hunks, or null.
+ */
+export declare function parseWorkspaceDiff(markdown: string): {
+    readonly lead: string;
+    readonly diffs: DiffHunk[];
+    readonly tail: string;
+} | null;
 /** Shell aliases share a terminal view, but run_code remains a parent tool tree. */
 export declare function isShellTool(name: string): boolean;
 /** Parse exit markers without ever treating the marker as command output. */

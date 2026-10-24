@@ -36519,6 +36519,57 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				removed
 			};
 		}
+		/**
+		* Turn the unified diff in a `workspace_changes` result into DiffBlock hunks: each `@@` hunk becomes
+		* its old and new text, context lines on both sides. Returns null when the result carries no diff.
+		* @param markdown - the tool's Markdown result: a file list, then one fenced `diff` block.
+		* @returns the text before and after the fence and the hunks, or null.
+		*/
+		function parseWorkspaceDiff(markdown) {
+			const fence = /^(`{3,})diff\n([\s\S]*?)\n\1$/mu.exec(markdown);
+			if (fence === null) return null;
+			const diffs = [];
+			let path = null;
+			let hunk = null;
+			const close = () => {
+				if (hunk !== null && path !== null) diffs.push({
+					path,
+					oldText: hunk.old.join("\n"),
+					newText: hunk.next.join("\n")
+				});
+				hunk = null;
+			};
+			for (const line of fence[2].split("\n")) {
+				const file = /^diff --git a\/(.+) b\/(.+)$/u.exec(line);
+				if (file !== null) {
+					close();
+					path = file[2];
+					continue;
+				}
+				if (line.startsWith("@@")) {
+					close();
+					hunk = {
+						old: [],
+						next: []
+					};
+					continue;
+				}
+				if (hunk === null || line.startsWith("\\")) continue;
+				const current = hunk;
+				if (line.startsWith("+")) current.next.push(line.slice(1));
+				else if (line.startsWith("-")) current.old.push(line.slice(1));
+				else {
+					current.old.push(line.slice(1));
+					current.next.push(line.slice(1));
+				}
+			}
+			close();
+			return diffs.length === 0 ? null : {
+				lead: markdown.slice(0, fence.index).trim(),
+				diffs,
+				tail: markdown.slice(fence.index + fence[0].length).trim()
+			};
+		}
 		/** Shell aliases share a terminal view, but run_code remains a parent tool tree. */
 		function isShellTool(name) {
 			return /(?:^|[._/-])(?:bash|pwsh|powershell|shell|run_command|execute_command)$/iu.test(name);
@@ -37268,6 +37319,28 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				})] });
 			}
 		}
+		/** A codebase change result: its file list, then the changes as DSH's coloured diff. */
+		function WorkspaceChanges({ markdown }) {
+			const parsed = parseWorkspaceDiff(markdown);
+			if (parsed === null) return (0, react_jsx_runtime.jsx)(RichAnswer, {
+				text: markdown,
+				streaming: false
+			});
+			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+				parsed.lead !== "" && (0, react_jsx_runtime.jsx)(RichAnswer, {
+					text: parsed.lead,
+					streaming: false
+				}),
+				(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DiffBlock, {
+					diffs: parsed.diffs,
+					labels: diffBlockLabels
+				}),
+				parsed.tail !== "" && (0, react_jsx_runtime.jsx)(RichAnswer, {
+					text: parsed.tail,
+					streaming: false
+				})
+			] });
+		}
 		/** The file a read or edit card is about, and the first line it showed. */
 		function cardFile(message, card) {
 			if (card?.kind === "diff") return { path: card.path };
@@ -37303,10 +37376,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								onClick: () => openFile?.(file.path, file.line),
 								children: file.path
 							}),
-							reply !== null ? (0, react_jsx_runtime.jsx)(QuestionReplyBody, { reply }) : message.name === "workspace_changes" && message.result !== null && !message.isError ? (0, react_jsx_runtime.jsx)(RichAnswer, {
-								text: message.result,
-								streaming: false
-							}) : card !== null ? (0, react_jsx_runtime.jsx)(CardBody, { card }) : (0, react_jsx_runtime.jsx)(GenericBody, { message }),
+							reply !== null ? (0, react_jsx_runtime.jsx)(QuestionReplyBody, { reply }) : message.name === "workspace_changes" && message.result !== null && !message.isError ? (0, react_jsx_runtime.jsx)(WorkspaceChanges, { markdown: message.result }) : card !== null ? (0, react_jsx_runtime.jsx)(CardBody, { card }) : (0, react_jsx_runtime.jsx)(GenericBody, { message }),
 							childCalls.length > 0 && (0, react_jsx_runtime.jsx)("div", {
 								className: ToolMessage_module_css_default.childCalls,
 								"aria-label": "子工具调用",

@@ -8,7 +8,7 @@ import {
 import { diffBlockLabels, jsonTreeLabels, readBlockLabels, searchBlockLabels, terminalBlockLabels } from '../copy.ts'
 import type { TopicMessage } from '../../topic.ts'
 import type { NativeComposer } from '../native-composer.ts'
-import { deriveQuestionReply, deriveToolCard, isShellTool, type ToolCard } from '../tool-cards.ts'
+import { deriveQuestionReply, deriveToolCard, isShellTool, parseWorkspaceDiff, type ToolCard } from '../tool-cards.ts'
 import { toolPresentation } from '../tool-presentation.ts'
 import { MessageAttachments } from './MessageAttachments.tsx'
 import { QuestionReplyBody } from './QuestionReplyBody.tsx'
@@ -88,6 +88,17 @@ function CardBody({ card }: { readonly card: ToolCard }) {
   }
 }
 
+/** A codebase change result: its file list, then the changes as DSH's coloured diff. */
+function WorkspaceChanges({ markdown }: { readonly markdown: string }) {
+  const parsed = parseWorkspaceDiff(markdown)
+  if (parsed === null) return <RichAnswer text={markdown} streaming={false} />
+  return <>
+    {parsed.lead !== '' && <RichAnswer text={parsed.lead} streaming={false} />}
+    <DiffBlock diffs={parsed.diffs} labels={diffBlockLabels} />
+    {parsed.tail !== '' && <RichAnswer text={parsed.tail} streaming={false} />}
+  </>
+}
+
 /** The file a read or edit card is about, and the first line it showed. */
 function cardFile(message: ToolMessage, card: ToolCard | null): { readonly path: string, readonly line?: number } | null {
   if (card?.kind === 'diff') return { path: card.path }
@@ -117,7 +128,7 @@ export function ToolRow({ message, childCalls, sessionId, load, openFile }: {
         {file !== null && <button type="button" className={css.fileLink} title="在右侧栏打开" onClick={() => openFile?.(file.path, file.line)}>{file.path}</button>}
         {reply !== null ? <QuestionReplyBody reply={reply} />
           : message.name === 'workspace_changes' && message.result !== null && !message.isError
-            ? <RichAnswer text={message.result} streaming={false} />
+            ? <WorkspaceChanges markdown={message.result} />
             : card !== null ? <CardBody card={card} /> : <GenericBody message={message} />}
         {childCalls.length > 0 && <div className={css.childCalls} aria-label="子工具调用">
           {childCalls.map(child => <ToolRow key={child.id} message={child} childCalls={[]} sessionId={sessionId} load={load} openFile={openFile} />)}

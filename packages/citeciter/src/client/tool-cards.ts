@@ -143,6 +143,36 @@ export function lineTotals(diffs: readonly DiffHunk[]): { added: number, removed
   return { added, removed }
 }
 
+/**
+ * Turn the unified diff in a `workspace_changes` result into DiffBlock hunks: each `@@` hunk becomes
+ * its old and new text, context lines on both sides. Returns null when the result carries no diff.
+ * @param markdown - the tool's Markdown result: a file list, then one fenced `diff` block.
+ * @returns the text before and after the fence and the hunks, or null.
+ */
+export function parseWorkspaceDiff(markdown: string): { readonly lead: string, readonly diffs: DiffHunk[], readonly tail: string } | null {
+  const fence = /^(`{3,})diff\n([\s\S]*?)\n\1$/mu.exec(markdown)
+  if (fence === null) return null
+  const diffs: DiffHunk[] = []
+  let path: string | null = null
+  let hunk: { old: string[], next: string[] } | null = null
+  const close = () => {
+    if (hunk !== null && path !== null) diffs.push({ path, oldText: hunk.old.join('\n'), newText: hunk.next.join('\n') })
+    hunk = null
+  }
+  for (const line of fence[2]!.split('\n')) {
+    const file = /^diff --git a\/(.+) b\/(.+)$/u.exec(line)
+    if (file !== null) { close(); path = file[2]!; continue }
+    if (line.startsWith('@@')) { close(); hunk = { old: [], next: [] }; continue }
+    if (hunk === null || line.startsWith('\\')) continue
+    const current: { old: string[], next: string[] } = hunk
+    if (line.startsWith('+')) current.next.push(line.slice(1))
+    else if (line.startsWith('-')) current.old.push(line.slice(1))
+    else { current.old.push(line.slice(1)); current.next.push(line.slice(1)) }
+  }
+  close()
+  return diffs.length === 0 ? null : { lead: markdown.slice(0, fence.index).trim(), diffs, tail: markdown.slice(fence.index + fence[0].length).trim() }
+}
+
 /** Shell aliases share a terminal view, but run_code remains a parent tool tree. */
 export function isShellTool(name: string): boolean {
   return /(?:^|[._/-])(?:bash|pwsh|powershell|shell|run_command|execute_command)$/iu.test(name)
