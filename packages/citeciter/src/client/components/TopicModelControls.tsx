@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import { useState } from 'react'
 import { IconChevronDownOutlineRegular, Menu, type MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ProviderOption, TopicModelConfig } from '../../topic.ts'
@@ -14,10 +15,11 @@ export function TopicModelControls({ providers, route, saving, onModel, onReason
   readonly onModel: (provider: string, model: string) => void
   readonly onReasoning: (effort: string | null) => void
 }) {
+  useLocale()
   const [open, setOpen] = useState(false)
   const model = providers.find(provider => provider.id === route.provider)?.models.find(model => model.id === route.model)
   const name = model?.name ?? route.model
-  const effort = model?.reasoningEfforts.find(item => item.id === route.reasoningEffort)?.name ?? '默认'
+  const effort = model?.reasoningEfforts.find(item => item.id === route.reasoningEffort)?.name ?? t('panel.model.default')
   const items: MenuEntry[] = [
     ...providers.filter(provider => provider.models.length > 0).flatMap((provider): MenuEntry[] => [
       { type: 'label', id: `provider:${provider.id}`, text: provider.name },
@@ -27,8 +29,8 @@ export function TopicModelControls({ providers, route, saving, onModel, onReason
     // where a submenu opening to the right would be clipped.
     ...(model?.reasoningEfforts.length ? [
       { type: 'separator', id: 'efforts' } as const,
-      { type: 'label', id: 'effort-label', text: '思考强度' } as const,
-      { id: EFFORT, label: '模型默认' },
+      { type: 'label', id: 'effort-label', text: t('panel.model.effort') } as const,
+      { id: EFFORT, label: t('panel.model.modelDefault') },
       ...model.reasoningEfforts.map(item => ({ id: EFFORT + item.id, label: item.name })),
     ] : []),
   ]
@@ -49,7 +51,7 @@ export function TopicModelControls({ providers, route, saving, onModel, onReason
     items={items}
     selectedIds={[MODEL + JSON.stringify([route.provider, route.model]), EFFORT + (route.reasoningEffort ?? '')]}
     onSelect={select}
-    anchor={<button type="button" className={css.trigger} aria-disabled={saving} aria-busy={saving} aria-label={`模型与思考强度：${name}，${effort}`} aria-haspopup="menu" aria-expanded={open} onClick={() => { if (!saving) setOpen(value => !value) }}>
+    anchor={<button type="button" className={css.trigger} aria-disabled={saving} aria-busy={saving} aria-label={t('panel.model.label', { name, effort })} aria-haspopup="menu" aria-expanded={open} onClick={() => { if (!saving) setOpen(value => !value) }}>
       <span>{name}</span><small>{effort}</small><IconChevronDownOutlineRegular className={css.chevron} />
     </button>}
   />

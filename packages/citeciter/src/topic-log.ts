@@ -1,5 +1,5 @@
 /** Pure projections of one Topic Session log: transcript rows, board state, title and source cursor. */
-import { assembleAssistantStream, type ContentBlock } from '@deepseek-ai/dsh-llm'
+import { assembleAssistantStream, lastAssistantStreamChunk, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { SessionEvent, SessionHeader, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import { foldSessionTitle } from '@deepseek-ai/dsh-session-title'
 import { applyBoardOps, boardBatchSchema, EMPTY_BOARD_STATE, type BoardSnapshot } from './board.ts'
@@ -12,7 +12,7 @@ import { contextMessage } from './message-projection.ts'
 import { readQuestionReply, questionReplyText } from './question-reply.ts'
 import { projectRejectedToolApprovals } from './tool-approval-projection.ts'
 import { toolCallRecord, toolResultRecord } from './tool-events.ts'
-import type { TopicMessage, TopicMetadata } from './topic.ts'
+import type { TopicMessage, TopicMetadata, TopicUsage } from './topic.ts'
 
 /** Session header and events used to project one Topic. */
 export interface TopicLog {
@@ -29,6 +29,61 @@ function textBlocks(content: readonly ContentBlock[], type: 'text' | 'reasoning'
 
 function toolResultText(content: readonly ContentBlock[]): string {
   return textBlocks(content, 'text')
+}
+
+function contentAttachments(content: readonly ContentBlock[], imageName: string, fileName: string): Array<{ kind: 'image' | 'file', id: string, name: string }> {
+  return content.flatMap(block => block.type === 'image' || block.type === 'file'
+    ? [{ kind: block.type, id: String(block.attachment.attachmentId), name: block.attachment.name ?? (block.type === 'image' ? imageName : fileName) }]
+    : [])
+}
+
+/** Fold Topic-owned assistant usage, including retried attempts, without inherited source events. */
+export function projectTopicUsage(log: TopicLog): TopicUsage | undefined {
+  const count = (value: number | undefined): value is number => value !== undefined && Number.isSafeInteger(value) && value >= 0
+  let inputTokens = 0
+  let outputTokens = 0
+  let cachedInputTokens = 0
+  let lastContextTokens: number | undefined
+  let contextWindow: number | undefined
+  let previous: { turn: number, step: number, input: number, output: number, cached: number } | undefined
+  let reported = false
+  for (const event of log.events.slice(log.inheritedEventCount)) {
+    if (event.type === 'request/context') {
+      const window = event.data.contextWindow
+      contextWindow = count(window) && window > 0 ? window : undefined
+      continue
+    }
+    if ((event.type as string) === 'llm/retry-started') {
+      const retry = event.data as { turn?: unknown, step?: unknown }
+      if (previous !== undefined && retry.turn === previous.turn && retry.step === previous.step) previous = undefined
+      continue
+    }
+    if (event.type !== 'assistant/message' && event.type !== 'assistant/attempt') continue
+    const sample = (event.type === 'assistant/message' ? event.data.usage : undefined)
+      ?? lastAssistantStreamChunk(event.data.stream, 'usage')?.usage
+    if (sample === undefined || !count(sample.inputTokens) || !count(sample.outputTokens)
+      || (sample.cacheReadTokens !== undefined && !count(sample.cacheReadTokens))
+      || (sample.cacheWriteTokens !== undefined && !count(sample.cacheWriteTokens))) continue
+    const input = sample.inputTokens + (sample.cacheReadTokens ?? 0) + (sample.cacheWriteTokens ?? 0)
+    if (!count(input)) continue
+    const cached = sample.cacheReadTokens ?? 0
+    const replacing = previous?.turn === event.data.turn && previous.step === event.data.step ? previous : undefined
+    const nextInput = inputTokens - (replacing?.input ?? 0) + input
+    const nextOutput = outputTokens - (replacing?.output ?? 0) + sample.outputTokens
+    const nextCached = cachedInputTokens - (replacing?.cached ?? 0) + cached
+    if (!count(nextInput) || !count(nextOutput) || !count(nextCached)) continue
+    inputTokens = nextInput
+    outputTokens = nextOutput
+    cachedInputTokens = nextCached
+    lastContextTokens = input
+    previous = { turn: event.data.turn, step: event.data.step, input, output: sample.outputTokens, cached }
+    reported = true
+  }
+  return reported ? {
+    inputTokens, outputTokens, cachedInputTokens,
+    ...(lastContextTokens === undefined ? {} : { lastContextTokens }),
+    ...(contextWindow === undefined ? {} : { contextWindow }),
+  } : undefined
 }
 
 /** Last read scan cursor from this Topic log; it may move backward and never limits future reads. */
@@ -69,9 +124,20 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
   let error: string | null = null
   const attemptByTurn = new Map<number, number>()
   const bodyByTurn = new Set<number>()
+  // Calls started in the open turn; any still without a result when the turn ends were interrupted.
+  let openTurnCalls: string[] = []
+  const settleOpenTurn = () => {
+    for (const callId of openTurnCalls) {
+      const index = toolIndexes.get(callId)
+      const call = index === undefined ? undefined : messages[index]
+      if (index !== undefined && call?.role === 'tool' && call.running) messages[index] = { ...call, running: false, interruptionOutcome: 'interrupted' }
+    }
+    openTurnCalls = []
+  }
   for (const event of events) {
     if (event.type === 'turn/start') {
       error = null
+      settleOpenTurn()
       continue
     }
     if (event.type === 'step/start') {
@@ -84,13 +150,15 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
       const index = toolIndexes.get(reply.callId)
       const call = index === undefined ? undefined : messages[index]
       if (index !== undefined && call?.role === 'tool' && call.name === 'ask_user_question') {
-        messages[index] = { ...call, questionReply: reply, running: false }
+        // A reply after a restart answers a question the ended turn left open.
+        const { interruptionOutcome: _interrupted, ...answered } = call
+        messages[index] = { ...answered, questionReply: reply, running: false }
       }
       continue
     }
     if (event.type === 'user/message' && event.data.source.kind === 'user') {
       const text = textBlocks(event.data.content, 'text')
-      const attachments = event.data.content.flatMap(block => block.type === 'image' || block.type === 'file' ? [{ kind: block.type, id: String(block.attachment.attachmentId), name: block.attachment.name ?? (block.type === 'image' ? '图片' : '文件') }] : [])
+      const attachments = contentAttachments(event.data.content, '图片', '文件')
       if (text !== '' || attachments.length > 0) messages.push({
         id: event.data.id,
         seq: event.seq,
@@ -108,6 +176,9 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
         seq: event.seq,
         role: 'context',
         label: context.label,
+        contextRole: context.contextRole,
+        producer: context.producer,
+        ...(context.summary === undefined ? {} : { summary: context.summary }),
         text,
       })
       continue
@@ -117,13 +188,15 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
         ? event.data.message.content : assembleAssistantStream(event.data.stream).blocks()
       const text = textBlocks(content, 'text')
       const reasoning = textBlocks(content, 'reasoning')
+      const attachments = contentAttachments(content, '图片', '文件')
       const renderKey = log.renderKeys?.get(event.seq)
-      if (text !== '') bodyByTurn.add(event.data.turn)
-      if (text !== '' || reasoning !== '') messages.push({
+      if (text !== '' || attachments.length > 0) bodyByTurn.add(event.data.turn)
+      if (text !== '' || reasoning !== '' || attachments.length > 0) messages.push({
         id: event.type === 'assistant/message' ? event.data.message.id : `attempt:${event.seq}`,
         ...(renderKey === undefined ? {} : { renderKey }),
         seq: event.seq,
         role: 'assistant',
+        ...(attachments.length === 0 ? {} : { attachments }),
         text,
         reasoning: reasoning === '' ? null : reasoning,
         streaming: false,
@@ -133,6 +206,7 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
     const toolCall = toolCallRecord(event)
     if (toolCall !== undefined) {
       toolIndexes.set(toolCall.callId, messages.length)
+      openTurnCalls.push(toolCall.callId)
       messages.push({
         id: toolCall.callId,
         seq: event.seq,
@@ -140,6 +214,7 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
         name: toolCall.name,
         arguments: toolCall.arguments,
         result: null,
+        ...(toolCall.parentCallId === undefined ? {} : { parentCallId: toolCall.parentCallId }),
         isError: false,
         running: true,
       })
@@ -156,7 +231,8 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
         ...call,
         seq: event.seq,
         result: toolResultText(toolResult.content),
-        attachments: toolResult.content.flatMap(part => part.type === 'image' || part.type === 'file' ? [{ kind: part.type, id: String(part.attachment.attachmentId), name: part.attachment.name ?? (part.type === 'image' ? '工具图片' : '工具文件') }] : []),
+        attachments: contentAttachments(toolResult.content, '工具图片', '工具文件'),
+        ...(toolResult.meta === undefined ? {} : { meta: toolResult.meta }),
         isError: toolResult.isError,
         ...(toolResult.errorCode === undefined ? {} : { errorCode: toolResult.errorCode }),
         ...(rejectedToolApprovals.has(callId) ? { approvalOutcome: 'rejected' as const } : {}),
@@ -171,10 +247,12 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
       const stopped = reason.kind === 'aborted'
       const text = reason.kind === 'error' ? reason.error.message : '已停止，可继续。'
       error = stopped ? null : text
+      settleOpenTurn()
       messages.push({
         id: `error:${event.seq}`,
         seq: event.seq,
         role: 'error',
+        turn: event.data.turn,
         text,
         bodyRetained: bodyByTurn.has(event.data.turn),
         attempt: Math.max(1, attemptByTurn.get(event.data.turn) ?? 1),
@@ -182,7 +260,10 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
       })
       continue
     }
-    if (event.type === 'turn/end') error = null
+    if (event.type === 'turn/end') {
+      error = null
+      settleOpenTurn()
+    }
   }
   // A repaired PTC parent may have no child result. Mark only the proved
   // interruption as presentation state; never invent the missing tool output.

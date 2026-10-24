@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-agent-loop'
 import { createUserMessage, type UserMessage } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import { citerMessageForm } from './message-projection.ts'
 import type { ObserverSourceSnapshot } from './observer.ts'
 import { formatSourceTranscript, sourceWindowStart } from './source-transcript.ts'
 import { renderFileList, renderWorkspaceNotice, WORKSPACE_CHANGES_TOOL, type WorkspaceChangeMode, type WorkspaceSnapshots } from './workspace-changes.ts'
@@ -54,9 +55,23 @@ export function refusedMessageSources(event: { readonly type: string, readonly d
   return refused
 }
 
-/** Text of one Citer-produced context message, or undefined for other messages. */
+/** Citer's own form of one context message it appended, or undefined for other messages. */
 export function citerContextForm(source: { readonly kind: string } & Record<string, unknown>): string | undefined {
-  return source.kind === CITER_CONTEXT_KIND && typeof source['form'] === 'string' ? source['form'] : undefined
+  return citerMessageForm(source)
+}
+
+/**
+ * Whether a proposed step would be the first of its turn: the latest `turn/start` for
+ * that turn has no `step/start` after it yet.
+ */
+export function isFirstStepOfTurn(events: readonly { readonly type: string, readonly data?: unknown }[], turn: number): boolean {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index]!
+    const data = event.data as { readonly turn?: unknown } | undefined
+    if (event.type === 'step/start' && data?.turn === turn) return false
+    if (event.type === 'turn/start' && data?.turn === turn) return true
+  }
+  return true
 }
 
 /** The last source seq an automatic excerpt in this Topic log covered. */
@@ -72,11 +87,15 @@ export function lastSourceWindowSeq(events: readonly SessionEvent[]): number | n
   return last
 }
 
-function contextMessage(form: string, text: string, extra: Record<string, number> = {}): UserMessage {
+/**
+ * One Citer context message. `citer` names Citer's own form; `form` and its fields follow DSH's
+ * context producer forms (`recall` with `references`, `notice` with `summary`), so native and
+ * community context viewers can label it. Extra source fields are preserved by the session format.
+ */
+function contextMessage(citer: 'source-window' | 'workspace-changes', text: string, fields: Record<string, unknown>): UserMessage {
   return createUserMessage({
     content: [{ type: 'text', text }],
-    // Extra source fields are preserved by the session format and carry the excerpt cursor.
-    source: { kind: CITER_CONTEXT_KIND, form, ...extra } as unknown as UserMessage['source'],
+    source: { kind: CITER_CONTEXT_KIND, citer, ...fields } as unknown as UserMessage['source'],
   })
 }
 
@@ -100,7 +119,11 @@ export function composeSourceWindow(source: ObserverSourceSnapshot, options: { r
     : options.anchorSeq !== null ? `Source records leading to the cited location (seq ${options.anchorSeq})` : 'The most recent source records'
   const gap = options.afterSeq !== null && fromSeq > options.afterSeq + 1 ? ` Records seq ${options.afterSeq + 1}–${fromSeq - 1} did not fit; read them with read_source_session if needed.` : ''
   const text = `# Source excerpt (automatic)\n${scope}. Citer added this because automatic source reading is on; read_source_session reads any other range.${gap}\n\n${page.markdown}`
-  return contextMessage('source-window', text, { throughSeq: page.capturedThroughSeq })
+  return contextMessage('source-window', text, {
+    form: 'recall',
+    references: [{ label: '来源对话', retainedMessages: page.records, omittedMessages: 0, truncated: gap !== '' }],
+    throughSeq: page.capturedThroughSeq,
+  })
 }
 
 /** Dependencies the per-turn context needs from the Topic runtime. */
@@ -109,8 +132,6 @@ export interface TopicContextOptions {
   readonly autoReadSource: () => boolean
   readonly workspaceMode: () => WorkspaceChangeMode
   readonly includeReasoning: () => boolean
-  /** Whether the user has sent the source address, in the log or in this step's pending messages; reads are refused otherwise. */
-  readonly sourceSent: (pending: readonly UserMessage[]) => boolean
   readonly readSource: (signal: AbortSignal) => Promise<ObserverSourceSnapshot>
   readonly anchorSeq: number | null
   /** Null when the Topic has no working directory. */
@@ -131,7 +152,7 @@ async function workspaceNotice(options: TopicContextOptions, mode: WorkspaceChan
     }
   }
   const text = renderWorkspaceNotice({ elapsedMs: advance.elapsedMs, root, files: advance.files, ...(patches === undefined ? {} : { patches, budgetBytes: WORKSPACE_NOTICE_PATCH_BYTES }) })
-  return contextMessage('workspace-changes', text)
+  return contextMessage('workspace-changes', text, { form: 'notice', summary: `${advance.files.length} 个文件有改动` })
 }
 
 /**
@@ -139,11 +160,12 @@ async function workspaceNotice(options: TopicContextOptions, mode: WorkspaceChan
  * only when the step is entered, and never fails the turn because a context source is unavailable.
  */
 export function attachTopicContext(agentCtx: Context, options: TopicContextOptions): void {
-  agentCtx.on('agent/pre-step', async ({ agent, step, signal }, next) => {
+  agentCtx.on('agent/pre-step', async ({ agent, turn, signal }, next) => {
     const decision = await next()
-    if (decision.kind === 'reject' || signal.aborted || agent !== options.agent || step !== 1) return decision
+    // The loop's step counter can continue across queued turns, so the log decides whether this is the turn's first step.
+    if (decision.kind === 'reject' || signal.aborted || agent !== options.agent || !isFirstStepOfTurn(agent.session.snapshotEvents(), turn)) return decision
     const added: UserMessage[] = []
-    if (options.autoReadSource() && options.sourceSent(decision.messages)) {
+    if (options.autoReadSource()) {
       try {
         const source = await options.readSource(signal)
         const message = composeSourceWindow(source, {

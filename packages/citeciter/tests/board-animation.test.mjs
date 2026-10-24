@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { animationSpecSchema, beatAt, compileExpression, compileTimeline, pointAlong, sampleTimeline, samplePath } from '../lib/types/board-animation.js'
 import { projectBoardFromLog } from '../lib/types/topic-log.js'
-import { frameStyle } from '../lib/types/client/board-timeline.js'
+import { frameStyle, timelineMotionAllowed } from '../lib/types/client/board-timeline.js'
 
 const ball = { id: 'ball', x: 0, y: 70, w: 10, h: 10 } // center (5, 75)
 const label = { id: 'label', x: 40, y: 10, w: 20, h: 10 }
@@ -94,6 +94,13 @@ test('invalid timelines name the offending track', () => {
   assert.throws(() => compile([{ target: 'ball', verb: 'scale', scale: 2, startMs: 900, endMs: 1200 }]), /durationMs/u)
   assert.throws(() => compile([{ target: 'ball', verb: 'parametric', x: 'log(t-1)', y: '1' }]), /not finite/u)
   assert.throws(() => animationSpecSchema.parse({ durationMs: 1000, tracks: [{ target: 'ball', verb: 'appear', script: 'x' }] }))
+})
+
+test('timeline playback requires both the board setting and full-motion preference', () => {
+  assert.equal(timelineMotionAllowed(true, false), true)
+  assert.equal(timelineMotionAllowed(false, false), false)
+  assert.equal(timelineMotionAllowed(true, true), false)
+  assert.equal(timelineMotionAllowed(false, true), false)
 })
 
 test('frame styles convert canvas percent into element percent', () => {

@@ -25,7 +25,8 @@ for (const key of ['name', 'version', 'description', 'keywords', 'homepage', 're
   delete expected[key]
   if (canonical[key] !== undefined) expected[key] = canonical[key]
 }
-for (const key of ['main', 'module', 'types', 'typings']) {
+// `icon` is a package-relative file DSH's plugin page reads, so it moves with the other paths.
+for (const key of ['main', 'module', 'types', 'typings', 'icon']) {
   delete expected[key]
   if (typeof canonical[key] === 'string') expected[key] = rootPath(canonical[key])
 }

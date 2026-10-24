@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import { type ReactNode, useEffect, useMemo, useReducer } from 'react'
 import type { PendingQuestion } from '../../topic.ts'
 import type { NativeComposer } from '../native-composer.ts'
@@ -22,6 +23,7 @@ export function TopicQuestions({ sessionId, pending, native, children }: {
   readonly native: NativeComposer
   readonly children: ReactNode
 }) {
+  useLocale()
   const [, render] = useReducer(value => value + 1, 0)
   const cards = useMemo(() => pending.map(question => ({ question, controller: native.question(sessionId, question) })), [native, sessionId, pending])
   useEffect(() => {
@@ -32,7 +34,7 @@ export function TopicQuestions({ sessionId, pending, native, children }: {
   const answerable = cards.filter(card => !card.controller.getSnapshot().closed)
   const visible = answerable.find(card => !card.controller.getSnapshot().hidden)
   return <>
-    {answerable.length > 0 && (answerable.length > 1 || visible === undefined) && <div aria-label="待回答问题">
+    {answerable.length > 0 && (answerable.length > 1 || visible === undefined) && <div aria-label={t('panel.questions.pending')}>
       {answerable.map((card, index) => <button type="button" key={card.question.key}
         disabled={visible?.controller.dismissal === 'cancel' && visible !== card}
         aria-pressed={visible === card} onClick={() => {
@@ -40,7 +42,7 @@ export function TopicQuestions({ sessionId, pending, native, children }: {
             if (other !== card && other.controller.dismissal === 'hide') void other.controller.dismiss()
           }
           card.controller.reveal()
-        }}>{card.question.questions[0]?.header ?? `问题 ${index + 1}`}{card.question.state === 'continued' ? ' · 可补答' : ''}</button>)}
+        }}>{card.question.questions[0]?.header ?? t('panel.questions.number', { number: index + 1 })}{card.question.state === 'continued' ? t('panel.questions.lateReply') : ''}</button>)}
     </div>}
     {visible === undefined ? children : <TopicQuestion key={visible.question.key} pending={visible.question} controller={visible.controller} />}
   </>

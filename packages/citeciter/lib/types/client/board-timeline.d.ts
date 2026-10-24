@@ -10,10 +10,13 @@ export declare function frameStyle(frame: ElementFrame, size: {
     readonly w: number;
     readonly h: number;
 }): CSSProperties;
+/** Whether timeline playback is permitted by both the board setting and system preference. */
+export declare function timelineMotionAllowed(animations: boolean, reducedMotion: boolean): boolean;
 /** Playback state of one board timeline. */
 export interface TimelinePlayer {
     readonly t: number;
     readonly playing: boolean;
+    readonly canPlay: boolean;
     readonly toggle: () => void;
     readonly seek: (atMs: number) => void;
 }
@@ -22,7 +25,7 @@ export interface TimelinePlayer {
  * allowed; otherwise it rests on its final frame. A frozen time (frame capture) never plays.
  * @param timeline - compiled timeline, or null.
  * @param key - identity of the timeline; a new key restarts playback.
- * @param options - whether to autoplay and an optional frozen time.
+ * @param options - animation permission and an optional frozen capture time.
  */
 export declare function useTimelinePlayer(timeline: CompiledTimeline | null, key: string | null, options: {
     readonly autoplay: boolean;

@@ -3,10 +3,12 @@ import { type CiteAction } from '../../actions.ts';
 import type { ActionSource } from '../action-controller.ts';
 import type { CompanionSnapshot } from '../companion-controller.ts';
 import type { SelectionToolbarSnapshot } from '../selection-toolbar.ts';
+/** The explicit way to start a separate Topic: the user's own question about the selection. */
 /** Toolbar callbacks; the controllers stay with the Client plugin. */
 export interface SelectionToolbarActions {
     readonly dismiss: () => void;
     readonly run: (source: ActionSource, action: CiteAction, x: number, y: number, newTopic?: boolean) => void;
+    readonly quote: (source: ActionSource) => Promise<void>;
 }
 /**
  * Actions for the current selection: the first configured actions inline, the rest and

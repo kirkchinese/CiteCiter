@@ -2,6 +2,50 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## 0.9.0-beta.4 — 2026-10-25
+
+Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` and `0.2.1-rc.3`.
+
+### Host support
+
+- Support DSH `0.2.1-rc.3`.
+
+### Workspace
+
+- Citer is a tab in DSH's right sidebar, with an entry on the sidebar's guide page. It sits beside files, terminals and other plugins' tabs, and DSH splits, floats, fullscreens and closes it like them; the desktop pet, the shortcut and the toolbar open it. Hosts without the right sidebar keep Citer's own panel.
+- The interface follows DSH's language setting, Chinese or English, through DSH's locale service, so language packs can add languages. Built-in actions change their names and prompts with the language one by one, also after you edit, add or reorder other actions; actions you edited or added stay as written.
+- Each Topic shows its token usage, cache hit rate and context occupancy under the composer.
+- DSH's plugin page shows Citer by name with its mascot and a description, and its page holds Citer's settings.
+
+### Selection
+
+- The toolbar starts with 引用 (Quote): a passage selected in the main conversation is added as a blockquote to the main conversation's own composer, so the next message to the main agent names the sentence it is about; in a Topic it goes to that Topic's composer. Nothing is sent. When the main composer holds reference chips that the host cannot keep while appending, the quote is copied to the clipboard instead.
+- Your own messages in the main conversation can be selected for actions too.
+
+### Topic context
+
+- Every Topic's prompt names its source conversation, and Citer can read it without the source attachment being sent first, also in Topics that quote nothing.
+- Without a model set for new Topics, a new Topic uses the model currently selected in the source conversation's composer, not the last one that ran.
+
+### Topic transcript
+
+- Citer's codebase notices and source excerpts, previously hidden, appear in the Topic like DSH's own context rows: the role (injected or recalled context), the producer and, for notices, a one-line summary, expanding to the exact text the model received. As in DSH's chat, ordinary context such as the runtime, time and skill catalog stays out of the transcript; 显示全部上下文 in the Topic menu lists it too.
+- Citer's own context messages use DSH's context forms (`notice` with a summary for codebase changes, `recall` for source excerpts), so DSH and other plugins can present them. Topics written by earlier versions read as before.
+- Tool calls use DSH's views: file reads with line numbers, edits as coloured diffs with line counts, commands as "运行命令" with their description, output and exit code, searches as grouped results, codebase diffs highlighted, and a finished question card as its questions and answers. `run_code` child calls appear inside their parent. Unknown tools keep the arguments and result view. The file a read or edit touched opens in DSH's right sidebar from the row.
+- Failures and "已停止" markers stay in the history after later answers, as in DSH. A tool still without a result when its turn ends shows as interrupted instead of running forever. Images in an answer are shown.
+- Learning-stage messages show the source and excerpt as reference chips instead of their serialized text.
+- Selecting text in a Topic's own answers or tool output shows the Citer toolbar too; actions continue that Topic with the passage attached as an excerpt.
+
+### Fixes
+
+- Codebase change notices arrive at the start of every turn, not only the first one, on DSH `0.2.1-rc.3`.
+- A model configured for new Topics that this DSH cannot serve (for example a provider set up only on another machine) no longer makes preset actions fail: the Topic is created with its references, the action waits in the composer and Citer asks for an available model. Nothing is sent automatically. Retrying an action uses the model setting as it is now, and the notice no longer blames the source model.
+- Settings → 新 Topic 的模型 also applies to Topics created from the panel.
+- Permanently deleting a Topic also deletes its codebase snapshots, which held copies of your files.
+- Selecting part of a tool result in the conversation cites that part, not the whole raw output, and `run_code` child results can be cited.
+- Board animations: with board animations off or reduced motion requested, the board stays on the final frame and cannot be played; the scrubber still shows single frames. The board keeps the proportions of the frames Citer inspects, so a checked frame matches what you see; narrow panels switch to the notes/canvas view; citation labels no longer show HTML entities; small SVGs in answers keep their size.
+- Settings: reordering actions keeps the editor on the same action; an invalid shortcut is refused with an inline message instead of being saved. Cancelling a Topic rename returns focus to the title.
+
 ## 0.9.0-beta.3 — 2026-10-22
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1` and `0.2.1-rc.2`.

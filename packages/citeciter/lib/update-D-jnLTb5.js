@@ -1244,6 +1244,14 @@ const DEFAULT_WHEEL_SLOTS = [
 	null,
 	null
 ];
+englishLearningQuestion("Underlying logic"), englishLearningQuestion("Quantitative analysis (blackboard)"), englishLearningQuestion("Summary study cards", "Organize the content around this quote.");
+function englishLearningQuestion(stage, question = "") {
+	return `[Learning stage: ${stage}]\n${{
+		"Underlying logic": "Explain the underlying logic of the current topic: start with definitions and conditions, then explain the causal mechanism and why it works. Distinguish source evidence, general knowledge, and assumptions. Cover this stage only; do not advance automatically.",
+		"Quantitative analysis (blackboard)": "Analyze the current topic quantitatively and use blackboard_apply to organize the blackboard: specify variables, units, assumptions, derivation steps, and one verifiable worked example. Mark example values as hypothetical; do not invent source data. If quantitative analysis is unsuitable or information is insufficient, explain why. Cover this stage only; do not advance automatically.",
+		"Summary study cards": "First check and correct the conclusions and existing blackboard in this Topic: review definitions, conditions, derivations, numbers, and contradictions. Do not treat earlier model responses as evidence; consult available sources if needed. Correct mistakes and mark unverifiable claims as unverified or omit them; do not invent sources or locations. Then call learning_cards to create 1–6 study cards, each with a key conclusion, a concrete example, an optional self-test question, and a reference answer. Check that these fields agree, including corrections in examples and answers. Preserve real source locations for source-dependent facts and distinguish evidence from general knowledge. Briefly report corrections and remaining unverified claims; do not schedule reviews."
+	}[stage]}${question.trim() === "" ? "" : `\n\nMy question: ${question.trim()}`}`;
+}
 //#endregion
 //#region lib/types/tool-outcome-contract.js
 /** Recognized question outcomes shared by Host and Client without importing either service face. */
@@ -1647,6 +1655,7 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 		...topicMessageIdentitySchema,
 		role: z.literal("assistant"),
 		renderKey: z.string().optional(),
+		attachments: z.array(messageAttachmentSchema).optional(),
 		text: z.string(),
 		reasoning: z.string().nullable(),
 		streaming: z.boolean()
@@ -1655,6 +1664,12 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 		...topicMessageIdentitySchema,
 		role: z.literal("context"),
 		label: z.string().min(1),
+		/** DSH context role: material recalled from another session, or any other injected context. */
+		contextRole: z.enum(["inject", "recall"]).optional(),
+		/** Producer named by the durable source: a plugin package, a source kind, or Citer's own form. */
+		producer: z.string().nullable().optional(),
+		/** One-line account a `notice` records for its collapsed row. */
+		summary: z.string().optional(),
 		text: z.string()
 	}).strict(),
 	z.object({
@@ -1665,6 +1680,10 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 		name: z.string().min(1),
 		arguments: z.string(),
 		result: z.string().nullable(),
+		/** Structured result metadata the tool recorded beside its model-facing text (read windows, search hits, exit codes). */
+		meta: z.unknown().optional(),
+		/** The run_code call that dispatched this one, when it was a programmatic child call. */
+		parentCallId: z.string().optional(),
 		isError: z.boolean(),
 		errorCode: z.enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
 		approvalOutcome: z.literal("rejected").optional(),
@@ -1674,6 +1693,7 @@ const topicMessageSchema = z.discriminatedUnion("role", [
 	z.object({
 		...topicMessageIdentitySchema,
 		role: z.literal("error"),
+		turn: z.number().int().nonnegative().optional(),
 		text: z.string(),
 		bodyRetained: z.boolean(),
 		attempt: z.number().int().positive(),
@@ -1705,8 +1725,17 @@ const pendingQuestionSchema = z.object({
 	timed: z.boolean().optional(),
 	blocking: z.boolean().optional()
 }).strict();
+/** Topic-owned usage totals; context occupancy refers to the latest reported request. */
+const topicUsageSchema = z.object({
+	inputTokens: z.number().int().nonnegative(),
+	outputTokens: z.number().int().nonnegative(),
+	cachedInputTokens: z.number().int().nonnegative(),
+	lastContextTokens: z.number().int().nonnegative().optional(),
+	contextWindow: z.number().int().positive().optional()
+}).strict();
 const topicSnapshotSchema = z.object({
 	captureId: z.string().optional(),
+	usage: topicUsageSchema.optional(),
 	documentTitle: z.string().optional(),
 	topic: topicSummarySchema,
 	messages: z.array(topicMessageSchema),
@@ -1732,7 +1761,7 @@ const providerOptionSchema = z.object({
 const draftQuestionSchema = z.string().trim().max(12e3);
 const questionSchema = z.string().trim().min(1).max(12e3);
 const topicSessionIdSchema = z.string().min(1);
-/** Whole-card tool-result claim; the Host verifies it against the committed `tool/result`. */
+/** Tool-result claim of the whole card or a selected part of it; the Host verifies it against the committed `tool/result`. */
 const toolEvidenceClaimSchema = z.object({
 	sourceSessionId: z.string().min(1),
 	callId: z.string().min(1),

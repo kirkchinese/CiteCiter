@@ -1,3 +1,4 @@
+import { t, useLocale } from './i18n.ts'
 import { useEffect, useRef, useSyncExternalStore, type RefObject } from 'react'
 import type { PendingQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 import type { AskUserQuestionAnswerItem } from '@deepseek-ai/dsh-user-questions'
@@ -30,6 +31,7 @@ export function useNativeQuestionInteraction(pending: Pick<PendingQuestion,
   readonly interaction: QuestionInteraction
   readonly surface: RefObject<HTMLFormElement>
 } {
+  useLocale()
   const snapshot = useSyncExternalStore(pending.subscribe, pending.getSnapshot, pending.getSnapshot)
   const surface = useRef<HTMLFormElement>(null)
   useEffect(() => {
@@ -46,18 +48,18 @@ export function useNativeQuestionInteraction(pending: Pick<PendingQuestion,
       document.removeEventListener('visibilitychange', visibility)
     }
   }, [pending])
-  const status = pending.review !== undefined ? '已提交的回答'
-    : pending.interrupted ? '上次运行已中断，可补充回答；手动提交后继续'
-      : snapshot.state === 'continued' ? '模型已继续，可补充回答'
+  const status = pending.review !== undefined ? t('panel.question.submitted')
+    : pending.interrupted ? t('panel.question.interrupted')
+      : snapshot.state === 'continued' ? t('panel.question.canReply')
       : snapshot.countdown === undefined ? undefined
-        : snapshot.waitState === 'editing' || snapshot.waitState === 'waiting' ? '等待你完成回答'
-          : snapshot.waitState === 'focused' ? '输入区获得焦点，倒计时已暂停'
-            : `${Math.ceil(snapshot.countdown.remainingMs / 1000)} 秒后模型将继续`
+        : snapshot.waitState === 'editing' || snapshot.waitState === 'waiting' ? t('panel.question.waiting')
+          : snapshot.waitState === 'focused' ? t('panel.question.focused')
+            : t('panel.question.countdown', { seconds: Math.ceil(snapshot.countdown.remainingMs / 1000) })
   return {
     surface,
     interaction: {
       state: snapshot.state, channel: snapshot.channel, closed: snapshot.closed,
-      review: pending.review, dismissLabel: pending.dismissal === 'hide' ? '收起' : '取消', status,
+      review: pending.review, dismissLabel: pending.dismissal === 'hide' ? t('panel.header.collapse') : t('common.cancel'), status,
       canTakeTime: snapshot.countdown !== undefined && snapshot.waitState !== 'editing' && snapshot.waitState !== 'waiting',
       allowSkip: pending.allowSkip ?? (pending.callId !== undefined && pending.kind !== 'plan-review'),
       focus: () => pending.holdFocus(), blur: () => pending.releaseFocus(),

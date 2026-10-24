@@ -6,9 +6,10 @@
  */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
-import { dshAssistantAnchorForTarget } from './conversation-dom.ts'
+import { dshAssistantAnchorForTarget, dshUserAnchorForTarget } from './conversation-dom.ts'
+import type { ActionSource } from './action-controller.ts'
 import { ASSISTANT_ENTRY_ID, TOOL_ENTRY_ID } from './entry-ids.ts'
-import { projectToolEvidence, type ToolEvidenceProjection } from '../evidence-text.ts'
+import { projectToolEvidence, toolExcerptMatches, type ToolEvidenceProjection } from '../evidence-text.ts'
 import { readAssistantAnswer } from './answer.ts'
 import { claimSelectionContextMenu } from './selection.ts'
 import type { CiteSelection, ToolCiteSelection } from './types.ts'
@@ -89,12 +90,44 @@ export function createAssistantEntry(): CiteCiterEntry {
   }
 }
 
+/** Capture a committed user-message excerpt without inventing a host-verified citation claim. */
+export function readUserMessageQuote(event: MouseEvent, context: CiteCiterEntryContext): ActionSource | null {
+  const anchor = dshUserAnchorForTarget(event.target)
+  if (anchor === null || context.readChat(context.sourceSessionId)?.nodes.get(anchor.anchorKey)?.kind !== 'user') return null
+  const text = selectedTextWithin(anchor.element)
+  if (text === null) return null
+  return { kind: 'quote', sourceSessionId: context.sourceSessionId, anchorKey: anchor.anchorKey, displayText: text }
+}
+
 /** Tool-result node fields the tool entry reads from a `tool-call` chat node. */
 interface SettledToolChatRoot {
-  readonly kind: 'tool-result'
+  readonly kind: string
   readonly callId: string
   readonly content: readonly unknown[]
   readonly meta?: unknown
+}
+
+/** Find one call by id in a native tool-call tree, depth first through `subCalls`. */
+function findToolCall(block: unknown, callId: string): SettledToolChatRoot | null {
+  if (block === null || typeof block !== 'object') return null
+  const candidate = block as SettledToolChatRoot & { readonly subCalls?: unknown }
+  if (candidate.callId === callId) return candidate
+  if (!Array.isArray(candidate.subCalls)) return null
+  for (const child of candidate.subCalls) {
+    const found = findToolCall(child, callId)
+    if (found !== null) return found
+  }
+  return null
+}
+
+/** The current non-empty selection when it lies entirely inside one element. */
+function selectedTextWithin(element: HTMLElement): string | null {
+  const selection = typeof window === 'undefined' ? null : window.getSelection()
+  if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return null
+  const range = selection.getRangeAt(0)
+  if (!element.contains(range.commonAncestorContainer)) return null
+  const text = selection.toString().trim()
+  return text === '' ? null : text.slice(0, 32_000)
 }
 
 /** Classify the projection a tool-card pointer event asks for. */
@@ -128,14 +161,17 @@ export function createToolEvidenceEntry(): CiteCiterEntry {
       if (anchorKey === undefined || anchorKey === '') return null
       const node = readChat(sourceSessionId)?.nodes.get(anchorKey)
       if (node === undefined || node.kind !== 'tool-call') return null
-      const root = (node.data as { readonly root?: unknown }).root
-      if (root === null || typeof root !== 'object') return null
-      const settled = root as SettledToolChatRoot
       const callId = callRow.dataset.chatCallId
-      if (settled.kind !== 'tool-result' || callId === undefined || callId === '' || settled.callId !== callId) return null
+      if (callId === undefined || callId === '') return null
+      // run_code's child calls are nested under the root call of the same node.
+      const settled = findToolCall((node.data as { readonly root?: unknown }).root, callId)
+      if (settled === null || settled.kind !== 'tool-result') return null
       const projection = toolProjectionForTarget(target as { closest(selector: string): HTMLElement | null })
       const text = projectToolEvidence(projection, settled.content ?? [], settled.meta)
       if (text === null || text.trim() === '') return null
+      // A selection inside the card cites that part; otherwise the whole card.
+      const selected = selectedTextWithin(callRow)
+      const quote = selected !== null && toolExcerptMatches(text, selected) ? selected : text.trim()
       event.preventDefault()
       const selection: ToolCiteSelection = {
         entryId: TOOL_ENTRY_ID,
@@ -143,7 +179,7 @@ export function createToolEvidenceEntry(): CiteCiterEntry {
         sourceSessionId,
         callId,
         projection,
-        displayText: text.trim(),
+        displayText: quote,
         anchorKey,
         x: event.clientX,
         y: event.clientY,

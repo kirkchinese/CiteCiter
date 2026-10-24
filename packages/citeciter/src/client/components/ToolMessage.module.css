@@ -1,0 +1,95 @@
+.flowDisclosure {
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+}
+
+.flowRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: calc(24px + var(--dsh-content-font-delta, 0px));
+}
+
+.flowDot {
+  flex: none;
+  margin: 0 6px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.flowSummary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.toolBody {
+  min-width: 0;
+  margin: 4px 0 4px 22px;
+}
+
+.genericBody {
+  display: grid;
+  gap: 6px;
+  max-height: 360px;
+  padding: 8px 10px;
+  overflow: auto;
+  background: var(--dsw-alias-markdown-code-block);
+  border-radius: var(--dsw-radius-md);
+}
+
+.genericBody > strong {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+  font-weight: 500;
+}
+
+.genericBody pre,
+.recovery pre {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 12px/18px var(--dsw-font-mono, ui-monospace, monospace);
+  white-space: pre-wrap;
+}
+
+.recovery {
+  margin-top: 6px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.recovery pre {
+  max-height: 240px;
+  overflow: auto;
+}
+
+.childCalls {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--dsw-alias-border-l3);
+}
+
+/* The file a read or edit touched, opening in DSH's right sidebar like the host's own file links. */
+.fileLink {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 0 6px;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-link, var(--dsw-alias-state-business-primary));
+  font: inherit;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fileLink:hover {
+  text-decoration: underline;
+}

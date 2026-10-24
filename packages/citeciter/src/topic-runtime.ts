@@ -33,20 +33,20 @@ import {
   resolveToolEvidence,
   type ObserverSourceSnapshot,
 } from './observer.ts'
-import { removeOwnedSessionTree } from './owned-session-cleanup.ts'
+import { removeOwnedSessionTree, removeOwnedTree } from './owned-session-cleanup.ts'
 import type { QuestionDraftContent } from './question-draft-contract.ts'
 import { questionDraftLogStatus, questionDraftReceiptKey } from './question-draft-lifecycle.ts'
 import { QuestionDraftStore } from './question-draft-store.ts'
 import { createSourceReadTool, SOURCE_READ_PROMPT, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
-import { readSourceSession, hasSentSource, mentionsSource } from './source-session.ts'
+import { readSourceSession, selectedSourceModel } from './source-session.ts'
 import { SourceStorage } from './source-storage.ts'
 import { attachTopicContext, createWorkspaceChangesTool, refusedMessageSources, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
 import { WorkspaceSnapshots } from './workspace-changes.ts'
 import { toolCallRecord } from './tool-events.ts'
 import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
 import { TopicIndex, type TopicDeletionMarker, unlinkIfPresent, rmdirIfEmpty } from './topic-index.ts'
-import { foldTopicTitle, latestObservedSeq, projectBoardFromLog, titleSourceKind, topicMessages, type TopicLog } from './topic-log.ts'
-import { composeHostedTopicPrompt } from './topic-prompts.ts'
+import { foldTopicTitle, latestObservedSeq, projectBoardFromLog, projectTopicUsage, titleSourceKind, topicMessages, type TopicLog } from './topic-log.ts'
+import { composeHostedTopicPrompt, composeSourceIdentityPrompt, SOURCE_IDENTITY_SECTION_NAME } from './topic-prompts.ts'
 import { bindTopicQuestionBridge } from './topic-question-bridge.ts'
 import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies, validateQuestionAnswer } from './topic-questions.ts'
 import { TopicStreamProjection } from './topic-stream.ts'
@@ -80,11 +80,6 @@ type TopicChangeListener = (
 ) => void
 
 const CITECITER_SHUTTING_DOWN = 'CiteCiter is shutting down'
-
-/** The source address a user must send before Citer reads the source. */
-function sourceAddress(metadata: TopicMetadata): string {
-  return `dsh://session/${encodeURIComponent(metadata.sourceSessionId)}`
-}
 
 function citeCiterShuttingDownError(): Error {
   return new Error(CITECITER_SHUTTING_DOWN)
@@ -483,16 +478,24 @@ export class TopicRuntime {
     } else if ('toolClaim' in request) {
       evidence = resolveToolEvidence(source, request.toolClaim).evidence
     }
-    if (request.modelRoute !== undefined) await this.host.llm.resolveModelInfo(request.modelRoute.provider, request.modelRoute.model, signal)
+    const selected = request.modelRoute === undefined ? selectedSourceModel(source.events) : undefined
+    const route: LlmCallConfig = request.modelRoute ?? selected ?? (evidence === undefined || documentClaim !== undefined
+      ? modelConfigFromLatest(source)
+      : modelConfigFromSource(source, evidence.anchorSeq))
+    // An unavailable explicit or inherited route still creates a Topic awaiting model selection.
+    let routeUnavailable = false
+    try {
+      await this.host.llm.resolveModelInfo(route.provider, route.model, signal)
+    } catch (error) {
+      if (signal?.aborted === true) throw error
+      routeUnavailable = true
+    }
     const sourceRoot = await this.sourceStorage.root(sourceSessionId, true)
     if (sourceRoot === undefined) throw new Error('Citer 来源存储不可用')
     this.index.bindSource(sourceSessionId, sourceRoot)
     const { topicId, directory } = await this.index.reserve(sourceSessionId)
     const createdAt = Date.now()
     const sessionId = SessionId(`citeciter-${randomUUID()}`)
-    const route: LlmCallConfig = request.modelRoute ?? (evidence === undefined || documentClaim !== undefined
-      ? modelConfigFromLatest(source)
-      : modelConfigFromSource(source, evidence.anchorSeq))
     const citation: CitationRecord | null = evidence === undefined
       ? null
       : {
@@ -503,6 +506,7 @@ export class TopicRuntime {
         }
     // mode, forkThroughSeq and scenario keep the on-disk format readable by earlier versions.
     const metadata: TopicMetadata = {
+      ...(routeUnavailable ? { modelSelectionRequired: true } : {}),
       hosted: true,
       storage: 'source',
       schemaVersion: TOPIC_METADATA_SCHEMA_VERSION,
@@ -618,6 +622,8 @@ export class TopicRuntime {
     this.assertOpen(signal)
     const handle = await this.native.create(metadata, signal)
     this.handles.set(metadata.sessionId, handle)
+    // An already unavailable route stays recorded for the user to replace; selecting it would only fail.
+    if (metadata.modelSelectionRequired === true) return handle
     await selectInitialModel(metadata, () => this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: metadata.modelConfig.provider, model: metadata.modelConfig.model, ...(metadata.modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: metadata.modelConfig.reasoningEffort }) }))
     return handle
   }
@@ -656,7 +662,18 @@ export class TopicRuntime {
       order: 20,
       text: () => composeHostedTopicPrompt(this.settings().tutorPrompt, Boolean(this.settings().followupQuestions ?? DEFAULT_CITECITER_SETTINGS.followupQuestions), this.settings().learningRoute ?? false),
     })
-    this.registerSourceTool(agentCtx, metadata, agent)
+    let sourceTitle: string | undefined
+    try {
+      sourceTitle = (await this.host.sessionQuery.readTitle(SessionId(metadata.sourceSessionId)))?.title
+    } catch (error) {
+      this.host.logger.warn(`CiteCiter could not read source title for ${metadata.sessionId}`, error)
+    }
+    agentCtx.systemPrompt.section({
+      name: SOURCE_IDENTITY_SECTION_NAME,
+      order: 20.5,
+      text: composeSourceIdentityPrompt(metadata.sourceSessionId, sourceTitle, metadata.sourceCwd),
+    })
+    this.registerSourceTool(agentCtx, metadata)
     this.registerTopicContext(agentCtx, metadata, agent)
     this.registerDocumentTools(agentCtx)
     agentCtx.tools.register(createBlackboardApplyTool())
@@ -679,21 +696,16 @@ export class TopicRuntime {
     agentCtx.tools.register(createDocumentSearchTool(read))
   }
 
-  /** Read the source only after the user has sent its address as an attachment. */
-  private registerSourceTool(agentCtx: Context, metadata: TopicMetadata, agent: Agent): void {
+  /** Read only this Topic's fixed source Session, without depending on draft attachments. */
+  private registerSourceTool(agentCtx: Context, metadata: TopicMetadata): void {
     agentCtx.systemPrompt.section({ name: SOURCE_READ_SECTION_NAME, order: 21, text: SOURCE_READ_PROMPT })
     agentCtx.tools.register(createSourceReadTool({
       includeReasoning: () => this.settings().includeSourceReasoning,
-      read: async (signal) => {
-        if (!hasSentSource(agent.session, sourceAddress(metadata))) {
-          throw new Error('来源会话未作为附件发送。请让用户附加来源后再读取。')
-        }
-        return this.readAuthorizedSource(metadata, signal)
-      },
+      read: signal => this.readAuthorizedSource(metadata, signal),
     }))
   }
 
-  /** Read a source the caller has already authorized, recording its availability. */
+  /** Read this Topic's fixed source, recording its availability. */
   private async readAuthorizedSource(metadata: TopicMetadata, signal: AbortSignal): Promise<ObserverSourceSnapshot> {
     let source: ObserverSourceSnapshot
     try {
@@ -717,13 +729,11 @@ export class TopicRuntime {
       agentCtx.systemPrompt.section({ name: WORKSPACE_SECTION_NAME, order: 22, text: WORKSPACE_PROMPT })
       agentCtx.tools.register(createWorkspaceChangesTool(workspace))
     }
-    const address = sourceAddress(metadata)
     attachTopicContext(agentCtx, {
       agent,
       autoReadSource: () => this.settings().autoReadSource ?? false,
       workspaceMode: () => this.settings().workspaceChanges ?? 'summary',
       includeReasoning: () => this.settings().includeSourceReasoning,
-      sourceSent: pending => hasSentSource(agent.session, address) || pending.some(message => mentionsSource(message, address)),
       readSource: signal => this.readAuthorizedSource(metadata, signal),
       anchorSeq: metadata.citation === null || metadata.citation.entry.kind === 'document-range' ? null : metadata.citation.anchorSeq,
       workspace,
@@ -1080,6 +1090,8 @@ export class TopicRuntime {
     await new DraftStore(directory).remove()
     await new QuestionDraftStore(directory).remove()
     await removeOwnedSessionTree(directory)
+    // Workspace snapshots hold copies of the user's files; deleting the Topic deletes them too.
+    await removeOwnedTree(directory, 'workspace')
     await this.index.finishDeleting(marker)
   }
 
@@ -1371,11 +1383,13 @@ export class TopicRuntime {
     ]
     const captureId = this.boardCapture.id(current.sessionId)
     const document = current.documentId === null ? null : await this.documents.summary(current.documentId)
+    const usage = projectTopicUsage(log)
     return {
       ...(captureId === undefined ? {} : { captureId }),
       ...(document === null ? {} : { documentTitle: document.title }),
       topic: this.summaryFromMetadata(current),
       ...topicMessages(log),
+      ...(usage === undefined ? {} : { usage }),
       board: projectBoardFromLog(log),
       pendingQuestion: questions[0] ?? null,
       pendingQuestions: questions,

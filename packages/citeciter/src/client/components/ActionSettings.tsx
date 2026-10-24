@@ -1,103 +1,119 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, SegmentedControl, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
-import { DEFAULT_WHEEL_SLOTS, wheelSlotsSchema, type ActionDelivery, type CiteAction, type WheelTrigger } from '../../actions.ts'
+import { localizedWheelSlots, wheelSlotsSchema, type ActionDelivery, type CiteAction, type WheelTrigger } from '../../actions.ts'
+import { isChinese, t, useLocale } from '../i18n.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions } from '../view-actions.ts'
 import { ModelChoice } from './ModelChoice.tsx'
 import css from './Settings.module.css'
 
-const TRIGGERS: readonly (readonly [WheelTrigger, string])[] = [
-  ['right-button', '鼠标右键'], ['Alt', 'Alt / Option'], ['Control', 'Control'], ['Shift', 'Shift'], ['Meta', 'Meta / Command'],
-]
-const NEW_SLOT: CiteAction = { label: '自定义', prompt: '', ask: true, presentation: 'side' }
+const TRIGGERS: readonly WheelTrigger[] = ['right-button', 'Alt', 'Control', 'Shift', 'Meta']
+
+/**
+ * Compare action lists by what the user can edit, in a fixed field order. A settings refresh may
+ * decode the same actions with other key orders or retired fields; that must not discard local edits.
+ */
+function slotsRevision(slots: readonly (CiteAction | null)[]): string {
+  return JSON.stringify(slots.map(slot => slot === null ? null : [slot.label, slot.prompt, slot.ask, slot.presentation]))
+}
 
 /** Selection entry points, preset-action delivery, the new-Topic model and the eight action slots, saved together. */
 export function ActionSettings({ snapshot, companion }: { snapshot: CompanionSnapshot, companion: CompanionActions }) {
+  useLocale()
   const settings = snapshot.settings
-  const savedSlots = settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS
-  const savedRevision = JSON.stringify(savedSlots)
+  const savedSlots = localizedWheelSlots(settings.wheelSlots, isChinese())
+  const newSlot: CiteAction = { label: t('settings.actions.custom'), prompt: '', ask: true, presentation: 'side' }
+  const savedRevision = slotsRevision(savedSlots)
   const [slots, setSlots] = useState<(CiteAction | null)[]>(() => [...savedSlots])
+  const slotKeys = useRef(savedSlots.map((_, index) => index))
+  const nextSlotKey = useRef(savedSlots.length)
   const [error, setError] = useState<string | null>(null)
   const previousRevision = useRef(savedRevision)
   useEffect(() => {
     // Other settings can decode a new object without changing the saved slots; keep the local edits then.
     if (previousRevision.current === savedRevision) return
     previousRevision.current = savedRevision
+    slotKeys.current = savedSlots.map(() => nextSlotKey.current++)
     setSlots([...savedSlots])
   }, [savedSlots, savedRevision])
   const saving = snapshot.settingsSaveStatus === 'saving'
-  const dirty = JSON.stringify(slots) !== savedRevision
-  const change = (index: number, patch: Partial<CiteAction>) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? NEW_SLOT), ...patch } : slot))
-  const move = (index: number, offset: number) => setSlots(current => {
+  const dirty = slotsRevision(slots) !== savedRevision
+  const change = (index: number, patch: Partial<CiteAction>) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? newSlot), ...patch } : slot))
+  const move = (index: number, offset: number) => {
     const to = index + offset
-    if (to < 0 || to >= current.length) return current
-    const next = [...current]
-    ;[next[index], next[to]] = [next[to]!, next[index]!]
-    return next
-  })
+    if (to < 0 || to >= slots.length) return
+    const keys = [...slotKeys.current]
+    ;[keys[index], keys[to]] = [keys[to]!, keys[index]!]
+    slotKeys.current = keys
+    setSlots(current => {
+      const next = [...current]
+      ;[next[index], next[to]] = [next[to]!, next[index]!]
+      return next
+    })
+  }
   const save = () => {
     const result = wheelSlotsSchema.safeParse(slots)
-    if (!result.success) { setError('请填写动作名称；预设提示词类型的动作需要提示词。'); return }
+    if (!result.success) { setError(t('settings.actions.invalid')); return }
     setError(null)
     void companion.setSetting('wheelSlots', result.data)
   }
   return <section className={css.group}>
-    <h3>选文</h3>
+    <h3>{t('settings.actions.title')}</h3>
     <div className={css.row}>
-      <div className={css.rowText}><span className={css.title}>选中文字后显示工具条</span><span className={css.desc}>在主对话、工具结果和文档里选中文字时，旁边出现 Citer 的动作。</span></div>
-      <div className={css.control}><Switch label="选中文字后显示工具条" checked={settings.selectionToolbar ?? true} disabled={saving} onChange={value => { void companion.setSetting('selectionToolbar', value) }} /></div>
+      <div className={css.rowText}><span className={css.title}>{t('settings.actions.toolbar')}</span><span className={css.desc}>{t('settings.actions.toolbarDesc')}</span></div>
+      <div className={css.control}><Switch label={t('settings.actions.toolbar')} checked={settings.selectionToolbar ?? true} disabled={saving} onChange={value => { void companion.setSetting('selectionToolbar', value) }} /></div>
     </div>
     <div className={css.row}>
-      <div className={css.rowText}><span className={css.title}>按住触发键打开轮盘</span><span className={css.desc}>选中文字后按住触发键，移向动作，松开即执行。按住 Shift 再按右键会保留浏览器菜单。</span></div>
+      <div className={css.rowText}><span className={css.title}>{t('settings.actions.wheel')}</span><span className={css.desc}>{t('settings.actions.wheelDesc')}</span></div>
       <div className={css.control}>
-        {settings.wheelEnabled === true && <select className={css.select} aria-label="轮盘触发键" value={settings.wheelTrigger ?? 'right-button'} onChange={event => { void companion.setSetting('wheelTrigger', event.currentTarget.value as WheelTrigger) }}>
-          {TRIGGERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        {settings.wheelEnabled === true && <select className={css.select} aria-label={t('settings.actions.trigger')} value={settings.wheelTrigger ?? 'right-button'} onChange={event => { void companion.setSetting('wheelTrigger', event.currentTarget.value as WheelTrigger) }}>
+          {TRIGGERS.map(value => <option key={value} value={value}>{value === 'right-button' ? t('settings.actions.rightButton') : value === 'Alt' ? 'Alt / Option' : value === 'Meta' ? 'Meta / Command' : value}</option>)}
         </select>}
-        <Switch label="按住触发键打开轮盘" checked={settings.wheelEnabled === true} disabled={saving} onChange={value => { void companion.setSetting('wheelEnabled', value) }} />
+        <Switch label={t('settings.actions.wheel')} checked={settings.wheelEnabled === true} disabled={saving} onChange={value => { void companion.setSetting('wheelEnabled', value) }} />
       </div>
     </div>
     <div className={css.row}>
-      <div className={css.rowText}><span className={css.title}>预设动作</span><span className={css.desc}>“解释”“翻译”这类动作是直接发送，还是先放进输入框。“提问”总是先打开输入框。</span></div>
+      <div className={css.rowText}><span className={css.title}>{t('settings.actions.delivery')}</span><span className={css.desc}>{t('settings.actions.deliveryDesc')}</span></div>
       <div className={css.control}>
-        <SegmentedControl<ActionDelivery> id="citeciter-action-delivery" label="预设动作" value={settings.actionDelivery ?? 'send'} disabled={saving}
-          options={[{ value: 'send', label: '直接发送' }, { value: 'draft', label: '放进输入框' }]}
+        <SegmentedControl<ActionDelivery> id="citeciter-action-delivery" label={t('settings.actions.delivery')} value={settings.actionDelivery ?? 'send'} disabled={saving}
+          options={[{ value: 'send', label: t('settings.actions.send') }, { value: 'draft', label: t('settings.actions.draft') }]}
           onChange={value => { void companion.setSetting('actionDelivery', value) }} />
       </div>
     </div>
     <div className={css.row}>
-      <div className={css.rowText}><span className={css.title}>新 Topic 的模型</span><span className={css.desc}>未指定时使用来源对话的模型。</span></div>
-      <div className={css.control}><ModelChoice className={css.select} label="新 Topic 的模型" providers={snapshot.providers} value={settings.defaultCiterModel ?? undefined} onChange={value => { void companion.setSetting('defaultCiterModel', value ?? null) }} /></div>
+      <div className={css.rowText}><span className={css.title}>{t('settings.actions.model')}</span><span className={css.desc}>{t('settings.actions.modelDesc')}</span></div>
+      <div className={css.control}><ModelChoice className={css.select} label={t('settings.actions.model')} providers={snapshot.providers} value={settings.defaultCiterModel ?? undefined} onChange={value => { void companion.setSetting('defaultCiterModel', value ?? null) }} /></div>
     </div>
     <div className={css.row} data-stack>
-      <div className={css.rowText}><span className={css.title}>动作</span><span className={css.desc}>工具条显示前四个，其余在“⋯”里；轮盘从正上方顺时针排列。</span></div>
-      <div className={css.slots}>{slots.map((slot, index) => <details key={index} className={css.slot}>
+      <div className={css.rowText}><span className={css.title}>{t('settings.actions.slots')}</span><span className={css.desc}>{t('settings.actions.slotsDesc')}</span></div>
+      <div className={css.slots}>{slots.map((slot, index) => <details key={slotKeys.current[index]} className={css.slot}>
         <summary>
           <span className={css.slotIndex}>{index + 1}</span>
-          <span className={css.slotLabel} data-empty={slot === null || undefined}>{slot?.label ?? '空'}</span>
-          <span className={css.slotKind}>{slot === null ? '' : slot.ask ? '写下问题' : '预设提示词'}</span>
+          <span className={css.slotLabel} data-empty={slot === null || undefined}>{slot?.label ?? t('settings.actions.empty')}</span>
+          <span className={css.slotKind}>{slot === null ? '' : slot.ask ? t('settings.actions.ask') : t('settings.actions.preset')}</span>
         </summary>
         <div className={css.slotBody}>
-          {slot === null ? <div className={css.slotButtons}><Button variant="outline" size="sm" onClick={() => change(index, {})}>添加动作</Button></div> : <>
-            <label className={css.field}>名称<input className={css.text} maxLength={20} value={slot.label} onChange={event => change(index, { label: event.currentTarget.value })} /></label>
-            <div className={css.field}>类型
-              <SegmentedControl<'ask' | 'preset'> id={`citeciter-slot-${index}`} label={`动作 ${index + 1} 的类型`} value={slot.ask ? 'ask' : 'preset'}
-                options={[{ value: 'ask', label: '写下问题' }, { value: 'preset', label: '预设提示词' }]}
+          {slot === null ? <div className={css.slotButtons}><Button variant="outline" size="sm" onClick={() => change(index, {})}>{t('settings.actions.add')}</Button></div> : <>
+            <label className={css.field}>{t('settings.actions.name')}<input className={css.text} maxLength={20} value={slot.label} onChange={event => change(index, { label: event.currentTarget.value })} /></label>
+            <div className={css.field}>{t('settings.actions.kind')}
+              <SegmentedControl<'ask' | 'preset'> id={`citeciter-slot-${index}`} label={t('settings.actions.kindAria', { index: index + 1 })} value={slot.ask ? 'ask' : 'preset'}
+                options={[{ value: 'ask', label: t('settings.actions.ask') }, { value: 'preset', label: t('settings.actions.preset') }]}
                 onChange={value => change(index, { ask: value === 'ask' })} />
             </div>
-            <label className={css.field}>{slot.ask ? '提示词（可选，预先填进输入框）' : '提示词'}<textarea className={css.textarea} rows={3} maxLength={4000} value={slot.prompt} onChange={event => change(index, { prompt: event.currentTarget.value })} /></label>
-            <label className={css.field}>打开位置<select className={css.select} value={slot.presentation} onChange={event => change(index, { presentation: event.currentTarget.value as CiteAction['presentation'] })}><option value="side">侧边面板</option><option value="floating">悬浮面板</option></select></label>
+            <label className={css.field}>{slot.ask ? t('settings.actions.optionalPrompt') : t('settings.actions.prompt')}<textarea className={css.textarea} rows={3} maxLength={4000} value={slot.prompt} onChange={event => change(index, { prompt: event.currentTarget.value })} /></label>
+            <label className={css.field}>{t('settings.actions.position')}<select className={css.select} value={slot.presentation} onChange={event => change(index, { presentation: event.currentTarget.value as CiteAction['presentation'] })}><option value="side">{t('settings.actions.side')}</option><option value="floating">{t('settings.actions.floating')}</option></select></label>
             <div className={css.slotButtons}>
-              <Button variant="outline" size="sm" disabled={index === 0} onClick={() => move(index, -1)}>上移</Button>
-              <Button variant="outline" size="sm" disabled={index === slots.length - 1} onClick={() => move(index, 1)}>下移</Button>
-              <Button variant="outline" size="sm" onClick={() => setSlots(current => current.map((item, i) => i === index ? null : item))}>清空</Button>
+              <Button variant="outline" size="sm" disabled={index === 0} onClick={() => move(index, -1)}>{t('settings.actions.up')}</Button>
+              <Button variant="outline" size="sm" disabled={index === slots.length - 1} onClick={() => move(index, 1)}>{t('settings.actions.down')}</Button>
+              <Button variant="outline" size="sm" onClick={() => setSlots(current => current.map((item, i) => i === index ? null : item))}>{t('settings.actions.clear')}</Button>
             </div>
           </>}
         </div>
       </details>)}</div>
       {error !== null && <p className={css.status} data-status="error" role="alert">{error}</p>}
       <div className={css.footer}>
-        <Button variant="ghost" size="sm" onClick={() => { setSlots([...DEFAULT_WHEEL_SLOTS]); setError(null) }}>恢复默认</Button>
-        <Button variant="primary" size="sm" disabled={!dirty || saving} onClick={save}>保存动作</Button>
+        <Button variant="ghost" size="sm" onClick={() => { setSlots([...localizedWheelSlots(undefined, isChinese())]); setError(null) }}>{t('settings.actions.restore')}</Button>
+        <Button variant="primary" size="sm" disabled={!dirty || saving} onClick={save}>{t('settings.actions.save')}</Button>
       </div>
     </div>
   </section>

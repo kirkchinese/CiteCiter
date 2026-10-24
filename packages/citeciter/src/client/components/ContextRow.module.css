@@ -1,0 +1,53 @@
+/* Mirrors DSH's context injection row so logged context reads the same in a Topic and in the main conversation. */
+.root {
+  min-width: 0;
+}
+
+.root[data-open] {
+  padding-bottom: 4px;
+}
+
+.sep {
+  flex: none;
+  width: 2px;
+  height: 2px;
+  margin: 0 8px;
+  border-radius: 1px;
+  corner-shape: round;
+  background: var(--dsw-alias-label-caption);
+}
+
+.source,
+.summary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source {
+  flex: none;
+}
+
+.summary {
+  flex: auto;
+}
+
+.body {
+  box-sizing: border-box;
+  width: calc(100% - 22px - var(--dsh-content-font-delta, 0px));
+  max-height: 141px;
+  margin: 4px 0 0 calc(22px + var(--dsh-content-font-delta, 0px));
+  padding: 10px 16px 12px 12px;
+  overflow: auto;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-markdown-code-block);
+  color: var(--dsw-alias-label-tertiary);
+  font: 400 11px/16px var(--ds-font-family-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

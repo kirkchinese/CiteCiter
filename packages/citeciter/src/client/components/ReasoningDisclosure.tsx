@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react'
 import { DisclosureRow, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconThinkOutlineMedium } from '../host-icons.ts'
 import { markdownLabels } from '../copy.ts'
+import { t, useLocale } from '../i18n.ts'
 import css from './ReasoningDisclosure.module.css'
 
 /** Display only reasoning actually returned by the model. Expansion is local UI state; no model call or Session mutation occurs. */
 export function ReasoningDisclosure({ text, active }: { readonly text: string, readonly active: boolean }) {
+  useLocale()
   const [open, setOpen] = useState(false)
   const preview = useMemo(() => text.replaceAll(/\s+/gu, ' ').trim().slice(0, 180), [text])
   return (
@@ -13,7 +15,7 @@ export function ReasoningDisclosure({ text, active }: { readonly text: string, r
       className={css.disclosure}
       rowClassName={active ? css.activeRow : css.row}
       icon={<IconThinkOutlineMedium />}
-      title={active ? '思考中' : '思考'}
+      title={t(active ? 'transcript.reasoning.active' : 'transcript.reasoning.done')}
       open={open}
       expandable
       expandOnRowClick

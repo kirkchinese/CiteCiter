@@ -49,8 +49,10 @@ test('tool calls pair with their results, attachments and structured question ou
   assert.deepEqual(tools.map(message => [message.id, message.running, message.isError, message.result, message.errorCode]), [
     ['c1', false, false, 'file body', undefined],
     ['c2', false, true, 'cancelled', 'ASK_CANCELLED'],
-    ['c3', true, false, null, undefined],
+    // Still without a result when its turn ended: interrupted, not running.
+    ['c3', false, false, null, undefined],
   ])
+  assert.equal(tools[2].interruptionOutcome, 'interrupted')
   assert.deepEqual(tools[0].attachments, [{ kind: 'image', id: 'shot', name: '工具图片' }])
   assert.equal(tools[0].arguments, '{"path":"a.ts"}')
 })
@@ -72,7 +74,7 @@ test('a failed turn leaves an error row and banner until the next turn starts', 
   const failed = [turnStart(1), user('u1', [text('q')]), assistant('a1', 1, [text('partial')]), turnEnd(1, { kind: 'error', error: { message: 'TRANSPORT' } })]
   const first = topicMessages(log(failed))
   assert.equal(first.error, 'TRANSPORT')
-  assert.deepEqual(first.messages.at(-1), { id: 'error:3', seq: 3, role: 'error', text: 'TRANSPORT', bodyRetained: true, attempt: 1, status: 'failed' })
+  assert.deepEqual(first.messages.at(-1), { id: 'error:3', seq: 3, role: 'error', turn: 1, text: 'TRANSPORT', bodyRetained: true, attempt: 1, status: 'failed' })
 
   const retried = topicMessages(log([...failed, turnStart(2)]))
   assert.equal(retried.error, null)
@@ -89,7 +91,18 @@ test('plugin context becomes a labelled context row and a live message is append
   const context = event('user/message', { id: 'ctx', role: 'user', content: [text('citation json')], source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt' } })
   const live = { id: 'live', seq: 99, role: 'assistant', text: 'streaming', reasoning: null, streaming: true }
   const { messages } = topicMessages({ ...log([context]), liveMessage: live })
-  assert.deepEqual(messages, [{ id: 'ctx', seq: 0, role: 'context', label: '提示词注入', text: 'citation json' }, live])
+  assert.deepEqual(messages, [{ id: 'ctx', seq: 0, role: 'context', label: '提示词注入', contextRole: 'inject', producer: '系统提示词', text: 'citation json' }, live])
+})
+
+test('a tool left without a result when its turn ends shows as interrupted, never as running', () => {
+  seq = 0
+  const call = event('tool/call', { turn: 1, step: 1, callId: 'c1', name: 'read', arguments: '{}' })
+  const { messages } = topicMessages(log([turnStart(1), call, turnEnd(1, { kind: 'aborted', reason: { kind: 'user' } })]))
+  const row = messages.find(message => message.id === 'c1')
+  assert.equal(row.running, false)
+  assert.equal(row.interruptionOutcome, 'interrupted')
+  const open = topicMessages(log([turnStart(1), call])).messages.find(message => message.id === 'c1')
+  assert.equal(open.running, true)
 })
 
 test('a late question reply renders as a user message and settles its question row', () => {

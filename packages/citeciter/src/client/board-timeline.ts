@@ -20,14 +20,20 @@ export function frameStyle(frame: ElementFrame, size: { readonly w: number, read
   }
 }
 
-function reducedMotion(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+/** Whether timeline playback is permitted by both the board setting and system preference. */
+export function timelineMotionAllowed(animations: boolean, reducedMotion: boolean): boolean {
+  return animations && !reducedMotion
+}
+
+function motionPreference(): MediaQueryList | undefined {
+  return typeof window === 'undefined' ? undefined : window.matchMedia?.('(prefers-reduced-motion: reduce)')
 }
 
 /** Playback state of one board timeline. */
 export interface TimelinePlayer {
   readonly t: number
   readonly playing: boolean
+  readonly canPlay: boolean
   readonly toggle: () => void
   readonly seek: (atMs: number) => void
 }
@@ -37,25 +43,36 @@ export interface TimelinePlayer {
  * allowed; otherwise it rests on its final frame. A frozen time (frame capture) never plays.
  * @param timeline - compiled timeline, or null.
  * @param key - identity of the timeline; a new key restarts playback.
- * @param options - whether to autoplay and an optional frozen time.
+ * @param options - animation permission and an optional frozen capture time.
  */
 export function useTimelinePlayer(timeline: CompiledTimeline | null, key: string | null, options: { readonly autoplay: boolean, readonly frozenAt?: number | undefined }): TimelinePlayer {
   const duration = timeline?.durationMs ?? 0
   const [t, setT] = useState(options.frozenAt ?? duration)
   const [playing, setPlaying] = useState(false)
+  const [reduce, setReduce] = useState(() => motionPreference()?.matches === true)
+  const canPlay = timelineMotionAllowed(options.autoplay, reduce) && options.frozenAt === undefined
   const time = useRef(t)
   time.current = t
 
   useEffect(() => {
-    if (options.frozenAt !== undefined) { setT(options.frozenAt); setPlaying(false); return }
-    const play = options.autoplay && timeline !== null && !reducedMotion()
-    setT(play ? 0 : duration)
-    setPlaying(play)
-    // Restart only for a different timeline, not for unrelated re-renders.
-  }, [key, options.frozenAt])
+    const media = motionPreference()
+    if (media === undefined) return
+    const onChange = () => setReduce(media.matches)
+    media.addEventListener('change', onChange)
+    onChange()
+    return () => media.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => {
-    if (!playing || timeline === null) return
+    if (options.frozenAt !== undefined) { setT(options.frozenAt); setPlaying(false); return }
+    const play = canPlay && timeline !== null
+    setT(play ? 0 : duration)
+    setPlaying(play)
+    // Restart for a different timeline or motion policy, not unrelated re-renders.
+  }, [key, options.frozenAt, canPlay, duration])
+
+  useEffect(() => {
+    if (!playing || !canPlay || timeline === null) return
     let frame = 0
     let last = performance.now()
     const step = (now: number) => {
@@ -70,15 +87,15 @@ export function useTimelinePlayer(timeline: CompiledTimeline | null, key: string
     }
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
-  }, [playing, timeline, duration])
+  }, [playing, canPlay, timeline, duration])
 
   const toggle = useCallback(() => {
-    if (timeline === null) return
+    if (timeline === null || !canPlay) return
     setPlaying(current => {
       if (!current && time.current >= duration) setT(0)
       return !current
     })
-  }, [timeline, duration])
+  }, [timeline, duration, canPlay])
   const seek = useCallback((atMs: number) => { setPlaying(false); setT(Math.min(duration, Math.max(0, atMs))) }, [duration])
-  return { t, playing, toggle, seek }
+  return { t, playing, canPlay, toggle, seek }
 }

@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { SettingsDescribeFace } from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -14,7 +15,7 @@ interface ModernForms { get<T>(namespace: string): SettingsForm<T>; describe(): 
 /** Call only public preference services. The selected service owns binding teardown. */
 export function hostSettings(ctx: Context): ModernForms {
   const forms = ctx.get('configForms') as ModernForms | undefined
-  if (forms === undefined) throw new Error('当前 DSH 未提供 Citer 所需的设置接口')
+  if (forms === undefined) throw new Error(t('panel.error.settingsUnavailable'))
   return forms
 }
 
@@ -25,7 +26,7 @@ export function hostInteractions(ctx: Context): ObservableSnapshot<InteractionSn
     sessionStatus?: ObservableSnapshot<ReadonlyMap<SessionId, { pendingInteraction: SessionPendingInteraction | undefined }>>
   }
   const source = service.sessionStatus
-  if (source === undefined) throw new Error('当前 DSH 未提供 Citer 所需的审批展示接口')
+  if (source === undefined) throw new Error(t('panel.error.approvalUnavailable'))
   let previous: ReturnType<typeof source.getSnapshot> | undefined
   let current: InteractionSnapshot = new Map()
   return {

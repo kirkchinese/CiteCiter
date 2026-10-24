@@ -2,6 +2,7 @@
 
 const DSH_FLOW_SELECTOR = '[data-chat-flow-kind]'
 const DSH_ASSISTANT_ANCHOR_SELECTOR = '[data-chat-flow-kind="assistant-step"][data-chat-anchor-key]'
+const DSH_USER_ANCHOR_SELECTOR = '[data-chat-flow-kind="user"][data-chat-anchor-key]'
 const DSH_REASONING_SELECTOR = '[data-variant="think"]'
 const DSH_REASONING_HEADER_SELECTOR = '[data-disclosure-row]'
 const DSH_GENERATED_CONTENT_SELECTOR = 'button, .katex, [data-footnotes], sup'
@@ -20,6 +21,14 @@ export interface DshConversationFlow {
 export interface DshAssistantAnchor {
   readonly element: HTMLElement
   readonly anchorKey: string
+}
+
+/** A committed ordinary user message in the native DSH chat. */
+export function dshUserAnchorForTarget(target: EventTarget | null): DshAssistantAnchor | null {
+  if (!(target instanceof Element)) return null
+  const flow = parseFlow(target.closest<HTMLElement>(DSH_USER_ANCHOR_SELECTOR))
+  if (flow === null || flow.kind !== 'user' || !flow.anchorKey) return null
+  return { element: flow.element, anchorKey: flow.anchorKey }
 }
 
 /** Best-effort Read Frog selection classification. */

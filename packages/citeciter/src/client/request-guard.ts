@@ -98,10 +98,11 @@ export function claimCreateTopicIntent(
  * Claim the retry-stable request ID for one uncited Topic creation.
  * @param sourceSessionId - owning DSH Session.
  * @param question - normalized first question.
+ * @param modelRoute - the configured model for new Topics, when set.
  * @returns the pending intent key and request ID.
  */
-export function claimCreateFreeTopicIntent(sourceSessionId: string, question: string): Promise<RequestIntent> {
-  return claimRequestIntent('create-free', JSON.stringify([sourceSessionId, question]))
+export function claimCreateFreeTopicIntent(sourceSessionId: string, question: string, modelRoute?: ActionModel): Promise<RequestIntent> {
+  return claimRequestIntent('create-free', JSON.stringify([sourceSessionId, question, ...(modelRoute === undefined ? [] : [modelRoute])]))
 }
 
 /** Document-range claim identity shared by the Reader entry point. */

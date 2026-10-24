@@ -22,9 +22,12 @@
 }
 
 .board[data-compact] { padding: 16px; min-height: 350px; overflow: auto; }
+.board[data-capture] { flex: none; width: 1000px; height: 680px; padding: 0; }
+.board[data-capture] .boardHeader, .board[data-capture] .boardWarning { display: none; }
+.board[data-capture] .canvasViewport { margin: 0; }
 .board[data-compact] .boardHeader { flex-wrap: wrap; }
-.board[data-compact]:not([data-notes]) .canvas { flex: none; min-width: 640px; height: 480px; }
-.board[data-notes] .canvas { display: flex; flex-direction: column; gap: 16px; padding: 16px; box-sizing: border-box; overflow: visible; }
+.board[data-notes] .canvasViewport { aspect-ratio: auto; max-width: none; overflow: visible; }
+.board[data-notes] .canvas { position: relative; display: flex; flex-direction: column; gap: 16px; width: 100%; height: auto; padding: 16px; box-sizing: border-box; overflow: visible; }
 .board[data-notes] .elementWrap { position: relative; left: auto !important; top: auto !important; width: 100% !important; height: auto !important; padding-bottom: 22px; border-bottom: 1px solid rgb(255 255 255 / .08); }
 .board[data-notes] .elementInner { height: auto; min-height: 24px; }
 .board[data-notes] [data-kind="svg"] .elementInner, .board[data-notes] [data-kind="html"] .elementInner { min-height: 180px; }
@@ -59,21 +62,33 @@
   font-size: 11px;
 }
 
-.canvas {
+/* Board coordinates, typography and SVG letterboxing share one 1000 × 680 logical canvas. */
+.canvasViewport {
   position: relative;
-  flex: 1;
-  min-height: 320px;
+  flex: none;
   min-width: 0;
   max-width: 1280px;
   width: 100%;
-  margin: 0 auto;
-  overflow: auto;
-  border: 1px solid rgb(255 255 255 / 0.1);
+  aspect-ratio: 1000 / 680;
+  margin: auto;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
   border-radius: 14px;
   background:
     repeating-linear-gradient(0deg, rgb(255 255 255 / 0.025) 0 1px, transparent 1px 34px),
     linear-gradient(180deg, rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.06));
 }
+
+.canvas {
+  position: relative;
+  width: 1000px;
+  height: 680px;
+  transform-origin: top left;
+}
+
+.board[data-compact] .canvasViewport { margin: 0 auto; }
+.board[data-notes] .canvasViewport { margin: 0 auto; }
+.board { overflow-y: auto; }
 
 .canvas,
 .elementInner {
@@ -204,6 +219,8 @@
   color: #f3d58a;
   font-size: 11px;
 }
+
+.workspaceBoard { display: flex; flex: 1; min-width: 0; min-height: 0; }
 
 .workspaceEmpty {
   display: grid;

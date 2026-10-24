@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import type { PendingQuestion as HostQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 import type { PendingQuestion } from '../topic.ts'
@@ -100,7 +101,7 @@ export class TopicQuestionController {
       }
     } catch (error) {
       if (!this.closed && !this.lifetime.signal.aborted) {
-        this.failure = `无法接管等待：${String(error)}。宿主将按原定时限继续。`
+        this.failure = t('panel.question.claimFailed', { error: String(error) })
       }
     } finally {
       this.ended = true
@@ -174,7 +175,7 @@ export class TopicQuestionController {
     this.publish()
     try { await this.channel.timeout(this.pending.key) }
     catch (error) {
-      this.failure = `等待状态更新失败：${String(error)}`
+      this.failure = t('panel.question.waitFailed', { error: String(error) })
       // Do not leave a failed Client timeout claim holding the Host indefinitely.
       this.claim?.dispose()
     }
@@ -184,7 +185,7 @@ export class TopicQuestionController {
   async answer(answer: AskUserQuestionAnswer): Promise<void> {
     for (let attempt = 0; attempt < 4; attempt++) {
       const revision = await this.drafts.prepareSubmission()
-      if (this.drafts.getSnapshot().closed || this.closed || this.lifetime.signal.aborted) throw new Error('这个提问已结束，未重复提交回答')
+      if (this.drafts.getSnapshot().closed || this.closed || this.lifetime.signal.aborted) throw new Error(t('panel.error.questionNotResent'))
       const conflict = await this.channel.answer(this.pending.key, answer, revision)
       if (conflict === undefined) {
         // A queued reply is cleaned up only after actual Host admission.
@@ -192,9 +193,9 @@ export class TopicQuestionController {
         return
       }
       await this.drafts.rejectSubmission(conflict)
-      if (conflict.closed) throw new Error('这个提问已结束，未重复提交回答')
+      if (conflict.closed) throw new Error(t('panel.error.questionNotResent'))
     }
-    throw new Error('回答未发送，请稍后重试')
+    throw new Error(t('panel.error.answerNotSent'))
   }
   async dismiss(): Promise<void> {
     if (this.dismissal === 'hide') { this.hidden = true; this.releaseFocus(); this.publish(); return }

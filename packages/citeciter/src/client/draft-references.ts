@@ -1,5 +1,6 @@
 import type { TopicSummary } from '../topic.ts'
 import type { DraftContent } from '../draft-contract.ts'
+import { t } from './i18n.ts'
 
 /** One unsent model-visible reference. Removing this value removes its serialized content. */
 export type DraftReference = DraftContent['references'][number]
@@ -23,10 +24,21 @@ export function topicDraftReferences(topic: TopicSummary, documentTitle?: string
   return references
 }
 
-/** Display a document filename while retaining the full title/path in its serialized content. Legacy ID-only references keep their generic label. */
+/** Translate only the visible chip kind; reference.label remains the serialized Chinese marker. */
+export function draftReferenceLabel(reference: DraftReference): string {
+  switch (reference.label) {
+    case '来源对话': return t('transcript.reference.source')
+    case '来源文档': return t('transcript.reference.document')
+    case '引用文段': return t('transcript.reference.excerpt')
+    case '板书引用': return t('transcript.reference.board')
+    default: return reference.label
+  }
+}
+
+/** Display a document filename while retaining the full title/path in its serialized content. */
 export function draftReferenceName(reference: DraftReference): string {
-  if (reference.label !== '来源文档' || reference.address?.endsWith(`/${encodeURIComponent(reference.content)}`)) return reference.label
-  return reference.content.split(/[\\/]/u).at(-1) || reference.label
+  if (reference.label !== '来源文档' || reference.address?.endsWith(`/${encodeURIComponent(reference.content)}`)) return draftReferenceLabel(reference)
+  return reference.content.split(/[\\/]/u).at(-1) || draftReferenceLabel(reference)
 }
 
 function preview(text: string, limit = 24): string {
@@ -40,9 +52,9 @@ function preview(text: string, limit = 24): string {
  * @param sourceTitle - resolves a source session's display title; the generic label is used when it is unknown.
  */
 export function draftReferenceTitle(reference: DraftReference, sourceTitle?: (sessionId: string) => string | undefined): string {
-  if (reference.kind === 'excerpt') return preview(reference.content.replace(/^文档：[^\n]*\n\n/u, '')) || reference.label
-  if (reference.kind === 'board') return `板书：${preview(reference.content, 20)}`
-  if (reference.label === '来源对话') return sourceTitle?.(reference.content) ?? reference.label
+  if (reference.kind === 'excerpt') return preview(reference.content.replace(/^文档：[^\n]*\n\n/u, '')) || draftReferenceLabel(reference)
+  if (reference.kind === 'board') return t('transcript.reference.boardTitle', { text: preview(reference.content, 20) })
+  if (reference.label === '来源对话') return sourceTitle?.(reference.content) ?? draftReferenceLabel(reference)
   return draftReferenceName(reference)
 }
 

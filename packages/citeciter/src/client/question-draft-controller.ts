@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import { EMPTY_QUESTION_DRAFT_STATE, type QuestionDraftContent, type QuestionDraftState } from '../question-draft-contract.ts'
 import { mergeQuestionDraft } from './draft-merge.ts'
 
@@ -134,8 +135,8 @@ export function createQuestionDraftController(port: QuestionDraftPort, isOperati
     /** Bind manual submission to this window's saved version; the Host checks it atomically with acceptance. */
     prepareSubmission: async (): Promise<number> => {
       await flush()
-      if (disposed || closing || view.closed) throw new Error('这个提问已结束，未提交回答')
-      if (composing || saved < generation) throw new Error('回答尚未保存，未发送；请稍后重试')
+      if (disposed || closing || view.closed) throw new Error(t('panel.error.questionEnded'))
+      if (composing || saved < generation) throw new Error(t('panel.error.answerNotSaved'))
       return state.revision
     },
     /** Preserve local answers when another window saved after our last edit or flush. */

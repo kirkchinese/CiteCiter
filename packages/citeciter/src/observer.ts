@@ -2,7 +2,7 @@
 /** Shared tool-evidence projections also consumed by the browser entry layer. */
 import { createHash } from 'node:crypto'
 import { toolCallRecord, toolResultRecord } from './tool-events.ts'
-import { projectToolEvidence } from './evidence-text.ts'
+import { projectToolEvidence, toolExcerptMatches } from './evidence-text.ts'
 export {
   projectDiffMeta,
   projectToolEvidence,
@@ -167,7 +167,7 @@ export function resolveToolEvidence(
     throw new Error(`Citation tool result has no citable ${projection} projection`)
   }
   if (sourceText.trim() === '') throw new Error('Citation tool result has no citable text')
-  if (claim.displayText.trim() !== sourceText.trim()) {
+  if (!toolExcerptMatches(sourceText, claim.displayText)) {
     throw new Error('Citation toolClaim displayText does not match the committed tool result text')
   }
   return {

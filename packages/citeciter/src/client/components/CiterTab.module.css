@@ -1,0 +1,7 @@
+/* The mascot at icon size: a round crop, like the panel header mark. */
+.icon {
+  flex: none;
+  object-fit: cover;
+  border-radius: 50%;
+  corner-shape: round;
+}

@@ -38,6 +38,46 @@ export const DEFAULT_WHEEL_SLOTS: readonly (CiteAction | null)[] = [
   null,
 ]
 
+/** English built-in actions, used only when the active UI language is not Chinese. */
+export const ENGLISH_WHEEL_SLOTS: readonly (CiteAction | null)[] = [
+  { label: 'Ask', prompt: '', ask: true, presentation: 'side' },
+  { label: 'Explain', prompt: englishLearningQuestion('Underlying logic'), ask: false, presentation: 'side' },
+  { label: 'Find errors', prompt: 'Review the quoted content for errors, omissions, and conditions under which its claims hold. Distinguish confirmed errors from information that still needs to be checked.', ask: false, presentation: 'floating' },
+  { label: 'Translate', prompt: 'Translate the quoted content into English, preserving important terms in their original language.', ask: false, presentation: 'floating' },
+  { label: 'Blackboard', prompt: englishLearningQuestion('Quantitative analysis (blackboard)'), ask: false, presentation: 'side' },
+  { label: 'Study cards', prompt: englishLearningQuestion('Summary study cards', 'Organize the content around this quote.'), ask: false, presentation: 'side' },
+  null,
+  null,
+]
+
+function englishLearningQuestion(stage: 'Underlying logic' | 'Quantitative analysis (blackboard)' | 'Summary study cards', question = ''): string {
+  const instructions = {
+    'Underlying logic': 'Explain the underlying logic of the current topic: start with definitions and conditions, then explain the causal mechanism and why it works. Distinguish source evidence, general knowledge, and assumptions. Cover this stage only; do not advance automatically.',
+    'Quantitative analysis (blackboard)': 'Analyze the current topic quantitatively and use blackboard_apply to organize the blackboard: specify variables, units, assumptions, derivation steps, and one verifiable worked example. Mark example values as hypothetical; do not invent source data. If quantitative analysis is unsuitable or information is insufficient, explain why. Cover this stage only; do not advance automatically.',
+    'Summary study cards': 'First check and correct the conclusions and existing blackboard in this Topic: review definitions, conditions, derivations, numbers, and contradictions. Do not treat earlier model responses as evidence; consult available sources if needed. Correct mistakes and mark unverifiable claims as unverified or omit them; do not invent sources or locations. Then call learning_cards to create 1–6 study cards, each with a key conclusion, a concrete example, an optional self-test question, and a reference answer. Check that these fields agree, including corrections in examples and answers. Preserve real source locations for source-dependent facts and distinguish evidence from general knowledge. Briefly report corrections and remaining unverified claims; do not schedule reviews.',
+  } as const
+  return `[Learning stage: ${stage}]\n${instructions[stage]}${question.trim() === '' ? '' : `\n\nMy question: ${question.trim()}`}`
+}
+
+/** The English counterpart of one unchanged built-in Chinese action, wherever it now sits; else undefined. */
+function englishDefault(slot: CiteAction): CiteAction | undefined {
+  const index = DEFAULT_WHEEL_SLOTS.findIndex(original => original !== null && slot.label === original.label
+    && slot.prompt === original.prompt && slot.ask === original.ask && slot.presentation === original.presentation)
+  const english = index < 0 ? undefined : ENGLISH_WHEEL_SLOTS[index]
+  return english == null ? undefined : { ...english, ...(slot.target === undefined ? {} : { target: slot.target }) }
+}
+
+/**
+ * Resolve the actions for the current UI language without changing persisted settings. Saving
+ * actions stores the whole list, so each slot is judged on its own: a built-in action the user
+ * left unchanged (even if moved) follows the language; an edited or added action stays as written.
+ */
+export function localizedWheelSlots(slots: readonly (CiteAction | null)[] | undefined, chinese: boolean): readonly (CiteAction | null)[] {
+  if (chinese) return slots ?? DEFAULT_WHEEL_SLOTS
+  if (slots === undefined) return ENGLISH_WHEEL_SLOTS
+  return slots.map(slot => slot === null ? null : englishDefault(slot) ?? slot)
+}
+
 /**
  * Decide how a chosen action is delivered.
  * @param action - the chosen slot.

@@ -6,6 +6,7 @@ import {
   isolatedHtmlDocument,
   neutralizeMarkdownImages,
   splitRichContent,
+  svgIntrinsicSize,
 } from '../lib/types/client/rich-content.js'
 
 function findNode(node, type) {
@@ -35,6 +36,16 @@ test('splitRichContent preserves prose and lifts a complete safe SVG fence', () 
   ].join('\n'))
   assert.deepEqual(segments.map((segment) => segment.kind), ['markdown', 'svg', 'markdown'])
   assert.equal(segments[1].dataUrl.startsWith('data:image/svg+xml;charset=utf-8,'), true)
+})
+
+test('rich SVG keeps explicit pixel dimensions or viewBox proportions', () => {
+  assert.deepEqual(svgIntrinsicSize('<svg width="120" height="120" viewBox="0 0 12 12"></svg>'), { width: 120, height: 120 })
+  assert.deepEqual(svgIntrinsicSize('<svg width="240px" viewBox="0 0 120 60"></svg>'), { width: 240, height: 120 })
+  assert.deepEqual(svgIntrinsicSize('<svg height="90" viewBox="0 0 40 20"></svg>'), { width: 180, height: 90 })
+  assert.deepEqual(svgIntrinsicSize('<svg viewBox="0 0 40 20"></svg>'), { width: 300, height: 150 })
+  assert.equal(svgIntrinsicSize('<svg width="100%" height="auto"></svg>'), null)
+  const [segment] = splitRichContent('```svg\n<svg width="120" height="120"><circle r="5" /></svg>\n```')
+  assert.deepEqual(segment.size, { width: 120, height: 120 })
 })
 
 test('unsafe SVG remains Markdown rather than becoming a preview', () => {

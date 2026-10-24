@@ -187,6 +187,15 @@ test('a committed tool result becomes whole-card result-text EvidenceRef', () =>
   assert.equal(projectToolResultText([{ type: 'text', text: 'a' }, { type: 'image', text: 'skip' }, null, { type: 'text', text: 'b' }]), 'ab')
 })
 
+test('a part selected in a rendered tool card is accepted without its line-number gutter', () => {
+  const read = '<path>calc.js</path>\n<content>\n1: // Tiny calculator\n2: function add(a, b) {\n3:   return a + b\n4: }\n</content>'
+  const source = { session: { id: sourceId }, events: [toolCall(5, 'call-1', 'read'), toolResult(6, 'call-1', read)] }
+  const resolved = resolveToolEvidence(source, { sourceSessionId: sourceId, callId: 'call-1', displayText: 'function add(a, b) {\n  return a + b' })
+  assert.equal(resolved.evidence.displayText, 'function add(a, b) {\n  return a + b')
+  assert.equal(resolved.evidence.sourceText, read)
+  assert.throws(() => resolveToolEvidence(source, { sourceSessionId: sourceId, callId: 'call-1', displayText: 'function subtract' }), /does not match/u)
+})
+
 test('tool evidence rejects wrong sessions, missing calls, mismatched text, and empty results', () => {
   const source = {
     session: { id: sourceId },

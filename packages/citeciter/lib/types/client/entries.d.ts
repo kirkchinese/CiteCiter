@@ -6,6 +6,7 @@
  */
 import type { SessionId } from '@deepseek-ai/dsh-session/types';
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
+import type { ActionSource } from './action-controller.ts';
 import type { CiteSelection } from './types.ts';
 /** Live browser facts an entry needs to resolve one selection. */
 export interface CiteCiterEntryContext {
@@ -51,6 +52,8 @@ export declare function createCiteCiterEntryRegistry(): CiteCiterEntryRegistry;
  * @returns the entry contribution; register it on the shared registry.
  */
 export declare function createAssistantEntry(): CiteCiterEntry;
+/** Capture a committed user-message excerpt without inventing a host-verified citation claim. */
+export declare function readUserMessageQuote(event: MouseEvent, context: CiteCiterEntryContext): ActionSource | null;
 /**
  * Built-in tool evidence entry: claims a whole-card tool result from its
  * `call:<callId>` row and the enclosing `tool-call` chat flow. Terminal and
