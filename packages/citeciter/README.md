@@ -1,14 +1,14 @@
 # CiteCiter
 
-[简体中文](README.zh.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.3/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
+[简体中文](README.zh.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.4/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
-![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.3/assets/hero/citeciter-hero.png)
+![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.4/assets/hero/citeciter-hero.png)
 
 **The AI finished the task. I still want to understand how it did it.**
 
 CiteCiter is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) plugin that helps you learn from your agent's real work. Select part of a conversation, a tool result or a document, ask about it in a separate Topic that keeps its source, use a blackboard to see how the pieces relate, then return to your work. The main conversation is never modified.
 
-[![CiteCiter demo](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.3/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
+[![CiteCiter demo](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.4/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
 [Watch the demo on Bilibili](https://www.bilibili.com/video/BV1tqeA65EJ8/) (recorded with an earlier version; the interface has changed slightly).
 
@@ -18,7 +18,7 @@ CiteCiter needs DSH and a working model. The plugin declares exact host versions
 
 | DSH version | CiteCiter version |
 | --- | --- |
-| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.9.0-beta.3` |
+| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2`, `0.2.1-rc.3` | `0.9.0-beta.4` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -28,13 +28,13 @@ CiteCiter needs DSH and a working model. The plugin declares exact host versions
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.3
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.4
 ```
 
 You can also install a release tag straight from the repository, which contains the built plugin, so nothing is built at install time:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.3"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.4"
 ```
 
 Restart DSH and refresh the page after installing or upgrading. Do not use `dsh plugin allow-version` to force a plugin that does not match your host version. Do not run two host processes on the same DSH home.
@@ -122,6 +122,6 @@ CiteCiter turns real AI work into material you can cite, question and check. Sta
 
 Bring a task where "the agent finished, but I still can't explain it" to the [issue tracker](https://github.com/kirkchinese/CiteCiter/issues). Include your DSH and plugin versions and whether you got stuck installing, citing and asking, or understanding the answer. Remove keys and private content before pasting material.
 
-See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.3/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.3/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
+See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.4/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.4/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
 
 MIT License.
