@@ -3,9 +3,12 @@
 .controls .trigger > span:first-child { flex: 1; min-width: 0; text-align: right; }
 .trigger { display: flex; align-items: center; gap: 6px; max-width: 240px; height: 28px; padding: 0 8px; color: var(--dsw-alias-label-secondary); background: transparent; border: 0; border-radius: var(--dsw-radius-md, 8px); font: var(--dsw-font-xs-13, 13px/20px system-ui, sans-serif); cursor: pointer; }
 .trigger > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-/* The effort label never wraps; the model name gives way first in a narrow composer. */
+/* The effort label never wraps; the model name gives way first, and a narrow composer drops the effort label. */
 .trigger small { flex: none; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }
-.controls .trigger > span:first-child { min-width: 3em; }
+.trigger { overflow: hidden; }
+@container (max-width: 400px) {
+  .controls .trigger small { display: none; }
+}
 .trigger svg { flex: none; }
 .chevron { color: var(--dsw-alias-label-tertiary); }
 .trigger:hover, .trigger[aria-expanded="true"] { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover); }
