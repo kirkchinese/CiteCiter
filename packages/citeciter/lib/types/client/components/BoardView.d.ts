@@ -5,7 +5,7 @@ import { type BoardElementState, type BoardSnapshot } from '../../board.ts';
  * @param props - snapshot, motion preference, optional compact reading mode and citation action.
  * @returns the safe blackboard canvas.
  */
-export declare function BoardView({ snapshot, animations, onQuoteElement, compact, sessionId, frameAtMs, }: {
+export declare function BoardView({ snapshot, animations, onQuoteElement, compact, sessionId, frameAtMs, capture, }: {
     readonly snapshot: BoardSnapshot | undefined;
     readonly animations: boolean;
     readonly onQuoteElement?: (element: BoardElementState) => void;
@@ -13,4 +13,6 @@ export declare function BoardView({ snapshot, animations, onQuoteElement, compac
     readonly sessionId?: string;
     /** Freeze the board's timeline at this time, for frame capture. */
     readonly frameAtMs?: number;
+    /** Render only the logical canvas inside an offscreen capture surface. */
+    readonly capture?: boolean;
 }): import("react").JSX.Element;

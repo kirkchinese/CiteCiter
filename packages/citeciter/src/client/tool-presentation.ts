@@ -1,5 +1,6 @@
 import type { TopicMessage } from '../topic.ts'
 import { questionReplySummary } from '../question-reply.ts'
+import { deriveQuestionReply, deriveToolCard, isShellTool } from './tool-cards.ts'
 
 type ToolMessage = Extract<TopicMessage, { role: 'tool' }>
 
@@ -14,13 +15,13 @@ const TITLES: Readonly<Record<string, string>> = {
   workspace_changes: '查看代码库变化',
   learning_cards: '整理学习卡',
   todo_write: '更新学习路线',
-  ask_user_question: '向你提问',
+  ask_user_question: '提问',
   read: '读取',
   write: '写入',
   edit: '编辑',
-  bash: '运行命令',
-  grep: '搜索文件内容',
-  glob: '查找文件',
+  str_replace_editor: '编辑',
+  grep: '搜索',
+  glob: '搜索',
   web_search: '网页搜索',
   web_fetch: '网页获取',
   run_code: '运行代码',
@@ -30,7 +31,7 @@ const TITLES: Readonly<Record<string, string>> = {
 }
 
 /** Argument fields that best identify what a call worked on, in priority order. */
-const SUBJECT_KEYS = ['path', 'file_path', 'filePath', 'command', 'cmd', 'pattern', 'query', 'url', 'prompt', 'title', 'code'] as const
+const SUBJECT_KEYS = ['path', 'file_path', 'filePath', 'pattern', 'query', 'url', 'prompt', 'title', 'description', 'command', 'cmd', 'code'] as const
 
 function parse(text: string | null): unknown {
   if (text === null || text.trim() === '') return null
@@ -61,8 +62,8 @@ function subject(args: Readonly<Record<string, unknown>> | null): string | null 
 
 function verdict(message: ToolMessage): string | null {
   if (message.interruptionOutcome === 'interrupted') return '已中断'
-  if (!message.isError) return null
   if (message.approvalOutcome === 'rejected') return '已拒绝'
+  if (!message.isError) return null
   if (message.errorCode === 'ASK_CANCELLED') return '已取消'
   if (message.errorCode === 'ASK_ABORTED') return '已中断'
   return null
@@ -96,20 +97,35 @@ function resultSummary(message: ToolMessage, args: Readonly<Record<string, unkno
  * @returns a readable title, the summary shown after it, and whether the call is still running.
  */
 export function toolPresentation(message: ToolMessage): { readonly title: string, readonly summary: string, readonly running: boolean } {
-  const title = TITLES[message.name] ?? message.name
-  const running = message.running && message.questionReply === undefined && message.interruptionOutcome === undefined
-  if (message.questionReply !== undefined) return { title, summary: compact(questionReplySummary(message.questionReply)), running }
+  const title = isShellTool(message.name) ? '运行命令' : TITLES[message.name] ?? message.name
+  const running = message.running && message.questionReply === undefined
+    && message.interruptionOutcome === undefined && message.approvalOutcome === undefined
   const args = fields(parse(message.arguments))
-  const about = subject(args)
-  if (running) return { title, summary: about ?? '进行中…', running }
+  const about = isShellTool(message.name)
+    ? subject(args === null ? null : { description: args.description, command: args.command ?? args.cmd })
+    : subject(args)
+  const reply = deriveQuestionReply(message)
+  if (reply !== null) return { title, summary: message.questionReply === undefined
+    ? `${reply.items.filter(item => item.values.length > 0).length}/${reply.items.length} 已回答`
+    : compact(questionReplySummary(reply)), running: false }
+  const card = deriveToolCard(message)
+  const cardSummary = card?.kind === 'diff' ? `${compact(card.path)}  +${card.added} −${card.removed}`
+    : card?.kind === 'read' ? compact(card.label)
+    : card?.kind === 'search' ? compact(String(args?.pattern ?? '')) : null
+  if (running) return { title, summary: cardSummary ?? about ?? '进行中…', running }
+  // Like DSH's rows, a failed or interrupted call keeps its own title and states the outcome after its subject.
+  const withSubject = (outcome: string) => about === null ? outcome : `${about} · ${outcome}`
   const outcome = verdict(message)
-  if (outcome !== null) return { title, summary: outcome, running }
+  if (outcome !== null) return { title, summary: withSubject(outcome), running }
   const result = parse(message.result)
-  if (message.isError) {
+  if (message.isError || card?.kind === 'terminal' && (card.signal !== undefined || card.exitCode !== undefined && card.exitCode !== 0)) {
     const reason = typeof result === 'string' ? result : fields(result)?.message
-    return { title, summary: typeof reason === 'string' && reason.trim() !== '' ? `失败：${compact(reason, 60)}` : '失败', running }
+    return { title, summary: withSubject(typeof reason === 'string' && reason.trim() !== ''
+      ? `失败：${compact(reason, 60)}` : card?.kind === 'terminal' && card.exitCode !== undefined
+        ? `退出码 ${card.exitCode}` : '失败'), running }
   }
   const summary = resultSummary(message, args, result)
+    ?? cardSummary
     ?? about
     ?? ((message.attachments?.length ?? 0) > 0 ? '已返回附件' : typeof result === 'string' ? compact(result) : '完成')
   return { title, summary, running }

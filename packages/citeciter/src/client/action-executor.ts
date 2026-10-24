@@ -25,9 +25,13 @@ export function createActionExecutor(companion: CompanionFace, reader: ReaderFac
     let target: string | null
     try {
       await companion.settle()
-      target = options.newTopic === true ? null : await companion.resolveDraftTopic(sourceId)
+      target = source.kind === 'topic' ? source.topicSessionId : options.newTopic === true ? null : await companion.resolveDraftTopic(sourceId)
     } finally { releaseVisible() }
     assertSource()
+    if (source.kind === 'topic') {
+      await companion.appendSelection(sourceId, source.topicSessionId, question, selectionReferences(source), delivery)
+      return
+    }
     if (source.kind === 'conversation') {
       if (target !== null) await companion.appendSelection(sourceId, target, question, selectionReferences(source), delivery)
       else {

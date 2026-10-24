@@ -9,8 +9,32 @@
 /** One presentation segment derived from an assistant Markdown response. */
 export type RichSegment =
   | { readonly kind: 'markdown'; readonly text: string }
-  | { readonly kind: 'svg'; readonly source: string; readonly dataUrl: string }
+  | { readonly kind: 'svg'; readonly source: string; readonly dataUrl: string; readonly size: SvgIntrinsicSize | null }
   | { readonly kind: 'html'; readonly document: string }
+
+export interface SvgIntrinsicSize { readonly width: number; readonly height: number }
+
+/** Resolve pixel dimensions from SVG size attributes, falling back to viewBox proportions. */
+export function svgIntrinsicSize(source: string): SvgIntrinsicSize | null {
+  const opening = /^\s*<svg\b([^>]*)>/iu.exec(source)?.[1]
+  if (opening === undefined) return null
+  const attribute = (name: string) => new RegExp(`(?:^|\\s)${name}\\s*=\\s*(["'])(.*?)\\1`, 'iu').exec(opening)?.[2]
+  const dimension = (value: string | undefined) => {
+    if (value === undefined || !/^\d+(?:\.\d+)?(?:px)?$/iu.test(value)) return undefined
+    const number = Number.parseFloat(value)
+    return Number.isFinite(number) && number > 0 ? number : undefined
+  }
+  const box = attribute('viewBox')?.trim().split(/[\s,]+/u).map(Number)
+  const ratio = box?.length === 4 && Number.isFinite(box[2]) && Number.isFinite(box[3]) && box[2]! > 0 && box[3]! > 0
+    ? box[2]! / box[3]! : undefined
+  const width = dimension(attribute('width'))
+  const height = dimension(attribute('height'))
+  if (width !== undefined && height !== undefined) return { width, height }
+  if (width !== undefined && ratio !== undefined) return { width, height: width / ratio }
+  if (height !== undefined && ratio !== undefined) return { width: height * ratio, height }
+  if (ratio !== undefined) return { width: 300, height: 300 / ratio }
+  return null
+}
 
 const MAX_RICH_SOURCE_LENGTH = 200_000
 const RICH_FENCE = /^```(?<kind>svg|html)[ \t]*\r?\n(?<source>[\s\S]*?)^```[ \t]*$/gimu
@@ -45,6 +69,7 @@ export function splitRichContent(text: string): readonly RichSegment[] {
         kind: 'svg',
         source: normalized,
         dataUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(normalized)}`,
+        size: svgIntrinsicSize(normalized),
       })
     } else if (kind === 'html' && isPreviewableHtml(source)) {
       segments.push({ kind: 'html', document: isolatedHtmlDocument(source.trim()) })

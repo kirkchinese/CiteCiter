@@ -15,6 +15,8 @@ export interface ToolCallRecord {
   readonly callId: string
   readonly name: string
   readonly arguments: string
+  /** The run_code call that dispatched a programmatic child call. */
+  readonly parentCallId?: string
 }
 
 export interface ToolResultRecord {
@@ -28,7 +30,7 @@ export interface ToolResultRecord {
 /** Normalize native and PTC starts using the actual child call identity. No synthetic model messages. */
 export function toolCallRecord(event: SessionEvent): ToolCallRecord | undefined {
   if (event.type === 'tool/call') return { callId: event.data.callId, name: event.data.name, arguments: event.data.arguments }
-  if (event.type === 'tool/ptc-dispatch-start') return { callId: event.data.subCallId, name: event.data.name, arguments: JSON.stringify(event.data.arguments) }
+  if (event.type === 'tool/ptc-dispatch-start') return { callId: event.data.subCallId, name: event.data.name, arguments: JSON.stringify(event.data.arguments), parentCallId: event.data.parentCallId }
   return undefined
 }
 
@@ -52,10 +54,13 @@ export function toolResultRecord(event: SessionEvent): ToolResultRecord | undefi
   if (event.type === 'tool/ptc-dispatch') {
     const error = 'error' in event.data ? event.data.error : undefined
     const errorCode = questionToolOutcomeCode(error)
+    // Older SDKs did not record sub-call metadata.
+    const meta = 'meta' in event.data ? (event.data as { readonly meta?: unknown }).meta : undefined
     return {
       callId: event.data.subCallId, content: event.data.content,
       isError: event.data.isError || error !== undefined,
       ...(errorCode === undefined ? {} : { errorCode }),
+      ...(meta === undefined ? {} : { meta: meta as ToolResultRecord['meta'] }),
     }
   }
   return undefined

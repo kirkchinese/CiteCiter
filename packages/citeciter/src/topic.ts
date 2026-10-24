@@ -365,6 +365,7 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
     role: z.literal('assistant'),
     // Process-local presentation identity only; never changes a persisted message ID.
     renderKey: z.string().optional(),
+    attachments: z.array(messageAttachmentSchema).optional(),
     text: z.string(),
     reasoning: z.string().nullable(),
     streaming: z.boolean(),
@@ -373,6 +374,12 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
     ...topicMessageIdentitySchema,
     role: z.literal('context'),
     label: z.string().min(1),
+    /** DSH context role: material recalled from another session, or any other injected context. */
+    contextRole: z.enum(['inject', 'recall']).optional(),
+    /** Producer named by the durable source: a plugin package, a source kind, or Citer's own form. */
+    producer: z.string().nullable().optional(),
+    /** One-line account a `notice` records for its collapsed row. */
+    summary: z.string().optional(),
     text: z.string(),
   }).strict(),
   z.object({
@@ -383,6 +390,10 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
     name: z.string().min(1),
     arguments: z.string(),
     result: z.string().nullable(),
+    /** Structured result metadata the tool recorded beside its model-facing text (read windows, search hits, exit codes). */
+    meta: z.unknown().optional(),
+    /** The run_code call that dispatched this one, when it was a programmatic child call. */
+    parentCallId: z.string().optional(),
     isError: z.boolean(),
     errorCode: z.enum(QUESTION_TOOL_OUTCOME_CODES).optional(),
     // Derived presentation evidence only; never replaces the native tool result.
@@ -393,6 +404,7 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
   z.object({
     ...topicMessageIdentitySchema,
     role: z.literal('error'),
+    turn: z.number().int().nonnegative().optional(),
     text: z.string(),
     bodyRetained: z.boolean(),
     attempt: z.number().int().positive(),
@@ -472,7 +484,7 @@ const draftQuestionSchema = z.string().trim().max(12_000)
 const questionSchema = z.string().trim().min(1).max(12_000)
 const topicSessionIdSchema = z.string().min(1)
 
-/** Whole-card tool-result claim; the Host verifies it against the committed `tool/result`. */
+/** Tool-result claim of the whole card or a selected part of it; the Host verifies it against the committed `tool/result`. */
 export const toolEvidenceClaimSchema = z.object({
   sourceSessionId: z.string().min(1),
   callId: z.string().min(1),

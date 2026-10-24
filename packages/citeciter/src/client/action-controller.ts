@@ -3,7 +3,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { actionQuestion, type ActionModel, type CiteAction } from '../actions.ts'
 import type { CiteSelection } from './types.ts'
 
-/** Immutable capture from a conversation, imported document or native file preview. */
+/** Immutable capture from a conversation, imported document, native file preview or a Topic's own transcript. */
 export type ActionSource = { readonly kind: 'conversation', readonly selection: CiteSelection } | {
   readonly kind: 'document'
   readonly sourceSessionId: SessionId
@@ -13,6 +13,12 @@ export type ActionSource = { readonly kind: 'conversation', readonly selection: 
   readonly title: string
   readonly documentId?: string
   readonly content?: string
+} | {
+  /** Text selected in a Topic's own answers or tool output; actions continue that Topic. */
+  readonly kind: 'topic'
+  readonly sourceSessionId: SessionId
+  readonly topicSessionId: string
+  readonly displayText: string
 }
 export const actionSourceSession = (source: ActionSource): SessionId => source.kind === 'conversation' ? source.selection.sourceSessionId : source.sourceSessionId
 export const actionSourceQuote = (source: ActionSource): string => source.kind === 'conversation' ? source.selection.displayText : source.displayText
@@ -56,9 +62,11 @@ export function createActionController(execute: (source: ActionSource, action: C
     const { source, action, newTopic } = snapshot.pending
     const question = actionQuestion(action, '')
     const ticket = generation
-    update(d => { d.submitting = true; d.error = null })
+    // A retry reads the model setting again, so repairing it in Settings takes effect.
+    const model = defaultModel()
+    update(d => { d.submitting = true; d.error = null; d.model = model })
     try {
-      await execute(source, action, question, snapshot.model, { newTopic })
+      await execute(source, action, question, model, { newTopic })
       if (ticket === generation) update(d => { d.pending = null })
     } catch (error) {
       if (ticket === generation) update(d => { d.error = error instanceof Error ? error.message : String(error) })

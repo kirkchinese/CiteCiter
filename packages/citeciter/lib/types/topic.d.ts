@@ -427,6 +427,14 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
 }, z.core.$strict>, z.ZodObject<{
     role: z.ZodLiteral<"assistant">;
     renderKey: z.ZodOptional<z.ZodString>;
+    attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        kind: z.ZodEnum<{
+            file: "file";
+            image: "image";
+        }>;
+        id: z.ZodString;
+        name: z.ZodString;
+    }, z.core.$strict>>>;
     text: z.ZodString;
     reasoning: z.ZodNullable<z.ZodString>;
     streaming: z.ZodBoolean;
@@ -435,6 +443,12 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
 }, z.core.$strict>, z.ZodObject<{
     role: z.ZodLiteral<"context">;
     label: z.ZodString;
+    contextRole: z.ZodOptional<z.ZodEnum<{
+        inject: "inject";
+        recall: "recall";
+    }>>;
+    producer: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    summary: z.ZodOptional<z.ZodString>;
     text: z.ZodString;
     id: z.ZodString;
     seq: z.ZodNumber;
@@ -460,6 +474,8 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     name: z.ZodString;
     arguments: z.ZodString;
     result: z.ZodNullable<z.ZodString>;
+    meta: z.ZodOptional<z.ZodUnknown>;
+    parentCallId: z.ZodOptional<z.ZodString>;
     isError: z.ZodBoolean;
     errorCode: z.ZodOptional<z.ZodEnum<{
         ASK_CANCELLED: "ASK_CANCELLED";
@@ -472,6 +488,7 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     seq: z.ZodNumber;
 }, z.core.$strict>, z.ZodObject<{
     role: z.ZodLiteral<"error">;
+    turn: z.ZodOptional<z.ZodNumber>;
     text: z.ZodString;
     bodyRetained: z.ZodBoolean;
     attempt: z.ZodNumber;
@@ -621,6 +638,14 @@ export declare const topicSnapshotSchema: z.ZodObject<{
     }, z.core.$strict>, z.ZodObject<{
         role: z.ZodLiteral<"assistant">;
         renderKey: z.ZodOptional<z.ZodString>;
+        attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            kind: z.ZodEnum<{
+                file: "file";
+                image: "image";
+            }>;
+            id: z.ZodString;
+            name: z.ZodString;
+        }, z.core.$strict>>>;
         text: z.ZodString;
         reasoning: z.ZodNullable<z.ZodString>;
         streaming: z.ZodBoolean;
@@ -629,6 +654,12 @@ export declare const topicSnapshotSchema: z.ZodObject<{
     }, z.core.$strict>, z.ZodObject<{
         role: z.ZodLiteral<"context">;
         label: z.ZodString;
+        contextRole: z.ZodOptional<z.ZodEnum<{
+            inject: "inject";
+            recall: "recall";
+        }>>;
+        producer: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        summary: z.ZodOptional<z.ZodString>;
         text: z.ZodString;
         id: z.ZodString;
         seq: z.ZodNumber;
@@ -654,6 +685,8 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         name: z.ZodString;
         arguments: z.ZodString;
         result: z.ZodNullable<z.ZodString>;
+        meta: z.ZodOptional<z.ZodUnknown>;
+        parentCallId: z.ZodOptional<z.ZodString>;
         isError: z.ZodBoolean;
         errorCode: z.ZodOptional<z.ZodEnum<{
             ASK_CANCELLED: "ASK_CANCELLED";
@@ -666,6 +699,7 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         seq: z.ZodNumber;
     }, z.core.$strict>, z.ZodObject<{
         role: z.ZodLiteral<"error">;
+        turn: z.ZodOptional<z.ZodNumber>;
         text: z.ZodString;
         bodyRetained: z.ZodBoolean;
         attempt: z.ZodNumber;
@@ -841,7 +875,7 @@ export declare const providerOptionSchema: z.ZodObject<{
     }, z.core.$strict>>;
 }, z.core.$strict>;
 export type ProviderOption = z.infer<typeof providerOptionSchema>;
-/** Whole-card tool-result claim; the Host verifies it against the committed `tool/result`. */
+/** Tool-result claim of the whole card or a selected part of it; the Host verifies it against the committed `tool/result`. */
 export declare const toolEvidenceClaimSchema: z.ZodObject<{
     sourceSessionId: z.ZodString;
     callId: z.ZodString;
@@ -1555,6 +1589,14 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }, z.core.$strict>, z.ZodObject<{
             role: z.ZodLiteral<"assistant">;
             renderKey: z.ZodOptional<z.ZodString>;
+            attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+                kind: z.ZodEnum<{
+                    file: "file";
+                    image: "image";
+                }>;
+                id: z.ZodString;
+                name: z.ZodString;
+            }, z.core.$strict>>>;
             text: z.ZodString;
             reasoning: z.ZodNullable<z.ZodString>;
             streaming: z.ZodBoolean;
@@ -1563,6 +1605,12 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         }, z.core.$strict>, z.ZodObject<{
             role: z.ZodLiteral<"context">;
             label: z.ZodString;
+            contextRole: z.ZodOptional<z.ZodEnum<{
+                inject: "inject";
+                recall: "recall";
+            }>>;
+            producer: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            summary: z.ZodOptional<z.ZodString>;
             text: z.ZodString;
             id: z.ZodString;
             seq: z.ZodNumber;
@@ -1588,6 +1636,8 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             name: z.ZodString;
             arguments: z.ZodString;
             result: z.ZodNullable<z.ZodString>;
+            meta: z.ZodOptional<z.ZodUnknown>;
+            parentCallId: z.ZodOptional<z.ZodString>;
             isError: z.ZodBoolean;
             errorCode: z.ZodOptional<z.ZodEnum<{
                 ASK_CANCELLED: "ASK_CANCELLED";
@@ -1600,6 +1650,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             seq: z.ZodNumber;
         }, z.core.$strict>, z.ZodObject<{
             role: z.ZodLiteral<"error">;
+            turn: z.ZodOptional<z.ZodNumber>;
             text: z.ZodString;
             bodyRetained: z.ZodBoolean;
             attempt: z.ZodNumber;

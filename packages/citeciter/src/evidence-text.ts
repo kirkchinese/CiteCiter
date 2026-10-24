@@ -47,6 +47,24 @@ export function projectDiffMeta(meta: unknown): string | null {
   return sections.join('\n\n')
 }
 
+/** Whitespace-collapsed text without per-line number gutters such as `12: ` or `12 | `. */
+function comparableText(text: string): string {
+  return text.replace(/^[ \t]*\d+(?::|\s*\|)[ \t]?/gmu, '').replace(/\s+/gu, ' ').trim()
+}
+
+/**
+ * Whether a quote the user selected inside a tool card is part of the tool result. Rendered cards
+ * add line-number gutters and reflow whitespace, so both sides are compared without them.
+ * @param sourceText - the committed whole-card projection.
+ * @param quote - the selected text.
+ * @returns true for the whole projection or a non-empty part of it.
+ */
+export function toolExcerptMatches(sourceText: string, quote: string): boolean {
+  if (quote.trim() === sourceText.trim()) return true
+  const part = comparableText(quote)
+  return part !== '' && comparableText(sourceText).includes(part)
+}
+
 /**
  * Resolve the citable whole-card projection for one tool result.
  * @param projection - declared evidence projection kind.

@@ -1,7 +1,7 @@
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, OverlayActions } from '../view-actions.ts'
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { BoardElementState } from '../../board.ts'
 import { boardCitationPrompt } from '../board-citation.ts'
@@ -25,6 +25,17 @@ export type BlackboardWorkspaceProps = ConvViewProps & BlackboardWorkspaceInject
  */
 export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, openPanel }: BlackboardWorkspaceProps) {
   const snapshot = useCompanion(value => value)
+  const workspaceRef = useRef<HTMLDivElement | null>(null)
+  const [compact, setCompact] = useState(false)
+  useLayoutEffect(() => {
+    const workspace = workspaceRef.current
+    if (workspace === null) return
+    const update = () => setCompact(workspace.clientWidth < 720)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(workspace)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => companion.retainVisible(), [companion])
 
@@ -40,19 +51,24 @@ export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, o
 
   if (active === null) {
     return (
-      <section className={css.workspaceEmpty} aria-label="Citer 小黑板">
-        <strong>小黑板</strong>
-        <p>在 Citer 中发送绘图或教学问题，板书会显示在这里。</p>
-      </section>
+      <div ref={workspaceRef} className={css.workspaceBoard}>
+        <section className={css.workspaceEmpty} aria-label="Citer 小黑板">
+          <strong>小黑板</strong>
+          <p>在 Citer 中发送绘图或教学问题，板书会显示在这里。</p>
+        </section>
+      </div>
     )
   }
 
   return (
-    <BoardView
-      sessionId={active.topic.sessionId}
-      snapshot={active.board}
-      animations={snapshot.settings.boardAnimations ?? true}
-      onQuoteElement={quote}
-    />
+    <div ref={workspaceRef} className={css.workspaceBoard}>
+      <BoardView
+        sessionId={active.topic.sessionId}
+        snapshot={active.board}
+        animations={snapshot.settings.boardAnimations ?? true}
+        compact={compact}
+        onQuoteElement={quote}
+      />
+    </div>
   )
 }

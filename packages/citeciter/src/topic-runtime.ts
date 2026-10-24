@@ -33,7 +33,7 @@ import {
   resolveToolEvidence,
   type ObserverSourceSnapshot,
 } from './observer.ts'
-import { removeOwnedSessionTree } from './owned-session-cleanup.ts'
+import { removeOwnedSessionTree, removeOwnedTree } from './owned-session-cleanup.ts'
 import type { QuestionDraftContent } from './question-draft-contract.ts'
 import { questionDraftLogStatus, questionDraftReceiptKey } from './question-draft-lifecycle.ts'
 import { QuestionDraftStore } from './question-draft-store.ts'
@@ -483,7 +483,17 @@ export class TopicRuntime {
     } else if ('toolClaim' in request) {
       evidence = resolveToolEvidence(source, request.toolClaim).evidence
     }
-    if (request.modelRoute !== undefined) await this.host.llm.resolveModelInfo(request.modelRoute.provider, request.modelRoute.model, signal)
+    // A configured model this host cannot serve (for example a provider set up only on another
+    // machine) still creates the Topic: the user picks a model before anything is sent.
+    let routeUnavailable = false
+    if (request.modelRoute !== undefined) {
+      try {
+        await this.host.llm.resolveModelInfo(request.modelRoute.provider, request.modelRoute.model, signal)
+      } catch (error) {
+        if (signal?.aborted === true) throw error
+        routeUnavailable = true
+      }
+    }
     const sourceRoot = await this.sourceStorage.root(sourceSessionId, true)
     if (sourceRoot === undefined) throw new Error('Citer 来源存储不可用')
     this.index.bindSource(sourceSessionId, sourceRoot)
@@ -503,6 +513,7 @@ export class TopicRuntime {
         }
     // mode, forkThroughSeq and scenario keep the on-disk format readable by earlier versions.
     const metadata: TopicMetadata = {
+      ...(routeUnavailable ? { modelSelectionRequired: true } : {}),
       hosted: true,
       storage: 'source',
       schemaVersion: TOPIC_METADATA_SCHEMA_VERSION,
@@ -618,6 +629,8 @@ export class TopicRuntime {
     this.assertOpen(signal)
     const handle = await this.native.create(metadata, signal)
     this.handles.set(metadata.sessionId, handle)
+    // An already unavailable route stays recorded for the user to replace; selecting it would only fail.
+    if (metadata.modelSelectionRequired === true) return handle
     await selectInitialModel(metadata, () => this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: metadata.modelConfig.provider, model: metadata.modelConfig.model, ...(metadata.modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: metadata.modelConfig.reasoningEffort }) }))
     return handle
   }
@@ -1080,6 +1093,8 @@ export class TopicRuntime {
     await new DraftStore(directory).remove()
     await new QuestionDraftStore(directory).remove()
     await removeOwnedSessionTree(directory)
+    // Workspace snapshots hold copies of the user's files; deleting the Topic deletes them too.
+    await removeOwnedTree(directory, 'workspace')
     await this.index.finishDeleting(marker)
   }
 

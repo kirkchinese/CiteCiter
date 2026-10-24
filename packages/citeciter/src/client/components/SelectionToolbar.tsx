@@ -53,21 +53,23 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
   const choose = (action: CiteAction, newTopic = false) => {
     toolbar.run(current.source, action, current.anchor.x, current.anchor.bottom, newTopic)
     toolbar.dismiss()
-    if (current.source.kind === 'conversation') window.getSelection()?.removeAllRanges()
+    if (current.source.kind !== 'document') window.getSelection()?.removeAllRanges()
   }
+  // A passage of a Topic's own transcript continues that Topic.
+  const inTopic = current.source.kind === 'topic'
   const style = (position === null ? { visibility: 'hidden', left: 0, top: 0 } : position) as CSSProperties
   return <OverlayPortal>
     <div ref={ref} className={css.toolbar} style={style} role="toolbar" aria-label="Citer 选文动作" data-citeciter-toolbar
       onMouseDown={event => event.preventDefault()} onPointerDown={event => event.preventDefault()}>
       <img className={css.mark} src={mascotUrl} alt="" aria-hidden="true" />
       {inline.map((action, index) => <button key={index} type="button" title={action.ask ? '在 Citer 中写下问题' : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
-      <button type="button" className={css.more} aria-label="更多动作" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
+      {(more.length > 0 || !inTopic) && <button type="button" className={css.more} aria-label="更多动作" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h.01M10 10h.01M15 10h.01" /></svg>
-      </button>
+      </button>}
       {menuOpen && <div className={css.menu} role="menu" aria-label="更多动作">
         {more.map((action, index) => <button key={index} type="button" role="menuitem" title={action.ask ? '在 Citer 中写下问题' : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
-        {more.length > 0 && <hr />}
-        <button type="button" role="menuitem" onClick={() => choose(actions.find(action => action.ask) ?? NEW_TOPIC_ACTION, true)}>在新 Topic 中提问</button>
+        {more.length > 0 && !inTopic && <hr />}
+        {!inTopic && <button type="button" role="menuitem" onClick={() => choose(actions.find(action => action.ask) ?? NEW_TOPIC_ACTION, true)}>在新 Topic 中提问</button>}
       </div>}
     </div>
   </OverlayPortal>

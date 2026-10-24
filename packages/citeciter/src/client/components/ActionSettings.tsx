@@ -11,30 +11,46 @@ const TRIGGERS: readonly (readonly [WheelTrigger, string])[] = [
 ]
 const NEW_SLOT: CiteAction = { label: '自定义', prompt: '', ask: true, presentation: 'side' }
 
+/**
+ * Compare action lists by what the user can edit, in a fixed field order. A settings refresh may
+ * decode the same actions with other key orders or retired fields; that must not discard local edits.
+ */
+function slotsRevision(slots: readonly (CiteAction | null)[]): string {
+  return JSON.stringify(slots.map(slot => slot === null ? null : [slot.label, slot.prompt, slot.ask, slot.presentation]))
+}
+
 /** Selection entry points, preset-action delivery, the new-Topic model and the eight action slots, saved together. */
 export function ActionSettings({ snapshot, companion }: { snapshot: CompanionSnapshot, companion: CompanionActions }) {
   const settings = snapshot.settings
   const savedSlots = settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS
-  const savedRevision = JSON.stringify(savedSlots)
+  const savedRevision = slotsRevision(savedSlots)
   const [slots, setSlots] = useState<(CiteAction | null)[]>(() => [...savedSlots])
+  const slotKeys = useRef(savedSlots.map((_, index) => index))
+  const nextSlotKey = useRef(savedSlots.length)
   const [error, setError] = useState<string | null>(null)
   const previousRevision = useRef(savedRevision)
   useEffect(() => {
     // Other settings can decode a new object without changing the saved slots; keep the local edits then.
     if (previousRevision.current === savedRevision) return
     previousRevision.current = savedRevision
+    slotKeys.current = savedSlots.map(() => nextSlotKey.current++)
     setSlots([...savedSlots])
   }, [savedSlots, savedRevision])
   const saving = snapshot.settingsSaveStatus === 'saving'
-  const dirty = JSON.stringify(slots) !== savedRevision
+  const dirty = slotsRevision(slots) !== savedRevision
   const change = (index: number, patch: Partial<CiteAction>) => setSlots(current => current.map((slot, i) => i === index ? { ...(slot ?? NEW_SLOT), ...patch } : slot))
-  const move = (index: number, offset: number) => setSlots(current => {
+  const move = (index: number, offset: number) => {
     const to = index + offset
-    if (to < 0 || to >= current.length) return current
-    const next = [...current]
-    ;[next[index], next[to]] = [next[to]!, next[index]!]
-    return next
-  })
+    if (to < 0 || to >= slots.length) return
+    const keys = [...slotKeys.current]
+    ;[keys[index], keys[to]] = [keys[to]!, keys[index]!]
+    slotKeys.current = keys
+    setSlots(current => {
+      const next = [...current]
+      ;[next[index], next[to]] = [next[to]!, next[index]!]
+      return next
+    })
+  }
   const save = () => {
     const result = wheelSlotsSchema.safeParse(slots)
     if (!result.success) { setError('请填写动作名称；预设提示词类型的动作需要提示词。'); return }
@@ -70,7 +86,7 @@ export function ActionSettings({ snapshot, companion }: { snapshot: CompanionSna
     </div>
     <div className={css.row} data-stack>
       <div className={css.rowText}><span className={css.title}>动作</span><span className={css.desc}>工具条显示前四个，其余在“⋯”里；轮盘从正上方顺时针排列。</span></div>
-      <div className={css.slots}>{slots.map((slot, index) => <details key={index} className={css.slot}>
+      <div className={css.slots}>{slots.map((slot, index) => <details key={slotKeys.current[index]} className={css.slot}>
         <summary>
           <span className={css.slotIndex}>{index + 1}</span>
           <span className={css.slotLabel} data-empty={slot === null || undefined}>{slot?.label ?? '空'}</span>

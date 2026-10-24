@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { beatAt, compileTimeline, sampleTimeline } from '../../board-animation.ts'
 import { frameStyle, useTimelinePlayer } from '../board-timeline.ts'
 import { IconPauseOutlineRegular, IconPlayOutlineRegular, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -89,6 +89,7 @@ export function BoardView({
   compact = false,
   sessionId,
   frameAtMs,
+  capture = false,
 }: {
   readonly snapshot: BoardSnapshot | undefined
   readonly animations: boolean
@@ -97,9 +98,23 @@ export function BoardView({
   readonly sessionId?: string
   /** Freeze the board's timeline at this time, for frame capture. */
   readonly frameAtMs?: number
+  /** Render only the logical canvas inside an offscreen capture surface. */
+  readonly capture?: boolean
 }) {
   const board = snapshot ?? EMPTY_BOARD_SNAPSHOT
   const [notes, setNotes] = useState(compact)
+  const canvasRef = useRef<HTMLDivElement | null>(null)
+  const [canvasScale, setCanvasScale] = useState(1)
+  useEffect(() => setNotes(compact), [compact])
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current
+    if (canvas === null || notes) return
+    const update = () => setCanvasScale(canvas.clientWidth / 1000)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [notes])
   const elements = notes ? [...board.elements].sort((a, b) => a.y - b.y || a.x - b.x) : board.elements
   const timeline = board.timeline ?? null
   const compiled = useMemo(() => {
@@ -111,14 +126,15 @@ export function BoardView({
   const frames = compiled === null || notes ? null : sampleTimeline(compiled, player.t)
   const caption = compiled === null || notes ? null : beatAt(compiled, player.t)
   return (
-    <section className={css.board} data-citeciter-board={sessionId ?? ''} data-board-revision={board.revision} data-compact={compact || undefined} data-notes={notes || undefined} data-animations={animations || undefined} aria-label="Citer 黑板">
+    <section className={css.board} data-citeciter-board={sessionId ?? ''} data-board-revision={board.revision} data-compact={compact || undefined} data-notes={notes || undefined} data-capture={capture || undefined} data-animations={player.canPlay || undefined} aria-label="Citer 黑板">
       <header className={css.boardHeader}>
         <div><strong>小黑板</strong><span>由 Citer 随讲解实时整理</span></div>
         <span>{board.revision === 0 && board.elements.length === 0 ? '等待板书' : `第 ${board.revision} 次更新`}</span>
         {compact && <button className={css.viewToggle} type="button" onClick={() => setNotes(!notes)}>{notes ? '查看画布' : '条目阅读'}</button>}
       </header>
       {board.invalid > 0 && <p className={css.boardWarning} role="status">已忽略 {board.invalid} 批无效板书提交</p>}
-      <div className={css.canvas}>
+      <div ref={canvasRef} className={css.canvasViewport} data-board-canvas="">
+        <div className={css.canvas} style={notes ? undefined : { transform: `scale(${canvasScale})` }}>
           {board.elements.length === 0 ? (
             <p className={css.boardHint}>发送需要板书的问题，公式、推导和图示会整理到这里。</p>
           ) : elements.map((element) => (
@@ -139,11 +155,11 @@ export function BoardView({
               <div
                 className={[
                   css.elementInner,
-                  element.animation === undefined || !animations ? undefined : animationClass(element.animation.name),
+                  element.animation === undefined || !player.canPlay ? undefined : animationClass(element.animation.name),
                 ].filter((entry): entry is string => entry !== undefined).join(' ')}
                 style={{
                   ...inlineStyle(element.style),
-                  ...(element.animation === undefined || !animations ? {} : {
+                  ...(element.animation === undefined || !player.canPlay ? {} : {
                     animationDuration: `${element.animation.durationMs}ms`,
                     animationIterationCount: String(element.animation.iterations),
                   }),
@@ -164,10 +180,11 @@ export function BoardView({
             </div>
           ))}
           {caption !== null && <p className={css.caption} aria-live="polite">{caption}</p>}
+        </div>
       </div>
       {compiled !== null && !notes && frameAtMs === undefined && (
         <div className={css.player} role="group" aria-label="板书动画" data-capture-exclude="">
-          <button type="button" className={css.playButton} onClick={player.toggle} aria-label={player.playing ? '暂停动画' : '播放动画'}>{player.playing ? <IconPauseOutlineRegular /> : <IconPlayOutlineRegular />}</button>
+          {player.canPlay && <button type="button" className={css.playButton} onClick={player.toggle} aria-label={player.playing ? '暂停动画' : '播放动画'}>{player.playing ? <IconPauseOutlineRegular /> : <IconPlayOutlineRegular />}</button>}
           <input className={css.scrubber} type="range" min={0} max={compiled.durationMs} step={10} value={Math.round(player.t)} aria-label="动画进度"
             onChange={event => player.seek(Number(event.currentTarget.value))} />
           <span className={css.time}>{(player.t / 1000).toFixed(1)} / {(compiled.durationMs / 1000).toFixed(1)} s</span>

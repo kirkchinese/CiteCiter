@@ -6,6 +6,8 @@ export interface ToolCallRecord {
     readonly callId: string;
     readonly name: string;
     readonly arguments: string;
+    /** The run_code call that dispatched a programmatic child call. */
+    readonly parentCallId?: string;
 }
 export interface ToolResultRecord {
     readonly callId: string;

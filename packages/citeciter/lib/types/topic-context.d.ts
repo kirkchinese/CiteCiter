@@ -32,10 +32,18 @@ export declare function refusedMessageSources(event: {
     readonly kind: unknown;
     readonly plugin?: unknown;
 }>;
-/** Text of one Citer-produced context message, or undefined for other messages. */
+/** Citer's own form of one context message it appended, or undefined for other messages. */
 export declare function citerContextForm(source: {
     readonly kind: string;
 } & Record<string, unknown>): string | undefined;
+/**
+ * Whether a proposed step would be the first of its turn: the latest `turn/start` for
+ * that turn has no `step/start` after it yet.
+ */
+export declare function isFirstStepOfTurn(events: readonly {
+    readonly type: string;
+    readonly data?: unknown;
+}[], turn: number): boolean;
 /** The last source seq an automatic excerpt in this Topic log covered. */
 export declare function lastSourceWindowSeq(events: readonly SessionEvent[]): number | null;
 /**

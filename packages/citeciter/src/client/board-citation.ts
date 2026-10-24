@@ -1,12 +1,21 @@
 import type { BoardElementState } from '../board.ts'
-import { isSafeSvg } from './rich-content.ts'
+import { isSafeSvg, neutralizeMarkdownImages } from './rich-content.ts'
+
+/** Decode common and numeric HTML entities in board labels without requiring a DOM. */
+export function decodeBoardCitationEntities(text: string): string {
+  const named: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' }
+  return text.replaceAll(/&(#(?:x[\da-f]+|\d+)|amp|lt|gt|quot|apos|nbsp);/giu, (match, entity: string) => {
+    if (entity[0] !== '#') return named[entity.toLowerCase()] ?? match
+    const hex = entity[1]?.toLowerCase() === 'x'
+    const code = Number.parseInt(entity.slice(hex ? 2 : 1), hex ? 16 : 10)
+    return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : match
+  })
+}
 
 /** Keep extracted diagram text literal when its draft preview is rendered as Markdown. */
 function literalLines(text: string): string {
-  // Backslash escapes such as \(...\) and \[...\] are math delimiters in
-  // the Host renderer. Character entities stay literal in both Markdown and math.
-  return text.split('\n').map(line => line.replaceAll(/[&\\`*_$\[\]<>#!|~+-]/gu,
-    char => `&#${char.codePointAt(0)!};`)).join('  \n')
+  return neutralizeMarkdownImages(decodeBoardCitationEntities(text))
+    .replaceAll(/<(?=[a-z!/?])/giu, '<\u200b').split('\n').join('  \n')
 }
 
 function diagramText(element: BoardElementState): string {

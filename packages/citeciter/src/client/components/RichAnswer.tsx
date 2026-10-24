@@ -24,7 +24,7 @@ export function RichAnswer({ text, streaming }: RichAnswerProps) {
         if (segment.kind === 'svg') {
           return (
             <figure className={css.richFigure} key={key} data-citeciter-svg>
-              <img className={css.richSvg} src={segment.dataUrl} alt="Citer 图示" />
+              <img className={css.richSvg} src={segment.dataUrl} alt="Citer 图示" style={segment.size === null ? undefined : { width: segment.size.width }} />
             </figure>
           )
         }

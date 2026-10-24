@@ -741,7 +741,9 @@ export function createCompanionController(
     const sourceSessionId = store.getSnapshot().sourceSessionId
     if (sourceSessionId === null) return false
     const question = rawQuestion.trim()
-    const intent = await claimCreateFreeTopicIntent(sourceSessionId, question)
+    // Settings → 新 Topic 的模型 applies to every new Topic, not only to those an action creates.
+    const modelRoute = store.getSnapshot().settings.defaultCiterModel ?? undefined
+    const intent = await claimCreateFreeTopicIntent(sourceSessionId, question, modelRoute)
     if (disposed) return false
     const pending = pendingFreeCreates.get(intent.requestId)
     if (pending !== undefined) return pending
@@ -758,6 +760,7 @@ export function createCompanionController(
           requestId: intent.requestId,
           sourceSessionId,
           question,
+          ...(modelRoute === undefined ? {} : { modelRoute }),
         })
         if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
         completeRequestIntent(intent)

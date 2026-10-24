@@ -1,4 +1,6 @@
 import type { BoardElementState } from '../board.ts';
+/** Decode common and numeric HTML entities in board labels without requiring a DOM. */
+export declare function decodeBoardCitationEntities(text: string): string;
 /**
  * Quote the selected board element without exposing its raw SVG/HTML or image bytes.
  * @param element - the actual selected element from the current Topic board.

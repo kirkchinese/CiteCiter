@@ -1,4 +1,4 @@
-import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-CGteMuNJ.js";
+import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-5hjMcek-.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -11,7 +11,7 @@ import { UserQuestionError } from "@deepseek-ai/dsh-user-questions";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { BlockAssembler, assembleAssistantStream, createUserMessage } from "@deepseek-ai/dsh-llm";
 import { foldSessionTitle } from "@deepseek-ai/dsh-session-title";
-import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, rmdir, unlink, writeFile } from "node:fs/promises";
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import { setTimeout as setTimeout$1 } from "node:timers/promises";
 import AgentRegistry from "@deepseek-ai/dsh-agent";
@@ -32,7 +32,7 @@ var __exportAll = (all, no_symbols) => {
 //#endregion
 //#region lib/types/model-admission.js
 /** Keep an unavailable inherited route visible until the user explicitly replaces it. */
-const MODEL_SELECTION_REQUIRED = "来源模型已不可用。草稿已保留，请选择可用模型后发送。";
+const MODEL_SELECTION_REQUIRED = "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。";
 /** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
 async function selectInitialModel(metadata, select) {
 	try {
@@ -249,7 +249,8 @@ function toolCallRecord(event) {
 	if (event.type === "tool/ptc-dispatch-start") return {
 		callId: event.data.subCallId,
 		name: event.data.name,
-		arguments: JSON.stringify(event.data.arguments)
+		arguments: JSON.stringify(event.data.arguments),
+		parentCallId: event.data.parentCallId
 	};
 }
 /** Normalize settled results for transcript, board, source and attachment readers. */
@@ -270,11 +271,13 @@ function toolResultRecord(event) {
 	if (event.type === "tool/ptc-dispatch") {
 		const error = "error" in event.data ? event.data.error : void 0;
 		const errorCode = questionToolOutcomeCode(error);
+		const meta = "meta" in event.data ? event.data.meta : void 0;
 		return {
 			callId: event.data.subCallId,
 			content: event.data.content,
 			isError: event.data.isError || error !== void 0,
-			...errorCode === void 0 ? {} : { errorCode }
+			...errorCode === void 0 ? {} : { errorCode },
+			...meta === void 0 ? {} : { meta }
 		};
 	}
 }
@@ -468,17 +471,43 @@ const CITER_LABELS = {
 	"source-window": "来源摘录",
 	"workspace-changes": "代码库变化"
 };
+/** Readable names of DSH's own context producers; anything else shows its plugin package or source kind. */
+const PRODUCER_LABELS = {
+	"system-prompt": "系统提示词",
+	"runtime-context": "运行环境",
+	"time-context": "时间",
+	"instructions": "项目说明",
+	"skills": "技能目录"
+};
+/** Citer's own form of a message it appended: the `citer` field, or the legacy `form` of earlier versions. */
+function citerMessageForm(source) {
+	if (source.kind !== CITER_KIND) return void 0;
+	if (typeof source["citer"] === "string") return source["citer"];
+	return typeof source["form"] === "string" && source["form"] in CITER_LABELS ? source["form"] : void 0;
+}
+function producerName(source) {
+	if (typeof source.plugin === "string" && source.plugin !== "") return PRODUCER_LABELS[source.plugin.replace(/^@deepseek-ai\/dsh-/u, "")] ?? source.plugin;
+	if (typeof source.kind !== "string" || source.kind === "") return null;
+	if (source.kind.startsWith("plugin:")) return source.kind.slice(7);
+	return PRODUCER_LABELS[source.kind] ?? source.kind;
+}
 /** Project the installed SDK's validated log. 0.1.7 split plugin context into developer/message. */
 function contextMessage$1(event) {
 	let message;
 	if (event.type === "developer/message") message = event.data.message;
 	else if (event.type === "user/message" && event.data.source.kind !== "user") message = event.data;
 	else return void 0;
-	const citer = message.source.kind === CITER_KIND && typeof message.source.form === "string" ? CITER_LABELS[message.source.form] : void 0;
+	const form = citerMessageForm(message.source);
+	const citer = form === void 0 ? void 0 : CITER_LABELS[form];
 	const system = message.source.kind === "system-prompt" || message.source.plugin === "@deepseek-ai/dsh-system-prompt";
+	const recall = message.source.form === "recall" || form === "source-window";
+	const summary = typeof message.source.summary === "string" && message.source.summary !== "" ? message.source.summary : form === "workspace-changes" ? "代码库有改动" : void 0;
 	return {
 		...message,
-		label: citer ?? (system ? "提示词注入" : "上下文注入")
+		label: system ? "提示词注入" : recall ? "上下文召回" : "上下文注入",
+		contextRole: recall ? "recall" : "inject",
+		producer: citer ?? producerName(message.source),
+		...summary === void 0 ? {} : { summary }
 	};
 }
 //#endregion
@@ -577,6 +606,13 @@ function textBlocks(content, type) {
 function toolResultText(content) {
 	return textBlocks(content, "text");
 }
+function contentAttachments(content, imageName, fileName) {
+	return content.flatMap((block) => block.type === "image" || block.type === "file" ? [{
+		kind: block.type,
+		id: String(block.attachment.attachmentId),
+		name: block.attachment.name ?? (block.type === "image" ? imageName : fileName)
+	}] : []);
+}
 /** Last read scan cursor from this Topic log; it may move backward and never limits future reads. */
 function latestObservedSeq(events) {
 	const sourceCalls = /* @__PURE__ */ new Set();
@@ -615,9 +651,23 @@ function topicMessages(log) {
 	let error = null;
 	const attemptByTurn = /* @__PURE__ */ new Map();
 	const bodyByTurn = /* @__PURE__ */ new Set();
+	let openTurnCalls = [];
+	const settleOpenTurn = () => {
+		for (const callId of openTurnCalls) {
+			const index = toolIndexes.get(callId);
+			const call = index === void 0 ? void 0 : messages[index];
+			if (index !== void 0 && call?.role === "tool" && call.running) messages[index] = {
+				...call,
+				running: false,
+				interruptionOutcome: "interrupted"
+			};
+		}
+		openTurnCalls = [];
+	};
 	for (const event of events) {
 		if (event.type === "turn/start") {
 			error = null;
+			settleOpenTurn();
 			continue;
 		}
 		if (event.type === "step/start") {
@@ -635,20 +685,19 @@ function topicMessages(log) {
 			});
 			const index = toolIndexes.get(reply.callId);
 			const call = index === void 0 ? void 0 : messages[index];
-			if (index !== void 0 && call?.role === "tool" && call.name === "ask_user_question") messages[index] = {
-				...call,
-				questionReply: reply,
-				running: false
-			};
+			if (index !== void 0 && call?.role === "tool" && call.name === "ask_user_question") {
+				const { interruptionOutcome: _interrupted, ...answered } = call;
+				messages[index] = {
+					...answered,
+					questionReply: reply,
+					running: false
+				};
+			}
 			continue;
 		}
 		if (event.type === "user/message" && event.data.source.kind === "user") {
 			const text = textBlocks(event.data.content, "text");
-			const attachments = event.data.content.flatMap((block) => block.type === "image" || block.type === "file" ? [{
-				kind: block.type,
-				id: String(block.attachment.attachmentId),
-				name: block.attachment.name ?? (block.type === "image" ? "图片" : "文件")
-			}] : []);
+			const attachments = contentAttachments(event.data.content, "图片", "文件");
 			if (text !== "" || attachments.length > 0) messages.push({
 				id: event.data.id,
 				seq: event.seq,
@@ -666,6 +715,9 @@ function topicMessages(log) {
 				seq: event.seq,
 				role: "context",
 				label: context.label,
+				contextRole: context.contextRole,
+				producer: context.producer,
+				...context.summary === void 0 ? {} : { summary: context.summary },
 				text
 			});
 			continue;
@@ -674,13 +726,15 @@ function topicMessages(log) {
 			const content = event.type === "assistant/message" ? event.data.message.content : assembleAssistantStream(event.data.stream).blocks();
 			const text = textBlocks(content, "text");
 			const reasoning = textBlocks(content, "reasoning");
+			const attachments = contentAttachments(content, "图片", "文件");
 			const renderKey = log.renderKeys?.get(event.seq);
-			if (text !== "") bodyByTurn.add(event.data.turn);
-			if (text !== "" || reasoning !== "") messages.push({
+			if (text !== "" || attachments.length > 0) bodyByTurn.add(event.data.turn);
+			if (text !== "" || reasoning !== "" || attachments.length > 0) messages.push({
 				id: event.type === "assistant/message" ? event.data.message.id : `attempt:${event.seq}`,
 				...renderKey === void 0 ? {} : { renderKey },
 				seq: event.seq,
 				role: "assistant",
+				...attachments.length === 0 ? {} : { attachments },
 				text,
 				reasoning: reasoning === "" ? null : reasoning,
 				streaming: false
@@ -690,6 +744,7 @@ function topicMessages(log) {
 		const toolCall = toolCallRecord(event);
 		if (toolCall !== void 0) {
 			toolIndexes.set(toolCall.callId, messages.length);
+			openTurnCalls.push(toolCall.callId);
 			messages.push({
 				id: toolCall.callId,
 				seq: event.seq,
@@ -697,6 +752,7 @@ function topicMessages(log) {
 				name: toolCall.name,
 				arguments: toolCall.arguments,
 				result: null,
+				...toolCall.parentCallId === void 0 ? {} : { parentCallId: toolCall.parentCallId },
 				isError: false,
 				running: true
 			});
@@ -713,11 +769,8 @@ function topicMessages(log) {
 				...call,
 				seq: event.seq,
 				result: toolResultText(toolResult.content),
-				attachments: toolResult.content.flatMap((part) => part.type === "image" || part.type === "file" ? [{
-					kind: part.type,
-					id: String(part.attachment.attachmentId),
-					name: part.attachment.name ?? (part.type === "image" ? "工具图片" : "工具文件")
-				}] : []),
+				attachments: contentAttachments(toolResult.content, "工具图片", "工具文件"),
+				...toolResult.meta === void 0 ? {} : { meta: toolResult.meta },
 				isError: toolResult.isError,
 				...toolResult.errorCode === void 0 ? {} : { errorCode: toolResult.errorCode },
 				...rejectedToolApprovals.has(callId) ? { approvalOutcome: "rejected" } : {},
@@ -730,10 +783,12 @@ function topicMessages(log) {
 			const stopped = reason.kind === "aborted";
 			const text = reason.kind === "error" ? reason.error.message : "已停止，可继续。";
 			error = stopped ? null : text;
+			settleOpenTurn();
 			messages.push({
 				id: `error:${event.seq}`,
 				seq: event.seq,
 				role: "error",
+				turn: event.data.turn,
 				text,
 				bodyRetained: bodyByTurn.has(event.data.turn),
 				attempt: Math.max(1, attemptByTurn.get(event.data.turn) ?? 1),
@@ -741,7 +796,10 @@ function topicMessages(log) {
 			});
 			continue;
 		}
-		if (event.type === "turn/end") error = null;
+		if (event.type === "turn/end") {
+			error = null;
+			settleOpenTurn();
+		}
 	}
 	for (const [callId, index] of toolIndexes) {
 		const call = messages[index];
@@ -2805,6 +2863,22 @@ function projectDiffMeta(meta) {
 		sections.push(`--- ${diff.path} (old) ---\n${diff.oldText ?? ""}\n+++ ${diff.path} (new) ---\n${diff.newText}`);
 	}
 	return sections.join("\n\n");
+}
+/** Whitespace-collapsed text without per-line number gutters such as `12: ` or `12 | `. */
+function comparableText(text) {
+	return text.replace(/^[ \t]*\d+(?::|\s*\|)[ \t]?/gmu, "").replace(/\s+/gu, " ").trim();
+}
+/**
+* Whether a quote the user selected inside a tool card is part of the tool result. Rendered cards
+* add line-number gutters and reflow whitespace, so both sides are compared without them.
+* @param sourceText - the committed whole-card projection.
+* @param quote - the selected text.
+* @returns true for the whole projection or a non-empty part of it.
+*/
+function toolExcerptMatches(sourceText, quote) {
+	if (quote.trim() === sourceText.trim()) return true;
+	const part = comparableText(quote);
+	return part !== "" && comparableText(sourceText).includes(part);
 }
 /**
 * Resolve the citable whole-card projection for one tool result.
@@ -17689,7 +17763,7 @@ function resolveToolEvidence(source, rawClaim) {
 	const sourceText = projectToolEvidence(projection, result.content, result.meta);
 	if (sourceText === null) throw new Error(`Citation tool result has no citable ${projection} projection`);
 	if (sourceText.trim() === "") throw new Error("Citation tool result has no citable text");
-	if (claim.displayText.trim() !== sourceText.trim()) throw new Error("Citation toolClaim displayText does not match the committed tool result text");
+	if (!toolExcerptMatches(sourceText, claim.displayText)) throw new Error("Citation toolClaim displayText does not match the committed tool result text");
 	return { evidence: {
 		sourceSessionId: claim.sourceSessionId,
 		anchorSeq: resultEvent.seq,
@@ -17740,10 +17814,23 @@ function contained(root, path) {
 	const part = relative(root, path);
 	if (part === "" || part.startsWith("..") || isAbsolute(part)) throw new Error("Citer 拒绝清理自有 Session 目录之外的路径");
 }
-/** Delete a retired Topic's private backend, including its child Agents. The caller must drain the factory and verify its source ownership marker first. Never accepts the Host backend root. */
-async function removeOwnedSessionTree(topicDirectory) {
+async function removeFile(file) {
+	try {
+		await unlink(file);
+	} catch (error) {
+		if (error.code !== "EPERM" && error.code !== "EACCES") throw error;
+		await chmod(file, 384);
+		await unlink(file);
+	}
+}
+/**
+* Delete one private subtree of a retired Topic directory without following links.
+* @param topicDirectory - the Topic's owned directory; the caller verified its source ownership marker.
+* @param name - `sessions` (the private Session backend, including child Agents) or `workspace` (the snapshot object store).
+*/
+async function removeOwnedTree(topicDirectory, name) {
 	const owner = await realpath(topicDirectory);
-	const root = resolve(owner, "sessions");
+	const root = resolve(owner, name);
 	const files = [];
 	const directories = [];
 	const walk = async (path) => {
@@ -17763,12 +17850,16 @@ async function removeOwnedSessionTree(topicDirectory) {
 	await walk(root);
 	for (const file of files) {
 		contained(owner, await realpath(file));
-		await unlink(file);
+		await removeFile(file);
 	}
 	for (const directory of directories) {
 		contained(owner, await realpath(directory));
 		await rmdir(directory);
 	}
+}
+/** Delete a retired Topic's private Session backend. The caller must drain the factory first. Never accepts the Host backend root. */
+async function removeOwnedSessionTree(topicDirectory) {
+	await removeOwnedTree(topicDirectory, "sessions");
 }
 //#endregion
 //#region lib/types/question-draft-store.js
@@ -19066,9 +19157,22 @@ function refusedMessageSources(event) {
 	}
 	return refused;
 }
-/** Text of one Citer-produced context message, or undefined for other messages. */
+/** Citer's own form of one context message it appended, or undefined for other messages. */
 function citerContextForm(source) {
-	return source.kind === "plugin:@kirkchinese/dsh-citeciter" && typeof source["form"] === "string" ? source["form"] : void 0;
+	return citerMessageForm(source);
+}
+/**
+* Whether a proposed step would be the first of its turn: the latest `turn/start` for
+* that turn has no `step/start` after it yet.
+*/
+function isFirstStepOfTurn(events, turn) {
+	for (let index = events.length - 1; index >= 0; index -= 1) {
+		const event = events[index];
+		const data = event.data;
+		if (event.type === "step/start" && data?.turn === turn) return false;
+		if (event.type === "turn/start" && data?.turn === turn) return true;
+	}
+	return true;
 }
 /** The last source seq an automatic excerpt in this Topic log covered. */
 function lastSourceWindowSeq(events) {
@@ -19082,7 +19186,12 @@ function lastSourceWindowSeq(events) {
 	}
 	return last;
 }
-function contextMessage(form, text, extra = {}) {
+/**
+* One Citer context message. `citer` names Citer's own form; `form` and its fields follow DSH's
+* context producer forms (`recall` with `references`, `notice` with `summary`), so native and
+* community context viewers can label it. Extra source fields are preserved by the session format.
+*/
+function contextMessage(citer, text, fields) {
 	return createUserMessage({
 		content: [{
 			type: "text",
@@ -19090,8 +19199,8 @@ function contextMessage(form, text, extra = {}) {
 		}],
 		source: {
 			kind: CITER_CONTEXT_KIND,
-			form,
-			...extra
+			citer,
+			...fields
 		}
 	});
 }
@@ -19115,7 +19224,18 @@ function composeSourceWindow(source, options) {
 		detail: "compact"
 	});
 	if (page.records === 0 || page.capturedThroughSeq === null) return null;
-	return contextMessage("source-window", `# Source excerpt (automatic)\n${options.afterSeq !== null ? `Source records added since the previous automatic excerpt (which ended at seq ${options.afterSeq})` : options.anchorSeq !== null ? `Source records leading to the cited location (seq ${options.anchorSeq})` : "The most recent source records"}. Citer added this because automatic source reading is on; read_source_session reads any other range.${options.afterSeq !== null && fromSeq > options.afterSeq + 1 ? ` Records seq ${options.afterSeq + 1}–${fromSeq - 1} did not fit; read them with read_source_session if needed.` : ""}\n\n${page.markdown}`, { throughSeq: page.capturedThroughSeq });
+	const scope = options.afterSeq !== null ? `Source records added since the previous automatic excerpt (which ended at seq ${options.afterSeq})` : options.anchorSeq !== null ? `Source records leading to the cited location (seq ${options.anchorSeq})` : "The most recent source records";
+	const gap = options.afterSeq !== null && fromSeq > options.afterSeq + 1 ? ` Records seq ${options.afterSeq + 1}–${fromSeq - 1} did not fit; read them with read_source_session if needed.` : "";
+	return contextMessage("source-window", `# Source excerpt (automatic)\n${scope}. Citer added this because automatic source reading is on; read_source_session reads any other range.${gap}\n\n${page.markdown}`, {
+		form: "recall",
+		references: [{
+			label: "来源对话",
+			retainedMessages: page.records,
+			omittedMessages: 0,
+			truncated: gap !== ""
+		}],
+		throughSeq: page.capturedThroughSeq
+	});
 }
 async function workspaceNotice(options, mode, signal) {
 	if (options.workspace === null || mode === "off") return null;
@@ -19135,16 +19255,19 @@ async function workspaceNotice(options, mode, signal) {
 			patches,
 			budgetBytes: WORKSPACE_NOTICE_PATCH_BYTES
 		}
-	}));
+	}), {
+		form: "notice",
+		summary: `${advance.files.length} 个文件有改动`
+	});
 }
 /**
 * Append Citer's per-turn context to one Topic Agent. The listener delegates first, adds messages
 * only when the step is entered, and never fails the turn because a context source is unavailable.
 */
 function attachTopicContext(agentCtx, options) {
-	agentCtx.on("agent/pre-step", async ({ agent, step, signal }, next) => {
+	agentCtx.on("agent/pre-step", async ({ agent, turn, signal }, next) => {
 		const decision = await next();
-		if (decision.kind === "reject" || signal.aborted || agent !== options.agent || step !== 1) return decision;
+		if (decision.kind === "reject" || signal.aborted || agent !== options.agent || !isFirstStepOfTurn(agent.session.snapshotEvents(), turn)) return decision;
 		const added = [];
 		if (options.autoReadSource() && options.sourceSent(decision.messages)) try {
 			const message = composeSourceWindow(await options.readSource(signal), {
@@ -20142,7 +20265,13 @@ var TopicRuntime = class {
 				}
 			};
 		} else if ("toolClaim" in request) evidence = resolveToolEvidence(source, request.toolClaim).evidence;
-		if (request.modelRoute !== void 0) await this.host.llm.resolveModelInfo(request.modelRoute.provider, request.modelRoute.model, signal);
+		let routeUnavailable = false;
+		if (request.modelRoute !== void 0) try {
+			await this.host.llm.resolveModelInfo(request.modelRoute.provider, request.modelRoute.model, signal);
+		} catch (error) {
+			if (signal?.aborted === true) throw error;
+			routeUnavailable = true;
+		}
 		const sourceRoot = await this.sourceStorage.root(sourceSessionId, true);
 		if (sourceRoot === void 0) throw new Error("Citer 来源存储不可用");
 		this.index.bindSource(sourceSessionId, sourceRoot);
@@ -20157,6 +20286,7 @@ var TopicRuntime = class {
 			selectionFingerprint: fingerprintCitationRecord(evidence)
 		};
 		const metadata = {
+			...routeUnavailable ? { modelSelectionRequired: true } : {},
 			hosted: true,
 			storage: "source",
 			schemaVersion: 2,
@@ -20266,6 +20396,7 @@ var TopicRuntime = class {
 		this.assertOpen(signal);
 		const handle = await this.native.create(metadata, signal);
 		this.handles.set(metadata.sessionId, handle);
+		if (metadata.modelSelectionRequired === true) return handle;
 		await selectInitialModel(metadata, () => this.host.sessionController.selectModel({
 			sessionId: SessionId(metadata.sessionId),
 			provider: metadata.modelConfig.provider,
@@ -20674,6 +20805,7 @@ var TopicRuntime = class {
 		await new DraftStore(directory).remove();
 		await new QuestionDraftStore(directory).remove();
 		await removeOwnedSessionTree(directory);
+		await removeOwnedTree(directory, "workspace");
 		await this.index.finishDeleting(marker);
 	}
 	async recoverDeletions() {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import css from './TopicNavigation.module.css'
 
 /**
@@ -11,8 +11,15 @@ export function TopicTitle({ id, title, onRename, renameRequest = 0 }: { readonl
   const [error, setError] = useState(false)
   const saving = useRef(false)
   const cancelled = useRef(false)
+  const restoreFocus = useRef(false)
+  const titleRef = useRef<HTMLElement>(null)
   const handledRequest = useRef(renameRequest)
-  useEffect(() => { setEditing(false); setValue(title); setError(false) }, [id])
+  useEffect(() => { restoreFocus.current = false; setEditing(false); setValue(title); setError(false) }, [id])
+  useLayoutEffect(() => {
+    if (editing || !restoreFocus.current) return
+    restoreFocus.current = false
+    titleRef.current?.focus()
+  }, [editing])
   const start = () => { cancelled.current = false; setValue(title); setError(false); setEditing(true) }
   useEffect(() => {
     if (renameRequest === handledRequest.current) return
@@ -27,7 +34,7 @@ export function TopicTitle({ id, title, onRename, renameRequest = 0 }: { readonl
     finally { saving.current = false }
   }
   return editing ? <input className={css.rename} aria-label="Topic 名称" aria-invalid={error} title={error ? '保存失败，可重试或按 Escape 取消' : undefined} autoFocus value={value} maxLength={120} onFocus={event => event.currentTarget.select()} onChange={event => setValue(event.currentTarget.value)} onBlur={() => { void save() }} onKeyDown={event => {
-    if (event.key === 'Escape') { cancelled.current = true; setEditing(false); event.stopPropagation() }
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelled.current = true; restoreFocus.current = true; setEditing(false) }
     if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); void save() }
-  }} /> : <strong data-topic-title className={css.title} tabIndex={0} title="双击重命名 · F2" onDoubleClick={start} onKeyDown={event => { if (event.key === 'F2') { event.preventDefault(); start() } }}>{title}</strong>
+  }} /> : <strong ref={titleRef} data-topic-title className={css.title} tabIndex={0} title="双击重命名 · F2" onDoubleClick={start} onKeyDown={event => { if (event.key === 'F2') { event.preventDefault(); start() } }}>{title}</strong>
 }

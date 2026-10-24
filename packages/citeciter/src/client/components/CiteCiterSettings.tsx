@@ -11,6 +11,7 @@ import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-setti
 import mascotUrl from '../assets/citeciter-mascot.png'
 import css from './Settings.module.css'
 import { ActionSettings } from './ActionSettings.tsx'
+import { parseAccelerator } from '../hotkeys.ts'
 
 export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
   readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
@@ -38,7 +39,10 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
   const saving = snapshot.settingsSaveStatus === 'saving'
   useEffect(() => companion.retainVisible(), [companion])
   const [widthDraft, setWidthDraft] = useState(settings.panelWidthPercent)
+  const [shortcutDraft, setShortcutDraft] = useState(settings.shortcutOpenPanel ?? '')
+  const [shortcutError, setShortcutError] = useState<string | null>(null)
   const committedWidth = useRef(settings.panelWidthPercent)
+  useEffect(() => { setShortcutDraft(settings.shortcutOpenPanel ?? ''); setShortcutError(null) }, [settings.shortcutOpenPanel])
   useEffect(() => { void settingsDocument.load() }, [settingsDocument])
   useEffect(() => {
     committedWidth.current = settings.panelWidthPercent
@@ -48,6 +52,16 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
     if (value === committedWidth.current) return
     committedWidth.current = value
     void companion.setSetting('panelWidthPercent', value)
+  }
+  const commitShortcut = () => {
+    const value = shortcutDraft.trim()
+    if (value !== '' && parseAccelerator(value) === null) {
+      setShortcutError('快捷键格式无效；请使用 Control+Shift+C 这样的组合，或留空禁用。')
+      return
+    }
+    setShortcutError(null)
+    if (value === (settings.shortcutOpenPanel ?? '')) return
+    void companion.setSetting('shortcutOpenPanel', value === '' ? undefined : value)
   }
   const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations' | 'autoReadSource'>(key: Key, label: string, fallback: boolean) =>
     <Switch label={label} checked={settings[key] ?? fallback} disabled={saving} onChange={value => { void companion.setSetting(key, value) }} />
@@ -105,8 +119,13 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
           <output className={css.value}>{widthDraft}%</output>
         </Row>
         <Row title="打开 Citer 的快捷键" desc="例如 Control+Shift+C；留空表示不使用。输入框里的按键不会被拦截。">
-          <input className={css.text} type="text" value={settings.shortcutOpenPanel ?? ''} maxLength={40} placeholder="Control+Shift+C" aria-label="打开 Citer 的快捷键"
-            onChange={(event) => { void companion.setSetting('shortcutOpenPanel', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }} />
+          <div className={css.field}>
+            <input className={css.text} type="text" value={shortcutDraft} maxLength={40} placeholder="Control+Shift+C" aria-label="打开 Citer 的快捷键"
+              aria-invalid={shortcutError !== null} aria-describedby={shortcutError === null ? undefined : 'citeciter-shortcut-error'}
+              onChange={event => { setShortcutDraft(event.currentTarget.value); setShortcutError(null) }}
+              onBlur={commitShortcut} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) event.currentTarget.blur() }} />
+            {shortcutError !== null && <span id="citeciter-shortcut-error" className={css.status} data-status="error" role="alert">{shortcutError}</span>}
+          </div>
         </Row>
       </section>
 

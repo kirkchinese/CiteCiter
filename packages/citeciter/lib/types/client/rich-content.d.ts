@@ -14,10 +14,17 @@ export type RichSegment = {
     readonly kind: 'svg';
     readonly source: string;
     readonly dataUrl: string;
+    readonly size: SvgIntrinsicSize | null;
 } | {
     readonly kind: 'html';
     readonly document: string;
 };
+export interface SvgIntrinsicSize {
+    readonly width: number;
+    readonly height: number;
+}
+/** Resolve pixel dimensions from SVG size attributes, falling back to viewBox proportions. */
+export declare function svgIntrinsicSize(source: string): SvgIntrinsicSize | null;
 /**
  * Break CommonMark image openers without changing visible text or ordinary links.
  * @param text - untrusted board Markdown or table source.

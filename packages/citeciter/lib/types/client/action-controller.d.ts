@@ -1,7 +1,7 @@
 import type { SessionId } from '@deepseek-ai/dsh-session/types';
 import { type ActionModel, type CiteAction } from '../actions.ts';
 import type { CiteSelection } from './types.ts';
-/** Immutable capture from a conversation, imported document or native file preview. */
+/** Immutable capture from a conversation, imported document, native file preview or a Topic's own transcript. */
 export type ActionSource = {
     readonly kind: 'conversation';
     readonly selection: CiteSelection;
@@ -14,6 +14,12 @@ export type ActionSource = {
     readonly title: string;
     readonly documentId?: string;
     readonly content?: string;
+} | {
+    /** Text selected in a Topic's own answers or tool output; actions continue that Topic. */
+    readonly kind: 'topic';
+    readonly sourceSessionId: SessionId;
+    readonly topicSessionId: string;
+    readonly displayText: string;
 };
 export declare const actionSourceSession: (source: ActionSource) => SessionId;
 export declare const actionSourceQuote: (source: ActionSource) => string;

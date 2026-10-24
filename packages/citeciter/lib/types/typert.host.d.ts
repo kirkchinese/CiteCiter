@@ -216,6 +216,14 @@ export declare const TYPERT: {
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 role: import("zod").ZodLiteral<"assistant">;
                 renderKey: import("zod").ZodOptional<import("zod").ZodString>;
+                attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                    kind: import("zod").ZodEnum<{
+                        file: "file";
+                        image: "image";
+                    }>;
+                    id: import("zod").ZodString;
+                    name: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>>>;
                 text: import("zod").ZodString;
                 reasoning: import("zod").ZodNullable<import("zod").ZodString>;
                 streaming: import("zod").ZodBoolean;
@@ -224,6 +232,12 @@ export declare const TYPERT: {
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 role: import("zod").ZodLiteral<"context">;
                 label: import("zod").ZodString;
+                contextRole: import("zod").ZodOptional<import("zod").ZodEnum<{
+                    inject: "inject";
+                    recall: "recall";
+                }>>;
+                producer: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>;
+                summary: import("zod").ZodOptional<import("zod").ZodString>;
                 text: import("zod").ZodString;
                 id: import("zod").ZodString;
                 seq: import("zod").ZodNumber;
@@ -249,6 +263,8 @@ export declare const TYPERT: {
                 name: import("zod").ZodString;
                 arguments: import("zod").ZodString;
                 result: import("zod").ZodNullable<import("zod").ZodString>;
+                meta: import("zod").ZodOptional<import("zod").ZodUnknown>;
+                parentCallId: import("zod").ZodOptional<import("zod").ZodString>;
                 isError: import("zod").ZodBoolean;
                 errorCode: import("zod").ZodOptional<import("zod").ZodEnum<{
                     ASK_CANCELLED: "ASK_CANCELLED";
@@ -261,6 +277,7 @@ export declare const TYPERT: {
                 seq: import("zod").ZodNumber;
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 role: import("zod").ZodLiteral<"error">;
+                turn: import("zod").ZodOptional<import("zod").ZodNumber>;
                 text: import("zod").ZodString;
                 bodyRetained: import("zod").ZodBoolean;
                 attempt: import("zod").ZodNumber;
@@ -1072,6 +1089,14 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     role: import("zod").ZodLiteral<"assistant">;
                     renderKey: import("zod").ZodOptional<import("zod").ZodString>;
+                    attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                        kind: import("zod").ZodEnum<{
+                            file: "file";
+                            image: "image";
+                        }>;
+                        id: import("zod").ZodString;
+                        name: import("zod").ZodString;
+                    }, import("zod/v4/core").$strict>>>;
                     text: import("zod").ZodString;
                     reasoning: import("zod").ZodNullable<import("zod").ZodString>;
                     streaming: import("zod").ZodBoolean;
@@ -1080,6 +1105,12 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     role: import("zod").ZodLiteral<"context">;
                     label: import("zod").ZodString;
+                    contextRole: import("zod").ZodOptional<import("zod").ZodEnum<{
+                        inject: "inject";
+                        recall: "recall";
+                    }>>;
+                    producer: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>;
+                    summary: import("zod").ZodOptional<import("zod").ZodString>;
                     text: import("zod").ZodString;
                     id: import("zod").ZodString;
                     seq: import("zod").ZodNumber;
@@ -1105,6 +1136,8 @@ export declare const TYPERT: {
                     name: import("zod").ZodString;
                     arguments: import("zod").ZodString;
                     result: import("zod").ZodNullable<import("zod").ZodString>;
+                    meta: import("zod").ZodOptional<import("zod").ZodUnknown>;
+                    parentCallId: import("zod").ZodOptional<import("zod").ZodString>;
                     isError: import("zod").ZodBoolean;
                     errorCode: import("zod").ZodOptional<import("zod").ZodEnum<{
                         ASK_CANCELLED: "ASK_CANCELLED";
@@ -1117,6 +1150,7 @@ export declare const TYPERT: {
                     seq: import("zod").ZodNumber;
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     role: import("zod").ZodLiteral<"error">;
+                    turn: import("zod").ZodOptional<import("zod").ZodNumber>;
                     text: import("zod").ZodString;
                     bodyRetained: import("zod").ZodBoolean;
                     attempt: import("zod").ZodNumber;
@@ -2105,6 +2139,14 @@ export declare const TYPERT: {
                     }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                         role: import("zod").ZodLiteral<"assistant">;
                         renderKey: import("zod").ZodOptional<import("zod").ZodString>;
+                        attachments: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
+                            kind: import("zod").ZodEnum<{
+                                file: "file";
+                                image: "image";
+                            }>;
+                            id: import("zod").ZodString;
+                            name: import("zod").ZodString;
+                        }, import("zod/v4/core").$strict>>>;
                         text: import("zod").ZodString;
                         reasoning: import("zod").ZodNullable<import("zod").ZodString>;
                         streaming: import("zod").ZodBoolean;
@@ -2113,6 +2155,12 @@ export declare const TYPERT: {
                     }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                         role: import("zod").ZodLiteral<"context">;
                         label: import("zod").ZodString;
+                        contextRole: import("zod").ZodOptional<import("zod").ZodEnum<{
+                            inject: "inject";
+                            recall: "recall";
+                        }>>;
+                        producer: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>;
+                        summary: import("zod").ZodOptional<import("zod").ZodString>;
                         text: import("zod").ZodString;
                         id: import("zod").ZodString;
                         seq: import("zod").ZodNumber;
@@ -2138,6 +2186,8 @@ export declare const TYPERT: {
                         name: import("zod").ZodString;
                         arguments: import("zod").ZodString;
                         result: import("zod").ZodNullable<import("zod").ZodString>;
+                        meta: import("zod").ZodOptional<import("zod").ZodUnknown>;
+                        parentCallId: import("zod").ZodOptional<import("zod").ZodString>;
                         isError: import("zod").ZodBoolean;
                         errorCode: import("zod").ZodOptional<import("zod").ZodEnum<{
                             ASK_CANCELLED: "ASK_CANCELLED";
@@ -2150,6 +2200,7 @@ export declare const TYPERT: {
                         seq: import("zod").ZodNumber;
                     }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                         role: import("zod").ZodLiteral<"error">;
+                        turn: import("zod").ZodOptional<import("zod").ZodNumber>;
                         text: import("zod").ZodString;
                         bodyRetained: import("zod").ZodBoolean;
                         attempt: import("zod").ZodNumber;

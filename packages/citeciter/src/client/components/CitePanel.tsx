@@ -1,4 +1,5 @@
 import { ToolRow } from './ToolMessage.tsx'
+import { ContextRow } from './ContextRow.tsx'
 import { useCompactNavigation } from '../compact-navigation.ts'
 import { useTranscriptPosition } from '../transcript-position.ts'
 import { TopicHeader } from './TopicHeader.tsx'
@@ -16,6 +17,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { CiteOverlaySnapshot } from '../types.ts'
+import type { SelectionSurfaces } from '../wheel-gesture.ts'
 import { MODEL_SELECTION_REQUIRED } from '../../model-admission.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, OverlayActions } from '../view-actions.ts'
@@ -24,6 +26,7 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -58,6 +61,7 @@ import { TopicTitle } from './TopicTitle.tsx'
 import learningCss from './LearningWorkspace.module.css'
 
 const EMPTY_QUESTIONS: readonly PendingQuestion[] = []
+const NO_CHILD_CALLS: ReadonlyArray<Extract<TopicMessage, { role: 'tool' }>> = []
 
 /** Header status appears only while something is happening or needs attention. */
 const PHASE_LABEL: Record<CompanionPhase, string | null> = {
@@ -157,6 +161,17 @@ export interface CitePanelProps {
   readonly reportParseError: (messageId: string) => void
   /** Host standard prop: the session list, used to show source titles on reference chips. */
   readonly useSessions?: UseSessions
+  /** Makes text selected in the transcript a Citer action source that continues this Topic. */
+  readonly registerSurface?: SelectionSurfaces['register']
+}
+
+/** Text selected inside the transcript element, or null. */
+function transcriptSelection(transcript: HTMLElement): string | null {
+  const selection = window.getSelection()
+  if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return null
+  if (!transcript.contains(selection.getRangeAt(0).commonAncestorContainer)) return null
+  const text = selection.toString().trim()
+  return text === '' ? null : text.slice(0, 32_000)
 }
 
 /**
@@ -164,7 +179,7 @@ export interface CitePanelProps {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError }: CitePanelProps) {
+export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface }: CitePanelProps) {
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
   const sessionRows = useSessions?.(value => value.byId)
@@ -187,6 +202,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const view = cards.cards.length === 0 ? 'explain' : views[draftKey] ?? 'explain'
   const setView = (next: 'explain' | 'cards') => setViews(current => ({ ...current, [draftKey]: next }))
   const [renameRequest, setRenameRequest] = useState(0)
+  // Like DSH's chat, ordinary context stays out of the transcript unless the reader asks for it.
+  const [allContext, setAllContext] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ readonly sessionId: string, readonly title: string } | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -196,9 +213,20 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const panelRef = useRef<HTMLElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const transcript = useTranscriptPosition(draftKey, snapshot.active?.messages)
+  const [transcriptNode, setTranscriptNode] = useState<HTMLDivElement | null>(null)
+  const transcriptRef = useCallback((node: HTMLDivElement | null) => { transcript.ref(node); setTranscriptNode(node) }, [transcript.ref])
   const modalReturnFocusRef = useRef<HTMLElement | null>(null)
   const open = overlay.panelOpen
   const active = snapshot.active
+  const activeTopicId = active?.topic.sessionId
+  const activeSourceId = active?.topic.sourceSessionId
+  useEffect(() => {
+    if (transcriptNode === null || registerSurface === undefined || activeTopicId === undefined || activeSourceId === undefined) return
+    return registerSurface(transcriptNode, () => {
+      const text = transcriptSelection(transcriptNode)
+      return text === null ? null : { kind: 'topic', sourceSessionId: activeSourceId as SessionId, topicSessionId: activeTopicId, displayText: text }
+    })
+  }, [transcriptNode, registerSurface, activeTopicId, activeSourceId])
   const addFiles = (batch: readonly File[]) => {
     if (active === null) return
     const key = active.topic.sessionId
@@ -311,7 +339,14 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     }
   }, [modalTitle])
 
-  const visibleMessages = active?.messages.filter((message) => isTopicMessageVisible(message, active.messages)) ?? []
+  const visibleMessages = active?.messages.filter(message => isTopicMessageVisible(message, { allContext })) ?? []
+  // run_code's programmatic child calls render inside their parent, as in DSH's tool tree.
+  const childCalls = new Map<string, Array<Extract<TopicMessage, { role: 'tool' }>>>()
+  const toolIds = new Set(visibleMessages.flatMap(message => message.role === 'tool' ? [message.id] : []))
+  for (const message of visibleMessages) {
+    if (message.role !== 'tool' || message.parentCallId === undefined || !toolIds.has(message.parentCallId)) continue
+    childCalls.set(message.parentCallId, [...childCalls.get(message.parentCallId) ?? [], message])
+  }
   // The projected turn already retains the failure details and retry context.
   // Keep standalone action errors visible, but announce an identical failure only once.
   const transcriptError = snapshot.error !== null && !visibleMessages.some(message =>
@@ -433,6 +468,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                 topic: active === null ? undefined : { archived: active.topic.archived },
                 busy: snapshot.archiving || snapshot.deleting,
                 learningRoute: snapshot.settings.learningRoute ?? false,
+                allContext,
+                onAllContext: setAllContext,
                 onRename: () => setRenameRequest(value => value + 1),
                 onLearningRoute: value => { void companion.setSetting('learningRoute', value) },
                 onReader: openReader,
@@ -469,19 +506,20 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                 <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')}>学习卡 {cards.cards.length}</button>
               </div>}
 
-              {view === 'explain' && <div ref={transcript.ref} className={css.transcript} aria-live="polite" onScroll={transcript.onScroll}>
+              {view === 'explain' && <div ref={transcriptRef} className={css.transcript} aria-live="polite" onScroll={transcript.onScroll}>
                 {visibleMessages.map((message) => {
-                  if (message.role === 'tool') return <ToolRow key={message.id} message={message} sessionId={active!.topic.sessionId} load={nativeComposer.attachment} />
+                  if (message.role === 'tool') {
+                    if (message.parentCallId !== undefined && toolIds.has(message.parentCallId)) return null
+                    return <ToolRow key={message.id} message={message} childCalls={childCalls.get(message.id) ?? NO_CHILD_CALLS} sessionId={active!.topic.sessionId} load={nativeComposer.attachment} />
+                  }
                   if (message.role === 'user') return (
                     <article key={message.id} className={css.userTurn} data-citeciter-message={message.id} aria-label="用户消息">
                       <MessageAttachments sessionId={active!.topic.sessionId} attachments={message.attachments ?? []} load={nativeComposer.attachment} />
-                      {message.text.startsWith('【学习阶段：') ? <details className={learningCss.questionDetails}>
-                        <summary>{message.text.split('\n')[0]}{message.text.includes('\n\n我的问题：') ? ` · ${message.text.split('\n\n我的问题：').slice(1).join('\n\n我的问题：')}` : ''}</summary><p>{message.text}</p>
-                      </details> : <UserMessageBody text={message.text} questionReply={message.questionReply} sourceTitle={sourceTitle} />}
+                      <UserMessageBody text={message.text} questionReply={message.questionReply} sourceTitle={sourceTitle} stageClassName={learningCss.questionDetails} />
                     </article>
                   )
                   if (message.role === 'error') return <ErrorTurn key={message.id} message={message} />
-                  if (message.role === 'context') return null
+                  if (message.role === 'context') return <ContextRow key={message.id} message={message} />
                   return (
                     <AssistantTurn
                       key={message.renderKey ?? message.id}
