@@ -19,7 +19,7 @@ import { BlackboardWorkspace } from './components/BlackboardWorkspace.tsx'
 import { CitePanel } from './components/CitePanel.tsx'
 import { CiteCiterSettings as CiteCiterSettingsView, CiterPluginConfig } from './components/CiteCiterSettings.tsx'
 import { DocumentReader } from './components/DocumentReader.tsx'
-import { DEFAULT_WHEEL_SLOTS } from '../actions.ts'
+import { localizedWheelSlots } from '../actions.ts'
 import { createActionExecutor } from './action-executor.ts'
 import { createActionController } from './action-controller.ts'
 import { createSelectionSurfaces, installWheelGesture } from './wheel-gesture.ts'
@@ -49,7 +49,7 @@ import { createFileOpener } from './native-file-link.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { CiterIcon, CiterTab } from './components/CiterTab.tsx'
-import { installLocale } from './i18n.ts'
+import { installLocale, isChinese, t } from './i18n.ts'
 
 /** Registry id and kind of Citer's right-sidebar tab type. */
 const CITER_TAB_ID = '@kirkchinese/dsh-citeciter'
@@ -97,9 +97,9 @@ export async function apply(ctx: Context): Promise<void> {
       const response = await remoteCtx.remote.citeciter.request(request)
       if (!response.ok) throw new Error(response.error.message)
       if (response.value.kind === 'deleted') {
-        if (!('topicSessionId' in request) || response.value.sessionId !== request.topicSessionId) throw new Error('Citer 草稿删除回执身份不匹配')
+        if (!('topicSessionId' in request) || response.value.sessionId !== request.topicSessionId) throw new Error(t('settings.error.deletedReceipt'))
         nativeComposer.retire(response.value.sessionId)
-        throw new Error('这个 Topic 已永久删除，未继续保存草稿')
+        throw new Error(t('settings.error.topicDeleted'))
       }
       return response.value
     }, nativeComposer, () => document.hasFocus())
@@ -164,7 +164,7 @@ export async function apply(ctx: Context): Promise<void> {
       openPanel()
     })
     const actions = createActionController(execute, () => companion.getSnapshot().settings.defaultCiterModel ?? undefined)
-    const openActions = (source: import('./action-controller.ts').ActionSource, x: number, y: number) => actions.open(source, x, y, companion.getSnapshot().settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS, false)
+    const openActions = (source: import('./action-controller.ts').ActionSource, x: number, y: number) => actions.open(source, x, y, localizedWheelSlots(companion.getSnapshot().settings.wheelSlots, isChinese()), false)
     const reportedParseErrors = new Set<string>()
     const reportParseError = (messageId: string) => {
       const storageKey = `citeciter:malformed-followups:${messageId}`
@@ -222,7 +222,10 @@ export async function apply(ctx: Context): Promise<void> {
         () => entries.register(createToolEvidenceEntry()),
         'citeciter: tool evidence entry',
       )
-      const disposeGesture = installWheelGesture(actions, readSelectionSource, () => companion.getSnapshot().settings)
+      const disposeGesture = installWheelGesture(actions, readSelectionSource, () => {
+        const current = companion.getSnapshot().settings
+        return { ...current, wheelSlots: [...localizedWheelSlots(current.wheelSlots, isChinese())] }
+      })
       return () => { disposeGesture(); disposeAssistantEntry(); disposeToolEntry() }
     }, 'citeciter: selection capture')
 
@@ -256,7 +259,7 @@ export async function apply(ctx: Context): Promise<void> {
       const id = '@kirkchinese/dsh-citeciter/learning-document'
       previewCtx.effect(() => previewCtx.documentPreviews.register({
         id, extensions: ['txt', 'md', 'markdown', 'ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs', 'json', 'py', 'rs', 'go', 'c', 'cpp', 'h', 'css', 'yaml', 'yml', 'toml', 'sh', 'ps1'],
-        priority: 'builtin', title: () => 'Citer 学习', loading: 'bytes-complete', wrap: true,
+        priority: 'builtin', title: () => t('settings.native.title'), loading: 'bytes-complete', wrap: true,
       }), 'citeciter: native learning metadata')
       previewCtx.slots.inject('sidebar.right.tab.document', () => previewCtx.slots.register({
         name: 'sidebar.right.tab.document', key: id,
@@ -280,8 +283,8 @@ export async function apply(ctx: Context): Promise<void> {
       sideCtx.effect(() => sideCtx.sidebarRightTabs.register({
         id: CITER_TAB_ID,
         kind: CITER_TAB_KIND,
-        title: () => 'Citer',
-        guide: [{ id: 'citeciter', order: 25, title: () => 'Citer', description: () => '在独立 Topic 里追问选中的内容', icon: CiterIcon }],
+        title: () => t('settings.title'),
+        guide: [{ id: 'citeciter', order: 25, title: () => t('settings.title'), description: () => t('settings.guide.description'), icon: CiterIcon }],
       }), 'citeciter: sidebar tab type')
       sideCtx.slots.inject('sidebar.right.pane.tab', () => sideCtx.slots.register({
         name: 'sidebar.right.pane.tab',
@@ -317,7 +320,7 @@ export async function apply(ctx: Context): Promise<void> {
       name: 'conversation.view',
       id: 'citeciter.blackboard',
       order: 30,
-      label: '小黑板',
+      label: () => t('settings.blackboard.title'),
       inject: () => ({ companion: companionActions, bus: busActions, openPanel, hooks: { companion } }),
     }, BlackboardWorkspace))
     const settingsInject = () => ({ companion: companionActions, settingsDocument: documentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController } })
@@ -325,7 +328,7 @@ export async function apply(ctx: Context): Promise<void> {
       name: 'settings.section',
       id: 'citeciter',
       order: 45,
-      label: 'Citer',
+      label: () => t('settings.title'),
       inject: settingsInject,
     }, CiteCiterSettingsView))
     // The same settings on Citer's own page in DSH's plugin manager.

@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsDescribeFace } from '@deepseek-ai/dsh-client-ui-settings/client'
 
@@ -78,7 +79,7 @@ export function createSettingsDocumentController(
           ? 'loading'
           : status === 'unavailable' ? 'unavailable' : mirrored.error === null ? 'idle' : 'error'
         state.error = status === 'unavailable'
-          ? mirrored.error ?? '当前宿主不支持打开配置文件'
+          ? mirrored.error ?? t('settings.error.configUnsupported')
           : mirrored.error
         state.message = null
       })
@@ -87,7 +88,7 @@ export function createSettingsDocumentController(
     const hasDocument = mirrored.view.hasDocument
     store.update((state) => {
       state.status = hasDocument ? 'ready' : 'missing'
-      state.error = hasDocument ? mirrored.error : '配置文件不存在'
+      state.error = hasDocument ? mirrored.error : t('settings.other.missing')
       state.message = null
     })
   }
@@ -129,7 +130,7 @@ export function createSettingsDocumentController(
         await track(openDocument(abort.signal))
         if (!disposed) store.update((state) => {
           state.opening = false
-          state.message = '已打开配置文件'
+          state.message = t('settings.status.configOpened')
         })
       } catch (error) {
         if (!disposed) store.update((state) => {

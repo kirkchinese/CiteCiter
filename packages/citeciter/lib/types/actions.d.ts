@@ -54,6 +54,10 @@ export declare const actionModelSchema: z.ZodObject<{
 export type ActionModel = z.infer<typeof actionModelSchema>;
 /** Toolbar order, and clockwise from twelve o'clock on the wheel. Empty slots retain their positions. */
 export declare const DEFAULT_WHEEL_SLOTS: readonly (CiteAction | null)[];
+/** English built-in actions, used only when the active UI language is not Chinese. */
+export declare const ENGLISH_WHEEL_SLOTS: readonly (CiteAction | null)[];
+/** Resolve built-in defaults without changing any user-edited action or persisted settings. */
+export declare function localizedWheelSlots(slots: readonly (CiteAction | null)[] | undefined, chinese: boolean): readonly (CiteAction | null)[];
 /**
  * Decide how a chosen action is delivered.
  * @param action - the chosen slot.

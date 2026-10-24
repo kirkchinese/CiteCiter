@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import { ToolRow } from './ToolMessage.tsx'
 import { ContextRow } from './ContextRow.tsx'
 import { TopicUsage } from './TopicUsage.tsx'
@@ -20,7 +21,6 @@ import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { CiteOverlaySnapshot } from '../types.ts'
 import type { SelectionSurfaces } from '../wheel-gesture.ts'
 import type { FileOpener } from '../native-file-link.ts'
-import { MODEL_SELECTION_REQUIRED } from '../../model-admission.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, OverlayActions } from '../view-actions.ts'
 import {
@@ -49,6 +49,7 @@ import { OverlayPortal } from './OverlayPortal.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
 import { ReasoningDisclosure } from './ReasoningDisclosure.tsx'
 import css from './CiteCiter.module.css'
+import { en as panelEn, zh as panelZh } from '../locales/panel.ts'
 import { usePanelDrag } from '../panel-drag.ts'
 import { findContainingFrame, useHostDock } from '../host-dock.ts'
 import { projectLearningCards } from '../../learning.ts'
@@ -66,29 +67,43 @@ const EMPTY_QUESTIONS: readonly PendingQuestion[] = []
 const NO_CHILD_CALLS: ReadonlyArray<Extract<TopicMessage, { role: 'tool' }>> = []
 
 /** Header status appears only while something is happening or needs attention. */
-const PHASE_LABEL: Record<CompanionPhase, string | null> = {
+const phaseLabel = (): Record<CompanionPhase, string | null> => ({
   idle: null,
-  creating: '正在准备…',
+  creating: t('panel.phase.creating'),
   ready: null,
-  running: '正在回答…',
-  stopping: '正在停止…',
-  stopped: '已停止',
-  error: '出错了',
-}
+  running: t('panel.phase.running'),
+  stopping: t('panel.phase.stopping'),
+  stopped: t('panel.phase.stopped'),
+  error: t('panel.phase.error'),
+})
 
 function compactPreview(text: string, limit = 120): string {
   const compact = text.replaceAll(/\s+/g, ' ').trim()
   return compact.length > limit ? compact.slice(0, limit) + '…' : compact
 }
 
+function localizedNotice(text: string): string {
+  const keys = ['panel.notice.deletedElsewhere', 'panel.notice.deleted', 'panel.notice.cleanup', 'panel.notice.stopRequested'] as const
+  for (const key of keys) if (text === panelZh[key] || text === panelEn[key]) return t(key)
+  return text
+}
+
 function friendlyFailure(text: string): string {
   if (text.includes('Citation source has no model route')) {
-    return '当前主会话还没有可复用的模型。请先在主对话发送一条消息，再创建 Topic。'
+    return t('panel.error.noSourceModel')
   }
-  return text.replaceAll(/https?:\/\/[^\s)]+/gu, '模型服务地址')
+  const known: Readonly<Record<string, Parameters<typeof t>[0]>> = {
+    '这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。': 'panel.error.modelSelectionRequired',
+    '来源 Session 尚未保存，请先在主对话发送消息': 'panel.error.sourceSessionUnsaved',
+    'Citer 来源存储不可用': 'panel.error.sourceUnavailable',
+    'Citer 来源目录不可用': 'panel.error.sourceDirectoryUnavailable',
+  }
+  const key = known[text]
+  return key === undefined ? text.replaceAll(/https?:\/\/[^\s)]+/gu, t('panel.error.modelAddress')) : t(key)
 }
 
 function ErrorTurn({ message }: { readonly message: Extract<TopicMessage, { role: 'error' }> }) {
+  useLocale()
   const summary = friendlyFailure(message.text)
   const stopped = message.status === 'stopped'
   return (
@@ -98,9 +113,9 @@ function ErrorTurn({ message }: { readonly message: Extract<TopicMessage, { role
       data-status={message.status}
       role={stopped ? undefined : 'alert'}
     >
-      <p><strong>{stopped ? '已停止' : '请求失败'}</strong>{stopped ? '' : `：${summary}`}</p>
-      {message.bodyRetained && <p className={css.errorNote}>已生成的内容保留在上方。</p>}
-      {!stopped && summary !== message.text && <details><summary>技术详情</summary><pre>{message.text}</pre></details>}
+      <p><strong>{stopped ? t('panel.phase.stopped') : t('panel.error.requestFailed')}</strong>{stopped ? '' : `${t('panel.error.separator')}${summary}`}</p>
+      {message.bodyRetained && <p className={css.errorNote}>{t('panel.error.retained')}</p>}
+      {!stopped && summary !== message.text && <details><summary>{t('panel.error.details')}</summary><pre>{message.text}</pre></details>}
     </article>
   )
 }
@@ -116,6 +131,7 @@ function AssistantTurn({
   readonly onQuestion: (question: string) => void
   readonly reportParseError: (messageId: string) => void
 }) {
+  useLocale()
   const parsed = useMemo(
     () => parseNextQuestions(message.text, message.streaming),
     [message.streaming, message.text],
@@ -131,7 +147,7 @@ function AssistantTurn({
       {parsed.text !== '' && <RichAnswer text={parsed.text} streaming={message.streaming} />}
       {!message.streaming && parsed.questions.length === 3 && (
         <fieldset className={css.nextQuestions}>
-          <legend>接下来可能想问</legend>
+          <legend>{t('panel.nextQuestions')}</legend>
           {parsed.questions.map((question) => (
             <button
               type="button"
@@ -191,6 +207,7 @@ function transcriptSelection(transcript: HTMLElement): string | null {
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
 export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile, host = 'overlay', tabVisible = true }: CitePanelProps) {
+  useLocale()
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
   const sessionRows = useSessions?.(value => value.byId)
@@ -307,7 +324,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     }
     return () => { cancelled = true }
   }, [snapshot.composeSeeds, active?.topic.sessionId, companion, drafts, composerVisible, draft.ready])
-  const modalTitle = deleteTarget !== null ? '永久删除 Topic' : null
+  const modalTitle = deleteTarget !== null ? t('panel.delete.title') : null
   useEffect(() => {
     if (modalTitle === null) return
     const dialog = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]
@@ -396,7 +413,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     ) return
     setDeleteError(null)
     if (await companion.deleteTopic(deleteConfirmation) === false) {
-      setDeleteError('Topic 未删除，请重试。')
+      setDeleteError(t('panel.error.deleteFailed'))
     } else drafts.forget(deleteConfirmation)
   }
   const updateWidth = (next: number) => {
@@ -435,31 +452,31 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
 
   const body = (
     <>
-    {snapshot.topicsStatus === 'error' && <p className={css.panelError} role="alert">Topic 读取失败：{snapshot.topicsError}</p>}
-    {snapshot.notice !== null && <div className={css.panelNotice} role="status">{snapshot.notice}</div>}
+    {snapshot.topicsStatus === 'error' && <p className={css.panelError} role="alert">{t('panel.error.topics')}{snapshot.topicsError === null ? null : friendlyFailure(snapshot.topicsError)}</p>}
+    {snapshot.notice !== null && <div className={css.panelNotice} role="status">{localizedNotice(snapshot.notice)}</div>}
 
     {active === null && snapshot.draftQuote === null ? (
       <div className={css.emptyState}>
         <img className={css.emptyMascot} src={mascotUrl} alt="" aria-hidden="true" />
-        <h2>把没懂的地方，慢慢讲明白</h2>
-        <p>在主对话里选中文字，用工具条提问；或者新建一个 Topic。</p>
-        <Button variant="outline" size="sm" onClick={openNewTopic}>新建 Topic</Button>
-        {snapshot.phase === 'creating' && <div className={css.loadingCard}>{PHASE_LABEL.creating}</div>}
+        <h2>{t('panel.empty.title')}</h2>
+        <p>{t('panel.empty.description')}</p>
+        <Button variant="outline" size="sm" onClick={openNewTopic}>{t('panel.newTopic')}</Button>
+        {snapshot.phase === 'creating' && <div className={css.loadingCard}>{t('panel.phase.creating')}</div>}
         {snapshot.error !== null && <p className={css.panelError} role="alert">{friendlyFailure(snapshot.error)}</p>}
       </div>
     ) : (
       <>
         {(active?.topic.citation != null || snapshot.draftQuote !== null) && <details className={css.contextBar}>
-          <summary>引用 · {compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? '', 70)}</summary>
+          <summary>{t('panel.quote')}{compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? '', 70)}</summary>
           <blockquote>{active?.topic.citation?.displayText ?? snapshot.draftQuote}</blockquote>
         </details>}
-        {active !== null && !active.topic.sourceAvailable && <p className={css.panelNotice} role="status">来源对话暂时不可用，Citer 读不到它的内容。</p>}
+        {active !== null && !active.topic.sourceAvailable && <p className={css.panelNotice} role="status">{t('panel.sourceUnavailable')}</p>}
 
         <LearningRoute enabled={snapshot.settings.learningRoute ?? false} messages={active?.messages ?? []} />
 
-        {cards.cards.length > 0 && <div className={css.views} role="tablist" aria-label="Topic 内容">
-          <button type="button" role="tab" aria-selected={view === 'explain'} onClick={() => setView('explain')}>对话</button>
-          <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')}>学习卡 {cards.cards.length}</button>
+        {cards.cards.length > 0 && <div className={css.views} role="tablist" aria-label={t('panel.content')}>
+          <button type="button" role="tab" aria-selected={view === 'explain'} onClick={() => setView('explain')}>{t('panel.conversation')}</button>
+          <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')}>{t('panel.cardsCount', { count: cards.cards.length })}</button>
         </div>}
 
         {view === 'explain' && <div ref={transcriptRef} className={css.transcript} aria-live="polite" onScroll={transcript.onScroll}>
@@ -469,7 +486,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
               return <ToolRow key={message.id} message={message} childCalls={childCalls.get(message.id) ?? NO_CHILD_CALLS} sessionId={active!.topic.sessionId} load={nativeComposer.attachment} openFile={openTopicFile} />
             }
             if (message.role === 'user') return (
-              <article key={message.id} className={css.userTurn} data-citeciter-message={message.id} aria-label="用户消息">
+              <article key={message.id} className={css.userTurn} data-citeciter-message={message.id} aria-label={t('panel.userMessage')}>
                 <MessageAttachments sessionId={active!.topic.sessionId} attachments={message.attachments ?? []} load={nativeComposer.attachment} />
                 <UserMessageBody text={message.text} questionReply={message.questionReply} sourceTitle={sourceTitle} stageClassName={learningCss.questionDetails} />
               </article>
@@ -489,7 +506,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
               />
             )
           })}
-          {snapshot.phase === 'creating' && <div className={css.loadingCard}>{PHASE_LABEL.creating}</div>}
+          {snapshot.phase === 'creating' && <div className={css.loadingCard}>{t('panel.phase.creating')}</div>}
           {transcriptError !== null && (
             <p className={css.panelError} data-citeciter-error role="alert">{friendlyFailure(transcriptError)}</p>
           )}
@@ -498,8 +515,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
           projection={cards} recall={snapshot.settings.activeRecall ?? false}
           setRecall={value => { void companion.setSetting('activeRecall', value) }} disabled={snapshot.settingsSaveStatus === 'saving'}
           topicTitle={active.topic.title} topicId={active.topic.sessionId}
-          source={active.topic.citation?.displayText ?? '无引用 · 自由讨论'} onRevise={() => {
-            setQuestion('请先核对本 Topic 的结论，纠正错误并标明未核实内容，再生成总结学习卡片。')
+          source={active.topic.citation?.displayText ?? t('panel.freeDiscussion')} onRevise={() => {
+            setQuestion(t('panel.cards.revisePrompt'))
             setView('explain')
             requestAnimationFrame(() => composerRef.current?.focus())
           }}
@@ -517,13 +534,13 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
               routeSaving={snapshot.modelRouteSaving || snapshot.reasoningEffortSaving}
               folded={composerFolded} inputRef={composerRef} onQuestion={setQuestion} onSubmit={submit}
               onComposition={value => drafts.setComposing(draftKey, value)}
-              placeholder="继续提问"
+              placeholder={t('panel.placeholder')}
               attachments={<>
-                {active?.topic.modelSelectionRequired === true && <p role="status">{MODEL_SELECTION_REQUIRED}</p>}
+                {active?.topic.modelSelectionRequired === true && <p role="status">{t('panel.error.modelSelectionRequired')}</p>}
                 {(attachmentError || draft.error) && <p role="alert">{attachmentError || draft.error}</p>}
-                {draft.pending && !draft.sending && <p role="status">上次发送状态待核对。<button type="button" onClick={() => runDraft(drafts.reconcile(draftKey))}>核对发送状态</button><button type="button" onClick={event => submit(event, delivery, true)}>重试上次发送</button></p>}
-                {!draft.ready && draft.error && <button type="button" onClick={() => runDraft(drafts.ensure(draftKey))}>重新读取草稿</button>}
-                {draft.missing.map(file => <button type="button" key={file.id} onClick={() => runDraft(drafts.removeFile(draftKey, file.id))}>移除失效附件：{file.name}</button>)}
+                {draft.pending && !draft.sending && <p role="status">{t('panel.draft.pending')}<button type="button" onClick={() => runDraft(drafts.reconcile(draftKey))}>{t('panel.draft.reconcile')}</button><button type="button" onClick={event => submit(event, delivery, true)}>{t('panel.draft.retrySend')}</button></p>}
+                {!draft.ready && draft.error && <button type="button" onClick={() => runDraft(drafts.ensure(draftKey))}>{t('panel.draft.reload')}</button>}
+                {draft.missing.map(file => <button type="button" key={file.id} onClick={() => runDraft(drafts.removeFile(draftKey, file.id))}>{t('panel.draft.removeMissing', { name: file.name })}</button>)}
                 <FileAttachments native={nativeComposer} sessionId={draftKey} files={draft.files} remove={id => runDraft(drafts.removeFile(draftKey, id))} />
                 <ReferenceAttachments references={draft.content.references} sourceTitle={sourceTitle} onRemove={id => runDraft(drafts.removeReference(draftKey, id))} />
               </>}
@@ -547,21 +564,21 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
       onClose={() => {
         if (!snapshot.deleting) setDeleteTarget(null)
       }}
-      closeLabel="关闭"
-      title="永久删除 Topic"
+      closeLabel={t('common.close')}
+      title={t('panel.delete.title')}
       {...deleteTarget === null ? {} : {
-        description: `这会永久删除“${deleteTarget.title}”。请输入完整 Topic Session ID 确认。`,
+        description: t('panel.delete.description', { title: deleteTarget.title }),
       }}
       footer={(
         <>
-          <Button variant="outline" disabled={snapshot.deleting} onClick={() => setDeleteTarget(null)}>取消</Button>
+          <Button variant="outline" disabled={snapshot.deleting} onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</Button>
           <Button
             variant="outline"
             className={css.deleteAction}
             disabled={deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting}
             onClick={() => { void confirmDelete() }}
           >
-            {snapshot.deleting ? '删除中…' : '永久删除'}
+            {snapshot.deleting ? t('panel.delete.deleting') : t('panel.delete.confirm')}
           </Button>
         </>
       )}
@@ -573,8 +590,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
             autoFocus
             value={deleteConfirmation}
             disabled={snapshot.deleting}
-            aria-label="输入 Topic Session ID 以确认永久删除"
-            placeholder="粘贴上方 Session ID"
+            aria-label={t('panel.delete.input')}
+            placeholder={t('panel.delete.placeholder')}
             onChange={(event) => setDeleteConfirmation(event.currentTarget.value)}
           />
           {deleteError !== null && <div className={css.modalError} role="alert">{friendlyFailure(snapshot.error ?? deleteError)}</div>}
@@ -585,7 +602,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
 
   const workspace = (
     <section className={css.learningWorkspace}>
-      <TopicHeader compact={compact} onBack={closePanel} onClose={inTab ? undefined : closePanel} onDrag={inTab ? undefined : drag.start} status={PHASE_LABEL[snapshot.phase]}
+      <TopicHeader compact={compact} onBack={closePanel} onClose={inTab ? undefined : closePanel} onDrag={inTab ? undefined : drag.start} status={phaseLabel()[snapshot.phase]}
         title={active === null ? <strong>Citer</strong> : <TopicTitle id={active.topic.sessionId} title={active.topic.title} onRename={companion.rename} renameRequest={renameRequest} />}>
         <TopicNavigation topics={snapshot.topics} activeId={active?.topic.sessionId} archived={snapshot.includeArchived}
           onOpen={id => { void companion.openTopic(id) }} onNew={openNewTopic} onArchiveView={companion.setIncludeArchived}
@@ -620,7 +637,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   return (
     <>
       {suspended && <CiterPet attention={false} onOpen={() => bus.setPanelOpen(true)} />}
-      {drag.dockTarget && <OverlayPortal><div className={css.dockTarget} aria-label="松开以停靠" /></OverlayPortal>}
+      {drag.dockTarget && <OverlayPortal><div className={css.dockTarget} aria-label={t('panel.dock.drop')} /></OverlayPortal>}
       <OverlayPortal inline={!floating}>
       <aside
       ref={panelRef}
@@ -643,7 +660,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
         <div
           className={css.resizeHandle}
           role="separator"
-          aria-label="调整 Citer 宽度"
+          aria-label={t('panel.dock.resize')}
           aria-orientation="vertical"
           aria-valuemin={28}
           aria-valuemax={55}
@@ -656,7 +673,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
           onKeyDown={resizeKey}
         />
       )}
-      {!floating && dock === null && <p className={css.layoutNotice} role="status">当前布局暂不支持 Citer 面板。请使用受支持的官方 DSH 版本，关闭全屏详情后重试。</p>}
+      {!floating && dock === null && <p className={css.layoutNotice} role="status">{t('panel.dock.unsupported')}</p>}
 
       <div className={css.dockBody}>
         {workspace}
@@ -664,7 +681,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
       </aside>
       </OverlayPortal>
 
-      {!floating && <OverlayPortal><div className={css.fullscreenNotice} role="status">Citer 已打开。退出文件全屏查看，或 <button type="button" onClick={() => bus.setPresentation('floating')}>悬浮查看</button></div></OverlayPortal>}
+      {!floating && <OverlayPortal><div className={css.fullscreenNotice} role="status">{t('panel.dock.fullscreen')}<button type="button" onClick={() => bus.setPresentation('floating')}>{t('panel.dock.floating')}</button></div></OverlayPortal>}
 
       {deleteModal}
     </>

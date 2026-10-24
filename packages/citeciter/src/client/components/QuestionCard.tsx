@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import { type FormEvent, type RefObject, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { IconQuestionOutlineMedium } from '../host-icons.ts'
 import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
@@ -26,6 +27,7 @@ export interface QuestionCardProps {
 
 /** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
 export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface, draftStore }: QuestionCardProps) {
+  useLocale()
   const [localPage, setLocalPage] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
@@ -50,7 +52,7 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
     if (sentVia.current !== 'waterfall' || interaction?.state !== 'continued') return
     sentVia.current = undefined
     setBusy(false)
-    setError('模型已继续，回答仍保留，请再次提交。')
+    setError(t('panel.question.continued'))
   }, [interaction?.state])
   const run = (action: () => Promise<unknown>) => {
     if (busy) return
@@ -110,7 +112,7 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
     sentVia.current = interaction?.channel
     run(async () => {
       await store?.flush()
-      if (store?.getSnapshot().closed) throw new Error('这条提问已结束，未发送回答。')
+      if (store?.getSnapshot().closed) throw new Error(t('panel.question.closed'))
       return onAnswer(answer)
     })
   }
@@ -120,13 +122,13 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
   }
 
   return (
-    <form ref={surface} className={css.questionFrame} onSubmit={submit} aria-label="Citer 提问"
+    <form ref={surface} className={css.questionFrame} onSubmit={submit} aria-label={t('panel.question.label')}
       onFocus={event => { if (!event.currentTarget.contains(event.relatedTarget)) interaction?.focus() }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) interaction?.blur() }}>
       <div className={css.questionHeader}>
         <IconQuestionOutlineMedium />
         <div>
-          <span>{question.header ?? 'Citer 需要你的回答'}</span>
+          <span>{question.header ?? t('panel.question.needsAnswer')}</span>
           <strong>{question.question}</strong>
         </div>
         <span>{page + 1}/{pending.questions.length}</span>
@@ -135,7 +137,7 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
       {interaction?.status !== undefined && <p role="status">{interaction.status}</p>}
       {visibleError !== undefined && <p role="alert">{visibleError}</p>}
       {stored?.error !== null && stored?.error !== undefined && store !== undefined && !stored.closed
-          ? <div className={css.questionFooter}><button type="button" disabled={busy} onClick={() => recover(stored.ready ? store.flush : store.ensure)}>{stored.ready ? '重试保存' : '重新加载'}</button></div>
+          ? <div className={css.questionFooter}><button type="button" disabled={busy} onClick={() => recover(stored.ready ? store.flush : store.ensure)}>{stored.ready ? t('panel.question.retrySave') : t('panel.question.reload')}</button></div>
           : null}
       {(question.options ?? []).length > 0 && (
         <div className={css.questionOptions}>
@@ -161,8 +163,8 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
         rows={2}
         disabled={locked}
         value={draft.custom}
-        placeholder={(question.options ?? []).length === 0 ? '输入回答…' : '其他（可填写）'}
-        aria-label="自定义回答"
+        placeholder={(question.options ?? []).length === 0 ? t('panel.question.answerPlaceholder') : t('panel.question.otherPlaceholder')}
+        aria-label={t('panel.question.customAnswer')}
         onCompositionStart={() => store?.setComposing(true)} onCompositionEnd={() => store?.setComposing(false)}
         onBlur={() => store?.setComposing(false)}
         onChange={(event) => update({
@@ -171,17 +173,17 @@ export function QuestionCard({ onAnswer, onCancel, pending, interaction, surface
         })}
       />
       <div className={css.questionFooter}>
-        <button type="button" disabled={busy} onClick={() => run(onCancel)}>{interaction?.dismissLabel ?? '取消'}</button>
-        {interaction?.canTakeTime && <button type="button" disabled={locked} onClick={() => interaction.takeTime()}>等我回答</button>}
+        <button type="button" disabled={busy} onClick={() => run(onCancel)}>{interaction?.dismissLabel ?? t('common.cancel')}</button>
+        {interaction?.canTakeTime && <button type="button" disabled={locked} onClick={() => interaction.takeTime()}>{t('panel.question.takeTime')}</button>}
         {interaction?.allowSkip && !readonly && <button type="button" disabled={locked} onClick={() => {
           update({ selected: [], custom: '' })
           if (page + 1 < pending.questions.length) setPage(page + 1)
-        }}>跳过此题</button>}
+        }}>{t('panel.question.skip')}</button>}
         <span />
-        {page > 0 && <button type="button" disabled={busy || (!readonly && !draftReady)} onClick={() => setPage(page - 1)}>上一个</button>}
+        {page > 0 && <button type="button" disabled={busy || (!readonly && !draftReady)} onClick={() => setPage(page - 1)}>{t('panel.question.previous')}</button>}
         {page + 1 < pending.questions.length
-          ? <button key="next" type="button" disabled={busy || (!readonly && (!draftReady || drafts[question.id] === undefined || (!interaction?.allowSkip && draft.selected.length === 0 && draft.custom.trim() === '')))} onClick={event => { event.preventDefault(); setPage(page + 1) }}>下一个</button>
-          : !readonly && <button key="submit" type="submit" disabled={!complete || locked || interaction?.channel === 'none'}>{busy ? '提交中…' : '提交回答'}</button>}
+          ? <button key="next" type="button" disabled={busy || (!readonly && (!draftReady || drafts[question.id] === undefined || (!interaction?.allowSkip && draft.selected.length === 0 && draft.custom.trim() === '')))} onClick={event => { event.preventDefault(); setPage(page + 1) }}>{t('panel.question.next')}</button>
+          : !readonly && <button key="submit" type="submit" disabled={!complete || locked || interaction?.channel === 'none'}>{busy ? t('panel.question.submitting') : t('panel.question.submit')}</button>}
       </div>
     </form>
   )

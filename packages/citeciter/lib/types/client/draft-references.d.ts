@@ -6,7 +6,9 @@ export type DraftReference = DraftContent['references'][number];
 export declare function mergeDraftReferences(current: readonly DraftReference[], incoming: readonly DraftReference[]): readonly DraftReference[];
 /** Build initial references without submitting them. Stable Topic-scoped IDs preserve menu focus during live snapshot refreshes. */
 export declare function topicDraftReferences(topic: TopicSummary, documentTitle?: string): readonly DraftReference[];
-/** Display a document filename while retaining the full title/path in its serialized content. Legacy ID-only references keep their generic label. */
+/** Translate only the visible chip kind; reference.label remains the serialized Chinese marker. */
+export declare function draftReferenceLabel(reference: DraftReference): string;
+/** Display a document filename while retaining the full title/path in its serialized content. */
 export declare function draftReferenceName(reference: DraftReference): string;
 /**
  * Chip text that shows what a reference contains instead of its kind. Serialized labels

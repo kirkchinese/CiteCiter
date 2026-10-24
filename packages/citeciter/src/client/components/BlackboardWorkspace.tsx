@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { BoardElementState } from '../../board.ts'
 import { boardCitationPrompt } from '../board-citation.ts'
+import { t, useLocale } from '../i18n.ts'
 import { BoardView } from './BoardView.tsx'
 import css from './BoardView.module.css'
 
@@ -24,6 +25,7 @@ export type BlackboardWorkspaceProps = ConvViewProps & BlackboardWorkspaceInject
  * @returns the matching Topic board or a source-specific empty state.
  */
 export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, openPanel }: BlackboardWorkspaceProps) {
+  useLocale()
   const snapshot = useCompanion(value => value)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
   const [compact, setCompact] = useState(false)
@@ -52,9 +54,9 @@ export function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, o
   if (active === null) {
     return (
       <div ref={workspaceRef} className={css.workspaceBoard}>
-        <section className={css.workspaceEmpty} aria-label="Citer 小黑板">
-          <strong>小黑板</strong>
-          <p>在 Citer 中发送绘图或教学问题，板书会显示在这里。</p>
+        <section className={css.workspaceEmpty} aria-label={t('board.workspace.label')}>
+          <strong>{t('board.title')}</strong>
+          <p>{t('board.workspace.empty')}</p>
         </section>
       </div>
     )

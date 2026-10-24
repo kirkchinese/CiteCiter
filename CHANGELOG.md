@@ -8,6 +8,23 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 
 - Support DSH `0.2.1-rc.3`.
 
+### Workspace
+
+- Citer is a tab in DSH's right sidebar, with an entry on the sidebar's guide page. It sits beside files, terminals and other plugins' tabs, and DSH splits, floats, fullscreens and closes it like them; the desktop pet, the shortcut and the toolbar open it. Hosts without the right sidebar keep Citer's own panel.
+- The interface follows DSH's language setting, Chinese or English, through DSH's locale service, so language packs can add languages. Default actions change their names and prompts with the language; actions you saved stay as written.
+- Each Topic shows its token usage, cache hit rate and context occupancy under the composer.
+- DSH's plugin page shows Citer by name with its mascot and a description, and its page holds Citer's settings.
+
+### Selection
+
+- The toolbar starts with 引用 (Quote): a passage selected in the main conversation is added as a blockquote to the main conversation's own composer, so the next message to the main agent names the sentence it is about; in a Topic it goes to that Topic's composer. Nothing is sent. When the main composer holds reference chips that the host cannot keep while appending, the quote is copied to the clipboard instead.
+- Your own messages in the main conversation can be selected for actions too.
+
+### Topic context
+
+- Every Topic's prompt names its source conversation, and Citer can read it without the source attachment being sent first, also in Topics that quote nothing.
+- Without a model set for new Topics, a new Topic uses the model currently selected in the source conversation's composer, not the last one that ran.
+
 ### Topic transcript
 
 - Citer's codebase notices and source excerpts, previously hidden, appear in the Topic like DSH's own context rows: the role (injected or recalled context), the producer and, for notices, a one-line summary, expanding to the exact text the model received. As in DSH's chat, ordinary context such as the runtime, time and skill catalog stays out of the transcript; 显示全部上下文 in the Topic menu lists it too.

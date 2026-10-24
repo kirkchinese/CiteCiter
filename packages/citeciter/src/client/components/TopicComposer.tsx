@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import { useRef, type FormEvent, type Ref, type ReactNode } from 'react'
 import { IconStopFillMedium } from '../host-icons.ts'
 import type { ProviderOption, TopicModelConfig } from '../../topic.ts'
@@ -36,15 +37,16 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
   readonly onModel: (provider: string, model: string) => void
   readonly onReasoning: (effort: string | null) => void
 }) {
+  useLocale()
   const fileInput = useRef<HTMLInputElement>(null)
   const running = phase === 'running'
   const stopping = phase === 'stopping'
   return <form className={css.composer} data-folded={folded || undefined} onSubmit={onSubmit}>
     <input hidden ref={fileInput} type="file" multiple onChange={event => { onFiles([...(event.currentTarget.files ?? [])]); event.currentTarget.value = '' }} />
     {attachments}
-    {folded && <button type="button" className={css.expandButton} onClick={onExpand}>{question.trim() === '' ? '补充问题' : '编辑草稿'}</button>}
+    {folded && <button type="button" className={css.expandButton} onClick={onExpand}>{question.trim() === '' ? t('panel.composer.addQuestion') : t('panel.composer.editDraft')}</button>}
     <textarea hidden={folded} ref={inputRef} rows={2} maxLength={11_000}
-      aria-label="继续向 Citer 提问" value={question} disabled={route === undefined}
+      aria-label={t('panel.composer.ask')} value={question} disabled={route === undefined}
       onChange={event => onQuestion(event.currentTarget.value)} placeholder={placeholder}
       onCompositionStart={() => onComposition(true)} onCompositionEnd={() => onComposition(false)}
       onBlur={() => onComposition(false)}
@@ -63,12 +65,12 @@ export function TopicComposer({ question, placeholder, route, providers, phase, 
       }}
     />
     <div className={css.composerActions}>
-      <button type="button" className={css.attachButton} aria-label="添加图片或文件" title="添加图片或文件" disabled={route === undefined} onClick={() => fileInput.current?.click()}>+</button>
+      <button type="button" className={css.attachButton} aria-label={t('panel.composer.attach')} title={t('panel.composer.attach')} disabled={route === undefined} onClick={() => fileInput.current?.click()}>+</button>
       <PermissionControl value={permission} onChange={onPermission} />
       {route !== undefined && <TopicModelControls providers={providers} route={route} saving={routeSaving} onModel={onModel} onReasoning={onReasoning} />}
-      {(running || stopping) && <button type="button" className={css.attachButton} aria-label="停止回答" title="停止回答" disabled={stopping} onClick={onStop}><IconStopFillMedium size={16} /></button>}
-      {running && <button className={css.attachButton} type="button" title={delivery === 'queue' ? '当前：排队发送；点击切换为插话' : '当前：插话；点击切换为排队'} aria-label={delivery === 'queue' ? '排队发送' : '插话发送'} onClick={() => onDelivery(delivery === 'queue' ? 'steer' : 'queue')}>{delivery === 'queue' ? '☷' : '↗'}</button>}
-      <button className={css.sendButton} type="submit" disabled={stopping || !canSend || routeSaving} title={running ? `Enter：${delivery === 'queue' ? '排队' : '插话'}；Ctrl + Enter：${delivery === 'queue' ? '插话' : '排队'}；Shift + Enter：换行` : '发送 · Enter（Shift + Enter 换行）'} aria-label="发送">
+      {(running || stopping) && <button type="button" className={css.attachButton} aria-label={t('panel.composer.stop')} title={t('panel.composer.stop')} disabled={stopping} onClick={onStop}><IconStopFillMedium size={16} /></button>}
+      {running && <button className={css.attachButton} type="button" title={delivery === 'queue' ? t('panel.composer.queueHint') : t('panel.composer.steerHint')} aria-label={delivery === 'queue' ? t('panel.composer.queueSend') : t('panel.composer.steerSend')} onClick={() => onDelivery(delivery === 'queue' ? 'steer' : 'queue')}>{delivery === 'queue' ? '☷' : '↗'}</button>}
+      <button className={css.sendButton} type="submit" disabled={stopping || !canSend || routeSaving} title={running ? t('panel.composer.runningHint', { normal: delivery === 'queue' ? t('panel.composer.queue') : t('panel.composer.steer'), alternate: delivery === 'queue' ? t('panel.composer.steer') : t('panel.composer.queue') }) : t('panel.composer.sendHint')} aria-label={t('panel.composer.send')}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20V4m-7 7 7-7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
     </div>

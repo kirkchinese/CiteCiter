@@ -10,6 +10,7 @@ import type { TopicMessage } from '../../topic.ts'
 import type { NativeComposer } from '../native-composer.ts'
 import { deriveQuestionReply, deriveToolCard, isShellTool, parseWorkspaceDiff, type ToolCard } from '../tool-cards.ts'
 import { toolPresentation } from '../tool-presentation.ts'
+import { t, useLocale } from '../i18n.ts'
 import { MessageAttachments } from './MessageAttachments.tsx'
 import { QuestionReplyBody } from './QuestionReplyBody.tsx'
 import { RichAnswer } from './RichAnswer.tsx'
@@ -61,40 +62,43 @@ function FlowDisclosure({ icon, title, summary, running, children }: {
 }
 
 function GenericBody({ message }: { readonly message: ToolMessage }) {
+  useLocale()
   const args = jsonObject(message.arguments)
   const result = message.result === null ? null : jsonObject(message.result)
   return <div className={css.genericBody}>
-    <strong>{message.name} · 参数</strong>
-    {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label="工具参数" copyable={false} labels={jsonTreeLabels} />}
+    <strong>{message.name} · {t('transcript.tool.arguments')}</strong>
+    {args === null ? <pre>{message.arguments}</pre> : <JsonTree data={args} label={t('transcript.tool.toolArguments')} copyable={false} labels={jsonTreeLabels()} />}
     {message.result !== null && <>
-      <strong>{message.isError ? '错误' : '结果'}</strong>
-      {result === null ? <pre>{message.result}</pre> : <JsonTree data={result} label="工具结果" copyable={false} labels={jsonTreeLabels} />}
+      <strong>{t(message.isError ? 'transcript.tool.error' : 'transcript.tool.result')}</strong>
+      {result === null ? <pre>{message.result}</pre> : <JsonTree data={result} label={t('transcript.tool.toolResult')} copyable={false} labels={jsonTreeLabels()} />}
     </>}
   </div>
 }
 
 function CardBody({ card }: { readonly card: ToolCard }) {
+  useLocale()
   switch (card.kind) {
-    case 'read': return <ReadBlock label={card.label} lines={card.lines} totalLines={card.totalLines} lang={card.lang} labels={readBlockLabels} />
-    case 'diff': return <DiffBlock diffs={card.diffs} labels={diffBlockLabels} />
+    case 'read': return <ReadBlock label={card.label} lines={card.lines} totalLines={card.totalLines} lang={card.lang} labels={readBlockLabels()} />
+    case 'diff': return <DiffBlock diffs={card.diffs} labels={diffBlockLabels()} />
     case 'terminal': return <TerminalBlock command={card.command} cwd={card.cwd} output={card.output}
-      exitCode={card.exitCode} signal={card.signal} running={card.running} labels={terminalBlockLabels} />
+      exitCode={card.exitCode} signal={card.signal} running={card.running} labels={terminalBlockLabels()} />
     case 'search': return <>
       {card.shape === 'matches'
-        ? <SearchBlock kind="matches" files={card.files} total={card.total} truncated={card.truncated} labels={searchBlockLabels} />
-        : <SearchBlock kind="paths" paths={card.paths} total={card.total} truncated={card.truncated} labels={searchBlockLabels} />}
-      {card.recovery !== undefined && <details className={css.recovery}><summary>查看完整工具输出</summary><pre>{card.recovery}</pre></details>}
+        ? <SearchBlock kind="matches" files={card.files} total={card.total} truncated={card.truncated} labels={searchBlockLabels()} />
+        : <SearchBlock kind="paths" paths={card.paths} total={card.total} truncated={card.truncated} labels={searchBlockLabels()} />}
+      {card.recovery !== undefined && <details className={css.recovery}><summary>{t('transcript.tool.fullOutput')}</summary><pre>{card.recovery}</pre></details>}
     </>
   }
 }
 
 /** A codebase change result: its file list, then the changes as DSH's coloured diff. */
 function WorkspaceChanges({ markdown }: { readonly markdown: string }) {
+  useLocale()
   const parsed = parseWorkspaceDiff(markdown)
   if (parsed === null) return <RichAnswer text={markdown} streaming={false} />
   return <>
     {parsed.lead !== '' && <RichAnswer text={parsed.lead} streaming={false} />}
-    <DiffBlock diffs={parsed.diffs} labels={diffBlockLabels} />
+    <DiffBlock diffs={parsed.diffs} labels={diffBlockLabels()} />
     {parsed.tail !== '' && <RichAnswer text={parsed.tail} streaming={false} />}
   </>
 }
@@ -118,6 +122,7 @@ export function ToolRow({ message, childCalls, sessionId, load, openFile }: {
   /** Open a source-workspace file in DSH's right sidebar; absent when the host has none. */
   readonly openFile?: ((path: string, line?: number) => boolean) | undefined
 }) {
+  useLocale()
   const view = toolPresentation(message)
   const card = deriveToolCard(message)
   const reply = deriveQuestionReply(message)
@@ -125,12 +130,12 @@ export function ToolRow({ message, childCalls, sessionId, load, openFile }: {
   return <div data-citeciter-message={message.id}>
     <FlowDisclosure icon={<ToolIcon name={message.name} />} title={view.title} summary={view.summary} running={view.running}>
       <div className={css.toolBody}>
-        {file !== null && <button type="button" className={css.fileLink} title="在右侧栏打开" onClick={() => openFile?.(file.path, file.line)}>{file.path}</button>}
+        {file !== null && <button type="button" className={css.fileLink} title={t('transcript.tool.openSidebar')} onClick={() => openFile?.(file.path, file.line)}>{file.path}</button>}
         {reply !== null ? <QuestionReplyBody reply={reply} />
           : message.name === 'workspace_changes' && message.result !== null && !message.isError
             ? <WorkspaceChanges markdown={message.result} />
             : card !== null ? <CardBody card={card} /> : <GenericBody message={message} />}
-        {childCalls.length > 0 && <div className={css.childCalls} aria-label="子工具调用">
+        {childCalls.length > 0 && <div className={css.childCalls} aria-label={t('transcript.tool.childCalls')}>
           {childCalls.map(child => <ToolRow key={child.id} message={child} childCalls={[]} sessionId={sessionId} load={load} openFile={openFile} />)}
         </div>}
       </div>

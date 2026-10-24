@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
@@ -65,7 +66,7 @@ export function createNativeComposer(ctx: Context): NativeComposer {
     owned.clear(); retired.clear(); retirementListeners.clear()
   }, 'citeciter: native attachment drafts')
   if (typeof conversation.sendSession !== 'function' || typeof conversation.createDrafts !== 'function') {
-    throw new Error('当前 DSH 不提供 Citer 所需的原生附件发送接口')
+    throw new Error(t('panel.error.nativeUnavailable'))
   }
   const retire = (sessionId: string) => {
     if (retired.has(sessionId)) return
@@ -79,8 +80,8 @@ export function createNativeComposer(ctx: Context): NativeComposer {
     for (const listener of retirementListeners) listener(sessionId)
   }
   const face = (id: string) => {
-    if (disposed) throw new Error('Citer 已关闭')
-    if (retired.has(id)) throw new Error('这个 Topic 已永久删除')
+    if (disposed) throw new Error(t('panel.error.citerClosed'))
+    if (retired.has(id)) throw new Error(t('panel.error.topicDeleted'))
     let session = sessions.get(id)
     if (session === undefined) { session = new CiterSessionFace(ctx, id as SessionId, () => retire(id)); sessions.set(id, session) }
     return session
@@ -104,19 +105,19 @@ export function createNativeComposer(ctx: Context): NativeComposer {
     const response = await ctx.remote.citeciter.request(request)
     if (!response.ok) throw new Error(response.error.message)
     if (response.value.kind === 'deleted') {
-      if (response.value.sessionId !== request.topicSessionId) throw new Error('Citer 提问删除回执身份不匹配')
+      if (response.value.sessionId !== request.topicSessionId) throw new Error(t('panel.response.questionReceiptMismatch'))
       retire(request.topicSessionId)
-      throw new Error('这个 Topic 已永久删除，未提交回答')
+      throw new Error(t('panel.response.questionDeleted'))
     }
     if (request.action === 'answer-question' && request.draftRevision !== undefined && response.value.kind === 'question-draft') return response.value
-    if (response.value.kind !== 'topic' || response.value.topic.topic.sessionId !== request.topicSessionId) throw new Error('Citer 提问响应与当前 Topic 不匹配')
+    if (response.value.kind !== 'topic' || response.value.topic.topic.sessionId !== request.topicSessionId) throw new Error(t('panel.response.questionMismatch'))
     syncQuestions(request.topicSessionId, response.value.topic.pendingQuestions ?? (response.value.topic.pendingQuestion === null ? [] : [response.value.topic.pendingQuestion]))
     return undefined
   }
   return {
     uploads: conversation.fileUploads,
     question: (sessionId, pending) => {
-      if (disposed || retired.has(sessionId)) throw new Error('这个 Topic 的提问服务已结束')
+      if (disposed || retired.has(sessionId)) throw new Error(t('panel.error.topicQuestionClosed'))
       let group = questions.get(sessionId)
       if (group === undefined) { group = new Map(); questions.set(sessionId, group) }
       let controller = group.get(pending.key)
@@ -128,7 +129,7 @@ export function createNativeComposer(ctx: Context): NativeComposer {
             retire(sessionId)
             return { state: EMPTY_QUESTION_DRAFT_STATE, conflict: false, closed: true }
           }
-          if (response.value.kind !== 'question-draft') throw new Error('回答草稿响应类型不匹配')
+          if (response.value.kind !== 'question-draft') throw new Error(t('panel.response.questionDraftMismatch'))
           return response.value
         }
         const drafts = createQuestionDraftController({
@@ -173,8 +174,8 @@ export function createNativeComposer(ctx: Context): NativeComposer {
     },
     add: async (id, files) => {
       await binding(id)
-      if (disposed) throw new Error('Citer 已关闭，未创建附件')
-      if (retired.has(id)) throw new Error('这个 Topic 已永久删除，未创建附件')
+      if (disposed) throw new Error(t('panel.response.closedBeforeAttachment'))
+      if (retired.has(id)) throw new Error(t('panel.response.deletedBeforeAttachment'))
       const drafts = conversation.createDrafts(id as SessionId, files)
       for (const draft of drafts) owned.add(draft.id)
       return drafts
@@ -185,17 +186,17 @@ export function createNativeComposer(ctx: Context): NativeComposer {
       requireSelectedModel({ modelSelectionRequired: target.session.getSnapshot().modelSelectionRequired })
       if (requestId !== undefined) target.session.prepareSubmission(requestId)
       const outcome = await conversation.sendSession(target.session, text, attachments, mode).catch(error => {
-        throw new UncertainSubmissionError(`未收到发送结果：${String(error)}；请核对发送状态，草稿已保留`)
+        throw new UncertainSubmissionError(t('panel.error.sendUnknown', { error: String(error) }))
       })
       if (outcome.kind === 'error') {
         const failure = target.session.getSnapshot().promptError?.error
         const details = failure?.details
         const attachmentReason = details !== null && typeof details === 'object' && 'reason' in details ? details.reason : undefined
         const reason = failure?.code === 'session/attachment-invalid' && (attachmentReason === 'INVALID_IMAGE' || attachmentReason === 'IMAGE_TYPE_MISMATCH')
-          ? '附件格式无效或内容损坏，请移除或更换附件后重试'
-          : failure?.message ?? outcome.text ?? 'DSH 未接受此次发送'
-        if (failure === undefined) throw new UncertainSubmissionError(`${reason}；请核对发送状态，草稿已保留`)
-        throw new Error(`${reason}；草稿已保留`)
+          ? t('panel.error.attachmentInvalid')
+          : failure?.message ?? outcome.text ?? t('panel.error.sendRefused')
+        if (failure === undefined) throw new UncertainSubmissionError(t('panel.error.checkSend', { reason }))
+        throw new Error(t('panel.error.draftRetained', { reason }))
       }
       for (const id of attachments) owned.delete(id)
     },

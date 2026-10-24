@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 /** Reader panel controller: document library browsing, import, selection, and Topic creation. */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
@@ -116,7 +117,7 @@ export function createReaderController(
     try {
       const response = await call({ action: 'documents' })
       if (generation !== refreshGeneration) return
-      if (response.kind !== 'documents') throw new Error('Citer 返回了错误的文档列表响应')
+      if (response.kind !== 'documents') throw new Error(t('settings.error.readerList'))
       update((draft) => {
         draft.documents = response.documents
         draft.documentsStatus = 'ready'
@@ -141,14 +142,14 @@ export function createReaderController(
   const importFile = async (name: string, content: string): Promise<DocumentSummary | null> => {
     if (disposed) return null
     try {
-      const title = name.trim() === '' ? '未命名文档' : name.trim()
+      const title = name.trim() === '' ? t('settings.error.untitled') : name.trim()
       const response = await call({
         action: 'document-import',
         title,
         format: formatFromName(name),
         content,
       })
-      if (response.kind !== 'document') throw new Error('Citer 返回了错误的文档导入响应')
+      if (response.kind !== 'document') throw new Error(t('settings.error.readerImport'))
       await refresh()
       return response.document
     } catch (error) {
@@ -170,7 +171,7 @@ export function createReaderController(
     try {
       const response = await call({ action: 'document-get', documentId, page })
       if (generation !== documentGeneration) return
-      if (response.kind !== 'document-content') throw new Error('CiteCiter 返回了错误的文档内容响应')
+      if (response.kind !== 'document-content') throw new Error(t('settings.error.readerContent'))
       update((draft) => {
         draft.active = response.document
       })
@@ -190,10 +191,10 @@ export function createReaderController(
     if (disposed || store.getSnapshot().importing) return
     update(draft => { draft.importing = true; draft.error = null })
     try {
-      if (file.size > 8 * 1024 * 1024) throw new Error('文件过大；请导入不超过 2,000,000 个字符的文本')
+      if (file.size > 8 * 1024 * 1024) throw new Error(t('settings.error.fileTooLarge'))
       const content = await file.text()
       if (disposed) return
-      if (content.length > 2_000_000) throw new Error('文档不能超过 2,000,000 个字符')
+      if (content.length > 2_000_000) throw new Error(t('settings.error.textTooLarge'))
       const imported = await importFile(file.name, content)
       if (imported !== null) await openDocument(imported.documentId)
     } catch (error) {
@@ -211,11 +212,11 @@ export function createReaderController(
     const selection = snapshot.selection
     const question = snapshot.question.trim()
     if (snapshot.active === null || selection === null) {
-      fail(new Error('请先在文档中选择一段内容'))
+      fail(new Error(t('settings.error.selectDocument')))
       return
     }
     if (question === '') {
-      fail(new Error('请输入要问 CiteCiter 的问题'))
+      fail(new Error(t('settings.error.enterQuestion')))
       return
     }
     update((draft) => {

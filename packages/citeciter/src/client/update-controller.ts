@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { SettingsForm as ConfigForm } from './host-ui-adapter.ts'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { CiteCiterSettings } from '../topic.ts'
@@ -268,7 +269,7 @@ export function createUpdateController(
       if (disposed || available === null || copyOperation !== null) return copyOperation ?? Promise.resolve()
       store.update((state) => {
         state.copyStatus = 'copying'
-        state.copyMessage = '正在复制更新命令…'
+        state.copyMessage = t('settings.status.copying')
       })
       const operation = (async () => {
         try {
@@ -276,12 +277,12 @@ export function createUpdateController(
           await environment.clipboard.writeText(updateCommand(available.latestVersion, available.profile))
           if (!disposed) store.update((state) => {
             state.copyStatus = 'copied'
-            state.copyMessage = '更新命令已复制。运行后请重启当前 DSH。'
+            state.copyMessage = t('settings.status.copied')
           })
         } catch {
           if (!disposed) store.update((state) => {
             state.copyStatus = 'error'
-            state.copyMessage = '无法自动复制，请手动复制下方命令。运行后请重启当前 DSH。'
+            state.copyMessage = t('settings.status.copyFailed')
           })
         }
       })()
@@ -309,7 +310,7 @@ export function createUpdateController(
       if (disposed || preferenceOperation !== null) return preferenceOperation ?? false
       store.update((state) => {
         state.preferenceStatus = 'saving'
-        state.preferenceMessage = enabled ? '正在开启更新提醒…' : '正在关闭更新提醒…'
+        state.preferenceMessage = enabled ? t('settings.status.enabling') : t('settings.status.disabling')
       })
       const operation = (async (): Promise<boolean> => {
         const persistence = readPreference().persistence
@@ -330,14 +331,14 @@ export function createUpdateController(
           store.update((state) => {
             state.preferenceStatus = 'error'
             state.preferenceMessage = persistence === 'browser'
-              ? '浏览器阻止了本地存储，无法保存更新提醒设置。'
-              : '无法保存更新提醒设置，请重试。'
+              ? t('settings.status.browserDenied')
+              : t('settings.status.saveFailed')
           })
           return false
         }
         store.update((state) => {
           state.preferenceStatus = 'saved'
-          state.preferenceMessage = enabled ? '已开启版本更新提醒' : '已关闭版本更新提醒'
+          state.preferenceMessage = enabled ? t('settings.status.enabled') : t('settings.status.disabled')
           if (!enabled) state.available = null
         })
         if (enabled) void runCheck(true)

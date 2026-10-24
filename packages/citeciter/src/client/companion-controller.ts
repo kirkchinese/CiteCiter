@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { NativeComposer, DeliveryMode } from './native-composer.ts'
 import { UncertainSubmissionError } from './native-composer.ts'
 import type { DraftAttachmentId } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -27,7 +28,8 @@ import {
   type RequestIntent,
 } from './request-guard.ts'
 import { isCurrentTopicResponse, shouldReopenLastTopic } from './response-guard.ts'
-import { undeliveredActionMessage, type ActionDelivery, type ActionModel } from '../actions.ts'
+import type { ActionDelivery, ActionModel } from '../actions.ts'
+import { MODEL_SELECTION_REQUIRED } from '../model-admission.ts'
 import type { CiteSelection } from './types.ts'
 import { serializeDraftReferences, topicDraftReferences, type DraftReference } from './draft-references.ts'
 import { withLearningRoute } from './learning-route.ts'
@@ -340,15 +342,15 @@ export function createCompanionController(
     try {
       const response = await call({ action: 'get', topicSessionId: sessionId })
       if (response.kind === 'deleted') {
-        if (response.sessionId !== sessionId) throw new Error('Citer 返回了不匹配的删除记录')
+        if (response.sessionId !== sessionId) throw new Error(t('panel.response.deletedMismatch'))
         nativeComposer.retire(sessionId)
         if (!disposed && operationGeneration === activeGeneration) update((draft) => {
           draft.phase = 'ready'
-          draft.notice = '此 Topic 已在另一窗口删除。'
+          draft.notice = t('panel.notice.deletedElsewhere')
         })
         return
       }
-      if (response.kind !== 'topic') throw new Error('Citer 返回了错误的 Topic 响应')
+      if (response.kind !== 'topic') throw new Error(t('panel.response.topicMismatch'))
       acceptTopic(response.topic, operationGeneration, sessionId)
     } catch (error) {
       fail(error, operationGeneration)
@@ -453,7 +455,7 @@ export function createCompanionController(
       draft.sourceAnchorKey = null
       draft.archiving = false
       draft.error = null
-      draft.notice = 'Topic 已永久删除。'
+      draft.notice = t('panel.notice.deleted')
     })
   })
 
@@ -463,7 +465,7 @@ export function createCompanionController(
     if (active === null) return
     const response = await call({ action: 'get', topicSessionId: active.topic.sessionId })
     if (response.kind === 'deleted') {
-      if (response.sessionId !== active.topic.sessionId || response.sourceSessionId !== active.topic.sourceSessionId || response.topicId !== active.topic.topicId) throw new Error('Citer 删除回执与当前 Topic 不一致')
+      if (response.sessionId !== active.topic.sessionId || response.sourceSessionId !== active.topic.sourceSessionId || response.topicId !== active.topic.topicId) throw new Error(t('panel.response.deleteReceiptMismatch'))
       nativeComposer.retire(response.sessionId)
       return
     }
@@ -471,9 +473,9 @@ export function createCompanionController(
   }
 
   const resolveDraftTopic = async (sourceSessionId: SessionId): Promise<string | null> => {
-    if (disposed || store.getSnapshot().sourceSessionId !== sourceSessionId) throw new Error('来源已切换，请重新选文')
+    if (disposed || store.getSnapshot().sourceSessionId !== sourceSessionId) throw new Error(t('panel.error.sourceChanged'))
     const current = store.getSnapshot()
-    if (current.deleting || current.archiving || current.phase === 'creating') throw new Error('Topic 正在切换，请稍后重新选文')
+    if (current.deleting || current.archiving || current.phase === 'creating') throw new Error(t('panel.error.topicChanging'))
     if (current.active !== null && !current.active.topic.archived) return current.active.topic.sessionId
     return null
   }
@@ -624,11 +626,12 @@ export function createCompanionController(
         await nativeComposer.send(sessionId, text, [], 'queue')
       } catch (error) {
         if (error instanceof UncertainSubmissionError) {
-          fail(new Error('未收到发送结果，请在 Topic 中确认这条动作是否已发送'), generation)
+          fail(new Error(t('panel.error.actionUnconfirmed')), generation)
           return false
         }
         update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId, question, references, id: crypto.randomUUID() }] })
-        fail(new Error(undeliveredActionMessage(error instanceof Error ? error.message : String(error))), generation)
+        const reason = error instanceof Error ? error.message : String(error)
+        fail(new Error(reason === MODEL_SELECTION_REQUIRED ? t('panel.action.undeliveredModel') : t('panel.action.undelivered', { reason: reason.replace(/[。；;.\s]+$/u, '') })), generation)
         return false
       }
       if (generation === activeGeneration) {
@@ -675,10 +678,10 @@ export function createCompanionController(
       let response: CiteCiterResponse
       if (selection.kind === 'assistant-step') {
         const node = readChat(selection.sourceSessionId)?.nodes.get(selection.anchorKey)
-        if (node === undefined || node.kind !== 'assistant-step') throw new Error('选中的模型回答已不在当前会话快照中')
+        if (node === undefined || node.kind !== 'assistant-step') throw new Error(t('panel.error.answerUnavailable'))
         const answer = readAssistantAnswer(node.data)
         if (answer === null || answer.status !== 'settled') {
-          throw new Error('请在一次模型调用完成后引用；无需等待整轮长任务结束')
+          throw new Error(t('panel.error.waitForAnswer'))
         }
         response = await call({
           action: 'create',
@@ -708,7 +711,7 @@ export function createCompanionController(
           modelRoute,
         })
       }
-      if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
+      if (response.kind !== 'topic') throw new Error(t('panel.response.createMismatch'))
       completeRequestIntent(intent)
       if (response.topic.topic.citation !== null) {
         writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey)
@@ -726,7 +729,7 @@ export function createCompanionController(
     const question = normalizeDraftQuestion(rawQuestion)
     const intent = await claimCreateTopicIntent(selection, question, modelRoute)
     if (disposed) return
-    if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
+    if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error(t('panel.error.selectionChanged'))
     const pending = pendingCreates.get(intent.requestId)
     if (pending !== undefined) return pending
     const operation = runCreate(selection, question, intent, modelRoute, delivery).finally(() => {
@@ -762,7 +765,7 @@ export function createCompanionController(
           question,
           ...(modelRoute === undefined ? {} : { modelRoute }),
         })
-        if (response.kind !== 'topic') throw new Error('CiteCiter 返回了错误的创建响应')
+        if (response.kind !== 'topic') throw new Error(t('panel.response.createMismatch'))
         completeRequestIntent(intent)
         acceptTopic(response.topic, operationGeneration)
         if (operationGeneration === activeGeneration) update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: response.topic.topic.sessionId, question, id: intent.requestId, references: topicDraftReferences(response.topic.topic, response.topic.documentTitle) }] })
@@ -784,12 +787,12 @@ export function createCompanionController(
   const createFromDocument = async (claim: DocumentClaimIntent, rawQuestion: string, capturedSource?: SessionId, modelRoute?: ActionModel, delivery: ActionDelivery = 'draft'): Promise<void> => {
     if (disposed) return
     const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId
-    if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
-    if (sourceSessionId === null) throw new Error('打开 Citer 面板后即可创建文档 Topic')
+    if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error(t('panel.error.selectionChanged'))
+    if (sourceSessionId === null) throw new Error(t('panel.error.openForDocument'))
     const question = normalizeDraftQuestion(rawQuestion)
     const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute)
     if (disposed) return
-    if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error('来源会话已切换，请重新选文')
+    if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error(t('panel.error.selectionChanged'))
     const operationGeneration = ++activeGeneration
     update((draft) => {
       draft.sourceSessionId = sourceSessionId
@@ -814,7 +817,7 @@ export function createCompanionController(
         question,
         modelRoute,
       })
-      if (response.kind !== 'topic') throw new Error('Citer 返回了错误的文档 Topic 响应')
+      if (response.kind !== 'topic') throw new Error(t('panel.response.documentTopicMismatch'))
       completeRequestIntent(intent)
       acceptTopic(response.topic, operationGeneration)
       if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId) onAutoOpen()
@@ -871,7 +874,7 @@ export function createCompanionController(
     try {
       const response = await call({ action: 'stop', topicSessionId: active.topic.sessionId })
       if (response.kind === 'topic') acceptTopic(response.topic, operationGeneration, active.topic.sessionId)
-      if (operationGeneration === activeGeneration) update(draft => { draft.notice = '已请求停止当前回答；待处理队列仍按 DSH 规则继续。' })
+      if (operationGeneration === activeGeneration) update(draft => { draft.notice = t('panel.notice.stopRequested') })
     } catch (error) {
       fail(error, operationGeneration)
     }
@@ -994,12 +997,12 @@ export function createCompanionController(
         topicSessionId: sessionId,
         confirmSessionId,
       })
-      if (response.kind !== 'deleted') throw new Error('Citer 返回了错误的删除响应')
+      if (response.kind !== 'deleted') throw new Error(t('panel.response.deleteMismatch'))
       if (
         response.sessionId !== sessionId
         || response.sourceSessionId !== sourceSessionId
         || response.topicId !== topicId
-      ) throw new Error('Citer 返回的删除对象与当前 Topic 不一致')
+      ) throw new Error(t('panel.response.deletedTopicMismatch'))
       nativeComposer.retire(sessionId)
       clearLastTopic(sourceSessionId, sessionId)
       const current = store.getSnapshot()
@@ -1019,8 +1022,8 @@ export function createCompanionController(
           draft.sourceAnchorKey = null
           draft.deleting = false
           draft.notice = response.cleanup === 'complete'
-            ? 'Topic 已永久删除。'
-            : 'Topic 已删除；相关资源仍在后台清理。'
+            ? t('panel.notice.deleted')
+            : t('panel.notice.cleanup')
           draft.error = null
         })
       }
@@ -1137,7 +1140,7 @@ export function createCompanionController(
     update((draft) => {
       draft.settings = { ...draft.settings, [key]: value }
       draft.settingsSaveStatus = 'saving'
-      draft.settingsSaveMessage = '正在保存…'
+      draft.settingsSaveMessage = t('panel.settings.saving')
     })
     try {
       if (value === undefined) await track(remoteOperations, configForms.unset(key))
@@ -1148,7 +1151,7 @@ export function createCompanionController(
       update((draft) => {
         draft.settings = settingsWithPending(authoritative)
         draft.settingsSaveStatus = pendingSettings.size === 0 ? 'saved' : 'saving'
-        draft.settingsSaveMessage = pendingSettings.size === 0 ? '已保存' : '正在保存…'
+        draft.settingsSaveMessage = pendingSettings.size === 0 ? t('panel.settings.saved') : t('panel.settings.saving')
       })
     } catch (error) {
       if (pendingSettings.get(key)?.operation !== operation || disposed) return
@@ -1157,7 +1160,7 @@ export function createCompanionController(
       update((draft) => {
         draft.settings = settingsWithPending(restored)
         draft.settingsSaveStatus = 'error'
-        draft.settingsSaveMessage = `保存失败，已恢复：${error instanceof Error ? error.message : String(error)}`
+        draft.settingsSaveMessage = t('panel.settings.saveFailed', { error: error instanceof Error ? error.message : String(error) })
       })
     }
   }
@@ -1178,7 +1181,7 @@ export function createCompanionController(
     resolveDraftTopic: sourceSessionId => admit(null, () => resolveDraftTopic(sourceSessionId)),
     appendSelection: async (sourceSessionId, topicSessionId, question, references, delivery = 'draft') => {
       const snapshot = store.getSnapshot()
-      if (disposed || snapshot.sourceSessionId !== sourceSessionId || snapshot.active?.topic.sessionId !== topicSessionId || snapshot.active.topic.archived || snapshot.deleting || snapshot.archiving || snapshot.phase === 'creating') throw new Error('当前 Topic 已切换或不可编辑，请重新选文')
+      if (disposed || snapshot.sourceSessionId !== sourceSessionId || snapshot.active?.topic.sessionId !== topicSessionId || snapshot.active.topic.archived || snapshot.deleting || snapshot.archiving || snapshot.phase === 'creating') throw new Error(t('panel.error.topicChanged'))
       if (delivery === 'draft') {
         update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: topicSessionId, question, references, id: crypto.randomUUID() }] })
         return

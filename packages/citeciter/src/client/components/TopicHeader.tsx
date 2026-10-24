@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import type { PointerEventHandler, ReactNode } from 'react'
 import { CompactBackButton } from './CompactBackButton.tsx'
 import mascotUrl from '../assets/citeciter-mascot.png'
@@ -18,11 +19,12 @@ export function TopicHeader({ compact, onBack, onClose, onDrag, title, status, c
   readonly status: string | null
   readonly children: ReactNode
 }) {
+  useLocale()
   return <header className={css.header} data-compact={compact || undefined} onPointerDown={compact ? undefined : onDrag}>
     {compact ? <CompactBackButton onBack={onBack} /> : <img className={css.mark} src={mascotUrl} alt="" aria-hidden="true" draggable={false} />}
     <div className={css.heading}>{title}{status !== null && <span className={css.status} role="status">{status}</span>}</div>
     {children}
-    {!compact && onClose !== undefined && <button type="button" className={css.close} onClick={onClose} aria-label="收起 Citer" title="收起">
+    {!compact && onClose !== undefined && <button type="button" className={css.close} onClick={onClose} aria-label={t('panel.header.collapseCiter')} title={t('panel.header.collapse')}>
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5" /></svg>
     </button>}
   </header>

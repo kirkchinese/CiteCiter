@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionFace, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -102,19 +103,19 @@ export class CiterSessionFace implements SessionFace {
     const result = await this.ctx.remote.citeciter.request({ action: 'native-attachment', topicSessionId: this.sessionId, attachmentId }, this.lifetime.signal)
     if (!result.ok) return result
     if (result.value.kind === 'deleted') {
-      if (result.value.sessionId !== this.sessionId) throw new Error('Citer 删除回执与当前会话不一致')
+      if (result.value.sessionId !== this.sessionId) throw new Error(t('panel.response.sessionReceiptMismatch'))
       this.dispose()
       this.onDeleted?.()
-      throw new Error('这个 Topic 已永久删除，附件已不可用')
+      throw new Error(t('panel.error.attachmentGone'))
     }
-    if (result.value.kind !== 'native-attachment') throw new Error('Citer 附件响应类型不匹配')
+    if (result.value.kind !== 'native-attachment') throw new Error(t('panel.response.nativeAttachmentMismatch'))
     return { ok: true as const, value: { attachment: result.value.attachment, data: Uint8Array.from(atob(result.value.data), char => char.charCodeAt(0)) } }
   }
 
   readAttachment: SessionFace['readAttachment'] = async attachmentId => {
     const result = await this.readCiterAttachment(attachmentId)
     if (!result.ok) return result
-    if (!('mediaType' in result.value.attachment)) throw new Error('此附件是普通文件，请使用文件下载入口')
+    if (!('mediaType' in result.value.attachment)) throw new Error(t('panel.error.downloadFile'))
     return { ok: true, value: { attachment: result.value.attachment, data: result.value.data } }
   }
 
@@ -160,19 +161,19 @@ export class CiterSessionFace implements SessionFace {
       const result = await this.ctx.remote.citeciter.request({ action: 'native-state', topicSessionId: this.sessionId, requestIds: [...this.pending.keys()].slice(0, 32) }, this.lifetime.signal)
       if (!result.ok) throw new Error(result.error.message)
       if (result.value.kind === 'deleted') {
-        if (result.value.sessionId !== this.sessionId) throw new Error('Citer 删除回执与当前会话不一致')
+        if (result.value.sessionId !== this.sessionId) throw new Error(t('panel.response.sessionReceiptMismatch'))
         this.dispose()
         this.onDeleted?.()
         return
       }
-      if (result.value.kind !== 'native-state') throw new Error('Citer 会话状态响应类型不匹配')
+      if (result.value.kind !== 'native-state') throw new Error(t('panel.response.nativeStateMismatch'))
       if (this.lifetime.signal.aborted) return
       const state = result.value.state
       this.patch({ openState: 'open', openError: null, running: state.running, blank: state.blank, lastAgentError: state.error,
         modelSelectionRequired: state.modelSelectionRequired === true,
         queue: state.queue.map(({ rpcId, ...row }) => ({ ...row, id: row.id as MessageId, messageId: row.id as MessageId,
           ...(rpcId === undefined ? {} : { rpcId: rpcId as SessionRequestId }),
-          preview: row.text || '附件', content: [{ type: 'text' as const, text: row.text }, ...row.attachments],
+          preview: row.text || t('panel.queue.attachment'), content: [{ type: 'text' as const, text: row.text }, ...row.attachments],
         })),
       })
       for (const receipt of state.receipts) this.retire(receipt.requestId as SessionRequestId, { reason: 'observed', attachments: receipt.attachments.map(block => block.attachment) })

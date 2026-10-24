@@ -4,6 +4,7 @@ import type { UpdateActions } from '../view-actions.ts'
 import { useEffect, useId, useRef } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import { citeCiterUpdateCommand } from '../update-controller.ts'
+import { t, useLocale } from '../i18n.ts'
 import css from './UpdateNotice.module.css'
 
 /** Injected owner of the root-scoped update state. */
@@ -18,6 +19,7 @@ export interface UpdateNoticeProps {
  * @returns the available-version card, or no surface while current or suppressed.
  */
 export function UpdateNotice({ useUpdate, updateController }: UpdateNoticeProps) {
+  useLocale()
   const snapshot = useUpdate(value => value)
   const titleId = useId()
   const descriptionId = useId()
@@ -64,12 +66,12 @@ export function UpdateNotice({ useUpdate, updateController }: UpdateNoticeProps)
       onFocusCapture={rememberFocus}
     >
       <p className={css.announcement} role="status" aria-live="polite">
-        Citer 有新版本 {available.latestVersion}
+        {t('settings.update.announcement', { version: available.latestVersion })}
       </p>
       <div className={css.heading}>
         <span className={css.badge} aria-hidden="true">↑</span>
         <div>
-          <h2 id={titleId}>Citer 有新版本</h2>
+          <h2 id={titleId}>{t('settings.update.title')}</h2>
           <p className={css.version}>
             <span>v{available.currentVersion}</span>
             <span aria-hidden="true">→</span>
@@ -78,7 +80,7 @@ export function UpdateNotice({ useUpdate, updateController }: UpdateNoticeProps)
         </div>
       </div>
       <p id={descriptionId} className={css.description}>
-        “更新”复制安装命令。执行前请核对目标 Profile 与新版 DSH 要求，完成后重启当前 DSH。
+        {t('settings.update.description')}
       </p>
       <code className={css.command}>{citeCiterUpdateCommand(available.latestVersion, available.profile)}</code>
       {snapshot.copyMessage !== null && (
@@ -95,27 +97,27 @@ export function UpdateNotice({ useUpdate, updateController }: UpdateNoticeProps)
         <Button
           variant="primary"
           className={`${css.action} ${css.updateAction}`}
-          aria-label="更新"
+          aria-label={t('settings.update.update')}
           disabled={busy}
           onClick={() => { void updateController.copyUpdateCommand() }}
-        >更新</Button>
+        >{t('settings.update.update')}</Button>
         <Button
           variant="outline"
           className={css.action}
-          aria-label="下次一定"
+          aria-label={t('settings.update.later')}
           disabled={busy}
           onClick={() => {
             updateController.defer()
             restoreFocus()
           }}
-        >下次一定</Button>
+        >{t('settings.update.later')}</Button>
         <Button
           variant="ghost"
           className={css.action}
-          aria-label="不再提示"
+          aria-label={t('settings.update.never')}
           disabled={busy}
           onClick={() => { void disableNotifications() }}
-        >不再提示</Button>
+        >{t('settings.update.never')}</Button>
       </div>
     </section>
   )

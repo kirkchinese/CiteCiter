@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import peekUrl from '../assets/citer-pet-peek.png'
 import proudUrl from '../assets/citer-pet-proud.png'
@@ -53,6 +54,7 @@ function restTop(y: number): number {
  * @param attention - show a dot because an answer finished or a question waits while Citer is closed.
  */
 export function CiterPet({ attention, onOpen }: { readonly attention: boolean, readonly onOpen: () => void }) {
+  useLocale()
   const [place, setPlace] = useState(readPlace)
   const [expanded, setExpanded] = useState(false)
   const [drag, setDrag] = useState<{ readonly left: number, readonly top: number } | null>(null)
@@ -126,7 +128,7 @@ export function CiterPet({ attention, onOpen }: { readonly attention: boolean, r
   const style: CSSProperties = drag !== null ? { left: drag.left, top: drag.top, right: 'auto' } : { top: restTop(place.y) }
   return <OverlayPortal>
     <button ref={button} type="button" className={css.pet} style={style} data-side={place.side} data-expanded={shown || undefined} data-dragging={drag !== null || undefined}
-      aria-label={attention ? '打开 Citer，有新的回答' : '打开 Citer'} title="打开 Citer · 可以拖动"
+      aria-label={attention ? t('panel.pet.attention') : t('panel.pet.open')} title={t('panel.pet.drag')}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}
       onFocus={() => { if (keyboardFocused()) setShown(true, 0) }} onBlur={() => setShown(false, HIDE_DELAY)}
       onClick={event => { if (event.detail === 0) onOpen() }}>

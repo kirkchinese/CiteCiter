@@ -28,8 +28,8 @@ window.__ModuleLoader__.load({
 		}) : target, mod));
 		//#endregion
 		let _deepseek_ai_dsh_client_store = require("@deepseek-ai/dsh-client-store");
-		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
+		let react_jsx_runtime = require("react/jsx-runtime");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		let react_dom = require("react-dom");
 		//#region node_modules/@deepseek-ai/dsh-brand/lib/index.js
@@ -5683,6 +5683,63 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			null,
 			null
 		];
+		/** English built-in actions, used only when the active UI language is not Chinese. */
+		const ENGLISH_WHEEL_SLOTS = [
+			{
+				label: "Ask",
+				prompt: "",
+				ask: true,
+				presentation: "side"
+			},
+			{
+				label: "Explain",
+				prompt: englishLearningQuestion("Underlying logic"),
+				ask: false,
+				presentation: "side"
+			},
+			{
+				label: "Find errors",
+				prompt: "Review the quoted content for errors, omissions, and conditions under which its claims hold. Distinguish confirmed errors from information that still needs to be checked.",
+				ask: false,
+				presentation: "floating"
+			},
+			{
+				label: "Translate",
+				prompt: "Translate the quoted content into English, preserving important terms in their original language.",
+				ask: false,
+				presentation: "floating"
+			},
+			{
+				label: "Blackboard",
+				prompt: englishLearningQuestion("Quantitative analysis (blackboard)"),
+				ask: false,
+				presentation: "side"
+			},
+			{
+				label: "Study cards",
+				prompt: englishLearningQuestion("Summary study cards", "Organize the content around this quote."),
+				ask: false,
+				presentation: "side"
+			},
+			null,
+			null
+		];
+		function englishLearningQuestion(stage, question = "") {
+			return `[Learning stage: ${stage}]\n${{
+				"Underlying logic": "Explain the underlying logic of the current topic: start with definitions and conditions, then explain the causal mechanism and why it works. Distinguish source evidence, general knowledge, and assumptions. Cover this stage only; do not advance automatically.",
+				"Quantitative analysis (blackboard)": "Analyze the current topic quantitatively and use blackboard_apply to organize the blackboard: specify variables, units, assumptions, derivation steps, and one verifiable worked example. Mark example values as hypothetical; do not invent source data. If quantitative analysis is unsuitable or information is insufficient, explain why. Cover this stage only; do not advance automatically.",
+				"Summary study cards": "First check and correct the conclusions and existing blackboard in this Topic: review definitions, conditions, derivations, numbers, and contradictions. Do not treat earlier model responses as evidence; consult available sources if needed. Correct mistakes and mark unverifiable claims as unverified or omit them; do not invent sources or locations. Then call learning_cards to create 1–6 study cards, each with a key conclusion, a concrete example, an optional self-test question, and a reference answer. Check that these fields agree, including corrections in examples and answers. Preserve real source locations for source-dependent facts and distinguish evidence from general knowledge. Briefly report corrections and remaining unverified claims; do not schedule reviews."
+			}[stage]}${question.trim() === "" ? "" : `\n\nMy question: ${question.trim()}`}`;
+		}
+		/** Resolve built-in defaults without changing any user-edited action or persisted settings. */
+		function localizedWheelSlots(slots, chinese) {
+			if (chinese) return slots ?? DEFAULT_WHEEL_SLOTS;
+			if (slots === void 0 || slots.length === DEFAULT_WHEEL_SLOTS.length && slots.every((slot, index) => {
+				const original = DEFAULT_WHEEL_SLOTS[index];
+				return slot === null ? original === null : original != null && slot.label === original.label && slot.prompt === original.prompt && slot.ask === original.ask && slot.presentation === original.presentation && (slot.target === void 0 || slot.target === "current");
+			})) return ENGLISH_WHEEL_SLOTS;
+			return slots;
+		}
 		/**
 		* Decide how a chosen action is delivered.
 		* @param action - the chosen slot.
@@ -5691,15 +5748,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		*/
 		function actionDelivery(action, preference) {
 			return action.ask ? "draft" : preference ?? "send";
-		}
-		/**
-		* Explain a preset action the host refused to send, which then moves into the composer.
-		* The composer already explains a missing model, so that reason is not repeated.
-		* @param reason - the host's refusal message.
-		* @returns one message for the panel.
-		*/
-		function undeliveredActionMessage(reason) {
-			return reason === "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。" ? "动作没有发送，已放进输入框" : `${reason.replace(/[。；;.\s]+$/u, "")}。动作已放进输入框，可修改后发送`;
 		}
 		/** Combine a mode and optional user question without hidden system state. */
 		function actionQuestion(action, question) {
@@ -6786,6 +6834,1254 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}]
 		};
 		//#endregion
+		//#region lib/types/client/locales/board.js
+		/** The blackboard, its animation player, learning cards and the learning route. */
+		const zh$5 = {
+			"board.title": "小黑板",
+			"board.workspace.label": "Citer 小黑板",
+			"board.workspace.empty": "在 Citer 中发送绘图或教学问题，板书会显示在这里。",
+			"board.svg.alt": "Citer 黑板图形",
+			"board.html.title": "Citer 黑板动画",
+			"board.image.invalid": "黑板图片内容无效",
+			"board.image.alt": "Citer 黑板图片",
+			"board.label": "Citer 黑板",
+			"board.subtitle": "由 Citer 随讲解实时整理",
+			"board.waiting": "等待板书",
+			"board.revision": "第 {count} 次更新",
+			"board.view.canvas": "查看画布",
+			"board.view.notes": "条目阅读",
+			"board.warning.invalid": "已忽略 {count} 批无效板书提交",
+			"board.empty": "发送需要板书的问题，公式、推导和图示会整理到这里。",
+			"board.quote.label": "引用黑板元素 {id} 到提问",
+			"board.quote.action": "引用到提问",
+			"board.animation.label": "板书动画",
+			"board.animation.pause": "暂停动画",
+			"board.animation.play": "播放动画",
+			"board.animation.replay": "重播动画",
+			"board.animation.progress": "动画进度",
+			"board.animation.step": "跳到第 {count} 步：{caption}",
+			"board.cards.label": "学习卡片",
+			"board.cards.eyebrow": "学习卡片 · {number}",
+			"board.cards.question": "先试着用自己的话回答",
+			"board.cards.example": "用一个例子记住",
+			"board.cards.answer": "参考答案",
+			"board.cards.reveal": "展开结论与参考答案",
+			"board.cards.kicker": "留下一份理解",
+			"board.cards.title": "总结学习卡片",
+			"board.cards.recall": "主动回忆",
+			"board.cards.recallOn": "先自己回答，再展开参考内容。随时可以关闭。",
+			"board.cards.recallOff": "直接阅读结论与例子。想自测时，再开启主动回忆。",
+			"board.cards.invalid": "有 {count} 条卡片记录无法读取，已保留最近可用的一组。",
+			"board.cards.empty.title": "让理解留下来",
+			"board.cards.empty.description": "在输入框请求总结学习卡片并发送。模型会先核对结论，再整理卡片。",
+			"board.cards.prepare": "准备总结",
+			"board.cards.export": "导出 Markdown",
+			"board.cards.revise": "补充或修订",
+			"board.cards.provenance": "来自当前 Topic · {title}",
+			"board.cards.saved": "已随 Topic 保存。修订时发送你的要求，生成后展示新的完整一组。",
+			"board.cards.markdown.source": "来源：",
+			"board.cards.markdown.example": "例子",
+			"board.cards.markdown.selfTest": "可选自测",
+			"board.route.progress": "学习路线 {completed} / {total} · {current}",
+			"board.route.completed": "已完成"
+		};
+		const en$5 = {
+			"board.title": "Blackboard",
+			"board.workspace.label": "Citer blackboard",
+			"board.workspace.empty": "Ask Citer to draw or explain a topic. The blackboard will appear here.",
+			"board.svg.alt": "Citer blackboard diagram",
+			"board.html.title": "Citer blackboard animation",
+			"board.image.invalid": "Invalid blackboard image content",
+			"board.image.alt": "Citer blackboard image",
+			"board.label": "Citer blackboard",
+			"board.subtitle": "Organized by Citer as it explains",
+			"board.waiting": "Waiting for the blackboard",
+			"board.revision": "Update {count}",
+			"board.view.canvas": "View canvas",
+			"board.view.notes": "Read entries",
+			"board.warning.invalid": "Ignored {count} invalid blackboard submissions",
+			"board.empty": "Ask a question that needs a blackboard. Formulas, derivations, and diagrams will appear here.",
+			"board.quote.label": "Quote blackboard element {id} in a question",
+			"board.quote.action": "Quote in question",
+			"board.animation.label": "Blackboard animation",
+			"board.animation.pause": "Pause animation",
+			"board.animation.play": "Play animation",
+			"board.animation.replay": "Replay animation",
+			"board.animation.progress": "Animation progress",
+			"board.animation.step": "Jump to step {count}: {caption}",
+			"board.cards.label": "Learning cards",
+			"board.cards.eyebrow": "Learning card · {number}",
+			"board.cards.question": "Try answering in your own words first",
+			"board.cards.example": "Remember with an example",
+			"board.cards.answer": "Reference answer",
+			"board.cards.reveal": "Show summary and reference answer",
+			"board.cards.kicker": "Keep what you learned",
+			"board.cards.title": "Summarize learning cards",
+			"board.cards.recall": "Active recall",
+			"board.cards.recallOn": "Answer first, then reveal the reference. Turn this off anytime.",
+			"board.cards.recallOff": "Read the summary and example. Turn on active recall to test yourself.",
+			"board.cards.invalid": "{count} card records could not be read. The latest usable set was kept.",
+			"board.cards.empty.title": "Keep what you learned",
+			"board.cards.empty.description": "Request learning cards in the input box and send. The model will check its conclusions before making cards.",
+			"board.cards.prepare": "Prepare summary",
+			"board.cards.export": "Export Markdown",
+			"board.cards.revise": "Add or revise",
+			"board.cards.provenance": "From current Topic · {title}",
+			"board.cards.saved": "Saved with this Topic. Send your changes to generate a new complete set.",
+			"board.cards.markdown.source": "Source:",
+			"board.cards.markdown.example": "Example",
+			"board.cards.markdown.selfTest": "Optional self-test",
+			"board.route.progress": "Learning route {completed} / {total} · {current}",
+			"board.route.completed": "Completed"
+		};
+		//#endregion
+		//#region lib/types/client/locales/common.js
+		/** Shared words used across Citer's interface. */
+		const zh$4 = {
+			"common.name": "Citer",
+			"common.cancel": "取消",
+			"common.close": "关闭"
+		};
+		const en$4 = {
+			"common.name": "Citer",
+			"common.cancel": "Cancel",
+			"common.close": "Close"
+		};
+		//#endregion
+		//#region lib/types/client/locales/panel.js
+		/** The Citer workspace shell: header, Topic list and menu, empty state, composer, questions, notices and dialogs. */
+		const zh$3 = {
+			"panel.placeholder": "继续提问",
+			"panel.phase.creating": "正在准备…",
+			"panel.phase.running": "正在回答…",
+			"panel.phase.stopping": "正在停止…",
+			"panel.phase.stopped": "已停止",
+			"panel.phase.error": "出错了",
+			"panel.error.noSourceModel": "当前主会话还没有可复用的模型。请先在主对话发送一条消息，再创建 Topic。",
+			"panel.error.modelAddress": "模型服务地址",
+			"panel.error.requestFailed": "请求失败",
+			"panel.error.separator": "：",
+			"panel.cards.revisePrompt": "请先核对本 Topic 的结论，纠正错误并标明未核实内容，再生成总结学习卡片。",
+			"panel.error.retained": "已生成的内容保留在上方。",
+			"panel.error.details": "技术详情",
+			"panel.error.topics": "Topic 读取失败：",
+			"panel.error.deleteFailed": "Topic 未删除，请重试。",
+			"panel.error.modelSelectionRequired": "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。",
+			"panel.error.sourceSessionUnsaved": "来源 Session 尚未保存，请先在主对话发送消息",
+			"panel.error.sourceUnavailable": "Citer 来源存储不可用",
+			"panel.error.sourceDirectoryUnavailable": "Citer 来源目录不可用",
+			"panel.nextQuestions": "接下来可能想问",
+			"panel.empty.title": "把没懂的地方，慢慢讲明白",
+			"panel.empty.description": "在主对话里选中文字，用工具条提问；或者新建一个 Topic。",
+			"panel.newTopic": "新建 Topic",
+			"panel.quote": "引用 · ",
+			"panel.sourceUnavailable": "来源对话暂时不可用，Citer 读不到它的内容。",
+			"panel.content": "Topic 内容",
+			"panel.conversation": "对话",
+			"panel.cardsCount": "学习卡 {count}",
+			"panel.userMessage": "用户消息",
+			"panel.freeDiscussion": "无引用 · 自由讨论",
+			"panel.draft.pending": "上次发送状态待核对。",
+			"panel.draft.reconcile": "核对发送状态",
+			"panel.draft.retrySend": "重试上次发送",
+			"panel.draft.reload": "重新读取草稿",
+			"panel.draft.removeMissing": "移除失效附件：{name}",
+			"panel.delete.title": "永久删除 Topic",
+			"panel.delete.description": "这会永久删除“{title}”。请输入完整 Topic Session ID 确认。",
+			"panel.delete.deleting": "删除中…",
+			"panel.delete.confirm": "永久删除",
+			"panel.delete.input": "输入 Topic Session ID 以确认永久删除",
+			"panel.delete.placeholder": "粘贴上方 Session ID",
+			"panel.dock.drop": "松开以停靠",
+			"panel.dock.resize": "调整 Citer 宽度",
+			"panel.dock.unsupported": "当前布局暂不支持 Citer 面板。请使用受支持的官方 DSH 版本，关闭全屏详情后重试。",
+			"panel.dock.fullscreen": "Citer 已打开。退出文件全屏查看，或 ",
+			"panel.dock.floating": "悬浮查看",
+			"panel.header.collapseCiter": "收起 Citer",
+			"panel.header.collapse": "收起",
+			"panel.title.name": "Topic 名称",
+			"panel.title.saveFailed": "保存失败，可重试或按 Escape 取消",
+			"panel.title.renameHint": "双击重命名 · F2",
+			"panel.nav.list": "Topic 列表",
+			"panel.nav.search": "搜索 Topic",
+			"panel.nav.showActive": "查看活动",
+			"panel.nav.showArchived": "查看归档",
+			"panel.nav.noMatches": "没有匹配的 Topic",
+			"panel.nav.noArchived": "没有归档的 Topic",
+			"panel.nav.empty": "还没有 Topic",
+			"panel.menu.more": "更多",
+			"panel.menu.actions": "Topic 操作",
+			"panel.menu.rename": "重命名",
+			"panel.menu.disableLearning": "关闭学习路线",
+			"panel.menu.enableLearning": "开启学习路线",
+			"panel.menu.reader": "文档阅读",
+			"panel.menu.contextNotices": "只显示上下文通知",
+			"panel.menu.allContext": "显示全部上下文",
+			"panel.menu.restore": "恢复 Topic",
+			"panel.menu.archive": "归档 Topic",
+			"panel.menu.delete": "永久删除…",
+			"panel.composer.addQuestion": "补充问题",
+			"panel.composer.editDraft": "编辑草稿",
+			"panel.composer.ask": "继续向 Citer 提问",
+			"panel.composer.attach": "添加图片或文件",
+			"panel.composer.stop": "停止回答",
+			"panel.composer.queueHint": "当前：排队发送；点击切换为插话",
+			"panel.composer.steerHint": "当前：插话；点击切换为排队",
+			"panel.composer.queueSend": "排队发送",
+			"panel.composer.steerSend": "插话发送",
+			"panel.composer.queue": "排队",
+			"panel.composer.steer": "插话",
+			"panel.composer.runningHint": "Enter：{normal}；Ctrl + Enter：{alternate}；Shift + Enter：换行",
+			"panel.composer.sendHint": "发送 · Enter（Shift + Enter 换行）",
+			"panel.composer.send": "发送",
+			"panel.model.default": "默认",
+			"panel.model.effort": "思考强度",
+			"panel.model.modelDefault": "模型默认",
+			"panel.model.label": "模型与思考强度：{name}，{effort}",
+			"panel.permission.readOnly": "只读",
+			"panel.permission.workspaceWrite": "工作区内修改",
+			"panel.permission.fullAccess": "完全权限",
+			"panel.permission.label": "权限：{mode}",
+			"panel.permission.host": "DSH 权限",
+			"panel.questions.pending": "待回答问题",
+			"panel.questions.number": "问题 {number}",
+			"panel.questions.lateReply": " · 可补答",
+			"panel.question.continued": "模型已继续，回答仍保留，请再次提交。",
+			"panel.question.closed": "这条提问已结束，未发送回答。",
+			"panel.question.label": "Citer 提问",
+			"panel.question.needsAnswer": "Citer 需要你的回答",
+			"panel.question.retrySave": "重试保存",
+			"panel.question.reload": "重新加载",
+			"panel.question.answerPlaceholder": "输入回答…",
+			"panel.question.otherPlaceholder": "其他（可填写）",
+			"panel.question.customAnswer": "自定义回答",
+			"panel.question.takeTime": "等我回答",
+			"panel.question.skip": "跳过此题",
+			"panel.question.previous": "上一个",
+			"panel.question.next": "下一个",
+			"panel.question.submitting": "提交中…",
+			"panel.question.submit": "提交回答",
+			"panel.question.replyLabel": "补答先前的问题",
+			"panel.question.reply": "补答",
+			"panel.question.invalidReply": "这条历史回答的格式无法解析。",
+			"panel.question.skipped": "已跳过",
+			"panel.question.submitted": "已提交的回答",
+			"panel.question.interrupted": "上次运行已中断，可补充回答；手动提交后继续",
+			"panel.question.canReply": "模型已继续，可补充回答",
+			"panel.question.waiting": "等待你完成回答",
+			"panel.question.focused": "输入区获得焦点，倒计时已暂停",
+			"panel.question.countdown": "{seconds} 秒后模型将继续",
+			"panel.question.claimFailed": "无法接管等待：{error}。宿主将按原定时限继续。",
+			"panel.question.waitFailed": "等待状态更新失败：{error}",
+			"panel.queue.label": "DSH 发送队列",
+			"panel.queue.readFailed": "无法读取发送状态，正在重连：{error}",
+			"panel.queue.sending": "发送中",
+			"panel.queue.attachment": "附件",
+			"panel.queue.steerHint": "将在当前回答的下一步处理",
+			"panel.queue.queuedHint": "当前回答完成后处理",
+			"panel.queue.steerNow": "现在插话",
+			"panel.queue.steerItem": "将此条排队消息改为插话",
+			"panel.queue.remove": "移出队列",
+			"panel.queue.removeItem": "移除此条待处理消息",
+			"panel.approval.wait": "当前工具正在等待宿主交互。可停止后重试。",
+			"panel.approval.label": "DSH 工具审批",
+			"panel.approval.pending": "等待授权 · {tool}",
+			"panel.approval.parameters": "查看工具参数",
+			"panel.approval.reject": "拒绝",
+			"panel.approval.allowOnce": "仅允许这次",
+			"panel.file.previewHint": "图片无法预览，可移除后重新添加；原文件仍保留。",
+			"panel.file.previewUnavailable": "无法预览",
+			"panel.file.uploading": "上传中",
+			"panel.file.uploadFailed": "上传失败，点击重试",
+			"panel.file.retry": "重试",
+			"panel.file.remove": "移除附件 {name}",
+			"panel.file.drop": "松开，添加到 Citer",
+			"panel.file.selectTopic": "先选择一个 Topic",
+			"panel.back": "返回主对话",
+			"panel.pet.attention": "打开 Citer，有新的回答",
+			"panel.pet.open": "打开 Citer",
+			"panel.pet.drag": "打开 Citer · 可以拖动",
+			"panel.notice.deletedElsewhere": "此 Topic 已在另一窗口删除。",
+			"panel.notice.deleted": "Topic 已永久删除。",
+			"panel.notice.cleanup": "Topic 已删除；相关资源仍在后台清理。",
+			"panel.notice.stopRequested": "已请求停止当前回答；待处理队列仍按 DSH 规则继续。",
+			"panel.action.undeliveredModel": "动作没有发送，已放进输入框",
+			"panel.action.undelivered": "{reason}。动作已放进输入框，可修改后发送",
+			"panel.settings.saving": "正在保存…",
+			"panel.settings.saved": "已保存",
+			"panel.settings.saveFailed": "保存失败，已恢复：{error}",
+			"panel.error.selectionChanged": "来源会话已切换，请重新选文",
+			"panel.error.sourceChanged": "来源已切换，请重新选文",
+			"panel.error.topicChanging": "Topic 正在切换，请稍后重新选文",
+			"panel.error.answerUnavailable": "选中的模型回答已不在当前会话快照中",
+			"panel.error.waitForAnswer": "请在一次模型调用完成后引用；无需等待整轮长任务结束",
+			"panel.error.openForDocument": "打开 Citer 面板后即可创建文档 Topic",
+			"panel.error.topicChanged": "当前 Topic 已切换或不可编辑，请重新选文",
+			"panel.error.actionUnconfirmed": "未收到发送结果，请在 Topic 中确认这条动作是否已发送",
+			"panel.error.nativeUnavailable": "当前 DSH 不提供 Citer 所需的原生附件发送接口",
+			"panel.error.citerClosed": "Citer 已关闭",
+			"panel.error.topicDeleted": "这个 Topic 已永久删除",
+			"panel.error.topicQuestionClosed": "这个 Topic 的提问服务已结束",
+			"panel.error.attachmentInvalid": "附件格式无效或内容损坏，请移除或更换附件后重试",
+			"panel.error.sendRefused": "DSH 未接受此次发送",
+			"panel.error.sendUnknown": "未收到发送结果：{error}；请核对发送状态，草稿已保留",
+			"panel.error.checkSend": "{reason}；请核对发送状态，草稿已保留",
+			"panel.error.draftRetained": "{reason}；草稿已保留",
+			"panel.error.restoreFile": "无法恢复 {name}：{error}；请移除或重新添加",
+			"panel.error.draftLimit": "草稿最多保留 32 个附件，每个附件不超过 100 MiB",
+			"panel.error.removeMissing": "请先移除或重新添加无法恢复的附件",
+			"panel.error.pendingSend": "上次发送状态未确认，请先核对或明确重试上次发送",
+			"panel.error.missingSentFile": "上次发送的附件无法恢复，请先核对发送状态",
+			"panel.error.draftNotSaved": "草稿尚未保存，未发送；请稍后重试",
+			"panel.error.questionEnded": "这个提问已结束，未提交回答",
+			"panel.error.answerNotSaved": "回答尚未保存，未发送；请稍后重试",
+			"panel.error.questionNotResent": "这个提问已结束，未重复提交回答",
+			"panel.error.answerNotSent": "回答未发送，请稍后重试",
+			"panel.error.attachmentGone": "这个 Topic 已永久删除，附件已不可用",
+			"panel.error.downloadFile": "此附件是普通文件，请使用文件下载入口",
+			"panel.error.settingsUnavailable": "当前 DSH 未提供 Citer 所需的设置接口",
+			"panel.error.approvalUnavailable": "当前 DSH 未提供 Citer 所需的审批展示接口",
+			"panel.response.deletedMismatch": "Citer 返回了不匹配的删除记录",
+			"panel.response.topicMismatch": "Citer 返回了错误的 Topic 响应",
+			"panel.response.deleteReceiptMismatch": "Citer 删除回执与当前 Topic 不一致",
+			"panel.response.createMismatch": "CiteCiter 返回了错误的创建响应",
+			"panel.response.documentTopicMismatch": "Citer 返回了错误的文档 Topic 响应",
+			"panel.response.deleteMismatch": "Citer 返回了错误的删除响应",
+			"panel.response.deletedTopicMismatch": "Citer 返回的删除对象与当前 Topic 不一致",
+			"panel.response.questionReceiptMismatch": "Citer 提问删除回执身份不匹配",
+			"panel.response.questionDeleted": "这个 Topic 已永久删除，未提交回答",
+			"panel.response.questionMismatch": "Citer 提问响应与当前 Topic 不匹配",
+			"panel.response.questionDraftMismatch": "回答草稿响应类型不匹配",
+			"panel.response.closedBeforeAttachment": "Citer 已关闭，未创建附件",
+			"panel.response.deletedBeforeAttachment": "这个 Topic 已永久删除，未创建附件",
+			"panel.response.draftFileMismatch": "草稿附件响应类型不匹配",
+			"panel.response.incompleteFile": "草稿附件读取不完整",
+			"panel.response.restoreAttachmentFailed": "DSH 未恢复附件",
+			"panel.response.draftMismatch": "草稿响应类型不匹配",
+			"panel.response.draftSaveMismatch": "草稿保存响应类型不匹配",
+			"panel.response.sessionReceiptMismatch": "Citer 删除回执与当前会话不一致",
+			"panel.response.nativeAttachmentMismatch": "Citer 附件响应类型不匹配",
+			"panel.response.nativeStateMismatch": "Citer 会话状态响应类型不匹配"
+		};
+		const en$3 = {
+			"panel.placeholder": "Ask a follow-up",
+			"panel.phase.creating": "Preparing…",
+			"panel.phase.running": "Responding…",
+			"panel.phase.stopping": "Stopping…",
+			"panel.phase.stopped": "Stopped",
+			"panel.phase.error": "Something went wrong",
+			"panel.error.noSourceModel": "The source session has no model to reuse yet. Send a message in the main conversation before creating a Topic.",
+			"panel.error.modelAddress": "model service address",
+			"panel.error.requestFailed": "Request failed",
+			"panel.error.separator": ": ",
+			"panel.cards.revisePrompt": "First review the conclusions in this Topic, correct errors and mark anything unverified, then generate summary learning cards.",
+			"panel.error.retained": "The content generated so far is preserved above.",
+			"panel.error.details": "Technical details",
+			"panel.error.topics": "Could not load Topics: ",
+			"panel.error.deleteFailed": "Topic was not deleted. Try again.",
+			"panel.error.modelSelectionRequired": "This Topic’s model is unavailable in the current DSH. Your draft is saved. Choose an available model from the model menu before sending.",
+			"panel.error.sourceSessionUnsaved": "The source Session has not been saved yet. Send a message in the main conversation first",
+			"panel.error.sourceUnavailable": "Citer source storage is unavailable",
+			"panel.error.sourceDirectoryUnavailable": "Citer source directory is unavailable",
+			"panel.nextQuestions": "You might ask next",
+			"panel.empty.title": "Take your time to understand what is unclear",
+			"panel.empty.description": "Select text in the main conversation and ask with the toolbar, or create a new Topic.",
+			"panel.newTopic": "New Topic",
+			"panel.quote": "Quote · ",
+			"panel.sourceUnavailable": "The source conversation is temporarily unavailable. Citer cannot read it.",
+			"panel.content": "Topic content",
+			"panel.conversation": "Conversation",
+			"panel.cardsCount": "Learning cards {count}",
+			"panel.userMessage": "User message",
+			"panel.freeDiscussion": "No quote · Open discussion",
+			"panel.draft.pending": "The previous send needs verification.",
+			"panel.draft.reconcile": "Check send status",
+			"panel.draft.retrySend": "Retry previous send",
+			"panel.draft.reload": "Reload draft",
+			"panel.draft.removeMissing": "Remove unavailable attachment: {name}",
+			"panel.delete.title": "Permanently delete Topic",
+			"panel.delete.description": "This will permanently delete “{title}”. Enter the full Topic Session ID to confirm.",
+			"panel.delete.deleting": "Deleting…",
+			"panel.delete.confirm": "Delete permanently",
+			"panel.delete.input": "Enter the Topic Session ID to confirm permanent deletion",
+			"panel.delete.placeholder": "Paste the Session ID shown above",
+			"panel.dock.drop": "Release to dock",
+			"panel.dock.resize": "Resize Citer",
+			"panel.dock.unsupported": "This layout does not support the Citer panel. Use a supported official DSH version, close fullscreen details, and try again.",
+			"panel.dock.fullscreen": "Citer is open. Exit fullscreen file view, or ",
+			"panel.dock.floating": "View in floating panel",
+			"panel.header.collapseCiter": "Collapse Citer",
+			"panel.header.collapse": "Collapse",
+			"panel.title.name": "Topic name",
+			"panel.title.saveFailed": "Save failed. Try again or press Escape to cancel",
+			"panel.title.renameHint": "Double-click to rename · F2",
+			"panel.nav.list": "Topic list",
+			"panel.nav.search": "Search Topics",
+			"panel.nav.showActive": "Show active",
+			"panel.nav.showArchived": "Show archived",
+			"panel.nav.noMatches": "No matching Topics",
+			"panel.nav.noArchived": "No archived Topics",
+			"panel.nav.empty": "No Topics yet",
+			"panel.menu.more": "More",
+			"panel.menu.actions": "Topic actions",
+			"panel.menu.rename": "Rename",
+			"panel.menu.disableLearning": "Turn off learning route",
+			"panel.menu.enableLearning": "Turn on learning route",
+			"panel.menu.reader": "Document reader",
+			"panel.menu.contextNotices": "Show context notices only",
+			"panel.menu.allContext": "Show all context",
+			"panel.menu.restore": "Restore Topic",
+			"panel.menu.archive": "Archive Topic",
+			"panel.menu.delete": "Delete permanently…",
+			"panel.composer.addQuestion": "Add a question",
+			"panel.composer.editDraft": "Edit draft",
+			"panel.composer.ask": "Ask Citer a follow-up",
+			"panel.composer.attach": "Add image or file",
+			"panel.composer.stop": "Stop response",
+			"panel.composer.queueHint": "Currently queued; click to interrupt",
+			"panel.composer.steerHint": "Currently interrupting; click to queue",
+			"panel.composer.queueSend": "Queue message",
+			"panel.composer.steerSend": "Interrupt now",
+			"panel.composer.queue": "Queue",
+			"panel.composer.steer": "Interrupt",
+			"panel.composer.runningHint": "Enter: {normal}; Ctrl + Enter: {alternate}; Shift + Enter: new line",
+			"panel.composer.sendHint": "Send · Enter (Shift + Enter for new line)",
+			"panel.composer.send": "Send",
+			"panel.model.default": "Default",
+			"panel.model.effort": "Reasoning effort",
+			"panel.model.modelDefault": "Model default",
+			"panel.model.label": "Model and reasoning effort: {name}, {effort}",
+			"panel.permission.readOnly": "Read-only",
+			"panel.permission.workspaceWrite": "Workspace write",
+			"panel.permission.fullAccess": "Full access",
+			"panel.permission.label": "Permission: {mode}",
+			"panel.permission.host": "DSH permission",
+			"panel.questions.pending": "Questions awaiting answers",
+			"panel.questions.number": "Question {number}",
+			"panel.questions.lateReply": " · Can answer later",
+			"panel.question.continued": "The model continued. Your answer is saved; submit it again.",
+			"panel.question.closed": "This question is closed. Your answer was not sent.",
+			"panel.question.label": "Citer question",
+			"panel.question.needsAnswer": "Citer needs your answer",
+			"panel.question.retrySave": "Retry save",
+			"panel.question.reload": "Reload",
+			"panel.question.answerPlaceholder": "Enter an answer…",
+			"panel.question.otherPlaceholder": "Other (optional)",
+			"panel.question.customAnswer": "Custom answer",
+			"panel.question.takeTime": "Let me answer",
+			"panel.question.skip": "Skip this question",
+			"panel.question.previous": "Previous",
+			"panel.question.next": "Next",
+			"panel.question.submitting": "Submitting…",
+			"panel.question.submit": "Submit answer",
+			"panel.question.replyLabel": "Answer to an earlier question",
+			"panel.question.reply": "Follow-up answer",
+			"panel.question.invalidReply": "Could not parse this earlier answer.",
+			"panel.question.skipped": "Skipped",
+			"panel.question.submitted": "Submitted answer",
+			"panel.question.interrupted": "The previous run was interrupted. You can add an answer and submit it to continue",
+			"panel.question.canReply": "The model continued. You can still answer",
+			"panel.question.waiting": "Waiting for you to finish answering",
+			"panel.question.focused": "Input focused. Countdown paused",
+			"panel.question.countdown": "The model will continue in {seconds} seconds",
+			"panel.question.claimFailed": "Could not take over the wait: {error}. The Host will continue after the original deadline.",
+			"panel.question.waitFailed": "Could not update wait status: {error}",
+			"panel.queue.label": "DSH send queue",
+			"panel.queue.readFailed": "Could not read send status. Reconnecting: {error}",
+			"panel.queue.sending": "Sending",
+			"panel.queue.attachment": "Attachment",
+			"panel.queue.steerHint": "Process at the next step of the current response",
+			"panel.queue.queuedHint": "Process after the current response",
+			"panel.queue.steerNow": "Interrupt now",
+			"panel.queue.steerItem": "Move this queued message to interrupt",
+			"panel.queue.remove": "Remove from queue",
+			"panel.queue.removeItem": "Remove this pending message",
+			"panel.approval.wait": "This tool is waiting for a Host interaction. Stop and try again.",
+			"panel.approval.label": "DSH tool approval",
+			"panel.approval.pending": "Waiting for approval · {tool}",
+			"panel.approval.parameters": "View tool arguments",
+			"panel.approval.reject": "Reject",
+			"panel.approval.allowOnce": "Allow once",
+			"panel.file.previewHint": "Cannot preview image. Remove and add it again; the original file is preserved.",
+			"panel.file.previewUnavailable": "Preview unavailable",
+			"panel.file.uploading": "Uploading",
+			"panel.file.uploadFailed": "Upload failed. Click to retry",
+			"panel.file.retry": "Retry",
+			"panel.file.remove": "Remove attachment {name}",
+			"panel.file.drop": "Release to add to Citer",
+			"panel.file.selectTopic": "Select a Topic first",
+			"panel.back": "Back to main conversation",
+			"panel.pet.attention": "Open Citer, new answer available",
+			"panel.pet.open": "Open Citer",
+			"panel.pet.drag": "Open Citer · Drag to move",
+			"panel.notice.deletedElsewhere": "This Topic was deleted in another window.",
+			"panel.notice.deleted": "Topic permanently deleted.",
+			"panel.notice.cleanup": "Topic deleted; related resources are still being cleaned up in the background.",
+			"panel.notice.stopRequested": "Asked to stop the current response. Pending messages continue under DSH queue rules.",
+			"panel.action.undeliveredModel": "The action was not sent; it is in the composer",
+			"panel.action.undelivered": "{reason}. The action is in the composer; edit it and send when ready",
+			"panel.settings.saving": "Saving…",
+			"panel.settings.saved": "Saved",
+			"panel.settings.saveFailed": "Save failed and settings were restored: {error}",
+			"panel.error.selectionChanged": "Source session changed. Select the text again",
+			"panel.error.sourceChanged": "Source changed. Select the text again",
+			"panel.error.topicChanging": "Topic is changing. Try selecting the text again shortly",
+			"panel.error.answerUnavailable": "The selected model answer is no longer in the current session snapshot",
+			"panel.error.waitForAnswer": "Wait until a model call finishes before quoting it; you do not need to wait for the entire task",
+			"panel.error.openForDocument": "Open the Citer panel to create a document Topic",
+			"panel.error.topicChanged": "The current Topic changed or cannot be edited. Select the text again",
+			"panel.error.actionUnconfirmed": "No send result received. Check in the Topic whether this action was sent",
+			"panel.error.nativeUnavailable": "This DSH does not provide the native attachment sending interface Citer needs",
+			"panel.error.citerClosed": "Citer is closed",
+			"panel.error.topicDeleted": "This Topic was permanently deleted",
+			"panel.error.topicQuestionClosed": "This Topic’s question service has ended",
+			"panel.error.attachmentInvalid": "The attachment is invalid or damaged. Remove or replace it and try again",
+			"panel.error.sendRefused": "DSH did not accept this message",
+			"panel.error.sendUnknown": "No send result received: {error}. Check the send status; your draft is saved",
+			"panel.error.checkSend": "{reason}. Check the send status; your draft is saved",
+			"panel.error.draftRetained": "{reason}. Your draft is saved",
+			"panel.error.restoreFile": "Could not restore {name}: {error}. Remove or add it again",
+			"panel.error.draftLimit": "Drafts can hold up to 32 attachments, each up to 100 MiB",
+			"panel.error.removeMissing": "Remove or re-add attachments that could not be restored",
+			"panel.error.pendingSend": "The previous send is unverified. Check its status or explicitly retry it",
+			"panel.error.missingSentFile": "Could not restore an attachment from the previous send. Check its status first",
+			"panel.error.draftNotSaved": "Draft not saved; nothing was sent. Try again shortly",
+			"panel.error.questionEnded": "This question is closed. Your answer was not sent",
+			"panel.error.answerNotSaved": "Answer not saved; nothing was sent. Try again shortly",
+			"panel.error.questionNotResent": "This question is closed. Your answer was not submitted again",
+			"panel.error.answerNotSent": "Answer not sent. Try again shortly",
+			"panel.error.attachmentGone": "This Topic was permanently deleted. The attachment is unavailable",
+			"panel.error.downloadFile": "This attachment is a regular file. Use the file download action",
+			"panel.error.settingsUnavailable": "This DSH does not provide the settings interface Citer needs",
+			"panel.error.approvalUnavailable": "This DSH does not provide the approval display interface Citer needs",
+			"panel.response.deletedMismatch": "Citer received a mismatched deletion record",
+			"panel.response.topicMismatch": "Citer received an unexpected Topic response",
+			"panel.response.deleteReceiptMismatch": "Citer deletion receipt does not match this Topic",
+			"panel.response.createMismatch": "Citer received an unexpected creation response",
+			"panel.response.documentTopicMismatch": "Citer received an unexpected document Topic response",
+			"panel.response.deleteMismatch": "Citer received an unexpected deletion response",
+			"panel.response.deletedTopicMismatch": "Deleted item does not match this Topic",
+			"panel.response.questionReceiptMismatch": "Citer question deletion receipt has a mismatched identity",
+			"panel.response.questionDeleted": "This Topic was permanently deleted. The answer was not submitted",
+			"panel.response.questionMismatch": "Citer question response does not match this Topic",
+			"panel.response.questionDraftMismatch": "Unexpected answer draft response",
+			"panel.response.closedBeforeAttachment": "Citer closed before the attachment could be created",
+			"panel.response.deletedBeforeAttachment": "This Topic was permanently deleted. The attachment was not created",
+			"panel.response.draftFileMismatch": "Unexpected draft attachment response",
+			"panel.response.incompleteFile": "Draft attachment could not be read completely",
+			"panel.response.restoreAttachmentFailed": "DSH did not restore the attachment",
+			"panel.response.draftMismatch": "Unexpected draft response",
+			"panel.response.draftSaveMismatch": "Unexpected draft save response",
+			"panel.response.sessionReceiptMismatch": "Citer deletion receipt does not match this session",
+			"panel.response.nativeAttachmentMismatch": "Unexpected Citer attachment response",
+			"panel.response.nativeStateMismatch": "Unexpected Citer session state response"
+		};
+		//#endregion
+		//#region lib/types/client/locales/settings.js
+		/** Settings, preset actions, the selection toolbar and wheel, the document reader and update notices. */
+		const zh$2 = {
+			"settings.title": "Citer",
+			"settings.summary": "选文工具条、预设动作、新 Topic 的模型与权限",
+			"settings.intro": "选中 Agent 工作中的内容，在独立的 Topic 里追问，不改动主对话。",
+			"settings.topic.permission": "新 Topic 的权限",
+			"settings.topic.permissionDesc": "只影响之后新建的 Topic；DSH 的审批和沙箱照常生效。",
+			"settings.topic.reopen": "重新打开上次的 Topic",
+			"settings.topic.reopenDesc": "回到来源对话时自动展开 Citer 并恢复最近的 Topic。",
+			"settings.topic.reasoning": "读取来源时包含思考过程",
+			"settings.topic.reasoningDesc": "关闭后，Citer 读取来源对话时看不到主 Agent 的思考内容。",
+			"settings.topic.followups": "首个回答附带追问建议",
+			"settings.topic.followupsDesc": "在第一个回答末尾给出三个可以接着问的问题。",
+			"settings.topic.autoRead": "自动附上来源摘录",
+			"settings.topic.autoReadDesc": "来源附件发送后，每轮开头附上来源对话最近的新内容。关闭时由 Citer 按需调用工具读取。",
+			"settings.topic.changes": "代码库变化感知",
+			"settings.topic.changesDesc": "每轮开头告诉 Citer 上一轮以来 git 工作区改了哪些文件。“附带 diff”会直接附上逐行改动；“仅清单”只列文件，Citer 需要时再用工具读取。",
+			"settings.topic.off": "关闭",
+			"settings.topic.summary": "仅清单",
+			"settings.topic.diff": "附带 diff",
+			"settings.learning.title": "学习",
+			"settings.learning.recall": "主动回忆",
+			"settings.learning.recallDesc": "学习卡先显示自测问题，点开才看到结论和答案。",
+			"settings.learning.animations": "板书动画",
+			"settings.learning.animationsDesc": "关闭后板书直接显示最终状态。",
+			"settings.learning.tutor": "导师提示词",
+			"settings.learning.tutorDesc": "补充你的讲解偏好，下次发送起生效；留空使用内置提示词。",
+			"settings.learning.tutorPlaceholder": "例如：先给结论，再用一个小例子说明。",
+			"settings.panel.title": "面板",
+			"settings.panel.width": "默认宽度",
+			"settings.panel.widthDesc": "也可以拖动面板左边缘调整。",
+			"settings.panel.widthAria": "面板默认宽度",
+			"settings.panel.shortcut": "打开 Citer 的快捷键",
+			"settings.panel.shortcutDesc": "例如 Control+Shift+C；留空表示不使用。输入框里的按键不会被拦截。",
+			"settings.panel.shortcutError": "快捷键格式无效；请使用 Control+Shift+C 这样的组合，或留空禁用。",
+			"settings.other.title": "其他",
+			"settings.other.update": "版本更新提醒",
+			"settings.other.updateBrowserDesc": "远程 Web 只在当前浏览器保存这个选择。",
+			"settings.other.updateDesc": "有新版本时提醒你。",
+			"settings.other.config": "配置文件",
+			"settings.other.configDesc": "直接编辑 Citer 的全部设置。",
+			"settings.other.opening": "正在打开…",
+			"settings.other.checking": "正在检查…",
+			"settings.other.unsupported": "宿主不支持打开",
+			"settings.other.missing": "配置文件不存在",
+			"settings.other.reopen": "重新打开",
+			"settings.other.open": "打开配置文件",
+			"settings.actions.title": "选文",
+			"settings.actions.toolbar": "选中文字后显示工具条",
+			"settings.actions.toolbarDesc": "在主对话、工具结果和文档里选中文字时，旁边出现 Citer 的动作。",
+			"settings.actions.wheel": "按住触发键打开轮盘",
+			"settings.actions.wheelDesc": "选中文字后按住触发键，移向动作，松开即执行。按住 Shift 再按右键会保留浏览器菜单。",
+			"settings.actions.trigger": "轮盘触发键",
+			"settings.actions.rightButton": "鼠标右键",
+			"settings.actions.delivery": "预设动作",
+			"settings.actions.deliveryDesc": "“解释”“翻译”这类动作是直接发送，还是先放进输入框。“提问”总是先打开输入框。",
+			"settings.actions.send": "直接发送",
+			"settings.actions.draft": "放进输入框",
+			"settings.actions.model": "新 Topic 的模型",
+			"settings.actions.modelDesc": "未指定时使用来源对话的模型。",
+			"settings.actions.slots": "动作",
+			"settings.actions.slotsDesc": "工具条显示前四个，其余在“⋯”里；轮盘从正上方顺时针排列。",
+			"settings.actions.empty": "空",
+			"settings.actions.ask": "写下问题",
+			"settings.actions.preset": "预设提示词",
+			"settings.actions.add": "添加动作",
+			"settings.actions.name": "名称",
+			"settings.actions.kind": "类型",
+			"settings.actions.kindAria": "动作 {index} 的类型",
+			"settings.actions.optionalPrompt": "提示词（可选，预先填进输入框）",
+			"settings.actions.prompt": "提示词",
+			"settings.actions.position": "打开位置",
+			"settings.actions.side": "侧边面板",
+			"settings.actions.floating": "悬浮面板",
+			"settings.actions.up": "上移",
+			"settings.actions.down": "下移",
+			"settings.actions.clear": "清空",
+			"settings.actions.restore": "恢复默认",
+			"settings.actions.save": "保存动作",
+			"settings.actions.invalid": "请填写动作名称；预设提示词类型的动作需要提示词。",
+			"settings.actions.custom": "自定义",
+			"settings.actions.inheritModel": "跟随来源对话",
+			"settings.actions.unavailableModel": "{provider} / {model}（暂不可用）",
+			"settings.toolbar.newTopic": "新 Topic",
+			"settings.toolbar.title": "Citer 选文动作",
+			"settings.toolbar.quote": "引用",
+			"settings.toolbar.quoteTopic": "引用到当前 Topic 草稿",
+			"settings.toolbar.quoteCiter": "引用到 Citer Topic 草稿",
+			"settings.toolbar.quoteMain": "引用到主对话草稿",
+			"settings.toolbar.ask": "在 Citer 中写下问题",
+			"settings.toolbar.more": "更多动作",
+			"settings.toolbar.askNewTopic": "在新 Topic 中提问",
+			"settings.wheel.empty": "空槽",
+			"settings.wheel.add": "在设置中添加",
+			"settings.wheel.cancel": "取消",
+			"settings.wheel.cancelAria": "取消轮盘",
+			"settings.wheel.hint": "移向动作 · 回到中心取消",
+			"settings.wheel.release": "{label} · 松开后{outcome}",
+			"settings.wheel.unfinished": "{label}：未完成",
+			"settings.wheel.closeAsk": "关闭提问",
+			"settings.wheel.retained": "选中的内容已保留",
+			"settings.wheel.retry": "重试",
+			"settings.reader.title": "文档阅读",
+			"settings.reader.close": "关闭文档阅读",
+			"settings.reader.importAria": "导入文本 / Markdown",
+			"settings.reader.importing": "导入中…",
+			"settings.reader.import": "+ 导入文档",
+			"settings.reader.text": "文本",
+			"settings.reader.empty": "还没有文档",
+			"settings.reader.body": "文档正文",
+			"settings.reader.choose": "选择文档开始阅读",
+			"settings.reader.pagination": "文档分页",
+			"settings.reader.previous": "上一页",
+			"settings.reader.next": "下一页",
+			"settings.reader.loading": "加载中…",
+			"settings.reader.page": "第 {page} / {total} 页",
+			"settings.reader.questionPlaceholder": "选中正文后，写下你的问题",
+			"settings.reader.questionAria": "关于选中内容的问题",
+			"settings.reader.opening": "正在打开…",
+			"settings.reader.ask": "在 Citer 中提问",
+			"settings.native.title": "Citer 学习",
+			"settings.native.hint": "选中正文后，用工具条提问",
+			"settings.native.select": "请先在正文中选中文字",
+			"settings.native.actions": "Citer 动作",
+			"settings.native.snapshot": "提问时会保存这份文件的快照。Markdown 和代码按源文本显示。",
+			"settings.native.pagination": "学习文档分页",
+			"settings.native.body": "原生文件学习正文",
+			"settings.update.announcement": "Citer 有新版本 {version}",
+			"settings.update.title": "Citer 有新版本",
+			"settings.update.description": "“更新”复制安装命令。执行前请核对目标 Profile 与新版 DSH 要求，完成后重启当前 DSH。",
+			"settings.update.update": "更新",
+			"settings.update.later": "下次一定",
+			"settings.update.never": "不再提示",
+			"settings.error.selectQuote": "请先选中要引用的内容",
+			"settings.error.sourceChanged": "来源会话已切换，请重新选文",
+			"settings.error.sourceFileChanged": "来源会话已切换，请返回原文件或重新选文",
+			"settings.error.snapshotUnavailable": "文件快照不可用，请重新选择",
+			"settings.error.saveSnapshot": "无法保存文件快照",
+			"settings.error.create": "创建失败",
+			"settings.error.topicNotReady": "新 Topic 未就绪，请重新选文",
+			"settings.error.documentNotSaved": "文档快照尚未保存，请重新选择",
+			"settings.error.readerList": "Citer 返回了错误的文档列表响应",
+			"settings.error.readerImport": "Citer 返回了错误的文档导入响应",
+			"settings.error.readerContent": "CiteCiter 返回了错误的文档内容响应",
+			"settings.error.untitled": "未命名文档",
+			"settings.error.fileTooLarge": "文件过大；请导入不超过 2,000,000 个字符的文本",
+			"settings.error.textTooLarge": "文档不能超过 2,000,000 个字符",
+			"settings.error.selectDocument": "请先在文档中选择一段内容",
+			"settings.error.enterQuestion": "请输入要问 CiteCiter 的问题",
+			"settings.error.nativeNoText": "此预览没有文本数据，请切换到文本文件的学习查看方式",
+			"settings.error.nativeIncomplete": "请等待原生预览读取完整文件后再学习",
+			"settings.error.nativeTooManyBytes": "学习文本超过 8 MiB 上限",
+			"settings.error.nativeUtf8": "学习查看方式只支持 UTF-8 文本",
+			"settings.error.nativeTooLong": "学习文本不能超过 2,000,000 个字符",
+			"settings.error.nativeNoSource": "文件地址没有来源会话",
+			"settings.error.configUnsupported": "当前宿主不支持打开配置文件",
+			"settings.status.configMissing": "配置文件不存在",
+			"settings.status.configOpened": "已打开配置文件",
+			"settings.status.copying": "正在复制更新命令…",
+			"settings.status.copied": "更新命令已复制。运行后请重启当前 DSH。",
+			"settings.status.copyFailed": "无法自动复制，请手动复制下方命令。运行后请重启当前 DSH。",
+			"settings.status.enabling": "正在开启更新提醒…",
+			"settings.status.disabling": "正在关闭更新提醒…",
+			"settings.status.browserDenied": "浏览器阻止了本地存储，无法保存更新提醒设置。",
+			"settings.status.saveFailed": "无法保存更新提醒设置，请重试。",
+			"settings.status.enabled": "已开启版本更新提醒",
+			"settings.status.disabled": "已关闭版本更新提醒",
+			"settings.status.quoteCopied": "输入框里有附件引用，引用已复制，粘贴到需要的位置即可",
+			"settings.error.mainSubmitting": "主对话正在提交，请稍后重新引用",
+			"settings.error.deletedReceipt": "Citer 草稿删除回执身份不匹配",
+			"settings.error.topicDeleted": "这个 Topic 已永久删除，未继续保存草稿",
+			"settings.guide.description": "在独立 Topic 里追问选中的内容",
+			"settings.blackboard.title": "小黑板",
+			"settings.action.undelivered": "动作没有发送，已放进输入框",
+			"settings.action.undeliveredReason": "{reason}。动作已放进输入框，可修改后发送",
+			"settings.action.question": "我的问题：{question}",
+			"settings.action.questionEn": "My question: {question}"
+		};
+		const en$2 = {
+			"settings.title": "Citer",
+			"settings.summary": "Selection toolbar, preset actions, and model and permissions for new Topics",
+			"settings.intro": "Select content from an Agent’s work and ask follow-up questions in a separate Topic without changing the main conversation.",
+			"settings.topic.permission": "Permissions for new Topics",
+			"settings.topic.permissionDesc": "Only affects new Topics. DSH approvals and sandbox rules still apply.",
+			"settings.topic.reopen": "Reopen the last Topic",
+			"settings.topic.reopenDesc": "Expand Citer and restore the latest Topic when returning to the source conversation.",
+			"settings.topic.reasoning": "Include reasoning when reading the source",
+			"settings.topic.reasoningDesc": "When off, Citer cannot see the main Agent’s reasoning while reading the source conversation.",
+			"settings.topic.followups": "Suggest follow-up questions in the first answer",
+			"settings.topic.followupsDesc": "Suggest three questions at the end of the first answer.",
+			"settings.topic.autoRead": "Attach source excerpts automatically",
+			"settings.topic.autoReadDesc": "After the source attachment is sent, include recent source conversation updates at the start of each turn. When off, Citer reads them using tools as needed.",
+			"settings.topic.changes": "Track workspace changes",
+			"settings.topic.changesDesc": "Tell Citer which files changed in the git workspace since the previous turn. “Include diff” also provides line-by-line changes; “File list only” lets Citer read files as needed.",
+			"settings.topic.off": "Off",
+			"settings.topic.summary": "File list only",
+			"settings.topic.diff": "Include diff",
+			"settings.learning.title": "Learning",
+			"settings.learning.recall": "Active recall",
+			"settings.learning.recallDesc": "Show a self-test question first on study cards; reveal the conclusion and answer when opened.",
+			"settings.learning.animations": "Blackboard animations",
+			"settings.learning.animationsDesc": "When off, show the final blackboard immediately.",
+			"settings.learning.tutor": "Tutor prompt",
+			"settings.learning.tutorDesc": "Add your teaching preferences for future messages. Leave blank to use the built-in prompt.",
+			"settings.learning.tutorPlaceholder": "For example: Start with the conclusion, then explain it with a short example.",
+			"settings.panel.title": "Panel",
+			"settings.panel.width": "Default width",
+			"settings.panel.widthDesc": "You can also drag the panel’s left edge.",
+			"settings.panel.widthAria": "Default panel width",
+			"settings.panel.shortcut": "Shortcut to open Citer",
+			"settings.panel.shortcutDesc": "For example, Control+Shift+C. Leave blank to disable. Keys typed in input fields are not intercepted.",
+			"settings.panel.shortcutError": "Invalid shortcut. Use a combination such as Control+Shift+C, or leave it blank to disable.",
+			"settings.other.title": "Other",
+			"settings.other.update": "Update notifications",
+			"settings.other.updateBrowserDesc": "Remote Web saves this preference only in this browser.",
+			"settings.other.updateDesc": "Notify you when a new version is available.",
+			"settings.other.config": "Configuration file",
+			"settings.other.configDesc": "Edit all Citer settings directly.",
+			"settings.other.opening": "Opening…",
+			"settings.other.checking": "Checking…",
+			"settings.other.unsupported": "Host cannot open this",
+			"settings.other.missing": "Configuration file not found",
+			"settings.other.reopen": "Open again",
+			"settings.other.open": "Open configuration file",
+			"settings.actions.title": "Selection",
+			"settings.actions.toolbar": "Show toolbar when text is selected",
+			"settings.actions.toolbarDesc": "Show Citer actions beside selected text in the main conversation, tool results, and documents.",
+			"settings.actions.wheel": "Hold trigger to open action wheel",
+			"settings.actions.wheelDesc": "Select text, hold the trigger, move to an action, and release to run it. Shift + right-click keeps the browser menu.",
+			"settings.actions.trigger": "Wheel trigger",
+			"settings.actions.rightButton": "Right mouse button",
+			"settings.actions.delivery": "Preset actions",
+			"settings.actions.deliveryDesc": "Send actions such as “Explain” and “Translate” immediately, or place them in the composer first. “Ask” always opens the composer.",
+			"settings.actions.send": "Send immediately",
+			"settings.actions.draft": "Place in composer",
+			"settings.actions.model": "Model for new Topics",
+			"settings.actions.modelDesc": "Uses the source conversation’s model if not specified.",
+			"settings.actions.slots": "Actions",
+			"settings.actions.slotsDesc": "The first four appear in the toolbar; the rest are under “⋯”. The wheel runs clockwise from the top.",
+			"settings.actions.empty": "Empty",
+			"settings.actions.ask": "Write a question",
+			"settings.actions.preset": "Preset prompt",
+			"settings.actions.add": "Add action",
+			"settings.actions.name": "Name",
+			"settings.actions.kind": "Type",
+			"settings.actions.kindAria": "Type of action {index}",
+			"settings.actions.optionalPrompt": "Prompt (optional; prefilled in the composer)",
+			"settings.actions.prompt": "Prompt",
+			"settings.actions.position": "Open in",
+			"settings.actions.side": "Side panel",
+			"settings.actions.floating": "Floating panel",
+			"settings.actions.up": "Move up",
+			"settings.actions.down": "Move down",
+			"settings.actions.clear": "Clear",
+			"settings.actions.restore": "Restore defaults",
+			"settings.actions.save": "Save actions",
+			"settings.actions.invalid": "Enter an action name. Preset prompt actions also need a prompt.",
+			"settings.actions.custom": "Custom",
+			"settings.actions.inheritModel": "Use source conversation model",
+			"settings.actions.unavailableModel": "{provider} / {model} (currently unavailable)",
+			"settings.toolbar.newTopic": "New Topic",
+			"settings.toolbar.title": "Citer selection actions",
+			"settings.toolbar.quote": "Quote",
+			"settings.toolbar.quoteTopic": "Quote in current Topic draft",
+			"settings.toolbar.quoteCiter": "Quote in Citer Topic draft",
+			"settings.toolbar.quoteMain": "Quote in main conversation draft",
+			"settings.toolbar.ask": "Write a question in Citer",
+			"settings.toolbar.more": "More actions",
+			"settings.toolbar.askNewTopic": "Ask in a new Topic",
+			"settings.wheel.empty": "Empty slot",
+			"settings.wheel.add": "Add in settings",
+			"settings.wheel.cancel": "Cancel",
+			"settings.wheel.cancelAria": "Cancel wheel",
+			"settings.wheel.hint": "Move to an action · Return to center to cancel",
+			"settings.wheel.release": "{label} · Release to {outcome}",
+			"settings.wheel.unfinished": "{label}: not completed",
+			"settings.wheel.closeAsk": "Close question",
+			"settings.wheel.retained": "Selection retained",
+			"settings.wheel.retry": "Retry",
+			"settings.reader.title": "Document reader",
+			"settings.reader.close": "Close document reader",
+			"settings.reader.importAria": "Import text / Markdown",
+			"settings.reader.importing": "Importing…",
+			"settings.reader.import": "+ Import document",
+			"settings.reader.text": "Text",
+			"settings.reader.empty": "No documents yet",
+			"settings.reader.body": "Document body",
+			"settings.reader.choose": "Select a document to start reading",
+			"settings.reader.pagination": "Document pages",
+			"settings.reader.previous": "Previous page",
+			"settings.reader.next": "Next page",
+			"settings.reader.loading": "Loading…",
+			"settings.reader.page": "Page {page} / {total}",
+			"settings.reader.questionPlaceholder": "Select text, then write your question",
+			"settings.reader.questionAria": "Question about the selection",
+			"settings.reader.opening": "Opening…",
+			"settings.reader.ask": "Ask in Citer",
+			"settings.native.title": "Citer Learning",
+			"settings.native.hint": "Select text and ask with the toolbar",
+			"settings.native.select": "Select text in the document first",
+			"settings.native.actions": "Citer actions",
+			"settings.native.snapshot": "A snapshot of this file is saved when you ask. Markdown and code are shown as source text.",
+			"settings.native.pagination": "Learning document pages",
+			"settings.native.body": "Native file content for learning",
+			"settings.update.announcement": "Citer version {version} is available",
+			"settings.update.title": "New Citer version available",
+			"settings.update.description": "“Update” copies the installation command. Check the target profile and new DSH requirements before running it, then restart this DSH.",
+			"settings.update.update": "Update",
+			"settings.update.later": "Maybe later",
+			"settings.update.never": "Don’t show again",
+			"settings.error.selectQuote": "Select content to quote first",
+			"settings.error.sourceChanged": "Source conversation changed. Select text again.",
+			"settings.error.sourceFileChanged": "Source conversation changed. Return to the original file or select text again.",
+			"settings.error.snapshotUnavailable": "File snapshot unavailable. Select the file again.",
+			"settings.error.saveSnapshot": "Could not save file snapshot",
+			"settings.error.create": "Could not create Topic",
+			"settings.error.topicNotReady": "New Topic is not ready. Select text again.",
+			"settings.error.documentNotSaved": "Document snapshot not saved yet. Select it again.",
+			"settings.error.readerList": "Citer returned an invalid document list response",
+			"settings.error.readerImport": "Citer returned an invalid document import response",
+			"settings.error.readerContent": "CiteCiter returned an invalid document content response",
+			"settings.error.untitled": "Untitled document",
+			"settings.error.fileTooLarge": "File is too large. Import text of no more than 2,000,000 characters.",
+			"settings.error.textTooLarge": "Document cannot exceed 2,000,000 characters",
+			"settings.error.selectDocument": "Select a passage in the document first",
+			"settings.error.enterQuestion": "Enter a question for CiteCiter",
+			"settings.error.nativeNoText": "This preview has no text. Switch to learning view for a text file.",
+			"settings.error.nativeIncomplete": "Wait for the native preview to finish reading the file before learning.",
+			"settings.error.nativeTooManyBytes": "Learning text exceeds the 8 MiB limit",
+			"settings.error.nativeUtf8": "Learning view supports UTF-8 text only",
+			"settings.error.nativeTooLong": "Learning text cannot exceed 2,000,000 characters",
+			"settings.error.nativeNoSource": "File address has no source conversation",
+			"settings.error.configUnsupported": "This host cannot open the configuration file",
+			"settings.status.configMissing": "Configuration file not found",
+			"settings.status.configOpened": "Configuration file opened",
+			"settings.status.copying": "Copying update command…",
+			"settings.status.copied": "Update command copied. Restart this DSH after running it.",
+			"settings.status.copyFailed": "Could not copy automatically. Copy the command below manually, then restart this DSH.",
+			"settings.status.enabling": "Enabling update notifications…",
+			"settings.status.disabling": "Disabling update notifications…",
+			"settings.status.browserDenied": "Browser storage is blocked. Update notification preference could not be saved.",
+			"settings.status.saveFailed": "Could not save update notification preference. Try again.",
+			"settings.status.enabled": "Update notifications enabled",
+			"settings.status.disabled": "Update notifications disabled",
+			"settings.status.quoteCopied": "The composer contains attachment references. The quote was copied; paste it where needed.",
+			"settings.error.mainSubmitting": "The main conversation is submitting. Try quoting again in a moment.",
+			"settings.error.deletedReceipt": "Citer draft deletion response does not match the Topic",
+			"settings.error.topicDeleted": "This Topic was permanently deleted; the draft was not saved",
+			"settings.guide.description": "Ask about selected content in a separate Topic",
+			"settings.blackboard.title": "Blackboard",
+			"settings.action.undelivered": "Action not sent; placed in composer",
+			"settings.action.undeliveredReason": "{reason}. Action placed in composer; edit and send when ready",
+			"settings.action.question": "My question: {question}",
+			"settings.action.questionEn": "My question: {question}"
+		};
+		//#endregion
+		//#region lib/types/client/locales/transcript.js
+		/** The Topic transcript: messages, tool rows, context rows, reasoning, attachments and usage. */
+		const zh$1 = {
+			"transcript.usage": "用量 {tokens} tok",
+			"transcript.cacheHit": "缓存命中 {rate}%",
+			"transcript.contextUsed": "上下文 {rate}%",
+			"transcript.context.inject": "上下文注入",
+			"transcript.context.recall": "上下文召回",
+			"transcript.context.system": "提示词注入",
+			"transcript.context.sourceWindow": "来源摘录",
+			"transcript.context.workspaceChanges": "代码库变化",
+			"transcript.context.runtime": "运行环境",
+			"transcript.context.time": "时间",
+			"transcript.context.systemPrompt": "系统提示词",
+			"transcript.context.instructions": "项目说明",
+			"transcript.context.skills": "技能目录",
+			"transcript.context.changedFiles": "{count} 个文件有改动",
+			"transcript.context.changed": "代码库有改动",
+			"transcript.context.truncated": "…（共 {count} 字，已截断显示）",
+			"transcript.reasoning.active": "思考中",
+			"transcript.reasoning.done": "思考",
+			"transcript.answer.svgAlt": "Citer 图示",
+			"transcript.answer.htmlTitle": "Citer 网页图示",
+			"transcript.reference.sent": "已发送的引用",
+			"transcript.reference.pending": "待发送的引用",
+			"transcript.reference.remove": "移除",
+			"transcript.reference.removeKind": "移除{kind}",
+			"transcript.reference.source": "来源对话",
+			"transcript.reference.document": "来源文档",
+			"transcript.reference.excerpt": "引用文段",
+			"transcript.reference.board": "板书引用",
+			"transcript.reference.boardTitle": "板书：{text}",
+			"transcript.file.reading": "正在读取",
+			"transcript.file.download": "下载",
+			"transcript.file.retry": "重试下载",
+			"transcript.file.attachment": "{action}附件 {name}",
+			"transcript.file.failed": "下载失败，点击重试：{error}",
+			"transcript.image.unavailable": "图片暂不可用：{name}",
+			"transcript.image.loading": "加载图片…",
+			"transcript.image.preview": "预览图片 {name}",
+			"transcript.image.dialog": "CiteCiter 图片预览：{alt}",
+			"transcript.image.close": "关闭图片预览",
+			"transcript.tool.arguments": "参数",
+			"transcript.tool.toolArguments": "工具参数",
+			"transcript.tool.error": "错误",
+			"transcript.tool.result": "结果",
+			"transcript.tool.toolResult": "工具结果",
+			"transcript.tool.fullOutput": "查看完整工具输出",
+			"transcript.tool.openSidebar": "在右侧栏打开",
+			"transcript.tool.childCalls": "子工具调用",
+			"transcript.tool.readSource": "读取来源对话",
+			"transcript.tool.readDocument": "读取文档",
+			"transcript.tool.searchDocument": "搜索文档",
+			"transcript.tool.updateBoard": "更新板书",
+			"transcript.tool.viewBoard": "查看板书",
+			"transcript.tool.animateBoard": "编排板书动画",
+			"transcript.tool.workspaceChanges": "查看代码库变化",
+			"transcript.tool.learningCards": "整理学习卡",
+			"transcript.tool.todo": "更新学习路线",
+			"transcript.tool.ask": "提问",
+			"transcript.tool.read": "读取",
+			"transcript.tool.write": "写入",
+			"transcript.tool.edit": "编辑",
+			"transcript.tool.search": "搜索",
+			"transcript.tool.webSearch": "网页搜索",
+			"transcript.tool.webFetch": "网页获取",
+			"transcript.tool.runCode": "运行代码",
+			"transcript.tool.readImage": "读取图片",
+			"transcript.tool.viewImage": "查看图片",
+			"transcript.tool.generateImage": "生成图片",
+			"transcript.tool.runCommand": "运行命令",
+			"transcript.tool.interrupted": "已中断",
+			"transcript.tool.rejected": "已拒绝",
+			"transcript.tool.cancelled": "已取消",
+			"transcript.tool.records": "{count} 条记录",
+			"transcript.tool.moreRecords": "，还有更多",
+			"transcript.tool.readPercent": "读到 {percent}%",
+			"transcript.tool.cards": "{count} 张",
+			"transcript.tool.steps": "{count} 步",
+			"transcript.tool.answered": "{answered}/{total} 已回答",
+			"transcript.tool.running": "进行中…",
+			"transcript.tool.failedReason": "失败：{reason}",
+			"transcript.tool.exitCode": "退出码 {code}",
+			"transcript.tool.failed": "失败",
+			"transcript.tool.attachments": "已返回附件",
+			"transcript.tool.done": "完成",
+			"transcript.copy.code": "复制代码",
+			"transcript.copy.copied": "已复制",
+			"transcript.copy.footnotes": "脚注",
+			"transcript.copy.value": "复制值",
+			"transcript.copy.json": "复制 JSON",
+			"transcript.copy.path": "复制路径",
+			"transcript.copy.prettyJson": "复制格式化 JSON",
+			"transcript.copy.compactJson": "复制紧凑 JSON",
+			"transcript.copy.failed": "复制失败",
+			"transcript.copy.collapseNode": "折叠节点",
+			"transcript.copy.expandNode": "展开节点",
+			"transcript.copy.codeLabel": "代码",
+			"transcript.copy.wrap": "自动换行",
+			"transcript.copy.unwrap": "不换行",
+			"transcript.copy.window": "显示 {shown} / {total} 行",
+			"transcript.copy.copy": "复制",
+			"transcript.copy.collapseContent": "收起内容",
+			"transcript.copy.expandRemaining": "展开其余 {hidden} 行",
+			"transcript.copy.collapse": "收起",
+			"transcript.copy.remaining": "… 其余 {hidden} 行",
+			"transcript.copy.collapseDiff": "收起差异",
+			"transcript.copy.expandDiff": "展开其余 {hidden} 行差异",
+			"transcript.copy.commandLine": "命令第 {line} 行",
+			"transcript.copy.signal": "信号 {signal}",
+			"transcript.copy.exitCode": "退出码 {code}",
+			"transcript.copy.noExitCode": "未正常退出",
+			"transcript.copy.running": "运行中",
+			"transcript.copy.failedStatus": "失败",
+			"transcript.copy.done": "已完成",
+			"transcript.copy.noOutput": "无输出",
+			"transcript.copy.collapseOutput": "收起输出",
+			"transcript.copy.expandOutput": "展开其余 {hidden} 行输出",
+			"transcript.copy.remainingOutput": "… 其余 {hidden} 行",
+			"transcript.copy.pathsShown": "显示 {shown} / 共 {total} 个路径",
+			"transcript.copy.paths": "{shown} 个路径",
+			"transcript.copy.matchesShown": "显示 {shown} / 共 {total} 处匹配 · {files} 个文件",
+			"transcript.copy.matches": "{shown} 处匹配 · {files} 个文件",
+			"transcript.copy.noResults": "无结果",
+			"transcript.copy.collapseResults": "收起结果",
+			"transcript.copy.expandResults": "展开其余 {hidden} 行结果"
+		};
+		const en$1 = {
+			"transcript.usage": "{tokens} tok used",
+			"transcript.cacheHit": "Cache hit {rate}%",
+			"transcript.contextUsed": "Context {rate}%",
+			"transcript.context.inject": "Context injection",
+			"transcript.context.recall": "Context recall",
+			"transcript.context.system": "Prompt injection",
+			"transcript.context.sourceWindow": "Source excerpt",
+			"transcript.context.workspaceChanges": "Workspace changes",
+			"transcript.context.runtime": "Runtime environment",
+			"transcript.context.time": "Time",
+			"transcript.context.systemPrompt": "System prompt",
+			"transcript.context.instructions": "Project instructions",
+			"transcript.context.skills": "Skills directory",
+			"transcript.context.changedFiles": "{count} files changed",
+			"transcript.context.changed": "Workspace changed",
+			"transcript.context.truncated": "… ({count} characters total; display truncated)",
+			"transcript.reasoning.active": "Thinking",
+			"transcript.reasoning.done": "Thought",
+			"transcript.answer.svgAlt": "Citer diagram",
+			"transcript.answer.htmlTitle": "Citer web diagram",
+			"transcript.reference.sent": "Sent references",
+			"transcript.reference.pending": "Pending references",
+			"transcript.reference.remove": "Remove",
+			"transcript.reference.removeKind": "Remove {kind}",
+			"transcript.reference.source": "Source conversation",
+			"transcript.reference.document": "Source document",
+			"transcript.reference.excerpt": "Quoted passage",
+			"transcript.reference.board": "Board reference",
+			"transcript.reference.boardTitle": "Board: {text}",
+			"transcript.file.reading": "Reading",
+			"transcript.file.download": "Download",
+			"transcript.file.retry": "Retry download",
+			"transcript.file.attachment": "{action} attachment {name}",
+			"transcript.file.failed": "Download failed. Click to retry: {error}",
+			"transcript.image.unavailable": "Image unavailable: {name}",
+			"transcript.image.loading": "Loading image…",
+			"transcript.image.preview": "Preview image {name}",
+			"transcript.image.dialog": "CiteCiter image preview: {alt}",
+			"transcript.image.close": "Close image preview",
+			"transcript.tool.arguments": "Arguments",
+			"transcript.tool.toolArguments": "Tool arguments",
+			"transcript.tool.error": "Error",
+			"transcript.tool.result": "Result",
+			"transcript.tool.toolResult": "Tool result",
+			"transcript.tool.fullOutput": "View full tool output",
+			"transcript.tool.openSidebar": "Open in right sidebar",
+			"transcript.tool.childCalls": "Child tool calls",
+			"transcript.tool.readSource": "Read source conversation",
+			"transcript.tool.readDocument": "Read document",
+			"transcript.tool.searchDocument": "Search document",
+			"transcript.tool.updateBoard": "Update board",
+			"transcript.tool.viewBoard": "View board",
+			"transcript.tool.animateBoard": "Arrange board animation",
+			"transcript.tool.workspaceChanges": "View workspace changes",
+			"transcript.tool.learningCards": "Organize learning cards",
+			"transcript.tool.todo": "Update learning path",
+			"transcript.tool.ask": "Ask question",
+			"transcript.tool.read": "Read",
+			"transcript.tool.write": "Write",
+			"transcript.tool.edit": "Edit",
+			"transcript.tool.search": "Search",
+			"transcript.tool.webSearch": "Search web",
+			"transcript.tool.webFetch": "Fetch webpage",
+			"transcript.tool.runCode": "Run code",
+			"transcript.tool.readImage": "Read image",
+			"transcript.tool.viewImage": "View image",
+			"transcript.tool.generateImage": "Generate image",
+			"transcript.tool.runCommand": "Run command",
+			"transcript.tool.interrupted": "Interrupted",
+			"transcript.tool.rejected": "Rejected",
+			"transcript.tool.cancelled": "Cancelled",
+			"transcript.tool.records": "{count} records",
+			"transcript.tool.moreRecords": ", more available",
+			"transcript.tool.readPercent": "Read {percent}%",
+			"transcript.tool.cards": "{count} cards",
+			"transcript.tool.steps": "{count} steps",
+			"transcript.tool.answered": "{answered}/{total} answered",
+			"transcript.tool.running": "In progress…",
+			"transcript.tool.failedReason": "Failed: {reason}",
+			"transcript.tool.exitCode": "Exit code {code}",
+			"transcript.tool.failed": "Failed",
+			"transcript.tool.attachments": "Attachments returned",
+			"transcript.tool.done": "Done",
+			"transcript.copy.code": "Copy code",
+			"transcript.copy.copied": "Copied",
+			"transcript.copy.footnotes": "Footnotes",
+			"transcript.copy.value": "Copy value",
+			"transcript.copy.json": "Copy JSON",
+			"transcript.copy.path": "Copy path",
+			"transcript.copy.prettyJson": "Copy formatted JSON",
+			"transcript.copy.compactJson": "Copy compact JSON",
+			"transcript.copy.failed": "Copy failed",
+			"transcript.copy.collapseNode": "Collapse node",
+			"transcript.copy.expandNode": "Expand node",
+			"transcript.copy.codeLabel": "Code",
+			"transcript.copy.wrap": "Wrap lines",
+			"transcript.copy.unwrap": "Do not wrap",
+			"transcript.copy.window": "Showing {shown} / {total} lines",
+			"transcript.copy.copy": "Copy",
+			"transcript.copy.collapseContent": "Collapse content",
+			"transcript.copy.expandRemaining": "Expand remaining {hidden} lines",
+			"transcript.copy.collapse": "Collapse",
+			"transcript.copy.remaining": "… {hidden} more lines",
+			"transcript.copy.collapseDiff": "Collapse diff",
+			"transcript.copy.expandDiff": "Expand remaining {hidden} diff lines",
+			"transcript.copy.commandLine": "Command line {line}",
+			"transcript.copy.signal": "Signal {signal}",
+			"transcript.copy.exitCode": "Exit code {code}",
+			"transcript.copy.noExitCode": "Exited without a code",
+			"transcript.copy.running": "Running",
+			"transcript.copy.failedStatus": "Failed",
+			"transcript.copy.done": "Done",
+			"transcript.copy.noOutput": "No output",
+			"transcript.copy.collapseOutput": "Collapse output",
+			"transcript.copy.expandOutput": "Expand remaining {hidden} output lines",
+			"transcript.copy.remainingOutput": "… {hidden} more lines",
+			"transcript.copy.pathsShown": "Showing {shown} / {total} paths",
+			"transcript.copy.paths": "{shown} paths",
+			"transcript.copy.matchesShown": "Showing {shown} / {total} matches · {files} files",
+			"transcript.copy.matches": "{shown} matches · {files} files",
+			"transcript.copy.noResults": "No results",
+			"transcript.copy.collapseResults": "Collapse results",
+			"transcript.copy.expandResults": "Expand remaining {hidden} result lines"
+		};
+		//#endregion
+		//#region lib/types/client/locales/index.js
+		/**
+		* Citer's Chinese and English dictionaries, one module per interface area. Chinese is the key-set
+		* source of truth; every English dictionary must cover exactly the same keys.
+		*/
+		const zh = {
+			...zh$4,
+			...zh$3,
+			...zh$1,
+			...zh$2,
+			...zh$5
+		};
+		const en = {
+			...en$4,
+			...en$3,
+			...en$1,
+			...en$2,
+			...en$5
+		};
+		//#endregion
+		//#region lib/types/client/i18n.js
+		/**
+		* Citer's interface text through DSH's locale service. The `citeciter` namespace carries the
+		* built-in Chinese and English dictionaries; language packs from other plugins may register more
+		* locales for it, and DSH's fallback chain applies. Text follows DSH's language setting live.
+		*
+		* Components call {@link useLocale} once so they re-render on a language switch, then read text
+		* with {@link t}; controllers call {@link t} when they produce a message.
+		*/
+		/** DSH locale namespace that holds Citer's dictionaries. */
+		const CITER_LOCALE_NAMESPACE = "citeciter";
+		let translate;
+		let activeLocale = "zh";
+		let revision = 0;
+		const listeners = /* @__PURE__ */ new Set();
+		function notify() {
+			revision += 1;
+			for (const listener of listeners) listener();
+		}
+		/** Fill `{name}` placeholders, as DSH's own dictionaries do. */
+		function formatText(template, params) {
+			if (params === void 0) return template;
+			return template.replace(/\{(\w+)\}/gu, (whole, name) => name in params ? String(params[name]) : whole);
+		}
+		/**
+		* Translate one Citer key in the active DSH language.
+		* @param key - dictionary key.
+		* @param params - `{name}` placeholder values.
+		*/
+		function t(key, params) {
+			if (translate !== void 0) return translate(key, params);
+			return formatText(zh[key], params);
+		}
+		/** Whether DSH currently shows Chinese; picks localized defaults such as preset action prompts. */
+		function isChinese() {
+			return activeLocale === "zh" || activeLocale.startsWith("zh-");
+		}
+		/** Re-render on DSH language changes; returns a revision usable as a memo dependency. */
+		function useLocale() {
+			return (0, react.useSyncExternalStore)(subscribeLocale, readRevision, readRevision);
+		}
+		function subscribeLocale(listener) {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		}
+		function readRevision() {
+			return revision;
+		}
+		/**
+		* Register Citer's dictionaries and follow the active language for the lifetime of `ctx`.
+		* Without DSH's locale service, text stays Chinese.
+		* @param ctx - Client root context.
+		*/
+		function installLocale(ctx) {
+			ctx.inject(["locale"], (localeCtx) => {
+				const locale = localeCtx.locale;
+				localeCtx.effect(() => locale.register(CITER_LOCALE_NAMESPACE, "zh", zh), "citeciter: Chinese dictionary");
+				localeCtx.effect(() => locale.register(CITER_LOCALE_NAMESPACE, "en", en), "citeciter: English dictionary");
+				translate = locale.bind(CITER_LOCALE_NAMESPACE);
+				activeLocale = locale.getLocale().active;
+				notify();
+				localeCtx.effect(() => locale.subscribe(() => {
+					activeLocale = locale.getLocale().active;
+					notify();
+				}), "citeciter: locale changes");
+				localeCtx.effect(() => () => {
+					translate = void 0;
+					activeLocale = "zh";
+					notify();
+				}, "citeciter: locale binding");
+			});
+		}
+		//#endregion
 		//#region lib/types/client/citer-session-face.js
 		/** Own the published SessionFace contract for Citer navigation. Sending, uploads and inbox mutations remain native DSH operations. */
 		var CiterSessionFace = class {
@@ -6919,12 +8215,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}, this.lifetime.signal);
 				if (!result.ok) return result;
 				if (result.value.kind === "deleted") {
-					if (result.value.sessionId !== this.sessionId) throw new Error("Citer 删除回执与当前会话不一致");
+					if (result.value.sessionId !== this.sessionId) throw new Error(t("panel.response.sessionReceiptMismatch"));
 					this.dispose();
 					this.onDeleted?.();
-					throw new Error("这个 Topic 已永久删除，附件已不可用");
+					throw new Error(t("panel.error.attachmentGone"));
 				}
-				if (result.value.kind !== "native-attachment") throw new Error("Citer 附件响应类型不匹配");
+				if (result.value.kind !== "native-attachment") throw new Error(t("panel.response.nativeAttachmentMismatch"));
 				return {
 					ok: true,
 					value: {
@@ -6936,7 +8232,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			readAttachment = async (attachmentId) => {
 				const result = await this.readCiterAttachment(attachmentId);
 				if (!result.ok) return result;
-				if (!("mediaType" in result.value.attachment)) throw new Error("此附件是普通文件，请使用文件下载入口");
+				if (!("mediaType" in result.value.attachment)) throw new Error(t("panel.error.downloadFile"));
 				return {
 					ok: true,
 					value: {
@@ -7009,12 +8305,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					}, this.lifetime.signal);
 					if (!result.ok) throw new Error(result.error.message);
 					if (result.value.kind === "deleted") {
-						if (result.value.sessionId !== this.sessionId) throw new Error("Citer 删除回执与当前会话不一致");
+						if (result.value.sessionId !== this.sessionId) throw new Error(t("panel.response.sessionReceiptMismatch"));
 						this.dispose();
 						this.onDeleted?.();
 						return;
 					}
-					if (result.value.kind !== "native-state") throw new Error("Citer 会话状态响应类型不匹配");
+					if (result.value.kind !== "native-state") throw new Error(t("panel.response.nativeStateMismatch"));
 					if (this.lifetime.signal.aborted) return;
 					const state = result.value.state;
 					this.patch({
@@ -7029,7 +8325,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							id: row.id,
 							messageId: row.id,
 							...rpcId === void 0 ? {} : { rpcId },
-							preview: row.text || "附件",
+							preview: row.text || t("panel.queue.attachment"),
 							content: [{
 								type: "text",
 								text: row.text
@@ -7170,7 +8466,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						this.publish();
 					}
 				} catch (error) {
-					if (!this.closed && !this.lifetime.signal.aborted) this.failure = `无法接管等待：${String(error)}。宿主将按原定时限继续。`;
+					if (!this.closed && !this.lifetime.signal.aborted) this.failure = t("panel.question.claimFailed", { error: String(error) });
 				} finally {
 					this.ended = true;
 					this.deadline = void 0;
@@ -7245,7 +8541,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				try {
 					await this.channel.timeout(this.pending.key);
 				} catch (error) {
-					this.failure = `等待状态更新失败：${String(error)}`;
+					this.failure = t("panel.question.waitFailed", { error: String(error) });
 					this.claim?.dispose();
 				}
 				this.publish();
@@ -7253,16 +8549,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			async answer(answer) {
 				for (let attempt = 0; attempt < 4; attempt++) {
 					const revision = await this.drafts.prepareSubmission();
-					if (this.drafts.getSnapshot().closed || this.closed || this.lifetime.signal.aborted) throw new Error("这个提问已结束，未重复提交回答");
+					if (this.drafts.getSnapshot().closed || this.closed || this.lifetime.signal.aborted) throw new Error(t("panel.error.questionNotResent"));
 					const conflict = await this.channel.answer(this.pending.key, answer, revision);
 					if (conflict === void 0) {
 						this.close();
 						return;
 					}
 					await this.drafts.rejectSubmission(conflict);
-					if (conflict.closed) throw new Error("这个提问已结束，未重复提交回答");
+					if (conflict.closed) throw new Error(t("panel.error.questionNotResent"));
 				}
-				throw new Error("回答未发送，请稍后重试");
+				throw new Error(t("panel.error.answerNotSent"));
 			}
 			async dismiss() {
 				if (this.dismissal === "hide") {
@@ -7620,8 +8916,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				/** Bind manual submission to this window's saved version; the Host checks it atomically with acceptance. */
 				prepareSubmission: async () => {
 					await flush();
-					if (disposed || closing || view.closed) throw new Error("这个提问已结束，未提交回答");
-					if (composing || saved < generation) throw new Error("回答尚未保存，未发送；请稍后重试");
+					if (disposed || closing || view.closed) throw new Error(t("panel.error.questionEnded"));
+					if (composing || saved < generation) throw new Error(t("panel.error.answerNotSaved"));
 					return state.revision;
 				},
 				/** Preserve local answers when another window saved after our last edit or flush. */
@@ -7716,7 +9012,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				retired.clear();
 				retirementListeners.clear();
 			}, "citeciter: native attachment drafts");
-			if (typeof conversation.sendSession !== "function" || typeof conversation.createDrafts !== "function") throw new Error("当前 DSH 不提供 Citer 所需的原生附件发送接口");
+			if (typeof conversation.sendSession !== "function" || typeof conversation.createDrafts !== "function") throw new Error(t("panel.error.nativeUnavailable"));
 			const retire = (sessionId) => {
 				if (retired.has(sessionId)) return;
 				retired.add(sessionId);
@@ -7729,8 +9025,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				for (const listener of retirementListeners) listener(sessionId);
 			};
 			const face = (id) => {
-				if (disposed) throw new Error("Citer 已关闭");
-				if (retired.has(id)) throw new Error("这个 Topic 已永久删除");
+				if (disposed) throw new Error(t("panel.error.citerClosed"));
+				if (retired.has(id)) throw new Error(t("panel.error.topicDeleted"));
 				let session = sessions.get(id);
 				if (session === void 0) {
 					session = new CiterSessionFace(ctx, id, () => retire(id));
@@ -7759,18 +9055,18 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const response = await ctx.remote.citeciter.request(request);
 				if (!response.ok) throw new Error(response.error.message);
 				if (response.value.kind === "deleted") {
-					if (response.value.sessionId !== request.topicSessionId) throw new Error("Citer 提问删除回执身份不匹配");
+					if (response.value.sessionId !== request.topicSessionId) throw new Error(t("panel.response.questionReceiptMismatch"));
 					retire(request.topicSessionId);
-					throw new Error("这个 Topic 已永久删除，未提交回答");
+					throw new Error(t("panel.response.questionDeleted"));
 				}
 				if (request.action === "answer-question" && request.draftRevision !== void 0 && response.value.kind === "question-draft") return response.value;
-				if (response.value.kind !== "topic" || response.value.topic.topic.sessionId !== request.topicSessionId) throw new Error("Citer 提问响应与当前 Topic 不匹配");
+				if (response.value.kind !== "topic" || response.value.topic.topic.sessionId !== request.topicSessionId) throw new Error(t("panel.response.questionMismatch"));
 				syncQuestions(request.topicSessionId, response.value.topic.pendingQuestions ?? (response.value.topic.pendingQuestion === null ? [] : [response.value.topic.pendingQuestion]));
 			};
 			return {
 				uploads: conversation.fileUploads,
 				question: (sessionId, pending) => {
-					if (disposed || retired.has(sessionId)) throw new Error("这个 Topic 的提问服务已结束");
+					if (disposed || retired.has(sessionId)) throw new Error(t("panel.error.topicQuestionClosed"));
 					let group = questions.get(sessionId);
 					if (group === void 0) {
 						group = /* @__PURE__ */ new Map();
@@ -7789,7 +9085,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									closed: true
 								};
 							}
-							if (response.value.kind !== "question-draft") throw new Error("回答草稿响应类型不匹配");
+							if (response.value.kind !== "question-draft") throw new Error(t("panel.response.questionDraftMismatch"));
 							return response.value;
 						};
 						controller = new TopicQuestionController(pending, {
@@ -7864,8 +9160,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				},
 				add: async (id, files) => {
 					await binding(id);
-					if (disposed) throw new Error("Citer 已关闭，未创建附件");
-					if (retired.has(id)) throw new Error("这个 Topic 已永久删除，未创建附件");
+					if (disposed) throw new Error(t("panel.response.closedBeforeAttachment"));
+					if (retired.has(id)) throw new Error(t("panel.response.deletedBeforeAttachment"));
 					const drafts = conversation.createDrafts(id, files);
 					for (const draft of drafts) owned.add(draft.id);
 					return drafts;
@@ -7879,15 +9175,15 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					requireSelectedModel({ modelSelectionRequired: target.session.getSnapshot().modelSelectionRequired });
 					if (requestId !== void 0) target.session.prepareSubmission(requestId);
 					const outcome = await conversation.sendSession(target.session, text, attachments, mode).catch((error) => {
-						throw new UncertainSubmissionError(`未收到发送结果：${String(error)}；请核对发送状态，草稿已保留`);
+						throw new UncertainSubmissionError(t("panel.error.sendUnknown", { error: String(error) }));
 					});
 					if (outcome.kind === "error") {
 						const failure = target.session.getSnapshot().promptError?.error;
 						const details = failure?.details;
 						const attachmentReason = details !== null && typeof details === "object" && "reason" in details ? details.reason : void 0;
-						const reason = failure?.code === "session/attachment-invalid" && (attachmentReason === "INVALID_IMAGE" || attachmentReason === "IMAGE_TYPE_MISMATCH") ? "附件格式无效或内容损坏，请移除或更换附件后重试" : failure?.message ?? outcome.text ?? "DSH 未接受此次发送";
-						if (failure === void 0) throw new UncertainSubmissionError(`${reason}；请核对发送状态，草稿已保留`);
-						throw new Error(`${reason}；草稿已保留`);
+						const reason = failure?.code === "session/attachment-invalid" && (attachmentReason === "INVALID_IMAGE" || attachmentReason === "IMAGE_TYPE_MISMATCH") ? t("panel.error.attachmentInvalid") : failure?.message ?? outcome.text ?? t("panel.error.sendRefused");
+						if (failure === void 0) throw new UncertainSubmissionError(t("panel.error.checkSend", { reason }));
+						throw new Error(t("panel.error.draftRetained", { reason }));
 					}
 					for (const id of attachments) owned.delete(id);
 				}
@@ -8174,10 +9470,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 			return references;
 		}
-		/** Display a document filename while retaining the full title/path in its serialized content. Legacy ID-only references keep their generic label. */
+		/** Translate only the visible chip kind; reference.label remains the serialized Chinese marker. */
+		function draftReferenceLabel(reference) {
+			switch (reference.label) {
+				case "来源对话": return t("transcript.reference.source");
+				case "来源文档": return t("transcript.reference.document");
+				case "引用文段": return t("transcript.reference.excerpt");
+				case "板书引用": return t("transcript.reference.board");
+				default: return reference.label;
+			}
+		}
+		/** Display a document filename while retaining the full title/path in its serialized content. */
 		function draftReferenceName(reference) {
-			if (reference.label !== "来源文档" || reference.address?.endsWith(`/${encodeURIComponent(reference.content)}`)) return reference.label;
-			return reference.content.split(/[\\/]/u).at(-1) || reference.label;
+			if (reference.label !== "来源文档" || reference.address?.endsWith(`/${encodeURIComponent(reference.content)}`)) return draftReferenceLabel(reference);
+			return reference.content.split(/[\\/]/u).at(-1) || draftReferenceLabel(reference);
 		}
 		function preview(text, limit = 24) {
 			const compact = text.replaceAll(/\s+/gu, " ").trim();
@@ -8189,9 +9495,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param sourceTitle - resolves a source session's display title; the generic label is used when it is unknown.
 		*/
 		function draftReferenceTitle(reference, sourceTitle) {
-			if (reference.kind === "excerpt") return preview(reference.content.replace(/^文档：[^\n]*\n\n/u, "")) || reference.label;
-			if (reference.kind === "board") return `板书：${preview(reference.content, 20)}`;
-			if (reference.label === "来源对话") return sourceTitle?.(reference.content) ?? reference.label;
+			if (reference.kind === "excerpt") return preview(reference.content.replace(/^文档：[^\n]*\n\n/u, "")) || draftReferenceLabel(reference);
+			if (reference.kind === "board") return t("transcript.reference.boardTitle", { text: preview(reference.content, 20) });
+			if (reference.label === "来源对话") return sourceTitle?.(reference.content) ?? draftReferenceLabel(reference);
 			return draftReferenceName(reference);
 		}
 		/** Serialize the exact visible attachment collection only at manual submission. */
@@ -8446,15 +9752,15 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						topicSessionId: sessionId
 					});
 					if (response.kind === "deleted") {
-						if (response.sessionId !== sessionId) throw new Error("Citer 返回了不匹配的删除记录");
+						if (response.sessionId !== sessionId) throw new Error(t("panel.response.deletedMismatch"));
 						nativeComposer.retire(sessionId);
 						if (!disposed && operationGeneration === activeGeneration) update((draft) => {
 							draft.phase = "ready";
-							draft.notice = "此 Topic 已在另一窗口删除。";
+							draft.notice = t("panel.notice.deletedElsewhere");
 						});
 						return;
 					}
-					if (response.kind !== "topic") throw new Error("Citer 返回了错误的 Topic 响应");
+					if (response.kind !== "topic") throw new Error(t("panel.response.topicMismatch"));
 					acceptTopic(response.topic, operationGeneration, sessionId);
 				} catch (error) {
 					fail(error, operationGeneration);
@@ -8537,7 +9843,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					draft.sourceAnchorKey = null;
 					draft.archiving = false;
 					draft.error = null;
-					draft.notice = "Topic 已永久删除。";
+					draft.notice = t("panel.notice.deleted");
 				});
 			});
 			const refreshActive = async (operationGeneration = activeGeneration) => {
@@ -8549,16 +9855,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					topicSessionId: active.topic.sessionId
 				});
 				if (response.kind === "deleted") {
-					if (response.sessionId !== active.topic.sessionId || response.sourceSessionId !== active.topic.sourceSessionId || response.topicId !== active.topic.topicId) throw new Error("Citer 删除回执与当前 Topic 不一致");
+					if (response.sessionId !== active.topic.sessionId || response.sourceSessionId !== active.topic.sourceSessionId || response.topicId !== active.topic.topicId) throw new Error(t("panel.response.deleteReceiptMismatch"));
 					nativeComposer.retire(response.sessionId);
 					return;
 				}
 				if (response.kind === "topic") acceptTopic(response.topic, operationGeneration, active.topic.sessionId, true);
 			};
 			const resolveDraftTopic = async (sourceSessionId) => {
-				if (disposed || store.getSnapshot().sourceSessionId !== sourceSessionId) throw new Error("来源已切换，请重新选文");
+				if (disposed || store.getSnapshot().sourceSessionId !== sourceSessionId) throw new Error(t("panel.error.sourceChanged"));
 				const current = store.getSnapshot();
-				if (current.deleting || current.archiving || current.phase === "creating") throw new Error("Topic 正在切换，请稍后重新选文");
+				if (current.deleting || current.archiving || current.phase === "creating") throw new Error(t("panel.error.topicChanging"));
 				if (current.active !== null && !current.active.topic.archived) return current.active.topic.sessionId;
 				return null;
 			};
@@ -8697,7 +10003,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						await nativeComposer.send(sessionId, text, [], "queue");
 					} catch (error) {
 						if (error instanceof UncertainSubmissionError) {
-							fail(/* @__PURE__ */ new Error("未收到发送结果，请在 Topic 中确认这条动作是否已发送"), generation);
+							fail(new Error(t("panel.error.actionUnconfirmed")), generation);
 							return false;
 						}
 						update((draft) => {
@@ -8708,7 +10014,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								id: crypto.randomUUID()
 							}];
 						});
-						fail(new Error(undeliveredActionMessage(error instanceof Error ? error.message : String(error))), generation);
+						const reason = error instanceof Error ? error.message : String(error);
+						fail(new Error(reason === "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。" ? t("panel.action.undeliveredModel") : t("panel.action.undelivered", { reason: reason.replace(/[。；;.\s]+$/u, "") })), generation);
 						return false;
 					}
 					if (generation === activeGeneration) {
@@ -8763,9 +10070,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					let response;
 					if (selection.kind === "assistant-step") {
 						const node = readChat(selection.sourceSessionId)?.nodes.get(selection.anchorKey);
-						if (node === void 0 || node.kind !== "assistant-step") throw new Error("选中的模型回答已不在当前会话快照中");
+						if (node === void 0 || node.kind !== "assistant-step") throw new Error(t("panel.error.answerUnavailable"));
 						const answer = readAssistantAnswer(node.data);
-						if (answer === null || answer.status !== "settled") throw new Error("请在一次模型调用完成后引用；无需等待整轮长任务结束");
+						if (answer === null || answer.status !== "settled") throw new Error(t("panel.error.waitForAnswer"));
 						response = await call({
 							action: "create",
 							requestId: intent.requestId,
@@ -8792,7 +10099,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						question,
 						modelRoute
 					});
-					if (response.kind !== "topic") throw new Error("CiteCiter 返回了错误的创建响应");
+					if (response.kind !== "topic") throw new Error(t("panel.response.createMismatch"));
 					completeRequestIntent(intent);
 					if (response.topic.topic.citation !== null) writeCitationAnchor(selection.sourceSessionId, response.topic.topic.citation.anchorSeq, selection.anchorKey);
 					acceptTopic(response.topic, operationGeneration);
@@ -8807,7 +10114,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const question = normalizeDraftQuestion(rawQuestion);
 				const intent = await claimCreateTopicIntent(selection, question, modelRoute);
 				if (disposed) return;
-				if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error("来源会话已切换，请重新选文");
+				if (selection.sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error(t("panel.error.selectionChanged"));
 				const pending = pendingCreates.get(intent.requestId);
 				if (pending !== void 0) return pending;
 				const operation = runCreate(selection, question, intent, modelRoute, delivery).finally(() => {
@@ -8841,7 +10148,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							question,
 							...modelRoute === void 0 ? {} : { modelRoute }
 						});
-						if (response.kind !== "topic") throw new Error("CiteCiter 返回了错误的创建响应");
+						if (response.kind !== "topic") throw new Error(t("panel.response.createMismatch"));
 						completeRequestIntent(intent);
 						acceptTopic(response.topic, operationGeneration);
 						if (operationGeneration === activeGeneration) update((draft) => {
@@ -8869,12 +10176,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const createFromDocument = async (claim, rawQuestion, capturedSource, modelRoute, delivery = "draft") => {
 				if (disposed) return;
 				const sourceSessionId = capturedSource ?? store.getSnapshot().sourceSessionId;
-				if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error("来源会话已切换，请重新选文");
-				if (sourceSessionId === null) throw new Error("打开 Citer 面板后即可创建文档 Topic");
+				if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error(t("panel.error.selectionChanged"));
+				if (sourceSessionId === null) throw new Error(t("panel.error.openForDocument"));
 				const question = normalizeDraftQuestion(rawQuestion);
 				const intent = await claimCreateDocumentIntent(claim, question, sourceSessionId, modelRoute);
 				if (disposed) return;
-				if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error("来源会话已切换，请重新选文");
+				if (sourceSessionId !== store.getSnapshot().sourceSessionId) throw new Error(t("panel.error.selectionChanged"));
 				const operationGeneration = ++activeGeneration;
 				update((draft) => {
 					draft.sourceSessionId = sourceSessionId;
@@ -8899,7 +10206,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						question,
 						modelRoute
 					});
-					if (response.kind !== "topic") throw new Error("Citer 返回了错误的文档 Topic 响应");
+					if (response.kind !== "topic") throw new Error(t("panel.response.documentTopicMismatch"));
 					completeRequestIntent(intent);
 					acceptTopic(response.topic, operationGeneration);
 					if (store.getSnapshot().active?.topic.sessionId === response.topic.topic.sessionId) onAutoOpen();
@@ -8968,7 +10275,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					});
 					if (response.kind === "topic") acceptTopic(response.topic, operationGeneration, active.topic.sessionId);
 					if (operationGeneration === activeGeneration) update((draft) => {
-						draft.notice = "已请求停止当前回答；待处理队列仍按 DSH 规则继续。";
+						draft.notice = t("panel.notice.stopRequested");
 					});
 				} catch (error) {
 					fail(error, operationGeneration);
@@ -9091,8 +10398,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						topicSessionId: sessionId,
 						confirmSessionId
 					});
-					if (response.kind !== "deleted") throw new Error("Citer 返回了错误的删除响应");
-					if (response.sessionId !== sessionId || response.sourceSessionId !== sourceSessionId || response.topicId !== topicId) throw new Error("Citer 返回的删除对象与当前 Topic 不一致");
+					if (response.kind !== "deleted") throw new Error(t("panel.response.deleteMismatch"));
+					if (response.sessionId !== sessionId || response.sourceSessionId !== sourceSessionId || response.topicId !== topicId) throw new Error(t("panel.response.deletedTopicMismatch"));
 					nativeComposer.retire(sessionId);
 					clearLastTopic(sourceSessionId, sessionId);
 					const current = store.getSnapshot();
@@ -9107,7 +10414,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							draft.active = null;
 							draft.sourceAnchorKey = null;
 							draft.deleting = false;
-							draft.notice = response.cleanup === "complete" ? "Topic 已永久删除。" : "Topic 已删除；相关资源仍在后台清理。";
+							draft.notice = response.cleanup === "complete" ? t("panel.notice.deleted") : t("panel.notice.cleanup");
 							draft.error = null;
 						});
 					}
@@ -9229,7 +10536,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						[key]: value
 					};
 					draft.settingsSaveStatus = "saving";
-					draft.settingsSaveMessage = "正在保存…";
+					draft.settingsSaveMessage = t("panel.settings.saving");
 				});
 				try {
 					if (value === void 0) await track(remoteOperations, configForms.unset(key));
@@ -9240,7 +10547,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					update((draft) => {
 						draft.settings = settingsWithPending(authoritative);
 						draft.settingsSaveStatus = pendingSettings.size === 0 ? "saved" : "saving";
-						draft.settingsSaveMessage = pendingSettings.size === 0 ? "已保存" : "正在保存…";
+						draft.settingsSaveMessage = pendingSettings.size === 0 ? t("panel.settings.saved") : t("panel.settings.saving");
 					});
 				} catch (error) {
 					if (pendingSettings.get(key)?.operation !== operation || disposed) return;
@@ -9249,7 +10556,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					update((draft) => {
 						draft.settings = settingsWithPending(restored);
 						draft.settingsSaveStatus = "error";
-						draft.settingsSaveMessage = `保存失败，已恢复：${error instanceof Error ? error.message : String(error)}`;
+						draft.settingsSaveMessage = t("panel.settings.saveFailed", { error: error instanceof Error ? error.message : String(error) });
 					});
 				}
 			};
@@ -9268,7 +10575,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				resolveDraftTopic: (sourceSessionId) => admit(null, () => resolveDraftTopic(sourceSessionId)),
 				appendSelection: async (sourceSessionId, topicSessionId, question, references, delivery = "draft") => {
 					const snapshot = store.getSnapshot();
-					if (disposed || snapshot.sourceSessionId !== sourceSessionId || snapshot.active?.topic.sessionId !== topicSessionId || snapshot.active.topic.archived || snapshot.deleting || snapshot.archiving || snapshot.phase === "creating") throw new Error("当前 Topic 已切换或不可编辑，请重新选文");
+					if (disposed || snapshot.sourceSessionId !== sourceSessionId || snapshot.active?.topic.sessionId !== topicSessionId || snapshot.active.topic.archived || snapshot.deleting || snapshot.archiving || snapshot.phase === "creating") throw new Error(t("panel.error.topicChanged"));
 					if (delivery === "draft") {
 						update((draft) => {
 							draft.composeSeeds = [...draft.composeSeeds, {
@@ -36014,83 +37321,111 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		};
 		//#endregion
 		//#region lib/types/client/copy.js
-		/** Localized labels supplied to the Cordis-free Markdown renderer. */
+		/** Live getters keep consumers outside the transcript slice localized without changing their API. */
 		const markdownLabels = {
 			code: {
-				copyLabel: "复制代码",
-				copiedLabel: "已复制"
+				get copyLabel() {
+					return t("transcript.copy.code");
+				},
+				get copiedLabel() {
+					return t("transcript.copy.copied");
+				}
 			},
-			footnotes: "脚注"
+			get footnotes() {
+				return t("transcript.copy.footnotes");
+			}
 		};
 		/** Localized labels supplied to the Cordis-free JSON inspector. */
-		const jsonTreeLabels = {
-			copyValue: "复制值",
-			copyJson: "复制 JSON",
-			copyPath: "复制路径",
-			copyPrettyJson: "复制格式化 JSON",
-			copyCompactJson: "复制紧凑 JSON",
-			copied: "已复制",
-			copyFailed: "复制失败",
-			collapseNode: "折叠节点",
-			expandNode: "展开节点",
-			copyButtonTitle: (action) => action
-		};
+		function jsonTreeLabels() {
+			return {
+				copyValue: t("transcript.copy.value"),
+				copyJson: t("transcript.copy.json"),
+				copyPath: t("transcript.copy.path"),
+				copyPrettyJson: t("transcript.copy.prettyJson"),
+				copyCompactJson: t("transcript.copy.compactJson"),
+				copied: t("transcript.copy.copied"),
+				copyFailed: t("transcript.copy.failed"),
+				collapseNode: t("transcript.copy.collapseNode"),
+				expandNode: t("transcript.copy.expandNode"),
+				copyButtonTitle: (action) => action
+			};
+		}
 		/** Shared toolbar copy for read and diff code surfaces. */
-		const codeToolbarLabels = {
-			codeLabel: "代码",
-			wrapLabel: "自动换行",
-			unwrapLabel: "不换行"
-		};
+		function codeToolbarLabels() {
+			return {
+				codeLabel: t("transcript.copy.codeLabel"),
+				wrapLabel: t("transcript.copy.wrap"),
+				unwrapLabel: t("transcript.copy.unwrap")
+			};
+		}
 		/** DSH-style labels for numbered file reads. */
-		const readBlockLabels = {
-			...codeToolbarLabels,
-			window: (shown, total) => `显示 ${shown} / ${total} 行`,
-			copy: "复制",
-			copied: "已复制",
-			collapseAria: "收起内容",
-			expandAria: (hidden) => `展开其余 ${hidden} 行`,
-			collapse: "收起",
-			expand: (hidden) => `… 其余 ${hidden} 行`
-		};
+		function readBlockLabels() {
+			return {
+				...codeToolbarLabels(),
+				window: (shown, total) => t("transcript.copy.window", {
+					shown,
+					total
+				}),
+				copy: t("transcript.copy.copy"),
+				copied: t("transcript.copy.copied"),
+				collapseAria: t("transcript.copy.collapseContent"),
+				expandAria: (hidden) => t("transcript.copy.expandRemaining", { hidden }),
+				collapse: t("transcript.copy.collapse"),
+				expand: (hidden) => t("transcript.copy.remaining", { hidden })
+			};
+		}
 		/** DSH-style labels for applied file differences. */
-		const diffBlockLabels = {
-			...codeToolbarLabels,
-			copy: "复制",
-			copied: "已复制",
-			collapseAria: "收起差异",
-			expandAria: (hidden) => `展开其余 ${hidden} 行差异`,
-			collapse: "收起",
-			expand: (hidden) => `… 其余 ${hidden} 行`
-		};
+		function diffBlockLabels() {
+			return {
+				...codeToolbarLabels(),
+				copy: t("transcript.copy.copy"),
+				copied: t("transcript.copy.copied"),
+				collapseAria: t("transcript.copy.collapseDiff"),
+				expandAria: (hidden) => t("transcript.copy.expandDiff", { hidden }),
+				collapse: t("transcript.copy.collapse"),
+				expand: (hidden) => t("transcript.copy.remaining", { hidden })
+			};
+		}
 		/** Terminal status and output controls. */
-		const terminalBlockLabels = {
-			commandLine: (line) => `命令第 ${line} 行`,
-			signal: (signal) => `信号 ${signal}`,
-			exitCode: (exitCode) => `退出码 ${exitCode}`,
-			noExitCode: "未正常退出",
-			running: "运行中",
-			failed: "失败",
-			done: "已完成",
-			copy: "复制",
-			copied: "已复制",
-			noOutput: "无输出",
-			collapseAria: "收起输出",
-			collapse: "收起",
-			expandAria: (hidden) => `展开其余 ${hidden} 行输出`,
-			expand: (hidden) => `… 其余 ${hidden} 行`
-		};
+		function terminalBlockLabels() {
+			return {
+				commandLine: (line) => t("transcript.copy.commandLine", { line }),
+				signal: (signal) => t("transcript.copy.signal", { signal }),
+				exitCode: (code) => t("transcript.copy.exitCode", { code }),
+				noExitCode: t("transcript.copy.noExitCode"),
+				running: t("transcript.copy.running"),
+				failed: t("transcript.copy.failedStatus"),
+				done: t("transcript.copy.done"),
+				copy: t("transcript.copy.copy"),
+				copied: t("transcript.copy.copied"),
+				noOutput: t("transcript.copy.noOutput"),
+				collapseAria: t("transcript.copy.collapseOutput"),
+				collapse: t("transcript.copy.collapse"),
+				expandAria: (hidden) => t("transcript.copy.expandOutput", { hidden }),
+				expand: (hidden) => t("transcript.copy.remainingOutput", { hidden })
+			};
+		}
 		/** Result-count labels for grouped grep matches and glob paths. */
-		const searchBlockLabels = {
-			pathsSummary: (shown, total, truncated) => truncated ? `显示 ${shown} / 共 ${total} 个路径` : `${shown} 个路径`,
-			matchesSummary: (shown, total, files, truncated) => truncated ? `显示 ${shown} / 共 ${total} 处匹配 · ${files} 个文件` : `${shown} 处匹配 · ${files} 个文件`,
-			copy: "复制",
-			copied: "已复制",
-			noResults: "无结果",
-			collapseAria: "收起结果",
-			collapse: "收起",
-			expandAria: (hidden) => `展开其余 ${hidden} 行结果`,
-			expand: (hidden) => `… 其余 ${hidden} 行`
-		};
+		function searchBlockLabels() {
+			return {
+				pathsSummary: (shown, total, truncated) => t(truncated ? "transcript.copy.pathsShown" : "transcript.copy.paths", {
+					shown,
+					total
+				}),
+				matchesSummary: (shown, total, files, truncated) => t(truncated ? "transcript.copy.matchesShown" : "transcript.copy.matches", {
+					shown,
+					total,
+					files
+				}),
+				copy: t("transcript.copy.copy"),
+				copied: t("transcript.copy.copied"),
+				noResults: t("transcript.copy.noResults"),
+				collapseAria: t("transcript.copy.collapseResults"),
+				collapse: t("transcript.copy.collapse"),
+				expandAria: (hidden) => t("transcript.copy.expandResults", { hidden }),
+				expand: (hidden) => t("transcript.copy.remaining", { hidden })
+			};
+		}
 		//#endregion
 		//#region lib/types/client/components/BoardView.js
 		function inlineStyle(style) {
@@ -36118,6 +37453,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		function ElementBody({ kind, content }) {
+			useLocale();
 			if (kind === "math") return (0, react_jsx_runtime.jsx)(MathElement, { content });
 			if (kind === "markdown" || kind === "table") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MarkdownText, {
 				text: neutralizeMarkdownImages(content),
@@ -36132,12 +37468,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				return (0, react_jsx_runtime.jsx)("img", {
 					className: BoardView_module_css_default.svg,
 					src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(content.trim())}`,
-					alt: "Citer 黑板图形"
+					alt: t("board.svg.alt")
 				});
 			}
 			if (kind === "html") return (0, react_jsx_runtime.jsx)("iframe", {
 				className: BoardView_module_css_default.html,
-				title: "Citer 黑板动画",
+				title: t("board.html.title"),
 				sandbox: "",
 				referrerPolicy: "no-referrer",
 				srcDoc: isolatedHtmlDocument(content)
@@ -36145,12 +37481,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (kind === "image") {
 				if (!/^data:image\/(?:png|jpeg|webp|gif|svg\+xml);base64,/u.test(content)) return (0, react_jsx_runtime.jsx)("pre", {
 					className: BoardView_module_css_default.fallback,
-					children: "黑板图片内容无效"
+					children: t("board.image.invalid")
 				});
 				return (0, react_jsx_runtime.jsx)("img", {
 					className: BoardView_module_css_default.image,
 					src: content,
-					alt: "Citer 黑板图片"
+					alt: t("board.image.alt")
 				});
 			}
 			return (0, react_jsx_runtime.jsx)("div", {
@@ -36170,6 +37506,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @returns the safe blackboard canvas.
 		*/
 		function BoardView({ snapshot, animations, onQuoteElement, compact = false, sessionId, frameAtMs, capture = false }) {
+			useLocale();
 			const board = snapshot ?? EMPTY_BOARD_SNAPSHOT;
 			const [notes, setNotes] = (0, react.useState)(compact);
 			const canvasRef = (0, react.useRef)(null);
@@ -36208,29 +37545,25 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				"data-notes": notes || void 0,
 				"data-capture": capture || void 0,
 				"data-animations": player.canPlay || void 0,
-				"aria-label": "Citer 黑板",
+				"aria-label": t("board.label"),
 				children: [
 					(0, react_jsx_runtime.jsxs)("header", {
 						className: BoardView_module_css_default.boardHeader,
 						children: [
-							(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "小黑板" }), (0, react_jsx_runtime.jsx)("span", { children: "由 Citer 随讲解实时整理" })] }),
-							(0, react_jsx_runtime.jsx)("span", { children: board.revision === 0 && board.elements.length === 0 ? "等待板书" : `第 ${board.revision} 次更新` }),
+							(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("strong", { children: t("board.title") }), (0, react_jsx_runtime.jsx)("span", { children: t("board.subtitle") })] }),
+							(0, react_jsx_runtime.jsx)("span", { children: board.revision === 0 && board.elements.length === 0 ? t("board.waiting") : t("board.revision", { count: board.revision }) }),
 							compact && (0, react_jsx_runtime.jsx)("button", {
 								className: BoardView_module_css_default.viewToggle,
 								type: "button",
 								onClick: () => setNotes(!notes),
-								children: notes ? "查看画布" : "条目阅读"
+								children: notes ? t("board.view.canvas") : t("board.view.notes")
 							})
 						]
 					}),
-					board.invalid > 0 && (0, react_jsx_runtime.jsxs)("p", {
+					board.invalid > 0 && (0, react_jsx_runtime.jsx)("p", {
 						className: BoardView_module_css_default.boardWarning,
 						role: "status",
-						children: [
-							"已忽略 ",
-							board.invalid,
-							" 批无效板书提交"
-						]
+						children: t("board.warning.invalid", { count: board.invalid })
 					}),
 					(0, react_jsx_runtime.jsx)("div", {
 						ref: canvasRef,
@@ -36241,7 +37574,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							style: notes ? void 0 : { transform: `scale(${canvasScale})` },
 							children: [board.elements.length === 0 ? (0, react_jsx_runtime.jsx)("p", {
 								className: BoardView_module_css_default.boardHint,
-								children: "发送需要板书的问题，公式、推导和图示会整理到这里。"
+								children: t("board.empty")
 							}) : elements.map((element) => (0, react_jsx_runtime.jsxs)("div", {
 								className: BoardView_module_css_default.elementWrap,
 								"data-board-element": element.id,
@@ -36271,8 +37604,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									className: BoardView_module_css_default.quoteButton,
 									type: "button",
 									onClick: () => onQuoteElement(element),
-									"aria-label": `引用黑板元素 ${element.id} 到提问`,
-									children: "引用到提问"
+									"aria-label": t("board.quote.label", { id: element.id }),
+									children: t("board.quote.action")
 								})]
 							}, `${element.id}:${element.animation?.run ?? 0}`)), caption !== null && (0, react_jsx_runtime.jsx)("p", {
 								className: BoardView_module_css_default.caption,
@@ -36284,14 +37617,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					compiled !== null && !notes && frameAtMs === void 0 && (0, react_jsx_runtime.jsxs)("div", {
 						className: BoardView_module_css_default.player,
 						role: "group",
-						"aria-label": "板书动画",
+						"aria-label": t("board.animation.label"),
 						"data-capture-exclude": "",
 						children: [
 							player.canPlay && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								className: BoardView_module_css_default.playButton,
 								onClick: player.toggle,
-								"aria-label": player.playing ? "暂停动画" : "播放动画",
+								"aria-label": t(player.playing ? "board.animation.pause" : player.t >= compiled.durationMs ? "board.animation.replay" : "board.animation.play"),
 								children: player.playing ? (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPauseOutlineRegular, {}) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPlayOutlineRegular, {})
 							}),
 							(0, react_jsx_runtime.jsx)("input", {
@@ -36301,7 +37634,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								max: compiled.durationMs,
 								step: 10,
 								value: Math.round(player.t),
-								"aria-label": "动画进度",
+								"aria-label": t("board.animation.progress"),
 								onChange: (event) => player.seek(Number(event.currentTarget.value))
 							}),
 							(0, react_jsx_runtime.jsxs)("span", {
@@ -36319,7 +37652,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									type: "button",
 									className: BoardView_module_css_default.beat,
 									title: beat.caption,
-									"aria-label": `跳到第 ${index + 1} 步：${beat.caption}`,
+									"aria-label": t("board.animation.step", {
+										count: index + 1,
+										caption: beat.caption
+									}),
 									"data-active": caption === beat.caption && player.t >= beat.atMs && (compiled.beats[index + 1]?.atMs ?? Number.POSITIVE_INFINITY) > player.t ? true : void 0,
 									onClick: () => player.seek(beat.atMs),
 									children: index + 1
@@ -36338,6 +37674,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @returns the matching Topic board or a source-specific empty state.
 		*/
 		function BlackboardWorkspace({ useCompanion, sessionId, companion, bus, openPanel }) {
+			useLocale();
 			const snapshot = useCompanion((value) => value);
 			const workspaceRef = (0, react.useRef)(null);
 			const [compact, setCompact] = (0, react.useState)(false);
@@ -36362,8 +37699,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				className: BoardView_module_css_default.workspaceBoard,
 				children: (0, react_jsx_runtime.jsxs)("section", {
 					className: BoardView_module_css_default.workspaceEmpty,
-					"aria-label": "Citer 小黑板",
-					children: [(0, react_jsx_runtime.jsx)("strong", { children: "小黑板" }), (0, react_jsx_runtime.jsx)("p", { children: "在 Citer 中发送绘图或教学问题，板书会显示在这里。" })]
+					"aria-label": t("board.workspace.label"),
+					children: [(0, react_jsx_runtime.jsx)("strong", { children: t("board.title") }), (0, react_jsx_runtime.jsx)("p", { children: t("board.workspace.empty") })]
 				})
 			});
 			return (0, react_jsx_runtime.jsx)("div", {
@@ -36718,30 +38055,30 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region lib/types/client/tool-presentation.js
-		/** Titles for tools Topics commonly use, worded like the host's tool rows; other tools keep their own name. */
+		/** Titles for common tools; unknown tools keep their own names. */
 		const TITLES = {
-			read_source_session: "读取来源对话",
-			read_document: "读取文档",
-			search_document: "搜索文档",
-			blackboard_apply: "更新板书",
-			blackboard_view: "查看板书",
-			blackboard_animate: "编排板书动画",
-			workspace_changes: "查看代码库变化",
-			learning_cards: "整理学习卡",
-			todo_write: "更新学习路线",
-			ask_user_question: "提问",
-			read: "读取",
-			write: "写入",
-			edit: "编辑",
-			str_replace_editor: "编辑",
-			grep: "搜索",
-			glob: "搜索",
-			web_search: "网页搜索",
-			web_fetch: "网页获取",
-			run_code: "运行代码",
-			read_image: "读取图片",
-			view_image: "查看图片",
-			codex_connect_image_generate: "生成图片"
+			read_source_session: "transcript.tool.readSource",
+			read_document: "transcript.tool.readDocument",
+			search_document: "transcript.tool.searchDocument",
+			blackboard_apply: "transcript.tool.updateBoard",
+			blackboard_view: "transcript.tool.viewBoard",
+			blackboard_animate: "transcript.tool.animateBoard",
+			workspace_changes: "transcript.tool.workspaceChanges",
+			learning_cards: "transcript.tool.learningCards",
+			todo_write: "transcript.tool.todo",
+			ask_user_question: "transcript.tool.ask",
+			read: "transcript.tool.read",
+			write: "transcript.tool.write",
+			edit: "transcript.tool.edit",
+			str_replace_editor: "transcript.tool.edit",
+			grep: "transcript.tool.search",
+			glob: "transcript.tool.search",
+			web_search: "transcript.tool.webSearch",
+			web_fetch: "transcript.tool.webFetch",
+			run_code: "transcript.tool.runCode",
+			read_image: "transcript.tool.readImage",
+			view_image: "transcript.tool.viewImage",
+			codex_connect_image_generate: "transcript.tool.generateImage"
 		};
 		/** Argument fields that best identify what a call worked on, in priority order. */
 		const SUBJECT_KEYS = [
@@ -36781,11 +38118,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return null;
 		}
 		function verdict(message) {
-			if (message.interruptionOutcome === "interrupted") return "已中断";
-			if (message.approvalOutcome === "rejected") return "已拒绝";
+			if (message.interruptionOutcome === "interrupted") return t("transcript.tool.interrupted");
+			if (message.approvalOutcome === "rejected") return t("transcript.tool.rejected");
 			if (!message.isError) return null;
-			if (message.errorCode === "ASK_CANCELLED") return "已取消";
-			if (message.errorCode === "ASK_ABORTED") return "已中断";
+			if (message.errorCode === "ASK_CANCELLED") return t("transcript.tool.cancelled");
+			if (message.errorCode === "ASK_ABORTED") return t("transcript.tool.interrupted");
 			return null;
 		}
 		/** Result-based summaries for Citer's own tools; null falls back to the call's subject. */
@@ -36793,22 +38130,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const data = fields(result);
 			switch (message.name) {
 				case "read_source_session": {
-					if (Array.isArray(data?.events)) return `${data.events.length} 条记录${data.hasMore === true ? "，还有更多" : ""}`;
+					if (Array.isArray(data?.events)) return t("transcript.tool.records", { count: data.events.length }) + (data.hasMore === true ? t("transcript.tool.moreRecords") : "");
 					const records = typeof result === "string" ? /· (\d+) records ·/u.exec(result)?.[1] : void 0;
-					return records === void 0 ? null : `${records} 条记录${result.includes("\nMore source after seq ") ? "，还有更多" : ""}`;
+					return records === void 0 ? null : t("transcript.tool.records", { count: records }) + (result.includes("\nMore source after seq ") ? t("transcript.tool.moreRecords") : "");
 				}
-				case "read_document": return typeof data?.throughOffset === "number" && typeof data.documentLength === "number" && data.documentLength > 0 ? `读到 ${Math.min(100, Math.round(data.throughOffset / data.documentLength * 100))}%` : null;
-				case "learning_cards": return Array.isArray(args?.cards) ? `${args.cards.length} 张` : null;
-				case "todo_write": return Array.isArray(args?.todos) ? `${args.todos.length} 步` : null;
+				case "read_document": return typeof data?.throughOffset === "number" && typeof data.documentLength === "number" && data.documentLength > 0 ? t("transcript.tool.readPercent", { percent: Math.min(100, Math.round(data.throughOffset / data.documentLength * 100)) }) : null;
+				case "learning_cards": return Array.isArray(args?.cards) ? t("transcript.tool.cards", { count: args.cards.length }) : null;
+				case "todo_write": return Array.isArray(args?.todos) ? t("transcript.tool.steps", { count: args.todos.length }) : null;
 				default: return null;
 			}
 		}
-		/**
-		* Title and one-line summary for a tool row. The full arguments and result stay in its details.
-		* @returns a readable title, the summary shown after it, and whether the call is still running.
-		*/
+		/** Title and one-line summary for a tool row; full arguments and result remain in its details. */
 		function toolPresentation(message) {
-			const title = isShellTool(message.name) ? "运行命令" : TITLES[message.name] ?? message.name;
+			const key = TITLES[message.name];
+			const title = isShellTool(message.name) ? t("transcript.tool.runCommand") : key === void 0 ? message.name : t(key);
 			const running = message.running && message.questionReply === void 0 && message.interruptionOutcome === void 0 && message.approvalOutcome === void 0;
 			const args = fields(parse(message.arguments));
 			const about = isShellTool(message.name) ? subject(args === null ? null : {
@@ -36818,14 +38153,17 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const reply = deriveQuestionReply(message);
 			if (reply !== null) return {
 				title,
-				summary: message.questionReply === void 0 ? `${reply.items.filter((item) => item.values.length > 0).length}/${reply.items.length} 已回答` : compact(questionReplySummary(reply)),
+				summary: message.questionReply === void 0 ? t("transcript.tool.answered", {
+					answered: reply.items.filter((item) => item.values.length > 0).length,
+					total: reply.items.length
+				}) : compact(questionReplySummary(reply)),
 				running: false
 			};
 			const card = deriveToolCard(message);
 			const cardSummary = card?.kind === "diff" ? `${compact(card.path)}  +${card.added} −${card.removed}` : card?.kind === "read" ? compact(card.label) : card?.kind === "search" ? compact(String(args?.pattern ?? "")) : null;
 			if (running) return {
 				title,
-				summary: cardSummary ?? about ?? "进行中…",
+				summary: cardSummary ?? about ?? t("transcript.tool.running"),
 				running
 			};
 			const withSubject = (outcome) => about === null ? outcome : `${about} · ${outcome}`;
@@ -36840,13 +38178,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const reason = typeof result === "string" ? result : fields(result)?.message;
 				return {
 					title,
-					summary: withSubject(typeof reason === "string" && reason.trim() !== "" ? `失败：${compact(reason, 60)}` : card?.kind === "terminal" && card.exitCode !== void 0 ? `退出码 ${card.exitCode}` : "失败"),
+					summary: withSubject(typeof reason === "string" && reason.trim() !== "" ? t("transcript.tool.failedReason", { reason: compact(reason, 60) }) : card?.kind === "terminal" && card.exitCode !== void 0 ? t("transcript.tool.exitCode", { code: card.exitCode }) : t("transcript.tool.failed")),
 					running
 				};
 			}
 			return {
 				title,
-				summary: resultSummary(message, args, result) ?? cardSummary ?? about ?? ((message.attachments?.length ?? 0) > 0 ? "已返回附件" : typeof result === "string" ? compact(result) : "完成"),
+				summary: resultSummary(message, args, result) ?? cardSummary ?? about ?? ((message.attachments?.length ?? 0) > 0 ? t("transcript.tool.attachments") : typeof result === "string" ? compact(result) : t("transcript.tool.done")),
 				running
 			};
 		}
@@ -36941,6 +38279,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/MessageFile.js
 		/** Accessible file chip. The download hook owns requests and object URLs. */
 		function MessageFile({ sessionId, attachment, load }) {
+			useLocale();
 			const { download, busy, error } = useFileDownload(sessionId, attachment.id, attachment.name, load);
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: MessageAttachments_module_css_default.file,
@@ -36952,13 +38291,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					},
 					disabled: busy,
 					"aria-busy": busy,
-					"aria-label": `${busy ? "正在读取" : error === void 0 ? "下载" : "重试下载"}附件 ${attachment.name}`,
+					"aria-label": t("transcript.file.attachment", {
+						action: t(busy ? "transcript.file.reading" : error === void 0 ? "transcript.file.download" : "transcript.file.retry"),
+						name: attachment.name
+					}),
 					title: attachment.name,
 					children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconDownloadOutlineMedium, { size: 16 }), (0, react_jsx_runtime.jsx)("span", { children: attachment.name })]
-				}), error !== void 0 && (0, react_jsx_runtime.jsxs)("span", {
+				}), error !== void 0 && (0, react_jsx_runtime.jsx)("span", {
 					className: MessageAttachments_module_css_default.error,
 					role: "alert",
-					children: ["下载失败，点击重试：", error]
+					children: t("transcript.file.failed", { error })
 				})]
 			});
 		}
@@ -36977,13 +38319,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/host-image-preview.js
 		/** Preview an authorized object URL using the host lifecycle and caption clearance; the caller retains URL ownership. */
 		function HostImagePreview({ src, alt, onClose }) {
+			useLocale();
 			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.ImageLightbox, {
 				src,
 				alt,
 				onClose,
 				labels: {
-					dialog: `CiteCiter 图片预览：${alt}`,
-					close: "关闭图片预览"
+					dialog: t("transcript.image.dialog", { alt }),
+					close: t("transcript.image.close")
 				}
 			});
 		}
@@ -36991,6 +38334,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/MessageImage.js
 		/** Own an authorized image URL and its preview for exactly one mounted attachment. */
 		function MessageImage({ sessionId, attachment, load }) {
+			useLocale();
 			const [url, setUrl] = (0, react.useState)();
 			const [error, setError] = (0, react.useState)(false);
 			const [open, setOpen] = (0, react.useState)(false);
@@ -37017,15 +38361,15 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				attachment.id,
 				load
 			]);
-			if (error) return (0, react_jsx_runtime.jsxs)("span", {
+			if (error) return (0, react_jsx_runtime.jsx)("span", {
 				role: "status",
-				children: ["图片暂不可用：", attachment.name]
+				children: t("transcript.image.unavailable", { name: attachment.name })
 			});
-			if (url === void 0) return (0, react_jsx_runtime.jsx)("span", { children: "加载图片…" });
+			if (url === void 0) return (0, react_jsx_runtime.jsx)("span", { children: t("transcript.image.loading") });
 			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("button", {
 				type: "button",
 				className: MessageAttachments_module_css_default.imageButton,
-				"aria-label": `预览图片 ${attachment.name}`,
+				"aria-label": t("transcript.image.preview", { name: attachment.name }),
 				"aria-haspopup": "dialog",
 				onClick: () => setOpen(true),
 				children: (0, react_jsx_runtime.jsx)("img", {
@@ -37081,13 +38425,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/QuestionReplyBody.js
 		/** Show the user's recorded choices as text, without interpreting their answer as Markdown or replaying internal prompts. */
 		function QuestionReplyBody({ reply }) {
+			useLocale();
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: QuestionReplyBody_module_css_default.reply,
-				"aria-label": "补答先前的问题",
+				"aria-label": t("panel.question.replyLabel"),
 				children: [(0, react_jsx_runtime.jsx)("span", {
 					className: QuestionReplyBody_module_css_default.label,
-					children: "补答"
-				}), reply.items.length === 0 ? (0, react_jsx_runtime.jsx)("p", { children: "这条历史回答的格式无法解析。" }) : (0, react_jsx_runtime.jsx)("dl", {
+					children: t("panel.question.reply")
+				}), reply.items.length === 0 ? (0, react_jsx_runtime.jsx)("p", { children: t("panel.question.invalidReply") }) : (0, react_jsx_runtime.jsx)("dl", {
 					className: QuestionReplyBody_module_css_default.pairs,
 					children: reply.items.map((item) => (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsxs)("dt", {
 						className: QuestionReplyBody_module_css_default.question,
@@ -37099,7 +38444,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						className: QuestionReplyBody_module_css_default.answer,
 						children: item.values.length === 0 ? (0, react_jsx_runtime.jsx)("span", {
 							className: QuestionReplyBody_module_css_default.label,
-							children: "已跳过"
+							children: t("panel.question.skipped")
 						}) : item.values.map((value, index) => (0, react_jsx_runtime.jsx)("p", { children: value }, index))
 					})] }, item.id))
 				})]
@@ -37169,6 +38514,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @returns isolated rich-answer element.
 		*/
 		function RichAnswer({ text, streaming }) {
+			useLocale();
 			const segments = (0, react.useMemo)(() => splitRichContent(text), [text]);
 			return (0, react_jsx_runtime.jsx)("div", {
 				className: CiteCiter_module_css_default.richAnswer,
@@ -37181,7 +38527,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						children: (0, react_jsx_runtime.jsx)("img", {
 							className: CiteCiter_module_css_default.richSvg,
 							src: segment.dataUrl,
-							alt: "Citer 图示",
+							alt: t("transcript.answer.svgAlt"),
 							style: segment.size === null ? void 0 : { width: segment.size.width }
 						})
 					}, key);
@@ -37190,7 +38536,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						"data-citeciter-html": true,
 						children: (0, react_jsx_runtime.jsx)("iframe", {
 							className: CiteCiter_module_css_default.richHtml,
-							title: "Citer 网页图示",
+							title: t("transcript.answer.htmlTitle"),
 							sandbox: "",
 							referrerPolicy: "no-referrer",
 							srcDoc: segment.document
@@ -37269,39 +38615,45 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		function GenericBody({ message }) {
+			useLocale();
 			const args = jsonObject(message.arguments);
 			const result = message.result === null ? null : jsonObject(message.result);
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: ToolMessage_module_css_default.genericBody,
 				children: [
-					(0, react_jsx_runtime.jsxs)("strong", { children: [message.name, " · 参数"] }),
+					(0, react_jsx_runtime.jsxs)("strong", { children: [
+						message.name,
+						" · ",
+						t("transcript.tool.arguments")
+					] }),
 					args === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.arguments }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
 						data: args,
-						label: "工具参数",
+						label: t("transcript.tool.toolArguments"),
 						copyable: false,
-						labels: jsonTreeLabels
+						labels: jsonTreeLabels()
 					}),
-					message.result !== null && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("strong", { children: message.isError ? "错误" : "结果" }), result === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.result }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
+					message.result !== null && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("strong", { children: t(message.isError ? "transcript.tool.error" : "transcript.tool.result") }), result === null ? (0, react_jsx_runtime.jsx)("pre", { children: message.result }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.JsonTree, {
 						data: result,
-						label: "工具结果",
+						label: t("transcript.tool.toolResult"),
 						copyable: false,
-						labels: jsonTreeLabels
+						labels: jsonTreeLabels()
 					})] })
 				]
 			});
 		}
 		function CardBody({ card }) {
+			useLocale();
 			switch (card.kind) {
 				case "read": return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.ReadBlock, {
 					label: card.label,
 					lines: card.lines,
 					totalLines: card.totalLines,
 					lang: card.lang,
-					labels: readBlockLabels
+					labels: readBlockLabels()
 				});
 				case "diff": return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DiffBlock, {
 					diffs: card.diffs,
-					labels: diffBlockLabels
+					labels: diffBlockLabels()
 				});
 				case "terminal": return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.TerminalBlock, {
 					command: card.command,
@@ -37310,28 +38662,29 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					exitCode: card.exitCode,
 					signal: card.signal,
 					running: card.running,
-					labels: terminalBlockLabels
+					labels: terminalBlockLabels()
 				});
 				case "search": return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [card.shape === "matches" ? (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.SearchBlock, {
 					kind: "matches",
 					files: card.files,
 					total: card.total,
 					truncated: card.truncated,
-					labels: searchBlockLabels
+					labels: searchBlockLabels()
 				}) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.SearchBlock, {
 					kind: "paths",
 					paths: card.paths,
 					total: card.total,
 					truncated: card.truncated,
-					labels: searchBlockLabels
+					labels: searchBlockLabels()
 				}), card.recovery !== void 0 && (0, react_jsx_runtime.jsxs)("details", {
 					className: ToolMessage_module_css_default.recovery,
-					children: [(0, react_jsx_runtime.jsx)("summary", { children: "查看完整工具输出" }), (0, react_jsx_runtime.jsx)("pre", { children: card.recovery })]
+					children: [(0, react_jsx_runtime.jsx)("summary", { children: t("transcript.tool.fullOutput") }), (0, react_jsx_runtime.jsx)("pre", { children: card.recovery })]
 				})] });
 			}
 		}
 		/** A codebase change result: its file list, then the changes as DSH's coloured diff. */
 		function WorkspaceChanges({ markdown }) {
+			useLocale();
 			const parsed = parseWorkspaceDiff(markdown);
 			if (parsed === null) return (0, react_jsx_runtime.jsx)(RichAnswer, {
 				text: markdown,
@@ -37344,7 +38697,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}),
 				(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DiffBlock, {
 					diffs: parsed.diffs,
-					labels: diffBlockLabels
+					labels: diffBlockLabels()
 				}),
 				parsed.tail !== "" && (0, react_jsx_runtime.jsx)(RichAnswer, {
 					text: parsed.tail,
@@ -37366,6 +38719,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Keep a tool tree inside the parent's disclosure; absent metadata uses the original lossless inspector. */
 		function ToolRow({ message, childCalls, sessionId, load, openFile }) {
+			useLocale();
 			const view = toolPresentation(message);
 			const card = deriveToolCard(message);
 			const reply = deriveQuestionReply(message);
@@ -37383,14 +38737,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							file !== null && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								className: ToolMessage_module_css_default.fileLink,
-								title: "在右侧栏打开",
+								title: t("transcript.tool.openSidebar"),
 								onClick: () => openFile?.(file.path, file.line),
 								children: file.path
 							}),
 							reply !== null ? (0, react_jsx_runtime.jsx)(QuestionReplyBody, { reply }) : message.name === "workspace_changes" && message.result !== null && !message.isError ? (0, react_jsx_runtime.jsx)(WorkspaceChanges, { markdown: message.result }) : card !== null ? (0, react_jsx_runtime.jsx)(CardBody, { card }) : (0, react_jsx_runtime.jsx)(GenericBody, { message }),
 							childCalls.length > 0 && (0, react_jsx_runtime.jsx)("div", {
 								className: ToolMessage_module_css_default.childCalls,
-								"aria-label": "子工具调用",
+								"aria-label": t("transcript.tool.childCalls"),
 								children: childCalls.map((child) => (0, react_jsx_runtime.jsx)(ToolRow, {
 									message: child,
 									childCalls: [],
@@ -37430,38 +38784,49 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/ContextRow.js
 		/** Model-facing text stays bounded at the disclosure, as in DSH's own context rows. */
 		const MAX_CHARS = 2e4;
-		/**
-		* One logged context message, drawn like DSH's context injection row: the role it plays, the
-		* producer its source names and a notice's one-line summary, expanding to the exact text the
-		* model received.
-		*/
+		const PRODUCERS = {
+			"来源摘录": "transcript.context.sourceWindow",
+			"代码库变化": "transcript.context.workspaceChanges",
+			"运行环境": "transcript.context.runtime",
+			"时间": "transcript.context.time",
+			"系统提示词": "transcript.context.systemPrompt",
+			"项目说明": "transcript.context.instructions",
+			"技能目录": "transcript.context.skills"
+		};
+		/** One logged context row; only known Host presentation copy is localized, never its model-visible body. */
 		function ContextRow({ message }) {
+			useLocale();
 			const [open, setOpen] = (0, react.useState)(false);
 			const recall = message.contextRole === "recall";
-			const text = message.text.length > MAX_CHARS ? `${message.text.slice(0, MAX_CHARS)}\n…（共 ${message.text.length} 字，已截断显示）` : message.text;
+			const title = message.label === "提示词注入" ? t("transcript.context.system") : t(recall ? "transcript.context.recall" : "transcript.context.inject");
+			const producerKey = message.producer == null ? void 0 : PRODUCERS[message.producer];
+			const producer = producerKey === void 0 ? message.producer : t(producerKey);
+			const changedFiles = message.summary === void 0 ? null : /^(\d+) 个文件有改动$/u.exec(message.summary);
+			const summary = changedFiles !== null ? t("transcript.context.changedFiles", { count: changedFiles[1] }) : message.summary === "代码库有改动" ? t("transcript.context.changed") : message.summary;
+			const text = message.text.length > MAX_CHARS ? `${message.text.slice(0, MAX_CHARS)}\n${t("transcript.context.truncated", { count: message.text.length })}` : message.text;
 			return (0, react_jsx_runtime.jsx)("div", {
 				className: ContextRow_module_css_default.root,
 				"data-citeciter-message": message.id,
 				"data-open": open ? "" : void 0,
 				children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DisclosureRow, {
 					icon: recall ? (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.ReferenceIconRegular, { kind: "session" }) : (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconContextInjectionOutlineRegular, { size: 14 }),
-					title: message.label,
+					title,
 					open,
 					expandable: true,
 					expandOnRowClick: true,
 					onToggle: () => setOpen(!open),
-					collapsedContent: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [message.producer != null && message.producer !== "" && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("span", {
+					collapsedContent: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [producer != null && producer !== "" && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("span", {
 						className: ContextRow_module_css_default.sep,
 						"aria-hidden": "true"
 					}), (0, react_jsx_runtime.jsx)("span", {
 						className: ContextRow_module_css_default.source,
-						children: message.producer
-					})] }), message.summary !== void 0 && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("span", {
+						children: producer
+					})] }), summary !== void 0 && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("span", {
 						className: ContextRow_module_css_default.sep,
 						"aria-hidden": "true"
 					}), (0, react_jsx_runtime.jsx)("span", {
 						className: ContextRow_module_css_default.summary,
-						children: message.summary
+						children: summary
 					})] })] }),
 					keepContentWhenOpen: true,
 					children: (0, react_jsx_runtime.jsx)("pre", {
@@ -37496,25 +38861,23 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Present Topic-owned token totals without fetching state or mutating the panel. */
 		function TopicUsage({ usage }) {
+			useLocale();
 			if (usage === void 0) return null;
 			const total = usage.inputTokens + usage.outputTokens;
 			if (total === 0) return null;
 			const hitRate = usage.inputTokens > 0 ? usage.cachedInputTokens / usage.inputTokens * 100 : null;
-			const cache = hitRate === null ? null : `缓存命中 ${hitRate < 100 && Math.round(hitRate) === 100 ? Math.min(99.9, Math.round(hitRate * 10) / 10) : Math.round(hitRate)}%`;
-			const context = usage.lastContextTokens !== void 0 && usage.contextWindow !== void 0 ? `上下文 ${Math.min(100, Math.round(usage.lastContextTokens / usage.contextWindow * 100))}%` : null;
+			const cache = hitRate === null ? null : t("transcript.cacheHit", { rate: hitRate < 100 && Math.round(hitRate) === 100 ? Math.min(99.9, Math.round(hitRate * 10) / 10) : Math.round(hitRate) });
+			const context = usage.lastContextTokens !== void 0 && usage.contextWindow !== void 0 ? t("transcript.contextUsed", { rate: Math.min(100, Math.round(usage.lastContextTokens / usage.contextWindow * 100)) }) : null;
+			const label = t("transcript.usage", { tokens: compactTokens(total) });
 			return (0, react_jsx_runtime.jsxs)("span", {
 				className: TopicUsage_module_css_default.usage,
 				"aria-label": [
-					`用量 ${compactTokens(total)} tok`,
+					label,
 					cache,
 					context
 				].filter(Boolean).join(" · "),
 				children: [
-					(0, react_jsx_runtime.jsxs)("span", { children: [
-						"用量 ",
-						compactTokens(total),
-						" tok"
-					] }),
+					(0, react_jsx_runtime.jsx)("span", { children: label }),
 					cache !== null && (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)("span", {
 						className: TopicUsage_module_css_default.separator,
 						"aria-hidden": "true",
@@ -37882,11 +39245,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/CompactBackButton.js
 		/** Return from the compact Citer page without discarding its Topic or draft. */
 		function CompactBackButton({ onBack }) {
+			useLocale();
 			return (0, react_jsx_runtime.jsx)("button", {
 				className: CompactBackButton_module_css_default.back,
 				type: "button",
 				onClick: onBack,
-				"aria-label": "返回主对话",
+				"aria-label": t("panel.back"),
 				children: (0, react_jsx_runtime.jsx)("svg", {
 					viewBox: "0 0 20 20",
 					width: "20",
@@ -37933,6 +39297,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param status - shown only while something is happening or needs attention.
 		*/
 		function TopicHeader({ compact, onBack, onClose, onDrag, title, status, children }) {
+			useLocale();
 			return (0, react_jsx_runtime.jsxs)("header", {
 				className: TopicHeader_module_css_default.header,
 				"data-compact": compact || void 0,
@@ -37958,8 +39323,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						type: "button",
 						className: TopicHeader_module_css_default.close,
 						onClick: onClose,
-						"aria-label": "收起 Citer",
-						title: "收起",
+						"aria-label": t("panel.header.collapseCiter"),
+						title: t("panel.header.collapse"),
 						children: (0, react_jsx_runtime.jsx)("svg", {
 							viewBox: "0 0 20 20",
 							"aria-hidden": "true",
@@ -37995,22 +39360,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param sourceTitle - resolves a source session's display title for its chip.
 		*/
 		function ReferenceAttachments({ references, onRemove, sourceTitle }) {
+			useLocale();
 			const [expanded, setExpanded] = (0, react.useState)(null);
 			const current = references.find((reference) => reference.id === expanded);
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: ReferenceAttachments_module_css_default.attachments,
 				children: [(0, react_jsx_runtime.jsx)("div", {
 					className: ReferenceAttachments_module_css_default.rail,
-					"aria-label": onRemove === void 0 ? "已发送的引用" : "待发送的引用",
+					"aria-label": t(onRemove === void 0 ? "transcript.reference.sent" : "transcript.reference.pending"),
 					children: references.map((reference) => {
 						const title = draftReferenceTitle(reference, sourceTitle);
+						const kind = draftReferenceLabel(reference);
 						return (0, react_jsx_runtime.jsxs)("div", {
 							className: ReferenceAttachments_module_css_default.chip,
 							"data-kind": reference.kind,
 							children: [(0, react_jsx_runtime.jsxs)("button", {
 								type: "button",
-								title: reference.kind === "source" ? title : reference.label,
-								"aria-label": `${reference.label}：${title}`,
+								title: reference.kind === "source" ? title : kind,
+								"aria-label": `${kind}：${title}`,
 								"aria-expanded": expanded === reference.id,
 								onClick: () => setExpanded(expanded === reference.id ? null : reference.id),
 								children: [(0, react_jsx_runtime.jsx)("span", {
@@ -38020,8 +39387,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							}), onRemove !== void 0 && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								className: ReferenceAttachments_module_css_default.remove,
-								title: "移除",
-								"aria-label": `移除${reference.label}`,
+								title: t("transcript.reference.remove"),
+								"aria-label": t("transcript.reference.removeKind", { kind }),
 								onClick: () => onRemove(reference.id),
 								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, {})
 							})]
@@ -38038,8 +39405,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region lib/types/client/components/UserMessageBody.js
-		const STAGE_PREFIX = "【学习阶段：";
-		const ASKED = "\n\n我的问题：";
+		const STAGE_PREFIXES = ["【学习阶段：", "[Learning stage: "];
+		const ASKED = ["\n\n我的问题：", "\n\nMy question:"];
 		/**
 		* Read-only presentation of a committed user message. Attachments remain inspectable as reference
 		* chips and formulas are rendered without mutating the durable prompt. A learning-stage prompt
@@ -38052,9 +39419,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				references,
 				sourceTitle
 			});
-			if (question.startsWith(STAGE_PREFIX)) {
+			if (STAGE_PREFIXES.some((prefix) => question.startsWith(prefix))) {
 				const stage = question.split("\n")[0] ?? "";
-				const asked = question.includes(ASKED) ? question.split(ASKED).slice(1).join(ASKED).trim() : "";
+				const separator = ASKED.find((value) => question.includes(value));
+				const asked = separator === void 0 ? "" : question.split(separator).slice(1).join(separator).trim();
 				return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [chips, (0, react_jsx_runtime.jsxs)("details", {
 					className: stageClassName,
 					children: [(0, react_jsx_runtime.jsxs)("summary", { children: [stage, asked === "" ? "" : ` · ${asked}`] }), (0, react_jsx_runtime.jsx)("p", { children: question })]
@@ -38134,9 +39502,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								offset
 							});
 							if (!current(id, entry)) return;
-							if (chunk.kind !== "draft-file") throw new Error("草稿附件响应类型不匹配");
+							if (chunk.kind !== "draft-file") throw new Error(t("panel.response.draftFileMismatch"));
 							const bytes = Uint8Array.from(atob(chunk.data), (char) => char.charCodeAt(0));
-							if (bytes.length !== Math.min(262144, meta.size - offset)) throw new Error("草稿附件读取不完整");
+							if (bytes.length !== Math.min(262144, meta.size - offset)) throw new Error(t("panel.response.incompleteFile"));
 							chunks.push(bytes);
 						}
 						const file = new File(chunks, meta.name, {
@@ -38144,7 +39512,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							lastModified: meta.lastModified
 						});
 						const [attachment] = await native.add(id, [file]);
-						if (attachment === void 0) throw new Error("DSH 未恢复附件");
+						if (attachment === void 0) throw new Error(t("panel.response.restoreAttachmentFailed"));
 						if (!current(id, entry)) {
 							native.remove(attachment.id);
 							return;
@@ -38159,7 +39527,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							saved: true
 						});
 					} catch (error) {
-						fail(id, entry, `无法恢复 ${meta.name}：${String(error)}；请移除或重新添加`);
+						fail(id, entry, t("panel.error.restoreFile", {
+							name: meta.name,
+							error: String(error)
+						}));
 					}
 				}
 			};
@@ -38172,7 +39543,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						action: "draft-get",
 						topicSessionId: id
 					});
-					if (response.kind !== "draft") throw new Error("草稿响应类型不匹配");
+					if (response.kind !== "draft") throw new Error(t("panel.response.draftMismatch"));
 					if (!current(id, entry)) return;
 					entry.state = response.state;
 					entry.base = response.state;
@@ -38264,7 +39635,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							state: outgoing
 						});
 						if (!current(id, entry)) return;
-						if (response.kind !== "draft") throw new Error("草稿保存响应类型不匹配");
+						if (response.kind !== "draft") throw new Error(t("panel.response.draftSaveMismatch"));
 						if (response.conflict) {
 							entry.remote = response.state;
 							if (++collisions >= 4) {
@@ -38365,7 +39736,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					const entry = entryOf(id);
 					await ensureEntry(id, entry);
 					if (!current(id, entry)) return;
-					if (entry.state.content.files.length + files.length > 32 || files.some((file) => file.size > 104857600)) throw new Error("草稿最多保留 32 个附件，每个附件不超过 100 MiB");
+					if (entry.state.content.files.length + files.length > 32 || files.some((file) => file.size > 104857600)) throw new Error(t("panel.error.draftLimit"));
 					const added = await native.add(id, files);
 					if (!current(id, entry)) {
 						for (const item of added) native.remove(item.id);
@@ -38419,10 +39790,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					emit(id, entry, { sending: true });
 					try {
 						if (entry.composing) return false;
-						if (entry.view.missing.length !== 0) throw new Error("请先移除或重新添加无法恢复的附件");
-						if (entry.state.pending !== null && !retry) throw new Error("上次发送状态未确认，请先核对或明确重试上次发送");
+						if (entry.view.missing.length !== 0) throw new Error(t("panel.error.removeMissing"));
+						if (entry.state.pending !== null && !retry) throw new Error(t("panel.error.pendingSend"));
 						const content = entry.state.pending?.content ?? entry.state.content;
-						if (content.files.some((file) => !entry.files.has(file.id))) throw new Error("上次发送的附件无法恢复，请先核对发送状态");
+						if (content.files.some((file) => !entry.files.has(file.id))) throw new Error(t("panel.error.missingSentFile"));
 						const outgoingFiles = content.files.map((file) => entry.files.get(file.id).native);
 						const requestId = entry.state.pending?.requestId ?? crypto.randomUUID();
 						entry.state = {
@@ -38435,7 +39806,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						entry.generation++;
 						await flushEntry(id, entry);
 						if (!current(id, entry)) return false;
-						if (entry.state.pending?.requestId !== requestId || entry.base.pending?.requestId !== requestId) throw new Error("草稿尚未保存，未发送；请稍后重试");
+						if (entry.state.pending?.requestId !== requestId || entry.base.pending?.requestId !== requestId) throw new Error(t("panel.error.draftNotSaved"));
 						const sent = await send(content, outgoingFiles, requestId);
 						if (!current(id, entry)) return false;
 						if (sent) {
@@ -38469,7 +39840,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						action: "draft-get",
 						topicSessionId: id
 					});
-					if (response.kind !== "draft") throw new Error("草稿响应类型不匹配");
+					if (response.kind !== "draft") throw new Error(t("panel.response.draftMismatch"));
 					if (!current(id, entry)) return;
 					if (response.state.revision <= entry.state.revision) return;
 					entry.remote = response.state;
@@ -38498,12 +39869,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/FileAttachments.js
 		/** Report a failed local preview without dropping the original file or changing its upload state. */
 		function DraftImagePreview({ url }) {
+			useLocale();
 			const [failedUrl, setFailedUrl] = (0, react.useState)();
 			return failedUrl === url ? (0, react_jsx_runtime.jsx)("small", {
 				className: ReferenceAttachments_module_css_default.unavailable,
 				role: "alert",
-				title: "图片无法预览，可移除后重新添加；原文件仍保留。",
-				children: "无法预览"
+				title: t("panel.file.previewHint"),
+				children: t("panel.file.previewUnavailable")
 			}) : (0, react_jsx_runtime.jsx)("img", {
 				src: url,
 				width: "28",
@@ -38518,6 +39890,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Native Conversation-owned file drafts. The owning controller handles upload and lifetime. */
 		function FileAttachments({ files, remove, native, sessionId }) {
+			useLocale();
 			const uploads = (0, react.useSyncExternalStore)(native.uploads.subscribe, native.uploads.getSnapshot);
 			return (0, react_jsx_runtime.jsx)("div", {
 				className: ReferenceAttachments_module_css_default.rail,
@@ -38529,17 +39902,17 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						(0, react_jsx_runtime.jsx)("span", { children: item.file.name }),
 						uploads[item.id]?.status === "uploading" && (0, react_jsx_runtime.jsx)("small", {
 							role: "status",
-							children: "上传中"
+							children: t("panel.file.uploading")
 						}),
 						uploads[item.id]?.status === "error" && (0, react_jsx_runtime.jsx)("button", {
 							type: "button",
-							title: "上传失败，点击重试",
+							title: t("panel.file.uploadFailed"),
 							onClick: () => native.retry(sessionId, item.id),
-							children: "重试"
+							children: t("panel.file.retry")
 						}),
 						(0, react_jsx_runtime.jsx)("button", {
 							type: "button",
-							"aria-label": `移除附件 ${item.file.name}`,
+							"aria-label": t("panel.file.remove", { name: item.file.name }),
 							onClick: () => remove(item.id),
 							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, {})
 						})
@@ -38563,12 +39936,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/FileDropHint.js
 		/** Display the receiving Topic without intercepting the drag's pointer target. */
 		function FileDropHint({ enabled, title }) {
+			useLocale();
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: FileDropHint_module_css_default.hint,
 				role: "status",
 				"data-citeciter-file-drop": true,
 				"data-disabled": !enabled || void 0,
-				children: [(0, react_jsx_runtime.jsx)("strong", { children: enabled ? "松开，添加到 Citer" : "先选择一个 Topic" }), enabled && title && (0, react_jsx_runtime.jsx)("span", { children: title })]
+				children: [(0, react_jsx_runtime.jsx)("strong", { children: enabled ? t("panel.file.drop") : t("panel.file.selectTopic") }), enabled && title && (0, react_jsx_runtime.jsx)("span", { children: title })]
 			});
 		}
 		//#endregion
@@ -38652,6 +40026,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/NativeQueue.js
 		/** Read and mutate the Host's authoritative inbox. Citer never owns a second queue. */
 		function NativeQueue({ sessionId, native }) {
+			useLocale();
 			const [snapshot, setSnapshot] = (0, react.useState)();
 			const [error, setError] = (0, react.useState)();
 			(0, react.useEffect)(() => {
@@ -38665,35 +40040,35 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (rows.length === 0 && pending.length === 0 && error === void 0 && readError === null) return null;
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: NativeQueue_module_css_default.queue,
-				"aria-label": "DSH 发送队列",
+				"aria-label": t("panel.queue.label"),
 				children: [
 					error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
 						role: "alert",
 						children: error
 					}),
-					readError !== null && (0, react_jsx_runtime.jsxs)("p", {
+					readError !== null && (0, react_jsx_runtime.jsx)("p", {
 						role: "alert",
-						children: ["无法读取发送状态，正在重连：", readError]
+						children: t("panel.queue.readFailed", { error: readError })
 					}),
 					pending.map((row) => (0, react_jsx_runtime.jsxs)("div", {
 						className: NativeQueue_module_css_default.row,
-						children: [(0, react_jsx_runtime.jsx)("span", { children: "发送中" }), (0, react_jsx_runtime.jsx)("p", { children: row.text || "附件" })]
+						children: [(0, react_jsx_runtime.jsx)("span", { children: t("panel.queue.sending") }), (0, react_jsx_runtime.jsx)("p", { children: row.text || t("panel.queue.attachment") })]
 					}, row.requestId)),
 					rows.map((row) => (0, react_jsx_runtime.jsxs)("div", {
 						className: NativeQueue_module_css_default.row,
 						children: [
 							(0, react_jsx_runtime.jsx)("span", {
-								title: row.placement === "steering" ? "将在当前回答的下一步处理" : "当前回答完成后处理",
-								children: row.placement === "steering" ? "插话" : "排队"
+								title: row.placement === "steering" ? t("panel.queue.steerHint") : t("panel.queue.queuedHint"),
+								children: row.placement === "steering" ? t("panel.composer.steer") : t("panel.composer.queue")
 							}),
 							(0, react_jsx_runtime.jsx)("p", {
-								title: row.text || "附件",
-								children: row.text || "附件"
+								title: row.text || t("panel.queue.attachment"),
+								children: row.text || t("panel.queue.attachment")
 							}),
 							row.placement === "queued" && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
-								title: "现在插话",
-								"aria-label": "将此条排队消息改为插话",
+								title: t("panel.queue.steerNow"),
+								"aria-label": t("panel.queue.steerItem"),
 								onClick: () => {
 									native.queue(sessionId, row.id, { kind: "steer" }).catch((error) => setError(String(error)));
 								},
@@ -38701,8 +40076,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							}),
 							(0, react_jsx_runtime.jsx)("button", {
 								type: "button",
-								title: "移出队列",
-								"aria-label": "移除此条待处理消息",
+								title: t("panel.queue.remove"),
+								"aria-label": t("panel.queue.removeItem"),
 								onClick: () => {
 									native.queue(sessionId, row.id, { kind: "remove" }).catch((error) => setError(String(error)));
 								},
@@ -38722,6 +40097,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @returns the form lifecycle and a ref identifying its answer surface.
 		*/
 		function useNativeQuestionInteraction(pending) {
+			useLocale();
 			const snapshot = (0, react.useSyncExternalStore)(pending.subscribe, pending.getSnapshot, pending.getSnapshot);
 			const surface = (0, react.useRef)(null);
 			(0, react.useEffect)(() => {
@@ -38743,7 +40119,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					document.removeEventListener("visibilitychange", visibility);
 				};
 			}, [pending]);
-			const status = pending.review !== void 0 ? "已提交的回答" : pending.interrupted ? "上次运行已中断，可补充回答；手动提交后继续" : snapshot.state === "continued" ? "模型已继续，可补充回答" : snapshot.countdown === void 0 ? void 0 : snapshot.waitState === "editing" || snapshot.waitState === "waiting" ? "等待你完成回答" : snapshot.waitState === "focused" ? "输入区获得焦点，倒计时已暂停" : `${Math.ceil(snapshot.countdown.remainingMs / 1e3)} 秒后模型将继续`;
+			const status = pending.review !== void 0 ? t("panel.question.submitted") : pending.interrupted ? t("panel.question.interrupted") : snapshot.state === "continued" ? t("panel.question.canReply") : snapshot.countdown === void 0 ? void 0 : snapshot.waitState === "editing" || snapshot.waitState === "waiting" ? t("panel.question.waiting") : snapshot.waitState === "focused" ? t("panel.question.focused") : t("panel.question.countdown", { seconds: Math.ceil(snapshot.countdown.remainingMs / 1e3) });
 			return {
 				surface,
 				interaction: {
@@ -38751,7 +40127,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					channel: snapshot.channel,
 					closed: snapshot.closed,
 					review: pending.review,
-					dismissLabel: pending.dismissal === "hide" ? "收起" : "取消",
+					dismissLabel: pending.dismissal === "hide" ? t("panel.header.collapse") : t("common.cancel"),
 					status,
 					canTakeTime: snapshot.countdown !== void 0 && snapshot.waitState !== "editing" && snapshot.waitState !== "waiting",
 					allowSkip: pending.allowSkip ?? (pending.callId !== void 0 && pending.kind !== "plan-review"),
@@ -38768,6 +40144,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const noSnapshot = () => void 0;
 		/** Collect one standard DSH ask_user_question answer batch inside the private Topic. */
 		function QuestionCard({ onAnswer, onCancel, pending, interaction, surface, draftStore }) {
+			useLocale();
 			const [localPage, setLocalPage] = (0, react.useState)(0);
 			const [busy, setBusy] = (0, react.useState)(false);
 			const [error, setError] = (0, react.useState)();
@@ -38788,7 +40165,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				if (sentVia.current !== "waterfall" || interaction?.state !== "continued") return;
 				sentVia.current = void 0;
 				setBusy(false);
-				setError("模型已继续，回答仍保留，请再次提交。");
+				setError(t("panel.question.continued"));
 			}, [interaction?.state]);
 			const run = (action) => {
 				if (busy) return;
@@ -38864,7 +40241,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				sentVia.current = interaction?.channel;
 				run(async () => {
 					await store?.flush();
-					if (store?.getSnapshot().closed) throw new Error("这条提问已结束，未发送回答。");
+					if (store?.getSnapshot().closed) throw new Error(t("panel.question.closed"));
 					return onAnswer(answer);
 				});
 			};
@@ -38877,7 +40254,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				ref: surface,
 				className: CiteCiter_module_css_default.questionFrame,
 				onSubmit: submit,
-				"aria-label": "Citer 提问",
+				"aria-label": t("panel.question.label"),
 				onFocus: (event) => {
 					if (!event.currentTarget.contains(event.relatedTarget)) interaction?.focus();
 				},
@@ -38889,7 +40266,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						className: CiteCiter_module_css_default.questionHeader,
 						children: [
 							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconQuestionOutlineMedium, {}),
-							(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("span", { children: question.header ?? "Citer 需要你的回答" }), (0, react_jsx_runtime.jsx)("strong", { children: question.question })] }),
+							(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("span", { children: question.header ?? t("panel.question.needsAnswer") }), (0, react_jsx_runtime.jsx)("strong", { children: question.question })] }),
 							(0, react_jsx_runtime.jsxs)("span", { children: [
 								page + 1,
 								"/",
@@ -38915,7 +40292,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							type: "button",
 							disabled: busy,
 							onClick: () => recover(stored.ready ? store.flush : store.ensure),
-							children: stored.ready ? "重试保存" : "重新加载"
+							children: stored.ready ? t("panel.question.retrySave") : t("panel.question.reload")
 						})
 					}) : null,
 					(question.options ?? []).length > 0 && (0, react_jsx_runtime.jsx)("div", {
@@ -38936,8 +40313,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						rows: 2,
 						disabled: locked,
 						value: draft.custom,
-						placeholder: (question.options ?? []).length === 0 ? "输入回答…" : "其他（可填写）",
-						"aria-label": "自定义回答",
+						placeholder: (question.options ?? []).length === 0 ? t("panel.question.answerPlaceholder") : t("panel.question.otherPlaceholder"),
+						"aria-label": t("panel.question.customAnswer"),
 						onCompositionStart: () => store?.setComposing(true),
 						onCompositionEnd: () => store?.setComposing(false),
 						onBlur: () => store?.setComposing(false),
@@ -38953,13 +40330,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								type: "button",
 								disabled: busy,
 								onClick: () => run(onCancel),
-								children: interaction?.dismissLabel ?? "取消"
+								children: interaction?.dismissLabel ?? t("common.cancel")
 							}),
 							interaction?.canTakeTime && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								disabled: locked,
 								onClick: () => interaction.takeTime(),
-								children: "等我回答"
+								children: t("panel.question.takeTime")
 							}),
 							interaction?.allowSkip && !readonly && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
@@ -38971,14 +40348,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									});
 									if (page + 1 < pending.questions.length) setPage(page + 1);
 								},
-								children: "跳过此题"
+								children: t("panel.question.skip")
 							}),
 							(0, react_jsx_runtime.jsx)("span", {}),
 							page > 0 && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								disabled: busy || !readonly && !draftReady,
 								onClick: () => setPage(page - 1),
-								children: "上一个"
+								children: t("panel.question.previous")
 							}),
 							page + 1 < pending.questions.length ? (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
@@ -38987,11 +40364,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									event.preventDefault();
 									setPage(page + 1);
 								},
-								children: "下一个"
+								children: t("panel.question.next")
 							}, "next") : !readonly && (0, react_jsx_runtime.jsx)("button", {
 								type: "submit",
 								disabled: !complete || locked || interaction?.channel === "none",
-								children: busy ? "提交中…" : "提交回答"
+								children: busy ? t("panel.question.submitting") : t("panel.question.submit")
 							}, "submit")
 						]
 					})
@@ -39033,12 +40410,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Present the Host's one-shot pending request. Decisions go to its existing waterfall; no second permission authority is created. Remount on pending.key. */
 		function NativeInteraction({ pending, messages }) {
+			useLocale();
 			const [busy, setBusy] = (0, react.useState)(false);
 			const [error, setError] = (0, react.useState)();
 			if (pending.kind === "question" || pending.kind === "plan-review") return (0, react_jsx_runtime.jsx)(NativeQuestion, { pending });
 			if (pending.kind !== "approval") return (0, react_jsx_runtime.jsx)("p", {
 				role: "status",
-				children: "当前工具正在等待宿主交互。可停止后重试。"
+				children: t("panel.approval.wait")
 			});
 			const call = messages.find((message) => message.role === "tool" && message.id === pending.callId);
 			const answer = (decision) => {
@@ -39052,13 +40430,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: NativeInteraction_module_css_default.approval,
-				"aria-label": "DSH 工具审批",
+				"aria-label": t("panel.approval.label"),
 				children: [(0, react_jsx_runtime.jsxs)("div", {
 					className: NativeInteraction_module_css_default.body,
 					children: [
-						(0, react_jsx_runtime.jsxs)("strong", { children: ["等待授权 · ", pending.toolName] }),
+						(0, react_jsx_runtime.jsx)("strong", { children: t("panel.approval.pending", { tool: pending.toolName }) }),
 						pending.reason !== void 0 && (0, react_jsx_runtime.jsx)("p", { children: pending.reason }),
-						call?.role === "tool" && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: "查看工具参数" }), (0, react_jsx_runtime.jsx)("pre", { children: call.arguments })] }),
+						call?.role === "tool" && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: t("panel.approval.parameters") }), (0, react_jsx_runtime.jsx)("pre", { children: call.arguments })] }),
 						error !== void 0 && (0, react_jsx_runtime.jsx)("p", {
 							role: "alert",
 							children: error
@@ -39070,12 +40448,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						type: "button",
 						disabled: busy,
 						onClick: () => answer("rejected"),
-						children: "拒绝"
+						children: t("panel.approval.reject")
 					}), (0, react_jsx_runtime.jsx)("button", {
 						type: "button",
 						disabled: busy,
 						onClick: () => answer("allowed-once"),
-						children: "仅允许这次"
+						children: t("panel.approval.allowOnce")
 					})]
 				})]
 			});
@@ -39181,6 +40559,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param attention - show a dot because an answer finished or a question waits while Citer is closed.
 		*/
 		function CiterPet({ attention, onOpen }) {
+			useLocale();
 			const [place, setPlace] = (0, react.useState)(readPlace);
 			const [expanded, setExpanded] = (0, react.useState)(false);
 			const [drag, setDrag] = (0, react.useState)(null);
@@ -39278,8 +40657,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				"data-side": place.side,
 				"data-expanded": shown || void 0,
 				"data-dragging": drag !== null || void 0,
-				"aria-label": attention ? "打开 Citer，有新的回答" : "打开 Citer",
-				title: "打开 Citer · 可以拖动",
+				"aria-label": attention ? t("panel.pet.attention") : t("panel.pet.open"),
+				title: t("panel.pet.drag"),
 				onPointerDown: down,
 				onPointerMove: move,
 				onPointerUp: up,
@@ -39330,6 +40709,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Private Topic questions share native wait semantics without joining the Host's Session list. */
 		function TopicQuestions({ sessionId, pending, native, children }) {
+			useLocale();
 			const [, render] = (0, react.useReducer)((value) => value + 1, 0);
 			const cards = (0, react.useMemo)(() => pending.map((question) => ({
 				question,
@@ -39354,7 +40734,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const answerable = cards.filter((card) => !card.controller.getSnapshot().closed);
 			const visible = answerable.find((card) => !card.controller.getSnapshot().hidden);
 			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [answerable.length > 0 && (answerable.length > 1 || visible === void 0) && (0, react_jsx_runtime.jsx)("div", {
-				"aria-label": "待回答问题",
+				"aria-label": t("panel.questions.pending"),
 				children: answerable.map((card, index) => (0, react_jsx_runtime.jsxs)("button", {
 					type: "button",
 					disabled: visible?.controller.dismissal === "cancel" && visible !== card,
@@ -39363,7 +40743,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						for (const other of answerable) if (other !== card && other.controller.dismissal === "hide") other.controller.dismiss();
 						card.controller.reveal();
 					},
-					children: [card.question.questions[0]?.header ?? `问题 ${index + 1}`, card.question.state === "continued" ? " · 可补答" : ""]
+					children: [card.question.questions[0]?.header ?? t("panel.questions.number", { number: index + 1 }), card.question.state === "continued" ? t("panel.questions.lateReply") : ""]
 				}, card.question.key))
 			}), visible === void 0 ? children : (0, react_jsx_runtime.jsx)(TopicQuestion, {
 				pending: visible.question,
@@ -39392,13 +40772,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/ReasoningDisclosure.js
 		/** Display only reasoning actually returned by the model. Expansion is local UI state; no model call or Session mutation occurs. */
 		function ReasoningDisclosure({ text, active }) {
+			useLocale();
 			const [open, setOpen] = (0, react.useState)(false);
 			const preview = (0, react.useMemo)(() => text.replaceAll(/\s+/gu, " ").trim().slice(0, 180), [text]);
 			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DisclosureRow, {
 				className: ReasoningDisclosure_module_css_default.disclosure,
 				rowClassName: active ? ReasoningDisclosure_module_css_default.activeRow : ReasoningDisclosure_module_css_default.row,
 				icon: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconThinkOutlineMedium, {}),
-				title: active ? "思考中" : "思考",
+				title: t(active ? "transcript.reasoning.active" : "transcript.reasoning.done"),
 				open,
 				expandable: true,
 				expandOnRowClick: true,
@@ -39509,18 +40890,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/LearningRoute.js
 		/** Progress of the optional learning route. It is switched in the Topic menu; the model owns the plan. */
 		function LearningRoute({ enabled, messages }) {
+			useLocale();
 			const todos = learningTodos(messages);
 			if (!enabled || todos.length === 0) return null;
 			return (0, react_jsx_runtime.jsxs)("details", {
 				className: LearningRoute_module_css_default.route,
-				children: [(0, react_jsx_runtime.jsxs)("summary", { children: [
-					"学习路线 ",
-					todos.filter((item) => item.status === "completed").length,
-					" / ",
-					todos.length,
-					" · ",
-					todos.find((item) => item.status === "in_progress")?.content ?? "已完成"
-				] }), (0, react_jsx_runtime.jsx)("ol", { children: todos.map((item, index) => (0, react_jsx_runtime.jsxs)("li", {
+				children: [(0, react_jsx_runtime.jsx)("summary", { children: t("board.route.progress", {
+					completed: todos.filter((item) => item.status === "completed").length,
+					total: todos.length,
+					current: todos.find((item) => item.status === "in_progress")?.content ?? t("board.route.completed")
+				}) }), (0, react_jsx_runtime.jsx)("ol", { children: todos.map((item, index) => (0, react_jsx_runtime.jsxs)("li", {
 					"data-state": item.status,
 					children: [(0, react_jsx_runtime.jsx)("span", {
 						"aria-hidden": "true",
@@ -39533,6 +40912,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/LearningExample.js
 		/** Render the explicit example kind; even HTML/SVG source stays literal code. */
 		function LearningExample({ example }) {
+			useLocale();
 			return example.kind === "code" ? (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.CodeBlock, {
 				code: example.content,
 				lang: example.language,
@@ -39576,19 +40956,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#endregion
 		//#region lib/types/client/components/LearningCards.js
 		function Card({ card, recall, index }) {
+			useLocale();
 			const [revealed, setRevealed] = (0, react.useState)(false);
 			const showAnswer = !recall || revealed;
 			return (0, react_jsx_runtime.jsxs)("article", {
 				className: LearningWorkspace_module_css_default.card,
 				children: [
-					(0, react_jsx_runtime.jsxs)("div", {
+					(0, react_jsx_runtime.jsx)("div", {
 						className: LearningWorkspace_module_css_default.cardEyebrow,
-						children: ["学习卡片 · ", String(index + 1).padStart(2, "0")]
+						children: t("board.cards.eyebrow", { number: String(index + 1).padStart(2, "0") })
 					}),
 					(0, react_jsx_runtime.jsx)("h3", { children: card.title }),
 					recall && (0, react_jsx_runtime.jsxs)("div", {
 						className: LearningWorkspace_module_css_default.recallQuestion,
-						children: [(0, react_jsx_runtime.jsx)("strong", { children: "先试着用自己的话回答" }), (0, react_jsx_runtime.jsx)(RichAnswer, {
+						children: [(0, react_jsx_runtime.jsx)("strong", { children: t("board.cards.question") }), (0, react_jsx_runtime.jsx)(RichAnswer, {
 							text: card.question,
 							streaming: false
 						})]
@@ -39600,11 +40981,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						}),
 						(0, react_jsx_runtime.jsxs)("div", {
 							className: LearningWorkspace_module_css_default.example,
-							children: [(0, react_jsx_runtime.jsx)("strong", { children: "用一个例子记住" }), (0, react_jsx_runtime.jsx)(LearningExample, { example: card.example })]
+							children: [(0, react_jsx_runtime.jsx)("strong", { children: t("board.cards.example") }), (0, react_jsx_runtime.jsx)(LearningExample, { example: card.example })]
 						}),
 						recall && (0, react_jsx_runtime.jsxs)("div", {
 							className: LearningWorkspace_module_css_default.reference,
-							children: [(0, react_jsx_runtime.jsx)("strong", { children: "参考答案" }), (0, react_jsx_runtime.jsx)(RichAnswer, {
+							children: [(0, react_jsx_runtime.jsx)("strong", { children: t("board.cards.answer") }), (0, react_jsx_runtime.jsx)(RichAnswer, {
 								text: card.answer,
 								streaming: false
 							})]
@@ -39613,44 +40994,45 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						type: "button",
 						className: LearningWorkspace_module_css_default.action,
 						onClick: () => setRevealed(true),
-						children: "展开结论与参考答案"
+						children: t("board.cards.reveal")
 					})
 				]
 			});
 		}
+		function exportedCards(cards, topicTitle, topicId, source) {
+			if (isChinese()) return learningCardsMarkdown(cards, topicTitle, topicId, source);
+			return `# ${topicTitle}\n\nTopic: ${topicId}\n\n${t("board.cards.markdown.source")} ${source}\n\n${cards.map((card, index) => `## ${index + 1}. ${card.title}\n\n${card.summary}\n\n**${t("board.cards.markdown.example")}**\n\n${learningExampleMarkdown(card.example)}\n\n**${t("board.cards.markdown.selfTest")}**\n\n${card.question}\n\n**${t("board.cards.answer")}**\n\n${card.answer}`).join("\n\n---\n\n")}\n`;
+		}
 		/** Read the latest durable Topic card set. Recall affects display only and never schedules work. */
 		function LearningCards({ projection, recall, setRecall, disabled, topicTitle, topicId, source, onRevise }) {
-			const markdown = learningCardsMarkdown(projection.cards, topicTitle, topicId, source);
+			useLocale();
+			const markdown = exportedCards(projection.cards, topicTitle, topicId, source);
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: LearningWorkspace_module_css_default.cards,
-				"aria-label": "学习卡片",
+				"aria-label": t("board.cards.label"),
 				children: [
 					(0, react_jsx_runtime.jsxs)("header", {
 						className: LearningWorkspace_module_css_default.cardsHeader,
 						children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("span", {
 							className: LearningWorkspace_module_css_default.eyebrow,
-							children: "留下一份理解"
-						}), (0, react_jsx_runtime.jsx)("h2", { children: "总结学习卡片" })] }), (0, react_jsx_runtime.jsxs)("label", {
+							children: t("board.cards.kicker")
+						}), (0, react_jsx_runtime.jsx)("h2", { children: t("board.cards.title") })] }), (0, react_jsx_runtime.jsxs)("label", {
 							className: LearningWorkspace_module_css_default.recallToggle,
 							children: [(0, react_jsx_runtime.jsx)("input", {
 								type: "checkbox",
 								checked: recall,
 								disabled,
 								onChange: (event) => setRecall(event.currentTarget.checked)
-							}), "主动回忆"]
+							}), t("board.cards.recall")]
 						})]
 					}),
 					(0, react_jsx_runtime.jsx)("p", {
 						className: LearningWorkspace_module_css_default.muted,
-						children: recall ? "先自己回答，再展开参考内容。随时可以关闭。" : "直接阅读结论与例子。想自测时，再开启主动回忆。"
+						children: t(recall ? "board.cards.recallOn" : "board.cards.recallOff")
 					}),
-					projection.invalid > 0 && (0, react_jsx_runtime.jsxs)("p", {
+					projection.invalid > 0 && (0, react_jsx_runtime.jsx)("p", {
 						role: "status",
-						children: [
-							"有 ",
-							projection.invalid,
-							" 条卡片记录无法读取，已保留最近可用的一组。"
-						]
+						children: t("board.cards.invalid", { count: projection.invalid })
 					}),
 					projection.cards.length === 0 ? (0, react_jsx_runtime.jsxs)("div", {
 						className: LearningWorkspace_module_css_default.empty,
@@ -39660,13 +41042,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								"aria-hidden": "true",
 								children: "▤"
 							}),
-							(0, react_jsx_runtime.jsx)("h3", { children: "让理解留下来" }),
-							(0, react_jsx_runtime.jsx)("p", { children: "在输入框请求总结学习卡片并发送。模型会先核对结论，再整理卡片。" }),
+							(0, react_jsx_runtime.jsx)("h3", { children: t("board.cards.empty.title") }),
+							(0, react_jsx_runtime.jsx)("p", { children: t("board.cards.empty.description") }),
 							(0, react_jsx_runtime.jsx)("button", {
 								className: LearningWorkspace_module_css_default.action,
 								type: "button",
 								onClick: onRevise,
-								children: "准备总结"
+								children: t("board.cards.prepare")
 							})
 						]
 					}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
@@ -39681,25 +41063,25 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								className: LearningWorkspace_module_css_default.action,
 								href: `data:text/markdown;charset=utf-8,${encodeURIComponent(markdown)}`,
 								download: "CiteCiter-learning-cards.md",
-								children: "导出 Markdown"
+								children: t("board.cards.export")
 							}), (0, react_jsx_runtime.jsx)("button", {
 								className: LearningWorkspace_module_css_default.action,
 								type: "button",
 								onClick: onRevise,
-								children: "补充或修订"
+								children: t("board.cards.revise")
 							})]
 						}),
 						(0, react_jsx_runtime.jsxs)("details", {
 							className: LearningWorkspace_module_css_default.provenance,
 							children: [
-								(0, react_jsx_runtime.jsxs)("summary", { children: ["来自当前 Topic · ", topicTitle] }),
+								(0, react_jsx_runtime.jsx)("summary", { children: t("board.cards.provenance", { title: topicTitle }) }),
 								(0, react_jsx_runtime.jsx)("p", { children: source }),
 								(0, react_jsx_runtime.jsx)("small", { children: topicId })
 							]
 						}),
 						(0, react_jsx_runtime.jsx)("p", {
 							className: LearningWorkspace_module_css_default.muted,
-							children: "已随 Topic 保存。修订时发送你的要求，生成后展示新的完整一组。"
+							children: t("board.cards.saved")
 						})
 					] })
 				]
@@ -39727,10 +41109,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const EFFORT = "effort:";
 		/** Model and reasoning choices in the host's menu. Route changes are committed by the injected controller. */
 		function TopicModelControls({ providers, route, saving, onModel, onReasoning }) {
+			useLocale();
 			const [open, setOpen] = (0, react.useState)(false);
 			const model = providers.find((provider) => provider.id === route.provider)?.models.find((model) => model.id === route.model);
 			const name = model?.name ?? route.model;
-			const effort = model?.reasoningEfforts.find((item) => item.id === route.reasoningEffort)?.name ?? "默认";
+			const effort = model?.reasoningEfforts.find((item) => item.id === route.reasoningEffort)?.name ?? t("panel.model.default");
 			const items = [...providers.filter((provider) => provider.models.length > 0).flatMap((provider) => [{
 				type: "label",
 				id: `provider:${provider.id}`,
@@ -39746,11 +41129,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				{
 					type: "label",
 					id: "effort-label",
-					text: "思考强度"
+					text: t("panel.model.effort")
 				},
 				{
 					id: EFFORT,
-					label: "模型默认"
+					label: t("panel.model.modelDefault")
 				},
 				...model.reasoningEfforts.map((item) => ({
 					id: EFFORT + item.id,
@@ -39779,7 +41162,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					className: TopicModelControls_module_css_default.trigger,
 					"aria-disabled": saving,
 					"aria-busy": saving,
-					"aria-label": `模型与思考强度：${name}，${effort}`,
+					"aria-label": t("panel.model.label", {
+						name,
+						effort
+					}),
 					"aria-haspopup": "menu",
 					"aria-expanded": open,
 					onClick: () => {
@@ -39796,33 +41182,35 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#endregion
 		//#region lib/types/client/components/PermissionControl.js
 		/** DSH's own permission names and glyphs, in the host's order. */
-		const choices = [
+		const choices = () => [
 			{
 				mode: "read-only",
-				label: "只读",
+				label: t("panel.permission.readOnly"),
 				icon: () => (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.PermissionIconReadOnlyRegular, {})
 			},
 			{
 				mode: "workspace-write",
-				label: "工作区内修改",
+				label: t("panel.permission.workspaceWrite"),
 				icon: () => (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.PermissionIconWorkspaceWriteRegular, {})
 			},
 			{
 				mode: "danger-full-access",
-				label: "完全权限",
+				label: t("panel.permission.fullAccess"),
 				icon: () => (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.PermissionIconFullAccessRegular, {})
 			}
 		];
 		/** Explicit permission selection in the host's menu; receives the Host's effective value. */
 		function PermissionControl({ value, onChange }) {
+			useLocale();
 			const [open, setOpen] = (0, react.useState)(false);
-			const current = choices.find((choice) => choice.mode === value) ?? choices[0];
+			const options = choices();
+			const current = options.find((choice) => choice.mode === value) ?? options[0];
 			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Menu, {
 				open,
 				onClose: () => setOpen(false),
 				side: "top",
 				portal: true,
-				items: choices.map((choice) => ({
+				items: options.map((choice) => ({
 					id: choice.mode,
 					label: choice.label,
 					icon: choice.icon()
@@ -39835,8 +41223,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				anchor: (0, react_jsx_runtime.jsxs)("button", {
 					type: "button",
 					className: TopicModelControls_module_css_default.trigger,
-					"aria-label": `权限：${current.label}`,
-					title: "DSH 权限",
+					"aria-label": t("panel.permission.label", { mode: current.label }),
+					title: t("panel.permission.host"),
 					"aria-haspopup": "menu",
 					"aria-expanded": open,
 					onClick: () => setOpen((state) => !state),
@@ -39870,6 +41258,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @returns one form; model changes and sending remain owned by the Topic controller.
 		*/
 		function TopicComposer({ question, placeholder, route, providers, phase, canSend, routeSaving, folded, inputRef, onExpand, onQuestion, onComposition, onSubmit, onStop, onModel, onReasoning, attachments, permission, onPermission, onFiles, delivery, onDelivery }) {
+			useLocale();
 			const fileInput = (0, react.useRef)(null);
 			const running = phase === "running";
 			const stopping = phase === "stopping";
@@ -39893,14 +41282,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						type: "button",
 						className: TopicComposer_module_css_default.expandButton,
 						onClick: onExpand,
-						children: question.trim() === "" ? "补充问题" : "编辑草稿"
+						children: question.trim() === "" ? t("panel.composer.addQuestion") : t("panel.composer.editDraft")
 					}),
 					(0, react_jsx_runtime.jsx)("textarea", {
 						hidden: folded,
 						ref: inputRef,
 						rows: 2,
 						maxLength: 11e3,
-						"aria-label": "继续向 Citer 提问",
+						"aria-label": t("panel.composer.ask"),
 						value: question,
 						disabled: route === void 0,
 						onChange: (event) => onQuestion(event.currentTarget.value),
@@ -39927,8 +41316,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							(0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								className: TopicComposer_module_css_default.attachButton,
-								"aria-label": "添加图片或文件",
-								title: "添加图片或文件",
+								"aria-label": t("panel.composer.attach"),
+								title: t("panel.composer.attach"),
 								disabled: route === void 0,
 								onClick: () => fileInput.current?.click(),
 								children: "+"
@@ -39947,8 +41336,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							(running || stopping) && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								className: TopicComposer_module_css_default.attachButton,
-								"aria-label": "停止回答",
-								title: "停止回答",
+								"aria-label": t("panel.composer.stop"),
+								title: t("panel.composer.stop"),
 								disabled: stopping,
 								onClick: onStop,
 								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconStopFillMedium, { size: 16 })
@@ -39956,8 +41345,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							running && (0, react_jsx_runtime.jsx)("button", {
 								className: TopicComposer_module_css_default.attachButton,
 								type: "button",
-								title: delivery === "queue" ? "当前：排队发送；点击切换为插话" : "当前：插话；点击切换为排队",
-								"aria-label": delivery === "queue" ? "排队发送" : "插话发送",
+								title: delivery === "queue" ? t("panel.composer.queueHint") : t("panel.composer.steerHint"),
+								"aria-label": delivery === "queue" ? t("panel.composer.queueSend") : t("panel.composer.steerSend"),
 								onClick: () => onDelivery(delivery === "queue" ? "steer" : "queue"),
 								children: delivery === "queue" ? "☷" : "↗"
 							}),
@@ -39965,8 +41354,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								className: TopicComposer_module_css_default.sendButton,
 								type: "submit",
 								disabled: stopping || !canSend || routeSaving,
-								title: running ? `Enter：${delivery === "queue" ? "排队" : "插话"}；Ctrl + Enter：${delivery === "queue" ? "插话" : "排队"}；Shift + Enter：换行` : "发送 · Enter（Shift + Enter 换行）",
-								"aria-label": "发送",
+								title: running ? t("panel.composer.runningHint", {
+									normal: delivery === "queue" ? t("panel.composer.queue") : t("panel.composer.steer"),
+									alternate: delivery === "queue" ? t("panel.composer.steer") : t("panel.composer.queue")
+								}) : t("panel.composer.sendHint"),
+								"aria-label": t("panel.composer.send"),
 								children: (0, react_jsx_runtime.jsx)("svg", {
 									width: "20",
 									height: "20",
@@ -40017,6 +41409,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/TopicActions.js
 		/** The "⋯" menu in the host's menu: rename, learning route, document reader, context visibility, archive and permanent deletion. */
 		function TopicActions({ menu }) {
+			useLocale();
 			const [open, setOpen] = (0, react.useState)(false);
 			const choose = (action) => {
 				setOpen(false);
@@ -40030,8 +41423,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				portal: true,
 				anchor: (0, react_jsx_runtime.jsx)("button", {
 					type: "button",
-					title: "更多",
-					"aria-label": "Topic 操作",
+					title: t("panel.menu.more"),
+					"aria-label": t("panel.menu.actions"),
 					"aria-haspopup": "menu",
 					"aria-expanded": open,
 					onClick: () => setOpen((value) => !value),
@@ -40042,32 +41435,32 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						disabled: topic === void 0,
 						shortcut: { keys: ["F2"] },
 						onSelect: () => choose(menu.onRename),
-						children: "重命名"
+						children: t("panel.menu.rename")
 					}),
 					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MenuItemButton, {
 						onSelect: () => choose(() => menu.onLearningRoute(!menu.learningRoute)),
-						children: menu.learningRoute ? "关闭学习路线" : "开启学习路线"
+						children: menu.learningRoute ? t("panel.menu.disableLearning") : t("panel.menu.enableLearning")
 					}),
 					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MenuItemButton, {
 						onSelect: () => choose(menu.onReader),
-						children: "文档阅读"
+						children: t("panel.menu.reader")
 					}),
 					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MenuItemButton, {
 						disabled: topic === void 0,
 						onSelect: () => choose(() => menu.onAllContext(!menu.allContext)),
-						children: menu.allContext ? "只显示上下文通知" : "显示全部上下文"
+						children: menu.allContext ? t("panel.menu.contextNotices") : t("panel.menu.allContext")
 					}),
 					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MenuItemButton, {
 						disabled: topic === void 0 || menu.busy,
 						onSelect: () => choose(() => menu.onArchive(!topic.archived)),
-						children: topic?.archived === true ? "恢复 Topic" : "归档 Topic"
+						children: topic?.archived === true ? t("panel.menu.restore") : t("panel.menu.archive")
 					}),
 					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MenuItemButton, {
 						separatorBefore: true,
 						danger: true,
 						disabled: topic === void 0 || menu.busy,
 						onSelect: () => choose(menu.onDelete),
-						children: "永久删除…"
+						children: t("panel.menu.delete")
 					})
 				]
 			});
@@ -40076,6 +41469,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/TopicNavigation.js
 		/** Topic list with search, new Topic and the Topic menu. Receives domain rows and callbacks, without service discovery. */
 		function TopicNavigation({ topics, activeId, archived, onOpen, onNew, onArchiveView, menu }) {
+			useLocale();
 			const [open, setOpen] = (0, react.useState)(false);
 			const [query, setQuery] = (0, react.useState)("");
 			const ref = (0, react.useRef)(null);
@@ -40096,8 +41490,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					children: [
 						(0, react_jsx_runtime.jsx)("button", {
 							type: "button",
-							title: "Topic 列表",
-							"aria-label": "Topic 列表",
+							title: t("panel.nav.list"),
+							"aria-label": t("panel.nav.list"),
 							"aria-expanded": open,
 							onClick: () => setOpen(!open),
 							children: (0, react_jsx_runtime.jsx)("svg", {
@@ -40109,8 +41503,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						}),
 						(0, react_jsx_runtime.jsx)("button", {
 							type: "button",
-							title: "新建 Topic",
-							"aria-label": "新建 Topic",
+							title: t("panel.newTopic"),
+							"aria-label": t("panel.newTopic"),
 							onClick: () => {
 								setOpen(false);
 								onNew();
@@ -40121,7 +41515,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					]
 				}), open && (0, react_jsx_runtime.jsxs)("section", {
 					className: TopicNavigation_module_css_default.list,
-					"aria-label": "Topic 列表",
+					"aria-label": t("panel.nav.list"),
 					onKeyDown: (event) => {
 						if (event.key === "Escape") setOpen(false);
 					},
@@ -40129,8 +41523,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						className: TopicNavigation_module_css_default.search,
 						children: [(0, react_jsx_runtime.jsx)("input", {
 							autoFocus: true,
-							placeholder: "搜索 Topic",
-							"aria-label": "搜索 Topic",
+							placeholder: t("panel.nav.search"),
+							"aria-label": t("panel.nav.search"),
 							value: query,
 							onChange: (event) => setQuery(event.currentTarget.value)
 						}), (0, react_jsx_runtime.jsx)("button", {
@@ -40138,11 +41532,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							className: TopicNavigation_module_css_default.archiveToggle,
 							"aria-pressed": archived,
 							onClick: () => onArchiveView(!archived),
-							children: archived ? "查看活动" : "查看归档"
+							children: archived ? t("panel.nav.showActive") : t("panel.nav.showArchived")
 						})]
 					}), (0, react_jsx_runtime.jsxs)("div", {
 						className: TopicNavigation_module_css_default.rows,
-						children: [rows.length === 0 && (0, react_jsx_runtime.jsx)("p", { children: query ? "没有匹配的 Topic" : archived ? "没有归档的 Topic" : "还没有 Topic" }), rows.map((topic) => (0, react_jsx_runtime.jsxs)("button", {
+						children: [rows.length === 0 && (0, react_jsx_runtime.jsx)("p", { children: query ? t("panel.nav.noMatches") : archived ? t("panel.nav.noArchived") : t("panel.nav.empty") }), rows.map((topic) => (0, react_jsx_runtime.jsxs)("button", {
 							className: TopicNavigation_module_css_default.row,
 							type: "button",
 							"aria-current": activeId === topic.sessionId ? "page" : void 0,
@@ -40160,7 +41554,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								}) })]
 							}), topic.running && (0, react_jsx_runtime.jsx)("span", {
 								className: TopicNavigation_module_css_default.running,
-								"aria-label": "正在回答"
+								"aria-label": t("panel.phase.running")
 							})]
 						}, topic.sessionId))]
 					})]
@@ -40174,6 +41568,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* changed `renameRequest` (the Topic menu) start editing.
 		*/
 		function TopicTitle({ id, title, onRename, renameRequest = 0 }) {
+			useLocale();
 			const [editing, setEditing] = (0, react.useState)(false);
 			const [value, setValue] = (0, react.useState)(title);
 			const [error, setError] = (0, react.useState)(false);
@@ -40220,9 +41615,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 			return editing ? (0, react_jsx_runtime.jsx)("input", {
 				className: TopicNavigation_module_css_default.rename,
-				"aria-label": "Topic 名称",
+				"aria-label": t("panel.title.name"),
 				"aria-invalid": error,
-				title: error ? "保存失败，可重试或按 Escape 取消" : void 0,
+				title: error ? t("panel.title.saveFailed") : void 0,
 				autoFocus: true,
 				value,
 				maxLength: 120,
@@ -40249,7 +41644,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				"data-topic-title": true,
 				className: TopicNavigation_module_css_default.title,
 				tabIndex: 0,
-				title: "双击重命名 · F2",
+				title: t("panel.title.renameHint"),
 				onDoubleClick: start,
 				onKeyDown: (event) => {
 					if (event.key === "F2") {
@@ -40265,24 +41660,40 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const EMPTY_QUESTIONS = [];
 		const NO_CHILD_CALLS = [];
 		/** Header status appears only while something is happening or needs attention. */
-		const PHASE_LABEL = {
+		const phaseLabel = () => ({
 			idle: null,
-			creating: "正在准备…",
+			creating: t("panel.phase.creating"),
 			ready: null,
-			running: "正在回答…",
-			stopping: "正在停止…",
-			stopped: "已停止",
-			error: "出错了"
-		};
+			running: t("panel.phase.running"),
+			stopping: t("panel.phase.stopping"),
+			stopped: t("panel.phase.stopped"),
+			error: t("panel.phase.error")
+		});
 		function compactPreview(text, limit = 120) {
 			const compact = text.replaceAll(/\s+/g, " ").trim();
 			return compact.length > limit ? compact.slice(0, limit) + "…" : compact;
 		}
+		function localizedNotice(text) {
+			for (const key of [
+				"panel.notice.deletedElsewhere",
+				"panel.notice.deleted",
+				"panel.notice.cleanup",
+				"panel.notice.stopRequested"
+			]) if (text === zh$3[key] || text === en$3[key]) return t(key);
+			return text;
+		}
 		function friendlyFailure(text) {
-			if (text.includes("Citation source has no model route")) return "当前主会话还没有可复用的模型。请先在主对话发送一条消息，再创建 Topic。";
-			return text.replaceAll(/https?:\/\/[^\s)]+/gu, "模型服务地址");
+			if (text.includes("Citation source has no model route")) return t("panel.error.noSourceModel");
+			const key = {
+				"这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。": "panel.error.modelSelectionRequired",
+				"来源 Session 尚未保存，请先在主对话发送消息": "panel.error.sourceSessionUnsaved",
+				"Citer 来源存储不可用": "panel.error.sourceUnavailable",
+				"Citer 来源目录不可用": "panel.error.sourceDirectoryUnavailable"
+			}[text];
+			return key === void 0 ? text.replaceAll(/https?:\/\/[^\s)]+/gu, t("panel.error.modelAddress")) : t(key);
 		}
 		function ErrorTurn({ message }) {
+			useLocale();
 			const summary = friendlyFailure(message.text);
 			const stopped = message.status === "stopped";
 			return (0, react_jsx_runtime.jsxs)("article", {
@@ -40291,16 +41702,17 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				"data-status": message.status,
 				role: stopped ? void 0 : "alert",
 				children: [
-					(0, react_jsx_runtime.jsxs)("p", { children: [(0, react_jsx_runtime.jsx)("strong", { children: stopped ? "已停止" : "请求失败" }), stopped ? "" : `：${summary}`] }),
+					(0, react_jsx_runtime.jsxs)("p", { children: [(0, react_jsx_runtime.jsx)("strong", { children: stopped ? t("panel.phase.stopped") : t("panel.error.requestFailed") }), stopped ? "" : `${t("panel.error.separator")}${summary}`] }),
 					message.bodyRetained && (0, react_jsx_runtime.jsx)("p", {
 						className: CiteCiter_module_css_default.errorNote,
-						children: "已生成的内容保留在上方。"
+						children: t("panel.error.retained")
 					}),
-					!stopped && summary !== message.text && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: "技术详情" }), (0, react_jsx_runtime.jsx)("pre", { children: message.text })] })
+					!stopped && summary !== message.text && (0, react_jsx_runtime.jsxs)("details", { children: [(0, react_jsx_runtime.jsx)("summary", { children: t("panel.error.details") }), (0, react_jsx_runtime.jsx)("pre", { children: message.text })] })
 				]
 			});
 		}
 		function AssistantTurn({ message, disabled, onQuestion, reportParseError }) {
+			useLocale();
 			const parsed = (0, react.useMemo)(() => parseNextQuestions(message.text, message.streaming), [message.streaming, message.text]);
 			(0, react.useEffect)(() => {
 				if (!message.streaming && parsed.invalid) reportParseError(message.id);
@@ -40324,7 +41736,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					}),
 					!message.streaming && parsed.questions.length === 3 && (0, react_jsx_runtime.jsxs)("fieldset", {
 						className: CiteCiter_module_css_default.nextQuestions,
-						children: [(0, react_jsx_runtime.jsx)("legend", { children: "接下来可能想问" }), parsed.questions.map((question) => (0, react_jsx_runtime.jsx)("button", {
+						children: [(0, react_jsx_runtime.jsx)("legend", { children: t("panel.nextQuestions") }), parsed.questions.map((question) => (0, react_jsx_runtime.jsx)("button", {
 							type: "button",
 							disabled,
 							onClick: () => onQuestion(question),
@@ -40348,6 +41760,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @returns the responsive Topic dock and its dialogs, or null while closed.
 		*/
 		function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile, host = "overlay", tabVisible = true }) {
+			useLocale();
 			const overlay = useOverlay((value) => value);
 			const snapshot = useCompanion((value) => value);
 			const sessionRows = useSessions?.((value) => value.byId);
@@ -40513,7 +41926,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				composerVisible,
 				draft.ready
 			]);
-			const modalTitle = deleteTarget !== null ? "永久删除 Topic" : null;
+			const modalTitle = deleteTarget !== null ? t("panel.delete.title") : null;
 			(0, react.useEffect)(() => {
 				if (modalTitle === null) return;
 				const dialog = [...document.querySelectorAll("[role=\"dialog\"]")].find((element) => element.getAttribute("aria-label") === modalTitle);
@@ -40591,7 +42004,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const confirmDelete = async () => {
 				if (deleteTarget === null || deleteConfirmation !== deleteTarget.sessionId || snapshot.deleting) return;
 				setDeleteError(null);
-				if (await companion.deleteTopic(deleteConfirmation) === false) setDeleteError("Topic 未删除，请重试。");
+				if (await companion.deleteTopic(deleteConfirmation) === false) setDeleteError(t("panel.error.deleteFailed"));
 				else drafts.forget(deleteConfirmation);
 			};
 			const updateWidth = (next) => {
@@ -40629,12 +42042,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				snapshot.topicsStatus === "error" && (0, react_jsx_runtime.jsxs)("p", {
 					className: CiteCiter_module_css_default.panelError,
 					role: "alert",
-					children: ["Topic 读取失败：", snapshot.topicsError]
+					children: [t("panel.error.topics"), snapshot.topicsError === null ? null : friendlyFailure(snapshot.topicsError)]
 				}),
 				snapshot.notice !== null && (0, react_jsx_runtime.jsx)("div", {
 					className: CiteCiter_module_css_default.panelNotice,
 					role: "status",
-					children: snapshot.notice
+					children: localizedNotice(snapshot.notice)
 				}),
 				active === null && snapshot.draftQuote === null ? (0, react_jsx_runtime.jsxs)("div", {
 					className: CiteCiter_module_css_default.emptyState,
@@ -40645,17 +42058,17 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							alt: "",
 							"aria-hidden": "true"
 						}),
-						(0, react_jsx_runtime.jsx)("h2", { children: "把没懂的地方，慢慢讲明白" }),
-						(0, react_jsx_runtime.jsx)("p", { children: "在主对话里选中文字，用工具条提问；或者新建一个 Topic。" }),
+						(0, react_jsx_runtime.jsx)("h2", { children: t("panel.empty.title") }),
+						(0, react_jsx_runtime.jsx)("p", { children: t("panel.empty.description") }),
 						(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 							variant: "outline",
 							size: "sm",
 							onClick: openNewTopic,
-							children: "新建 Topic"
+							children: t("panel.newTopic")
 						}),
 						snapshot.phase === "creating" && (0, react_jsx_runtime.jsx)("div", {
 							className: CiteCiter_module_css_default.loadingCard,
-							children: PHASE_LABEL.creating
+							children: t("panel.phase.creating")
 						}),
 						snapshot.error !== null && (0, react_jsx_runtime.jsx)("p", {
 							className: CiteCiter_module_css_default.panelError,
@@ -40666,12 +42079,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 					(active?.topic.citation != null || snapshot.draftQuote !== null) && (0, react_jsx_runtime.jsxs)("details", {
 						className: CiteCiter_module_css_default.contextBar,
-						children: [(0, react_jsx_runtime.jsxs)("summary", { children: ["引用 · ", compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? "", 70)] }), (0, react_jsx_runtime.jsx)("blockquote", { children: active?.topic.citation?.displayText ?? snapshot.draftQuote })]
+						children: [(0, react_jsx_runtime.jsxs)("summary", { children: [t("panel.quote"), compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? "", 70)] }), (0, react_jsx_runtime.jsx)("blockquote", { children: active?.topic.citation?.displayText ?? snapshot.draftQuote })]
 					}),
 					active !== null && !active.topic.sourceAvailable && (0, react_jsx_runtime.jsx)("p", {
 						className: CiteCiter_module_css_default.panelNotice,
 						role: "status",
-						children: "来源对话暂时不可用，Citer 读不到它的内容。"
+						children: t("panel.sourceUnavailable")
 					}),
 					(0, react_jsx_runtime.jsx)(LearningRoute, {
 						enabled: snapshot.settings.learningRoute ?? false,
@@ -40680,19 +42093,19 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					cards.cards.length > 0 && (0, react_jsx_runtime.jsxs)("div", {
 						className: CiteCiter_module_css_default.views,
 						role: "tablist",
-						"aria-label": "Topic 内容",
+						"aria-label": t("panel.content"),
 						children: [(0, react_jsx_runtime.jsx)("button", {
 							type: "button",
 							role: "tab",
 							"aria-selected": view === "explain",
 							onClick: () => setView("explain"),
-							children: "对话"
-						}), (0, react_jsx_runtime.jsxs)("button", {
+							children: t("panel.conversation")
+						}), (0, react_jsx_runtime.jsx)("button", {
 							type: "button",
 							role: "tab",
 							"aria-selected": view === "cards",
 							onClick: () => setView("cards"),
-							children: ["学习卡 ", cards.cards.length]
+							children: t("panel.cardsCount", { count: cards.cards.length })
 						})]
 					}),
 					view === "explain" && (0, react_jsx_runtime.jsxs)("div", {
@@ -40715,7 +42128,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								if (message.role === "user") return (0, react_jsx_runtime.jsxs)("article", {
 									className: CiteCiter_module_css_default.userTurn,
 									"data-citeciter-message": message.id,
-									"aria-label": "用户消息",
+									"aria-label": t("panel.userMessage"),
 									children: [(0, react_jsx_runtime.jsx)(MessageAttachments, {
 										sessionId: active.topic.sessionId,
 										attachments: message.attachments ?? [],
@@ -40741,7 +42154,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							}),
 							snapshot.phase === "creating" && (0, react_jsx_runtime.jsx)("div", {
 								className: CiteCiter_module_css_default.loadingCard,
-								children: PHASE_LABEL.creating
+								children: t("panel.phase.creating")
 							}),
 							transcriptError !== null && (0, react_jsx_runtime.jsx)("p", {
 								className: CiteCiter_module_css_default.panelError,
@@ -40762,9 +42175,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							disabled: snapshot.settingsSaveStatus === "saving",
 							topicTitle: active.topic.title,
 							topicId: active.topic.sessionId,
-							source: active.topic.citation?.displayText ?? "无引用 · 自由讨论",
+							source: active.topic.citation?.displayText ?? t("panel.freeDiscussion"),
 							onRevise: () => {
-								setQuestion("请先核对本 Topic 的结论，纠正错误并标明未核实内容，再生成总结学习卡片。");
+								setQuestion(t("panel.cards.revisePrompt"));
 								setView("explain");
 								requestAnimationFrame(() => composerRef.current?.focus());
 							}
@@ -40806,11 +42219,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							onQuestion: setQuestion,
 							onSubmit: submit,
 							onComposition: (value) => drafts.setComposing(draftKey, value),
-							placeholder: "继续提问",
+							placeholder: t("panel.placeholder"),
 							attachments: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 								active?.topic.modelSelectionRequired === true && (0, react_jsx_runtime.jsx)("p", {
 									role: "status",
-									children: "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。"
+									children: t("panel.error.modelSelectionRequired")
 								}),
 								(attachmentError || draft.error) && (0, react_jsx_runtime.jsx)("p", {
 									role: "alert",
@@ -40819,28 +42232,28 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								draft.pending && !draft.sending && (0, react_jsx_runtime.jsxs)("p", {
 									role: "status",
 									children: [
-										"上次发送状态待核对。",
+										t("panel.draft.pending"),
 										(0, react_jsx_runtime.jsx)("button", {
 											type: "button",
 											onClick: () => runDraft(drafts.reconcile(draftKey)),
-											children: "核对发送状态"
+											children: t("panel.draft.reconcile")
 										}),
 										(0, react_jsx_runtime.jsx)("button", {
 											type: "button",
 											onClick: (event) => submit(event, delivery, true),
-											children: "重试上次发送"
+											children: t("panel.draft.retrySend")
 										})
 									]
 								}),
 								!draft.ready && draft.error && (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									onClick: () => runDraft(drafts.ensure(draftKey)),
-									children: "重新读取草稿"
+									children: t("panel.draft.reload")
 								}),
-								draft.missing.map((file) => (0, react_jsx_runtime.jsxs)("button", {
+								draft.missing.map((file) => (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									onClick: () => runDraft(drafts.removeFile(draftKey, file.id)),
-									children: ["移除失效附件：", file.name]
+									children: t("panel.draft.removeMissing", { name: file.name })
 								}, file.id)),
 								(0, react_jsx_runtime.jsx)(FileAttachments, {
 									native: nativeComposer,
@@ -40879,14 +42292,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				onClose: () => {
 					if (!snapshot.deleting) setDeleteTarget(null);
 				},
-				closeLabel: "关闭",
-				title: "永久删除 Topic",
-				...deleteTarget === null ? {} : { description: `这会永久删除“${deleteTarget.title}”。请输入完整 Topic Session ID 确认。` },
+				closeLabel: t("common.close"),
+				title: t("panel.delete.title"),
+				...deleteTarget === null ? {} : { description: t("panel.delete.description", { title: deleteTarget.title }) },
 				footer: (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 					variant: "outline",
 					disabled: snapshot.deleting,
 					onClick: () => setDeleteTarget(null),
-					children: "取消"
+					children: t("common.cancel")
 				}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 					variant: "outline",
 					className: CiteCiter_module_css_default.deleteAction,
@@ -40894,7 +42307,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					onClick: () => {
 						confirmDelete();
 					},
-					children: snapshot.deleting ? "删除中…" : "永久删除"
+					children: snapshot.deleting ? t("panel.delete.deleting") : t("panel.delete.confirm")
 				})] }),
 				children: deleteTarget !== null && (0, react_jsx_runtime.jsxs)("div", {
 					className: CiteCiter_module_css_default.deleteForm,
@@ -40904,8 +42317,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							autoFocus: true,
 							value: deleteConfirmation,
 							disabled: snapshot.deleting,
-							"aria-label": "输入 Topic Session ID 以确认永久删除",
-							placeholder: "粘贴上方 Session ID",
+							"aria-label": t("panel.delete.input"),
+							placeholder: t("panel.delete.placeholder"),
 							onChange: (event) => setDeleteConfirmation(event.currentTarget.value)
 						}),
 						deleteError !== null && (0, react_jsx_runtime.jsx)("div", {
@@ -40923,7 +42336,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					onBack: closePanel,
 					onClose: inTab ? void 0 : closePanel,
 					onDrag: inTab ? void 0 : drag.start,
-					status: PHASE_LABEL[snapshot.phase],
+					status: phaseLabel()[snapshot.phase],
 					title: active === null ? (0, react_jsx_runtime.jsx)("strong", { children: "Citer" }) : (0, react_jsx_runtime.jsx)(TopicTitle, {
 						id: active.topic.sessionId,
 						title: active.topic.title,
@@ -40977,7 +42390,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}),
 				drag.dockTarget && (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
 					className: CiteCiter_module_css_default.dockTarget,
-					"aria-label": "松开以停靠"
+					"aria-label": t("panel.dock.drop")
 				}) }),
 				(0, react_jsx_runtime.jsx)(OverlayPortal, {
 					inline: !floating,
@@ -41008,7 +42421,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							docked && !floating && (0, react_jsx_runtime.jsx)("div", {
 								className: CiteCiter_module_css_default.resizeHandle,
 								role: "separator",
-								"aria-label": "调整 Citer 宽度",
+								"aria-label": t("panel.dock.resize"),
 								"aria-orientation": "vertical",
 								"aria-valuemin": 28,
 								"aria-valuemax": 55,
@@ -41025,7 +42438,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							!floating && dock === null && (0, react_jsx_runtime.jsx)("p", {
 								className: CiteCiter_module_css_default.layoutNotice,
 								role: "status",
-								children: "当前布局暂不支持 Citer 面板。请使用受支持的官方 DSH 版本，关闭全屏详情后重试。"
+								children: t("panel.dock.unsupported")
 							}),
 							(0, react_jsx_runtime.jsx)("div", {
 								className: CiteCiter_module_css_default.dockBody,
@@ -41037,10 +42450,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				!floating && (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsxs)("div", {
 					className: CiteCiter_module_css_default.fullscreenNotice,
 					role: "status",
-					children: ["Citer 已打开。退出文件全屏查看，或 ", (0, react_jsx_runtime.jsx)("button", {
+					children: [t("panel.dock.fullscreen"), (0, react_jsx_runtime.jsx)("button", {
 						type: "button",
 						onClick: () => bus.setPresentation("floating"),
-						children: "悬浮查看"
+						children: t("panel.dock.floating")
 					})]
 				}) }),
 				deleteModal
@@ -41089,6 +42502,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* Model identities are encoded together, so provider-local model IDs never collide.
 		*/
 		function ModelChoice({ providers, value, onChange, disabled = false, label, className }) {
+			useLocale();
 			const encoded = value === void 0 ? "" : JSON.stringify([value.provider, value.model]);
 			const known = providers.some((provider) => provider.id === value?.provider && provider.models.some((model) => model.id === value.model));
 			return (0, react_jsx_runtime.jsxs)("select", {
@@ -41109,16 +42523,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				children: [
 					(0, react_jsx_runtime.jsx)("option", {
 						value: "",
-						children: "跟随来源对话"
+						children: t("settings.actions.inheritModel")
 					}),
-					value !== void 0 && !known && (0, react_jsx_runtime.jsxs)("option", {
+					value !== void 0 && !known && (0, react_jsx_runtime.jsx)("option", {
 						value: encoded,
-						children: [
-							value.provider,
-							" / ",
-							value.model,
-							"（暂不可用）"
-						]
+						children: t("settings.actions.unavailableModel", {
+							provider: value.provider,
+							model: value.model
+						})
 					}),
 					providers.map((provider) => (0, react_jsx_runtime.jsx)("optgroup", {
 						label: provider.name,
@@ -41133,18 +42545,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#endregion
 		//#region lib/types/client/components/ActionSettings.js
 		const TRIGGERS = [
-			["right-button", "鼠标右键"],
-			["Alt", "Alt / Option"],
-			["Control", "Control"],
-			["Shift", "Shift"],
-			["Meta", "Meta / Command"]
+			"right-button",
+			"Alt",
+			"Control",
+			"Shift",
+			"Meta"
 		];
-		const NEW_SLOT = {
-			label: "自定义",
-			prompt: "",
-			ask: true,
-			presentation: "side"
-		};
 		/**
 		* Compare action lists by what the user can edit, in a fixed field order. A settings refresh may
 		* decode the same actions with other key orders or retired fields; that must not discard local edits.
@@ -41159,8 +42565,15 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** Selection entry points, preset-action delivery, the new-Topic model and the eight action slots, saved together. */
 		function ActionSettings({ snapshot, companion }) {
+			useLocale();
 			const settings = snapshot.settings;
-			const savedSlots = settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS;
+			const savedSlots = localizedWheelSlots(settings.wheelSlots, isChinese());
+			const newSlot = {
+				label: t("settings.actions.custom"),
+				prompt: "",
+				ask: true,
+				presentation: "side"
+			};
 			const savedRevision = slotsRevision(savedSlots);
 			const [slots, setSlots] = (0, react.useState)(() => [...savedSlots]);
 			const slotKeys = (0, react.useRef)(savedSlots.map((_, index) => index));
@@ -41176,7 +42589,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const saving = snapshot.settingsSaveStatus === "saving";
 			const dirty = slotsRevision(slots) !== savedRevision;
 			const change = (index, patch) => setSlots((current) => current.map((slot, i) => i === index ? {
-				...slot ?? NEW_SLOT,
+				...slot ?? newSlot,
 				...patch
 			} : slot));
 			const move = (index, offset) => {
@@ -41194,7 +42607,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const save = () => {
 				const result = wheelSlotsSchema.safeParse(slots);
 				if (!result.success) {
-					setError("请填写动作名称；预设提示词类型的动作需要提示词。");
+					setError(t("settings.actions.invalid"));
 					return;
 				}
 				setError(null);
@@ -41203,22 +42616,22 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: Settings_module_css_default.group,
 				children: [
-					(0, react_jsx_runtime.jsx)("h3", { children: "选文" }),
+					(0, react_jsx_runtime.jsx)("h3", { children: t("settings.actions.title") }),
 					(0, react_jsx_runtime.jsxs)("div", {
 						className: Settings_module_css_default.row,
 						children: [(0, react_jsx_runtime.jsxs)("div", {
 							className: Settings_module_css_default.rowText,
 							children: [(0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.title,
-								children: "选中文字后显示工具条"
+								children: t("settings.actions.toolbar")
 							}), (0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.desc,
-								children: "在主对话、工具结果和文档里选中文字时，旁边出现 Citer 的动作。"
+								children: t("settings.actions.toolbarDesc")
 							})]
 						}), (0, react_jsx_runtime.jsx)("div", {
 							className: Settings_module_css_default.control,
 							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Switch, {
-								label: "选中文字后显示工具条",
+								label: t("settings.actions.toolbar"),
 								checked: settings.selectionToolbar ?? true,
 								disabled: saving,
 								onChange: (value) => {
@@ -41233,26 +42646,26 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							className: Settings_module_css_default.rowText,
 							children: [(0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.title,
-								children: "按住触发键打开轮盘"
+								children: t("settings.actions.wheel")
 							}), (0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.desc,
-								children: "选中文字后按住触发键，移向动作，松开即执行。按住 Shift 再按右键会保留浏览器菜单。"
+								children: t("settings.actions.wheelDesc")
 							})]
 						}), (0, react_jsx_runtime.jsxs)("div", {
 							className: Settings_module_css_default.control,
 							children: [settings.wheelEnabled === true && (0, react_jsx_runtime.jsx)("select", {
 								className: Settings_module_css_default.select,
-								"aria-label": "轮盘触发键",
+								"aria-label": t("settings.actions.trigger"),
 								value: settings.wheelTrigger ?? "right-button",
 								onChange: (event) => {
 									companion.setSetting("wheelTrigger", event.currentTarget.value);
 								},
-								children: TRIGGERS.map(([value, label]) => (0, react_jsx_runtime.jsx)("option", {
+								children: TRIGGERS.map((value) => (0, react_jsx_runtime.jsx)("option", {
 									value,
-									children: label
+									children: value === "right-button" ? t("settings.actions.rightButton") : value === "Alt" ? "Alt / Option" : value === "Meta" ? "Meta / Command" : value
 								}, value))
 							}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Switch, {
-								label: "按住触发键打开轮盘",
+								label: t("settings.actions.wheel"),
 								checked: settings.wheelEnabled === true,
 								disabled: saving,
 								onChange: (value) => {
@@ -41267,24 +42680,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							className: Settings_module_css_default.rowText,
 							children: [(0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.title,
-								children: "预设动作"
+								children: t("settings.actions.delivery")
 							}), (0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.desc,
-								children: "“解释”“翻译”这类动作是直接发送，还是先放进输入框。“提问”总是先打开输入框。"
+								children: t("settings.actions.deliveryDesc")
 							})]
 						}), (0, react_jsx_runtime.jsx)("div", {
 							className: Settings_module_css_default.control,
 							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.SegmentedControl, {
 								id: "citeciter-action-delivery",
-								label: "预设动作",
+								label: t("settings.actions.delivery"),
 								value: settings.actionDelivery ?? "send",
 								disabled: saving,
 								options: [{
 									value: "send",
-									label: "直接发送"
+									label: t("settings.actions.send")
 								}, {
 									value: "draft",
-									label: "放进输入框"
+									label: t("settings.actions.draft")
 								}],
 								onChange: (value) => {
 									companion.setSetting("actionDelivery", value);
@@ -41298,16 +42711,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							className: Settings_module_css_default.rowText,
 							children: [(0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.title,
-								children: "新 Topic 的模型"
+								children: t("settings.actions.model")
 							}), (0, react_jsx_runtime.jsx)("span", {
 								className: Settings_module_css_default.desc,
-								children: "未指定时使用来源对话的模型。"
+								children: t("settings.actions.modelDesc")
 							})]
 						}), (0, react_jsx_runtime.jsx)("div", {
 							className: Settings_module_css_default.control,
 							children: (0, react_jsx_runtime.jsx)(ModelChoice, {
 								className: Settings_module_css_default.select,
-								label: "新 Topic 的模型",
+								label: t("settings.actions.model"),
 								providers: snapshot.providers,
 								value: settings.defaultCiterModel ?? void 0,
 								onChange: (value) => {
@@ -41324,10 +42737,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								className: Settings_module_css_default.rowText,
 								children: [(0, react_jsx_runtime.jsx)("span", {
 									className: Settings_module_css_default.title,
-									children: "动作"
+									children: t("settings.actions.slots")
 								}), (0, react_jsx_runtime.jsx)("span", {
 									className: Settings_module_css_default.desc,
-									children: "工具条显示前四个，其余在“⋯”里；轮盘从正上方顺时针排列。"
+									children: t("settings.actions.slotsDesc")
 								})]
 							}),
 							(0, react_jsx_runtime.jsx)("div", {
@@ -41342,11 +42755,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 										(0, react_jsx_runtime.jsx)("span", {
 											className: Settings_module_css_default.slotLabel,
 											"data-empty": slot === null || void 0,
-											children: slot?.label ?? "空"
+											children: slot?.label ?? t("settings.actions.empty")
 										}),
 										(0, react_jsx_runtime.jsx)("span", {
 											className: Settings_module_css_default.slotKind,
-											children: slot === null ? "" : slot.ask ? "写下问题" : "预设提示词"
+											children: slot === null ? "" : slot.ask ? t("settings.actions.ask") : t("settings.actions.preset")
 										})
 									] }), (0, react_jsx_runtime.jsx)("div", {
 										className: Settings_module_css_default.slotBody,
@@ -41356,12 +42769,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 												variant: "outline",
 												size: "sm",
 												onClick: () => change(index, {}),
-												children: "添加动作"
+												children: t("settings.actions.add")
 											})
 										}) : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 											(0, react_jsx_runtime.jsxs)("label", {
 												className: Settings_module_css_default.field,
-												children: ["名称", (0, react_jsx_runtime.jsx)("input", {
+												children: [t("settings.actions.name"), (0, react_jsx_runtime.jsx)("input", {
 													className: Settings_module_css_default.text,
 													maxLength: 20,
 													value: slot.label,
@@ -41370,23 +42783,23 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 											}),
 											(0, react_jsx_runtime.jsxs)("div", {
 												className: Settings_module_css_default.field,
-												children: ["类型", (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.SegmentedControl, {
+												children: [t("settings.actions.kind"), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.SegmentedControl, {
 													id: `citeciter-slot-${index}`,
-													label: `动作 ${index + 1} 的类型`,
+													label: t("settings.actions.kindAria", { index: index + 1 }),
 													value: slot.ask ? "ask" : "preset",
 													options: [{
 														value: "ask",
-														label: "写下问题"
+														label: t("settings.actions.ask")
 													}, {
 														value: "preset",
-														label: "预设提示词"
+														label: t("settings.actions.preset")
 													}],
 													onChange: (value) => change(index, { ask: value === "ask" })
 												})]
 											}),
 											(0, react_jsx_runtime.jsxs)("label", {
 												className: Settings_module_css_default.field,
-												children: [slot.ask ? "提示词（可选，预先填进输入框）" : "提示词", (0, react_jsx_runtime.jsx)("textarea", {
+												children: [slot.ask ? t("settings.actions.optionalPrompt") : t("settings.actions.prompt"), (0, react_jsx_runtime.jsx)("textarea", {
 													className: Settings_module_css_default.textarea,
 													rows: 3,
 													maxLength: 4e3,
@@ -41396,16 +42809,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 											}),
 											(0, react_jsx_runtime.jsxs)("label", {
 												className: Settings_module_css_default.field,
-												children: ["打开位置", (0, react_jsx_runtime.jsxs)("select", {
+												children: [t("settings.actions.position"), (0, react_jsx_runtime.jsxs)("select", {
 													className: Settings_module_css_default.select,
 													value: slot.presentation,
 													onChange: (event) => change(index, { presentation: event.currentTarget.value }),
 													children: [(0, react_jsx_runtime.jsx)("option", {
 														value: "side",
-														children: "侧边面板"
+														children: t("settings.actions.side")
 													}), (0, react_jsx_runtime.jsx)("option", {
 														value: "floating",
-														children: "悬浮面板"
+														children: t("settings.actions.floating")
 													})]
 												})]
 											}),
@@ -41417,20 +42830,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 														size: "sm",
 														disabled: index === 0,
 														onClick: () => move(index, -1),
-														children: "上移"
+														children: t("settings.actions.up")
 													}),
 													(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 														variant: "outline",
 														size: "sm",
 														disabled: index === slots.length - 1,
 														onClick: () => move(index, 1),
-														children: "下移"
+														children: t("settings.actions.down")
 													}),
 													(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 														variant: "outline",
 														size: "sm",
 														onClick: () => setSlots((current) => current.map((item, i) => i === index ? null : item)),
-														children: "清空"
+														children: t("settings.actions.clear")
 													})
 												]
 											})
@@ -41450,16 +42863,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									variant: "ghost",
 									size: "sm",
 									onClick: () => {
-										setSlots([...DEFAULT_WHEEL_SLOTS]);
+										setSlots([...localizedWheelSlots(void 0, isChinese())]);
 										setError(null);
 									},
-									children: "恢复默认"
+									children: t("settings.actions.restore")
 								}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 									variant: "primary",
 									size: "sm",
 									disabled: !dirty || saving,
 									onClick: save,
-									children: "保存动作"
+									children: t("settings.actions.save")
 								})]
 							})
 						]
@@ -41556,11 +42969,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param view - `summary` for the bundle row, `page` for the bundle's own page.
 		*/
 		function CiterPluginConfig(props) {
-			if (props.view === "summary") return (0, react_jsx_runtime.jsx)(react_jsx_runtime.Fragment, { children: "选文工具条、预设动作、新 Topic 的模型与权限" });
+			useLocale();
+			if (props.view === "summary") return (0, react_jsx_runtime.jsx)(react_jsx_runtime.Fragment, { children: t("settings.summary") });
 			return (0, react_jsx_runtime.jsx)(CiteCiterSettings, { ...props });
 		}
 		/** Native DSH settings page for Citer preferences. */
 		function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }) {
+			useLocale();
 			const snapshot = useCompanion((value) => value);
 			const documentSnapshot = useDocument((value) => value);
 			const updateSnapshot = useUpdate((value) => value);
@@ -41590,7 +43005,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const commitShortcut = () => {
 				const value = shortcutDraft.trim();
 				if (value !== "" && parseAccelerator(value) === null) {
-					setShortcutError("快捷键格式无效；请使用 Control+Shift+C 这样的组合，或留空禁用。");
+					setShortcutError(t("settings.panel.shortcutError"));
 					return;
 				}
 				setShortcutError(null);
@@ -41614,7 +43029,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							src: citeciter_mascot_default,
 							alt: "",
 							"aria-hidden": "true"
-						}), (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h2", { children: "Citer" }), (0, react_jsx_runtime.jsx)("p", { children: "选中 Agent 工作中的内容，在独立的 Topic 里追问，不改动主对话。" })] })]
+						}), (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h2", { children: "Citer" }), (0, react_jsx_runtime.jsx)("p", { children: t("settings.intro") })] })]
 					}),
 					snapshot.settingsSaveMessage !== null && (0, react_jsx_runtime.jsx)("p", {
 						className: Settings_module_css_default.status,
@@ -41631,8 +43046,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						children: [
 							(0, react_jsx_runtime.jsx)("h3", { children: "Topic" }),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "新 Topic 的权限",
-								desc: "只影响之后新建的 Topic；DSH 的审批和沙箱照常生效。",
+								title: t("settings.topic.permission"),
+								desc: t("settings.topic.permissionDesc"),
 								children: (0, react_jsx_runtime.jsx)(PermissionControl, {
 									value: settings.defaultPermission ?? "read-only",
 									onChange: (mode) => {
@@ -41641,45 +43056,45 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								})
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "重新打开上次的 Topic",
-								desc: "回到来源对话时自动展开 Citer 并恢复最近的 Topic。",
-								children: toggle("reopenLastTopic", "重新打开上次的 Topic", true)
+								title: t("settings.topic.reopen"),
+								desc: t("settings.topic.reopenDesc"),
+								children: toggle("reopenLastTopic", t("settings.topic.reopen"), true)
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "读取来源时包含思考过程",
-								desc: "关闭后，Citer 读取来源对话时看不到主 Agent 的思考内容。",
-								children: toggle("includeSourceReasoning", "读取来源时包含思考过程", true)
+								title: t("settings.topic.reasoning"),
+								desc: t("settings.topic.reasoningDesc"),
+								children: toggle("includeSourceReasoning", t("settings.topic.reasoning"), true)
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "首个回答附带追问建议",
-								desc: "在第一个回答末尾给出三个可以接着问的问题。",
-								children: toggle("followupQuestions", "首个回答附带追问建议", true)
+								title: t("settings.topic.followups"),
+								desc: t("settings.topic.followupsDesc"),
+								children: toggle("followupQuestions", t("settings.topic.followups"), true)
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "自动附上来源摘录",
-								desc: "来源附件发送后，每轮开头附上来源对话最近的新内容。关闭时由 Citer 按需调用工具读取。",
-								children: toggle("autoReadSource", "自动附上来源摘录", false)
+								title: t("settings.topic.autoRead"),
+								desc: t("settings.topic.autoReadDesc"),
+								children: toggle("autoReadSource", t("settings.topic.autoRead"), false)
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "代码库变化感知",
-								desc: "每轮开头告诉 Citer 上一轮以来 git 工作区改了哪些文件。“附带 diff”会直接附上逐行改动；“仅清单”只列文件，Citer 需要时再用工具读取。",
+								title: t("settings.topic.changes"),
+								desc: t("settings.topic.changesDesc"),
 								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.SegmentedControl, {
 									id: "citeciter-workspace-changes",
-									label: "代码库变化感知",
+									label: t("settings.topic.changes"),
 									value: settings.workspaceChanges ?? "summary",
 									disabled: saving,
 									options: [
 										{
 											value: "off",
-											label: "关闭"
+											label: t("settings.topic.off")
 										},
 										{
 											value: "summary",
-											label: "仅清单"
+											label: t("settings.topic.summary")
 										},
 										{
 											value: "diff",
-											label: "附带 diff"
+											label: t("settings.topic.diff")
 										}
 									],
 									onChange: (value) => {
@@ -41692,16 +43107,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					(0, react_jsx_runtime.jsxs)("section", {
 						className: Settings_module_css_default.group,
 						children: [
-							(0, react_jsx_runtime.jsx)("h3", { children: "学习" }),
+							(0, react_jsx_runtime.jsx)("h3", { children: t("settings.learning.title") }),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "主动回忆",
-								desc: "学习卡先显示自测问题，点开才看到结论和答案。",
-								children: toggle("activeRecall", "主动回忆", false)
+								title: t("settings.learning.recall"),
+								desc: t("settings.learning.recallDesc"),
+								children: toggle("activeRecall", t("settings.learning.recall"), false)
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "板书动画",
-								desc: "关闭后板书直接显示最终状态。",
-								children: toggle("boardAnimations", "板书动画", true)
+								title: t("settings.learning.animations"),
+								desc: t("settings.learning.animationsDesc"),
+								children: toggle("boardAnimations", t("settings.learning.animations"), true)
 							}),
 							(0, react_jsx_runtime.jsxs)("div", {
 								className: Settings_module_css_default.row,
@@ -41710,18 +43125,18 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									className: Settings_module_css_default.rowText,
 									children: [(0, react_jsx_runtime.jsx)("span", {
 										className: Settings_module_css_default.title,
-										children: "导师提示词"
+										children: t("settings.learning.tutor")
 									}), (0, react_jsx_runtime.jsx)("span", {
 										className: Settings_module_css_default.desc,
-										children: "补充你的讲解偏好，下次发送起生效；留空使用内置提示词。"
+										children: t("settings.learning.tutorDesc")
 									})]
 								}), (0, react_jsx_runtime.jsx)("textarea", {
 									className: Settings_module_css_default.textarea,
 									value: settings.tutorPrompt ?? "",
 									maxLength: 4e3,
 									rows: 4,
-									"aria-label": "导师提示词",
-									placeholder: "例如：先给结论，再用一个小例子说明。",
+									"aria-label": t("settings.learning.tutor"),
+									placeholder: t("settings.learning.tutorPlaceholder"),
 									onChange: (event) => {
 										companion.setSetting("tutorPrompt", event.currentTarget.value === "" ? void 0 : event.currentTarget.value);
 									}
@@ -41732,10 +43147,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					(0, react_jsx_runtime.jsxs)("section", {
 						className: Settings_module_css_default.group,
 						children: [
-							(0, react_jsx_runtime.jsx)("h3", { children: "面板" }),
+							(0, react_jsx_runtime.jsx)("h3", { children: t("settings.panel.title") }),
 							(0, react_jsx_runtime.jsxs)(Row, {
-								title: "默认宽度",
-								desc: "也可以拖动面板左边缘调整。",
+								title: t("settings.panel.width"),
+								desc: t("settings.panel.widthDesc"),
 								children: [(0, react_jsx_runtime.jsx)("input", {
 									className: Settings_module_css_default.range,
 									type: "range",
@@ -41743,7 +43158,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									max: 55,
 									step: 1,
 									value: widthDraft,
-									"aria-label": "面板默认宽度",
+									"aria-label": t("settings.panel.widthAria"),
 									onChange: (event) => setWidthDraft(Number(event.currentTarget.value)),
 									onPointerUp: (event) => commitWidth(Number(event.currentTarget.value)),
 									onBlur: (event) => commitWidth(Number(event.currentTarget.value)),
@@ -41761,8 +43176,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								})]
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "打开 Citer 的快捷键",
-								desc: "例如 Control+Shift+C；留空表示不使用。输入框里的按键不会被拦截。",
+								title: t("settings.panel.shortcut"),
+								desc: t("settings.panel.shortcutDesc"),
 								children: (0, react_jsx_runtime.jsxs)("div", {
 									className: Settings_module_css_default.field,
 									children: [(0, react_jsx_runtime.jsx)("input", {
@@ -41771,7 +43186,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 										value: shortcutDraft,
 										maxLength: 40,
 										placeholder: "Control+Shift+C",
-										"aria-label": "打开 Citer 的快捷键",
+										"aria-label": t("settings.panel.shortcut"),
 										"aria-invalid": shortcutError !== null,
 										"aria-describedby": shortcutError === null ? void 0 : "citeciter-shortcut-error",
 										onChange: (event) => {
@@ -41796,12 +43211,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					(0, react_jsx_runtime.jsxs)("section", {
 						className: Settings_module_css_default.group,
 						children: [
-							(0, react_jsx_runtime.jsx)("h3", { children: "其他" }),
+							(0, react_jsx_runtime.jsx)("h3", { children: t("settings.other.title") }),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "版本更新提醒",
-								desc: updateSnapshot.preferencePersistence === "browser" ? "远程 Web 只在当前浏览器保存这个选择。" : "有新版本时提醒你。",
+								title: t("settings.other.update"),
+								desc: updateSnapshot.preferencePersistence === "browser" ? t("settings.other.updateBrowserDesc") : t("settings.other.updateDesc"),
 								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Switch, {
-									label: "版本更新提醒",
+									label: t("settings.other.update"),
 									checked: updateSnapshot.notificationsEnabled,
 									disabled: !updateSnapshot.preferenceReady || updateSnapshot.preferenceStatus === "saving",
 									onChange: (value) => {
@@ -41816,8 +43231,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								children: updateSnapshot.preferenceMessage
 							}),
 							(0, react_jsx_runtime.jsx)(Row, {
-								title: "配置文件",
-								desc: "直接编辑 Citer 的全部设置。",
+								title: t("settings.other.config"),
+								desc: t("settings.other.configDesc"),
 								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 									variant: "outline",
 									size: "sm",
@@ -41830,7 +43245,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									onClick: () => {
 										settingsDocument.open();
 									},
-									children: documentSnapshot.opening ? "正在打开…" : documentSnapshot.status === "loading" ? "正在检查…" : documentSnapshot.status === "unavailable" ? "宿主不支持打开" : documentSnapshot.status === "missing" ? "配置文件不存在" : documentSnapshot.status === "error" ? "重新打开" : "打开配置文件"
+									children: documentSnapshot.opening ? t("settings.other.opening") : documentSnapshot.status === "loading" ? t("settings.other.checking") : documentSnapshot.status === "unavailable" ? t("settings.other.unsupported") : documentSnapshot.status === "missing" ? t("settings.other.missing") : documentSnapshot.status === "error" ? t("settings.other.reopen") : t("settings.other.open")
 								})
 							}),
 							(documentSnapshot.error !== null || documentSnapshot.message !== null) && (0, react_jsx_runtime.jsx)("p", {
@@ -41905,6 +43320,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		/** The document library panel, opened from the Topic menu. */
 		function DocumentReader({ reader, useReader, registerSurface, sourceSessionId }) {
+			useLocale();
 			const snapshot = useReader((value) => value);
 			const textareaRef = (0, react.useRef)(null);
 			const importRef = (0, react.useRef)(null);
@@ -41953,10 +43369,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					children: [
 						(0, react_jsx_runtime.jsxs)("header", {
 							className: DocumentReader_module_css_default.header,
-							children: [(0, react_jsx_runtime.jsx)("h2", { children: "文档阅读" }), (0, react_jsx_runtime.jsx)("button", {
+							children: [(0, react_jsx_runtime.jsx)("h2", { children: t("settings.reader.title") }), (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								onClick: () => reader.setOpen(false),
-								"aria-label": "关闭文档阅读",
+								"aria-label": t("settings.reader.close"),
 								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, {})
 							})]
 						}),
@@ -41970,8 +43386,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								type: "button",
 								disabled: snapshot.importing,
 								onClick: () => importRef.current?.click(),
-								"aria-label": "导入文本 / Markdown",
-								children: snapshot.importing ? "导入中…" : "+ 导入文档"
+								"aria-label": t("settings.reader.importAria"),
+								children: snapshot.importing ? t("settings.reader.importing") : t("settings.reader.import")
 							}), (0, react_jsx_runtime.jsx)("input", {
 								ref: importRef,
 								type: "file",
@@ -41988,45 +43404,48 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								onClick: () => void reader.openDocument(document.documentId),
 								className: snapshot.active?.documentId === document.documentId ? DocumentReader_module_css_default.activeDocument : void 0,
 								children: [document.title, (0, react_jsx_runtime.jsxs)("span", { children: [
-									document.format === "markdown" ? "Markdown" : "文本",
+									document.format === "markdown" ? "Markdown" : t("settings.reader.text"),
 									" · ",
 									formatSize(document.size)
 								] })]
 							}) }, document.documentId)), snapshot.documentsStatus === "ready" && snapshot.documents.length === 0 ? (0, react_jsx_runtime.jsx)("li", {
 								className: DocumentReader_module_css_default.empty,
-								children: "还没有文档"
+								children: t("settings.reader.empty")
 							}) : null]
 						}),
 						(0, react_jsx_runtime.jsx)("textarea", {
-							"aria-label": "文档正文",
+							"aria-label": t("settings.reader.body"),
 							"aria-busy": snapshot.loading,
 							ref: textareaRef,
 							className: DocumentReader_module_css_default.content,
 							readOnly: true,
 							value: snapshot.active?.content ?? "",
-							placeholder: "选择文档开始阅读",
+							placeholder: t("settings.reader.choose"),
 							onSelect: snapshot.loading ? void 0 : syncSelection,
 							onMouseUp: snapshot.loading ? void 0 : syncSelection,
 							onKeyUp: snapshot.loading ? void 0 : syncSelection
 						}),
 						snapshot.active !== null ? (0, react_jsx_runtime.jsxs)("nav", {
 							className: DocumentReader_module_css_default.pagination,
-							"aria-label": "文档分页",
+							"aria-label": t("settings.reader.pagination"),
 							children: [
 								(0, react_jsx_runtime.jsx)("button", {
 									type: "button",
-									"aria-label": "上一页",
+									"aria-label": t("settings.reader.previous"),
 									disabled: snapshot.loading || snapshot.active.page === 0,
 									onClick: () => void reader.openPage(snapshot.active.page - 1),
 									children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronLeftOutlineRegular, {})
 								}),
 								(0, react_jsx_runtime.jsx)("span", {
 									role: "status",
-									children: snapshot.loading ? "加载中…" : `第 ${snapshot.active.page + 1} / ${snapshot.active.pageCount} 页`
+									children: snapshot.loading ? t("settings.reader.loading") : t("settings.reader.page", {
+										page: snapshot.active.page + 1,
+										total: snapshot.active.pageCount
+									})
 								}),
 								(0, react_jsx_runtime.jsx)("button", {
 									type: "button",
-									"aria-label": "下一页",
+									"aria-label": t("settings.reader.next"),
 									disabled: snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount,
 									onClick: () => void reader.openPage(snapshot.active.page + 1),
 									children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutlineRegular, {})
@@ -42040,12 +43459,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								value: snapshot.question,
 								maxLength: 12e3,
 								onChange: (event) => reader.setQuestion(event.target.value),
-								placeholder: "选中正文后，写下你的问题",
-								"aria-label": "关于选中内容的问题"
+								placeholder: t("settings.reader.questionPlaceholder"),
+								"aria-label": t("settings.reader.questionAria")
 							}), (0, react_jsx_runtime.jsx)("button", {
 								type: "submit",
 								disabled: snapshot.creating || snapshot.loading || snapshot.selection === null || snapshot.question.trim() === "",
-								children: snapshot.creating ? "正在打开…" : "在 Citer 中提问"
+								children: snapshot.creating ? t("settings.other.opening") : t("settings.reader.ask")
 							})]
 						})
 					]
@@ -42236,7 +43655,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		/** Capture an actual selected passage and its address; never reconstruct a citation from Topic metadata. */
 		function selectionReferences(source, documentId) {
 			const quote = actionSourceQuote(source);
-			if (quote.trim() === "") throw new Error("请先选中要引用的内容");
+			if (quote.trim() === "") throw new Error(t("settings.error.selectQuote"));
 			if (source.kind === "topic") return [{
 				id: JSON.stringify([
 					"selection",
@@ -42258,7 +43677,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}];
 			let quoteAddress = address;
 			if (source.kind === "document") {
-				if (documentId === void 0) throw new Error("文档快照尚未保存，请重新选择");
+				if (documentId === void 0) throw new Error(t("settings.error.documentNotSaved"));
 				quoteAddress = `dsh://document/${encodeURIComponent(documentId)}`;
 				references.push({
 					id: quoteAddress,
@@ -42290,16 +43709,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const importDocument = async (source) => {
 				const cached = source.documentId ?? imports.get(source);
 				if (cached !== void 0) return cached;
-				if (source.content === void 0) throw new Error("文件快照不可用，请重新选择");
+				if (source.content === void 0) throw new Error(t("settings.error.snapshotUnavailable"));
 				const imported = await reader.importFile(source.title.slice(0, 200), source.content);
-				if (imported === null) throw new Error(reader.getSnapshot().error ?? "无法保存文件快照");
+				if (imported === null) throw new Error(reader.getSnapshot().error ?? t("settings.error.saveSnapshot"));
 				imports.set(source, imported.documentId);
 				return imported.documentId;
 			};
 			const run = async (source, action, question, modelRoute, options = {}) => {
 				const sourceId = actionSourceSession$1(source);
 				const assertSource = () => {
-					if (companion.getSnapshot().sourceSessionId !== sourceId) throw new Error("来源会话已切换，请返回原文件或重新选文");
+					if (companion.getSnapshot().sourceSessionId !== sourceId) throw new Error(t("settings.error.sourceFileChanged"));
 				};
 				assertSource();
 				open(action.presentation);
@@ -42321,11 +43740,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (target !== null) await companion.appendSelection(sourceId, target, question, selectionReferences(source), delivery);
 					else if (source.kind === "conversation") {
 						await companion.create(source.selection, question, modelRoute, delivery);
-						if (companion.getSnapshot().phase === "error" && companion.getSnapshot().active === null) throw new Error(companion.getSnapshot().error ?? "创建失败");
+						if (companion.getSnapshot().phase === "error" && companion.getSnapshot().active === null) throw new Error(companion.getSnapshot().error ?? t("settings.error.create"));
 					} else {
-						if (!await companion.createFree("")) throw new Error(companion.getSnapshot().error ?? "创建失败");
+						if (!await companion.createFree("")) throw new Error(companion.getSnapshot().error ?? t("settings.error.create"));
 						const topicId = companion.getSnapshot().active?.topic.sessionId;
-						if (topicId === void 0) throw new Error("新 Topic 未就绪，请重新选文");
+						if (topicId === void 0) throw new Error(t("settings.error.topicNotReady"));
 						await companion.appendSelection(sourceId, topicId, question, selectionReferences(source), delivery);
 					}
 					assertSource();
@@ -42346,7 +43765,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const quote = async (source) => {
 				const sourceId = actionSourceSession$1(source);
 				const assertSource = () => {
-					if (companion.getSnapshot().sourceSessionId !== sourceId) throw new Error("来源会话已切换，请重新选文");
+					if (companion.getSnapshot().sourceSessionId !== sourceId) throw new Error(t("settings.error.sourceChanged"));
 				};
 				assertSource();
 				open("side");
@@ -42366,7 +43785,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					await companion.appendSelection(sourceId, target, "", selectionReferences(source, documentId));
 				} else if (source.kind === "conversation") {
 					await companion.create(source.selection, "");
-					if (companion.getSnapshot().phase === "error" && companion.getSnapshot().active === null) throw new Error(companion.getSnapshot().error ?? "创建失败");
+					if (companion.getSnapshot().phase === "error" && companion.getSnapshot().active === null) throw new Error(companion.getSnapshot().error ?? t("settings.error.create"));
 				} else if (source.kind === "document") {
 					const documentId = await importDocument(source);
 					assertSource();
@@ -42377,9 +43796,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						suffixText: source.suffixText
 					}, "", sourceId);
 				} else {
-					if (!await companion.createFree("")) throw new Error(companion.getSnapshot().error ?? "创建失败");
+					if (!await companion.createFree("")) throw new Error(companion.getSnapshot().error ?? t("settings.error.create"));
 					const topicId = companion.getSnapshot().active?.topic.sessionId;
-					if (topicId === void 0) throw new Error("新 Topic 未就绪，请重新选文");
+					if (topicId === void 0) throw new Error(t("settings.error.topicNotReady"));
 					await companion.appendSelection(sourceId, topicId, "", selectionReferences(source));
 				}
 				assertSource();
@@ -42673,9 +44092,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/ActionWheel.js
 		/** Optional wheel and the action retry prompt. Questions and models are edited only in the Topic composer. */
 		function ActionWheel({ useActions, useCompanion, actions }) {
+			useLocale();
 			const state = useActions((value) => value);
 			const preference = useCompanion((value) => value.settings.actionDelivery);
-			const outcome = (slot) => slot.ask ? "写下问题" : actionDelivery(slot, preference) === "send" ? "直接发送" : "放进输入框";
+			const outcome = (slot) => slot.ask ? t("settings.actions.ask") : actionDelivery(slot, preference) === "send" ? t("settings.actions.send") : t("settings.actions.draft");
 			const menu = (0, react.useRef)(null);
 			const wheel = state.wheel;
 			const active = wheel?.active == null ? null : wheel.slots[wheel.active];
@@ -42695,7 +44115,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				ref: menu,
 				tabIndex: -1,
 				role: "menu",
-				"aria-label": "Citer 选文动作",
+				"aria-label": t("settings.toolbar.title"),
 				onKeyDown: (event) => {
 					if (event.key === "Escape") actions.cancel();
 					else if (/^[1-8]$/u.test(event.key)) {
@@ -42747,8 +44167,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									className: ActionWheel_module_css_default.slotNumber,
 									children: index + 1
 								}),
-								(0, react_jsx_runtime.jsx)("strong", { children: slot?.label ?? "空槽" }),
-								(0, react_jsx_runtime.jsx)("small", { children: slot === null ? "在设置中添加" : outcome(slot) })
+								(0, react_jsx_runtime.jsx)("strong", { children: slot?.label ?? t("settings.wheel.empty") }),
+								(0, react_jsx_runtime.jsx)("small", { children: slot === null ? t("settings.wheel.add") : outcome(slot) })
 							]
 						}, index);
 					}),
@@ -42756,20 +44176,23 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						type: "button",
 						className: ActionWheel_module_css_default.center,
 						onClick: actions.cancel,
-						"aria-label": "取消轮盘",
-						children: ["取消", (0, react_jsx_runtime.jsx)("small", { children: "Esc" })]
+						"aria-label": t("settings.wheel.cancelAria"),
+						children: [t("settings.wheel.cancel"), (0, react_jsx_runtime.jsx)("small", { children: "Esc" })]
 					}),
 					(0, react_jsx_runtime.jsx)("div", {
 						className: ActionWheel_module_css_default.caption,
 						role: "status",
-						children: active == null ? "移向动作 · 回到中心取消" : `${active.label} · 松开后${outcome(active)}`
+						children: active == null ? t("settings.wheel.hint") : t("settings.wheel.release", {
+							label: active.label,
+							outcome: outcome(active)
+						})
 					})
 				]
 			}), pending !== null && state.error !== null && (0, react_jsx_runtime.jsxs)("form", {
 				className: ActionWheel_module_css_default.prompt,
 				"data-citeciter-menu": true,
 				role: "dialog",
-				"aria-label": `${pending.action.label}：未完成`,
+				"aria-label": t("settings.wheel.unfinished", { label: pending.action.label }),
 				style: {
 					"--prompt-x": `${pending.x - 210}px`,
 					"--prompt-y": `${pending.y - 100}px`
@@ -42782,7 +44205,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsx)("strong", { children: pending.action.label }), (0, react_jsx_runtime.jsx)("button", {
 						type: "button",
 						onClick: actions.cancel,
-						"aria-label": "关闭提问",
+						"aria-label": t("settings.wheel.closeAsk"),
 						children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, {})
 					})] }),
 					(0, react_jsx_runtime.jsx)("blockquote", { children: actionSourceQuote$1(pending.source).slice(0, 180) }),
@@ -42791,10 +44214,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						className: ActionWheel_module_css_default.error,
 						children: state.error
 					}),
-					(0, react_jsx_runtime.jsxs)("footer", { children: [(0, react_jsx_runtime.jsx)("span", { children: "选中的内容已保留" }), (0, react_jsx_runtime.jsx)("button", {
+					(0, react_jsx_runtime.jsxs)("footer", { children: [(0, react_jsx_runtime.jsx)("span", { children: t("settings.wheel.retained") }), (0, react_jsx_runtime.jsx)("button", {
 						type: "submit",
 						disabled: state.submitting,
-						children: "重试"
+						children: t("settings.wheel.retry")
 					})] })
 				]
 			})] });
@@ -42822,13 +44245,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/SelectionToolbar.js
 		const INLINE_ACTIONS = 4;
 		const GAP = 8;
-		/** The explicit way to start a separate Topic: the user's own question about the selection. */
-		const NEW_TOPIC_ACTION = {
-			label: "新 Topic",
-			prompt: "",
-			ask: true,
-			presentation: "side"
-		};
 		function place(anchor, width, height) {
 			const left = Math.max(GAP, Math.min(anchor.x - width / 2, window.innerWidth - width - GAP));
 			const below = anchor.bottom + GAP;
@@ -42842,8 +44258,15 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* "新 Topic" under a menu. Pressing a button never moves focus or clears the selection first.
 		*/
 		function SelectionToolbar({ useToolbar, useCompanion, toolbar }) {
+			useLocale();
 			const current = useToolbar((value) => value.current);
-			const slots = useCompanion((value) => value.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS);
+			const slots = localizedWheelSlots(useCompanion((value) => value.settings.wheelSlots), isChinese());
+			const newTopicAction = {
+				label: t("settings.toolbar.newTopic"),
+				prompt: "",
+				ask: true,
+				presentation: "side"
+			};
 			const ref = (0, react.useRef)(null);
 			const [position, setPosition] = (0, react.useState)(null);
 			const [menuOpen, setMenuOpen] = (0, react.useState)(false);
@@ -42895,7 +44318,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				className: SelectionToolbar_module_css_default.toolbar,
 				style,
 				role: "toolbar",
-				"aria-label": "Citer 选文动作",
+				"aria-label": t("settings.toolbar.title"),
 				"data-citeciter-toolbar": true,
 				onMouseDown: (event) => event.preventDefault(),
 				onPointerDown: (event) => event.preventDefault(),
@@ -42909,11 +44332,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					(0, react_jsx_runtime.jsx)("button", {
 						type: "button",
 						disabled: quoting,
-						title: inTopic ? "引用到当前 Topic 草稿" : current.source.kind === "document" ? "引用到 Citer Topic 草稿" : "引用到主对话草稿",
+						title: inTopic ? t("settings.toolbar.quoteTopic") : current.source.kind === "document" ? t("settings.toolbar.quoteCiter") : t("settings.toolbar.quoteMain"),
 						onClick: () => {
 							quote();
 						},
-						children: "引用"
+						children: t("settings.toolbar.quote")
 					}),
 					quoteError !== null && (0, react_jsx_runtime.jsx)("span", {
 						className: SelectionToolbar_module_css_default.error,
@@ -42923,14 +44346,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					}),
 					inline.map((action, index) => (0, react_jsx_runtime.jsx)("button", {
 						type: "button",
-						title: action.ask ? "在 Citer 中写下问题" : action.prompt,
+						title: action.ask ? t("settings.toolbar.ask") : action.prompt,
 						onClick: () => choose(action),
 						children: action.label
 					}, index)),
 					(more.length > 0 || !inTopic) && (0, react_jsx_runtime.jsx)("button", {
 						type: "button",
 						className: SelectionToolbar_module_css_default.more,
-						"aria-label": "更多动作",
+						"aria-label": t("settings.toolbar.more"),
 						"aria-haspopup": "menu",
 						"aria-expanded": menuOpen,
 						onClick: () => setMenuOpen((open) => !open),
@@ -42943,12 +44366,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					menuOpen && (0, react_jsx_runtime.jsxs)("div", {
 						className: SelectionToolbar_module_css_default.menu,
 						role: "menu",
-						"aria-label": "更多动作",
+						"aria-label": t("settings.toolbar.more"),
 						children: [
 							more.map((action, index) => (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								role: "menuitem",
-								title: action.ask ? "在 Citer 中写下问题" : action.prompt,
+								title: action.ask ? t("settings.toolbar.ask") : action.prompt,
 								onClick: () => choose(action),
 								children: action.label
 							}, index)),
@@ -42956,8 +44379,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							!inTopic && (0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								role: "menuitem",
-								onClick: () => choose(actions.find((action) => action.ask) ?? NEW_TOPIC_ACTION, true),
-								children: "在新 Topic 中提问"
+								onClick: () => choose(actions.find((action) => action.ask) ?? newTopicAction, true),
+								children: t("settings.toolbar.askNewTopic")
 							})
 						]
 					})
@@ -43038,18 +44461,18 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/native-document.js
 		/** Decode a complete Host-owned preview buffer. Reject binary, partial and oversized imports. */
 		function decodeNativeText(content) {
-			if (content.kind !== "text" && content.kind !== "bytes") throw new Error("此预览没有文本数据，请切换到文本文件的学习查看方式");
-			if (content.kind === "text" && !content.eof) throw new Error("请等待原生预览读取完整文件后再学习");
-			if (content.kind === "bytes" && content.data.byteLength > 8388608) throw new Error("学习文本超过 8 MiB 上限");
+			if (content.kind !== "text" && content.kind !== "bytes") throw new Error(t("settings.error.nativeNoText"));
+			if (content.kind === "text" && !content.eof) throw new Error(t("settings.error.nativeIncomplete"));
+			if (content.kind === "bytes" && content.data.byteLength > 8388608) throw new Error(t("settings.error.nativeTooManyBytes"));
 			const text = content.kind === "text" ? content.text : new TextDecoder("utf-8", { fatal: true }).decode(content.data);
-			if (text.includes("\0")) throw new Error("学习查看方式只支持 UTF-8 文本");
-			if (text.length > 2e6) throw new Error("学习文本不能超过 2,000,000 个字符");
+			if (text.includes("\0")) throw new Error(t("settings.error.nativeUtf8"));
+			if (text.length > 2e6) throw new Error(t("settings.error.nativeTooLong"));
 			return text;
 		}
 		/** Capture the file address's own Session and immutable text, never the later active tab. */
 		function nativeDocumentSource(address, content, selection) {
 			const file = parseFileAddress(address);
-			if (file?.scope !== "session") throw new Error("文件地址没有来源会话");
+			if (file?.scope !== "session") throw new Error(t("settings.error.nativeNoSource"));
 			return {
 				kind: "document",
 				sourceSessionId: SessionId(file.sessionId),
@@ -43092,6 +44515,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/NativeLearningDocument.js
 		/** Alternate native document renderer. DSH owns loading, reload and file navigation. */
 		function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface, openActions }) {
+			const localeRevision = useLocale();
 			const field = (0, react.useRef)(null);
 			const [error, setError] = (0, react.useState)(null);
 			const [page, setPage] = (0, react.useState)(0);
@@ -43107,7 +44531,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						error: error instanceof Error ? error.message : String(error)
 					};
 				}
-			}, [content]);
+			}, [content, localeRevision]);
 			const pages = (0, react.useMemo)(() => documentPages(decoded.text), [decoded.text]);
 			const currentPage = Math.min(page, pages.length - 1);
 			const read = () => {
@@ -43141,13 +44565,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return (0, react_jsx_runtime.jsxs)("section", {
 				className: NativeLearningDocument_module_css_default.document,
 				children: [
-					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("strong", { children: "Citer 学习" }), (0, react_jsx_runtime.jsx)("small", { children: "选中正文后，用工具条提问" })] }), (0, react_jsx_runtime.jsx)("button", {
+					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("strong", { children: t("settings.native.title") }), (0, react_jsx_runtime.jsx)("small", { children: t("settings.native.hint") })] }), (0, react_jsx_runtime.jsx)("button", {
 						type: "button",
 						onClick: (event) => {
 							try {
 								const source = read();
 								if (source === null) {
-									setError("请先在正文中选中文字");
+									setError(t("settings.native.select"));
 									return;
 								}
 								setError(null);
@@ -43157,21 +44581,21 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								setError(String(error));
 							}
 						},
-						children: "Citer 动作"
+						children: t("settings.native.actions")
 					})] }),
-					(0, react_jsx_runtime.jsx)("p", { children: "提问时会保存这份文件的快照。Markdown 和代码按源文本显示。" }),
+					(0, react_jsx_runtime.jsx)("p", { children: t("settings.native.snapshot") }),
 					(decoded.error ?? error) !== null && (0, react_jsx_runtime.jsx)("p", {
 						role: "alert",
 						children: decoded.error ?? error
 					}),
 					pages.length > 1 && (0, react_jsx_runtime.jsxs)("nav", {
-						"aria-label": "学习文档分页",
+						"aria-label": t("settings.native.pagination"),
 						children: [
 							(0, react_jsx_runtime.jsx)("button", {
 								type: "button",
 								disabled: currentPage === 0,
 								onClick: () => setPage(currentPage - 1),
-								children: "上一页"
+								children: t("settings.reader.previous")
 							}),
 							(0, react_jsx_runtime.jsxs)("span", { children: [
 								currentPage + 1,
@@ -43182,7 +44606,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								type: "button",
 								disabled: currentPage === pages.length - 1,
 								onClick: () => setPage(currentPage + 1),
-								children: "下一页"
+								children: t("settings.reader.next")
 							})
 						]
 					}),
@@ -43192,7 +44616,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							scrollportRef(element);
 						},
 						readOnly: true,
-						"aria-label": "原生文件学习正文",
+						"aria-label": t("settings.native.body"),
 						value: pages[currentPage] ?? "",
 						wrap: wrap ? "soft" : "off",
 						spellCheck: false
@@ -43417,7 +44841,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (disposed || available === null || copyOperation !== null) return copyOperation ?? Promise.resolve();
 					store.update((state) => {
 						state.copyStatus = "copying";
-						state.copyMessage = "正在复制更新命令…";
+						state.copyMessage = t("settings.status.copying");
 					});
 					const operation = (async () => {
 						try {
@@ -43425,12 +44849,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							await environment.clipboard.writeText(updateCommand(available.latestVersion, available.profile));
 							if (!disposed) store.update((state) => {
 								state.copyStatus = "copied";
-								state.copyMessage = "更新命令已复制。运行后请重启当前 DSH。";
+								state.copyMessage = t("settings.status.copied");
 							});
 						} catch {
 							if (!disposed) store.update((state) => {
 								state.copyStatus = "error";
-								state.copyMessage = "无法自动复制，请手动复制下方命令。运行后请重启当前 DSH。";
+								state.copyMessage = t("settings.status.copyFailed");
 							});
 						}
 					})();
@@ -43456,7 +44880,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (disposed || preferenceOperation !== null) return preferenceOperation ?? false;
 					store.update((state) => {
 						state.preferenceStatus = "saving";
-						state.preferenceMessage = enabled ? "正在开启更新提醒…" : "正在关闭更新提醒…";
+						state.preferenceMessage = enabled ? t("settings.status.enabling") : t("settings.status.disabling");
 					});
 					const operation = (async () => {
 						const persistence = readPreference().persistence;
@@ -43475,13 +44899,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						if (!saved) {
 							store.update((state) => {
 								state.preferenceStatus = "error";
-								state.preferenceMessage = persistence === "browser" ? "浏览器阻止了本地存储，无法保存更新提醒设置。" : "无法保存更新提醒设置，请重试。";
+								state.preferenceMessage = persistence === "browser" ? t("settings.status.browserDenied") : t("settings.status.saveFailed");
 							});
 							return false;
 						}
 						store.update((state) => {
 							state.preferenceStatus = "saved";
-							state.preferenceMessage = enabled ? "已开启版本更新提醒" : "已关闭版本更新提醒";
+							state.preferenceMessage = enabled ? t("settings.status.enabled") : t("settings.status.disabled");
 							if (!enabled) state.available = null;
 						});
 						if (enabled) runCheck(true);
@@ -43541,6 +44965,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @returns the available-version card, or no surface while current or suppressed.
 		*/
 		function UpdateNotice({ useUpdate, updateController }) {
+			useLocale();
 			const snapshot = useUpdate((value) => value);
 			const titleId = (0, react.useId)();
 			const descriptionId = (0, react.useId)();
@@ -43576,11 +45001,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				onPointerDownCapture: rememberFocus,
 				onFocusCapture: rememberFocus,
 				children: [
-					(0, react_jsx_runtime.jsxs)("p", {
+					(0, react_jsx_runtime.jsx)("p", {
 						className: UpdateNotice_module_css_default.announcement,
 						role: "status",
 						"aria-live": "polite",
-						children: ["Citer 有新版本 ", available.latestVersion]
+						children: t("settings.update.announcement", { version: available.latestVersion })
 					}),
 					(0, react_jsx_runtime.jsxs)("div", {
 						className: UpdateNotice_module_css_default.heading,
@@ -43590,7 +45015,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							children: "↑"
 						}), (0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h2", {
 							id: titleId,
-							children: "Citer 有新版本"
+							children: t("settings.update.title")
 						}), (0, react_jsx_runtime.jsxs)("p", {
 							className: UpdateNotice_module_css_default.version,
 							children: [
@@ -43606,7 +45031,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					(0, react_jsx_runtime.jsx)("p", {
 						id: descriptionId,
 						className: UpdateNotice_module_css_default.description,
-						children: "“更新”复制安装命令。执行前请核对目标 Profile 与新版 DSH 要求，完成后重启当前 DSH。"
+						children: t("settings.update.description")
 					}),
 					(0, react_jsx_runtime.jsx)("code", {
 						className: UpdateNotice_module_css_default.command,
@@ -43630,33 +45055,33 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 								variant: "primary",
 								className: `${UpdateNotice_module_css_default.action} ${UpdateNotice_module_css_default.updateAction}`,
-								"aria-label": "更新",
+								"aria-label": t("settings.update.update"),
 								disabled: busy,
 								onClick: () => {
 									updateController.copyUpdateCommand();
 								},
-								children: "更新"
+								children: t("settings.update.update")
 							}),
 							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 								variant: "outline",
 								className: UpdateNotice_module_css_default.action,
-								"aria-label": "下次一定",
+								"aria-label": t("settings.update.later"),
 								disabled: busy,
 								onClick: () => {
 									updateController.defer();
 									restoreFocus();
 								},
-								children: "下次一定"
+								children: t("settings.update.later")
 							}),
 							(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 								variant: "ghost",
 								className: UpdateNotice_module_css_default.action,
-								"aria-label": "不再提示",
+								"aria-label": t("settings.update.never"),
 								disabled: busy,
 								onClick: () => {
 									disableNotifications();
 								},
-								children: "不再提示"
+								children: t("settings.update.never")
 							})
 						]
 					})
@@ -44182,7 +45607,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		/** Plain Markdown, including a blank paragraph after the quoted passage. */
 		function markdownQuote(passage) {
 			const text = passage.trim();
-			if (text === "") throw new Error("请先选中要引用的内容");
+			if (text === "") throw new Error(t("settings.error.selectQuote"));
 			return `${text.split(/\r\n?|\n/).map((line) => line === "" ? ">" : `> ${line}`).join("\n")}\n\n`;
 		}
 		/**
@@ -44199,7 +45624,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		async function appendMainQuote(ctx, sessionId, passage) {
 			const binding = ctx.sessions.binding(sessionId);
 			const scope = ctx.sessions.scope(sessionId);
-			if (binding === void 0 || scope === void 0 || ctx.uiSession.adapter.current.getSnapshot().key !== sessionId) throw new Error("来源会话已切换，请重新选文");
+			if (binding === void 0 || scope === void 0 || ctx.uiSession.adapter.current.getSnapshot().key !== sessionId) throw new Error(t("settings.error.sourceChanged"));
 			const quote = markdownQuote(passage);
 			const input = ctx.conversation.input;
 			const resolver = input;
@@ -44208,12 +45633,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				prompt: quote,
 				whenDraftExists: "append"
 			}) ?? "preserved";
-			if (outcome === "blocked") throw new Error("主对话正在提交，请稍后重新引用");
+			if (outcome === "blocked") throw new Error(t("settings.error.mainSubmitting"));
 			if (outcome === "preserved") {
 				const next = appendedDraft(composer.state.getSnapshot().draft, quote);
 				if (next === null) {
 					await navigator.clipboard.writeText(quote);
-					composer.notify("info", "输入框里有附件引用，引用已复制，粘贴到需要的位置即可");
+					composer.notify("info", t("settings.status.quoteCopied"));
 					composer.focus();
 					return "copied";
 				}
@@ -44284,7 +45709,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				try {
 					const response = await call({ action: "documents" });
 					if (generation !== refreshGeneration) return;
-					if (response.kind !== "documents") throw new Error("Citer 返回了错误的文档列表响应");
+					if (response.kind !== "documents") throw new Error(t("settings.error.readerList"));
 					update((draft) => {
 						draft.documents = response.documents;
 						draft.documentsStatus = "ready";
@@ -44307,14 +45732,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const importFile = async (name, content) => {
 				if (disposed) return null;
 				try {
-					const title = name.trim() === "" ? "未命名文档" : name.trim();
+					const title = name.trim() === "" ? t("settings.error.untitled") : name.trim();
 					const response = await call({
 						action: "document-import",
 						title,
 						format: formatFromName(name),
 						content
 					});
-					if (response.kind !== "document") throw new Error("Citer 返回了错误的文档导入响应");
+					if (response.kind !== "document") throw new Error(t("settings.error.readerImport"));
 					await refresh();
 					return response.document;
 				} catch (error) {
@@ -44339,7 +45764,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						page
 					});
 					if (generation !== documentGeneration) return;
-					if (response.kind !== "document-content") throw new Error("CiteCiter 返回了错误的文档内容响应");
+					if (response.kind !== "document-content") throw new Error(t("settings.error.readerContent"));
 					update((draft) => {
 						draft.active = response.document;
 					});
@@ -44364,10 +45789,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					draft.error = null;
 				});
 				try {
-					if (file.size > 8388608) throw new Error("文件过大；请导入不超过 2,000,000 个字符的文本");
+					if (file.size > 8388608) throw new Error(t("settings.error.fileTooLarge"));
 					const content = await file.text();
 					if (disposed) return;
-					if (content.length > 2e6) throw new Error("文档不能超过 2,000,000 个字符");
+					if (content.length > 2e6) throw new Error(t("settings.error.textTooLarge"));
 					const imported = await importFile(file.name, content);
 					if (imported !== null) await openDocument(imported.documentId);
 				} catch (error) {
@@ -44386,11 +45811,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const selection = snapshot.selection;
 				const question = snapshot.question.trim();
 				if (snapshot.active === null || selection === null) {
-					fail(/* @__PURE__ */ new Error("请先在文档中选择一段内容"));
+					fail(new Error(t("settings.error.selectDocument")));
 					return;
 				}
 				if (question === "") {
-					fail(/* @__PURE__ */ new Error("请输入要问 CiteCiter 的问题"));
+					fail(new Error(t("settings.error.enterQuestion")));
 					return;
 				}
 				update((draft) => {
@@ -44499,7 +45924,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				if (mirrored.view === void 0) {
 					store.update((state) => {
 						state.status = status === "loading" ? "loading" : status === "unavailable" ? "unavailable" : mirrored.error === null ? "idle" : "error";
-						state.error = status === "unavailable" ? mirrored.error ?? "当前宿主不支持打开配置文件" : mirrored.error;
+						state.error = status === "unavailable" ? mirrored.error ?? t("settings.error.configUnsupported") : mirrored.error;
 						state.message = null;
 					});
 					return;
@@ -44507,7 +45932,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const hasDocument = mirrored.view.hasDocument;
 				store.update((state) => {
 					state.status = hasDocument ? "ready" : "missing";
-					state.error = hasDocument ? mirrored.error : "配置文件不存在";
+					state.error = hasDocument ? mirrored.error : t("settings.other.missing");
 					state.message = null;
 				});
 			};
@@ -44547,7 +45972,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						await track(openDocument(abort.signal));
 						if (!disposed) store.update((state) => {
 							state.opening = false;
-							state.message = "已打开配置文件";
+							state.message = t("settings.status.configOpened");
 						});
 					} catch (error) {
 						if (!disposed) store.update((state) => {
@@ -44665,13 +46090,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		/** Call only public preference services. The selected service owns binding teardown. */
 		function hostSettings(ctx) {
 			const forms = ctx.get("configForms");
-			if (forms === void 0) throw new Error("当前 DSH 未提供 Citer 所需的设置接口");
+			if (forms === void 0) throw new Error(t("panel.error.settingsUnavailable"));
 			return forms;
 		}
 		/** Project native UI status without creating another approval authority. */
 		function hostInteractions(ctx) {
 			const source = ctx.uiSession.sessionStatus;
-			if (source === void 0) throw new Error("当前 DSH 未提供 Citer 所需的审批展示接口");
+			if (source === void 0) throw new Error(t("panel.error.approvalUnavailable"));
 			let previous;
 			let current = /* @__PURE__ */ new Map();
 			return {
@@ -46947,99 +48372,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		//#endregion
-		//#region lib/types/client/locales/board.js
-		/** The blackboard, its animation player, learning cards and the learning route. */
-		const zh$5 = { "board.title": "小黑板" };
-		const en$5 = { "board.title": "Blackboard" };
-		//#endregion
-		//#region lib/types/client/locales/common.js
-		/** Shared words used across Citer's interface. */
-		const zh$4 = {
-			"common.name": "Citer",
-			"common.cancel": "取消",
-			"common.close": "关闭"
-		};
-		const en$4 = {
-			"common.name": "Citer",
-			"common.cancel": "Cancel",
-			"common.close": "Close"
-		};
-		//#endregion
-		//#region lib/types/client/locales/panel.js
-		/** The Citer workspace shell: header, Topic list and menu, empty state, composer, questions, notices and dialogs. */
-		const zh$3 = { "panel.placeholder": "继续提问" };
-		const en$3 = { "panel.placeholder": "Ask a follow-up" };
-		//#endregion
-		//#region lib/types/client/locales/settings.js
-		/** Settings, preset actions, the selection toolbar and wheel, the document reader and update notices. */
-		const zh$2 = { "settings.title": "Citer" };
-		const en$2 = { "settings.title": "Citer" };
-		//#endregion
-		//#region lib/types/client/locales/transcript.js
-		/** The Topic transcript: messages, tool rows, context rows, reasoning, attachments and usage. */
-		const zh$1 = { "transcript.usage": "用量 {tokens} tok" };
-		const en$1 = { "transcript.usage": "{tokens} tok used" };
-		//#endregion
-		//#region lib/types/client/locales/index.js
-		/**
-		* Citer's Chinese and English dictionaries, one module per interface area. Chinese is the key-set
-		* source of truth; every English dictionary must cover exactly the same keys.
-		*/
-		const zh = {
-			...zh$4,
-			...zh$3,
-			...zh$1,
-			...zh$2,
-			...zh$5
-		};
-		const en = {
-			...en$4,
-			...en$3,
-			...en$1,
-			...en$2,
-			...en$5
-		};
-		//#endregion
-		//#region lib/types/client/i18n.js
-		/**
-		* Citer's interface text through DSH's locale service. The `citeciter` namespace carries the
-		* built-in Chinese and English dictionaries; language packs from other plugins may register more
-		* locales for it, and DSH's fallback chain applies. Text follows DSH's language setting live.
-		*
-		* Components call {@link useLocale} once so they re-render on a language switch, then read text
-		* with {@link t}; controllers call {@link t} when they produce a message.
-		*/
-		/** DSH locale namespace that holds Citer's dictionaries. */
-		const CITER_LOCALE_NAMESPACE = "citeciter";
-		let revision = 0;
-		const listeners = /* @__PURE__ */ new Set();
-		function notify() {
-			revision += 1;
-			for (const listener of listeners) listener();
-		}
-		/**
-		* Register Citer's dictionaries and follow the active language for the lifetime of `ctx`.
-		* Without DSH's locale service, text stays Chinese.
-		* @param ctx - Client root context.
-		*/
-		function installLocale(ctx) {
-			ctx.inject(["locale"], (localeCtx) => {
-				const locale = localeCtx.locale;
-				localeCtx.effect(() => locale.register(CITER_LOCALE_NAMESPACE, "zh", zh), "citeciter: Chinese dictionary");
-				localeCtx.effect(() => locale.register(CITER_LOCALE_NAMESPACE, "en", en), "citeciter: English dictionary");
-				locale.bind(CITER_LOCALE_NAMESPACE);
-				locale.getLocale().active;
-				notify();
-				localeCtx.effect(() => locale.subscribe(() => {
-					locale.getLocale().active;
-					notify();
-				}), "citeciter: locale changes");
-				localeCtx.effect(() => () => {
-					notify();
-				}, "citeciter: locale binding");
-			});
-		}
-		//#endregion
 		//#region lib/types/client/index.js
 		/** Registry id and kind of Citer's right-sidebar tab type. */
 		const CITER_TAB_ID = "@kirkchinese/dsh-citeciter";
@@ -47088,9 +48420,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					const response = await remoteCtx.remote.citeciter.request(request);
 					if (!response.ok) throw new Error(response.error.message);
 					if (response.value.kind === "deleted") {
-						if (!("topicSessionId" in request) || response.value.sessionId !== request.topicSessionId) throw new Error("Citer 草稿删除回执身份不匹配");
+						if (!("topicSessionId" in request) || response.value.sessionId !== request.topicSessionId) throw new Error(t("settings.error.deletedReceipt"));
 						nativeComposer.retire(response.value.sessionId);
-						throw new Error("这个 Topic 已永久删除，未继续保存草稿");
+						throw new Error(t("settings.error.topicDeleted"));
 					}
 					return response.value;
 				}, nativeComposer, () => document.hasFocus());
@@ -47141,7 +48473,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					openPanel();
 				});
 				const actions = createActionController(execute, () => companion.getSnapshot().settings.defaultCiterModel ?? void 0);
-				const openActions = (source, x, y) => actions.open(source, x, y, companion.getSnapshot().settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS, false);
+				const openActions = (source, x, y) => actions.open(source, x, y, localizedWheelSlots(companion.getSnapshot().settings.wheelSlots, isChinese()), false);
 				const reportedParseErrors = /* @__PURE__ */ new Set();
 				const reportParseError = (messageId) => {
 					const storageKey = `citeciter:malformed-followups:${messageId}`;
@@ -47198,7 +48530,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				remoteCtx.effect(() => {
 					const disposeAssistantEntry = remoteCtx.effect(() => entries.register(createAssistantEntry()), "citeciter: assistant selection entry");
 					const disposeToolEntry = remoteCtx.effect(() => entries.register(createToolEvidenceEntry()), "citeciter: tool evidence entry");
-					const disposeGesture = installWheelGesture(actions, readSelectionSource, () => companion.getSnapshot().settings);
+					const disposeGesture = installWheelGesture(actions, readSelectionSource, () => {
+						const current = companion.getSnapshot().settings;
+						return {
+							...current,
+							wheelSlots: [...localizedWheelSlots(current.wheelSlots, isChinese())]
+						};
+					});
 					return () => {
 						disposeGesture();
 						disposeAssistantEntry();
@@ -47283,7 +48621,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							"ps1"
 						],
 						priority: "builtin",
-						title: () => "Citer 学习",
+						title: () => t("settings.native.title"),
 						loading: "bytes-complete",
 						wrap: true
 					}), "citeciter: native learning metadata");
@@ -47335,12 +48673,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					sideCtx.effect(() => sideCtx.sidebarRightTabs.register({
 						id: CITER_TAB_ID,
 						kind: CITER_TAB_KIND,
-						title: () => "Citer",
+						title: () => t("settings.title"),
 						guide: [{
 							id: "citeciter",
 							order: 25,
-							title: () => "Citer",
-							description: () => "在独立 Topic 里追问选中的内容",
+							title: () => t("settings.title"),
+							description: () => t("settings.guide.description"),
 							icon: CiterIcon
 						}]
 					}), "citeciter: sidebar tab type");
@@ -47384,7 +48722,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					name: "conversation.view",
 					id: "citeciter.blackboard",
 					order: 30,
-					label: "小黑板",
+					label: () => t("settings.blackboard.title"),
 					inject: () => ({
 						companion: companionActions,
 						bus: busActions,
@@ -47406,7 +48744,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					name: "settings.section",
 					id: "citeciter",
 					order: 45,
-					label: "Citer",
+					label: () => t("settings.title"),
 					inject: settingsInject
 				}, CiteCiterSettings));
 				remoteCtx.slots.inject("plugins.bundle.config", () => remoteCtx.slots.register({

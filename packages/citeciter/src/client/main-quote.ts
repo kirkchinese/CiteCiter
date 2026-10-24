@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -10,7 +11,7 @@ const REFERENCE_PLACEHOLDER = /[\uE100-\uE11D\uFFFC]/u
 /** Plain Markdown, including a blank paragraph after the quoted passage. */
 export function markdownQuote(passage: string): string {
   const text = passage.trim()
-  if (text === '') throw new Error('请先选中要引用的内容')
+  if (text === '') throw new Error(t('settings.error.selectQuote'))
   return `${text.split(/\r\n?|\n/).map(line => line === '' ? '>' : `> ${line}`).join('\n')}\n\n`
 }
 
@@ -33,7 +34,7 @@ export async function appendMainQuote(ctx: Context, sessionId: SessionId, passag
   const binding = ctx.sessions.binding(sessionId)
   const scope = ctx.sessions.scope(sessionId)
   if (binding === undefined || scope === undefined || ctx.uiSession.adapter.current.getSnapshot().key !== sessionId) {
-    throw new Error('来源会话已切换，请重新选文')
+    throw new Error(t('settings.error.sourceChanged'))
   }
   const quote = markdownQuote(passage)
   const input = ctx.conversation.input
@@ -43,12 +44,12 @@ export async function appendMainQuote(ctx: Context, sessionId: SessionId, passag
   }
   const composer = input.for(scope)
   const outcome = resolver.requestDraftInitialization?.(binding, { prompt: quote, whenDraftExists: 'append' }) ?? 'preserved'
-  if (outcome === 'blocked') throw new Error('主对话正在提交，请稍后重新引用')
+  if (outcome === 'blocked') throw new Error(t('settings.error.mainSubmitting'))
   if (outcome === 'preserved') {
     const next = appendedDraft(composer.state.getSnapshot().draft, quote)
     if (next === null) {
       await navigator.clipboard.writeText(quote)
-      composer.notify('info', '输入框里有附件引用，引用已复制，粘贴到需要的位置即可')
+      composer.notify('info', t('settings.status.quoteCopied'))
       composer.focus()
       return 'copied'
     }

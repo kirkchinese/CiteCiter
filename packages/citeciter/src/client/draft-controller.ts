@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { ComposerAttachment } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { CiteCiterRequest, CiteCiterResponse } from '../topic.ts'
 import { DRAFT_CHUNK_BYTES, EMPTY_DRAFT, EMPTY_DRAFT_STATE, subtractSubmitted, type DraftContent, type DraftFile, type DraftState } from '../draft-contract.ts'
@@ -56,18 +57,18 @@ export function createDraftController(request: Request, native: NativeComposer, 
         for (let offset = 0; offset < meta.size; offset += DRAFT_CHUNK_BYTES) {
           const chunk = await request({ action: 'draft-file-get', topicSessionId: id, fileId: meta.id, offset })
           if (!current(id, entry)) return
-          if (chunk.kind !== 'draft-file') throw new Error('草稿附件响应类型不匹配')
+          if (chunk.kind !== 'draft-file') throw new Error(t('panel.response.draftFileMismatch'))
           const bytes = Uint8Array.from(atob(chunk.data), char => char.charCodeAt(0))
-          if (bytes.length !== Math.min(DRAFT_CHUNK_BYTES, meta.size - offset)) throw new Error('草稿附件读取不完整')
+          if (bytes.length !== Math.min(DRAFT_CHUNK_BYTES, meta.size - offset)) throw new Error(t('panel.response.incompleteFile'))
           chunks.push(bytes)
         }
         const file = new File(chunks, meta.name, { type: meta.type, lastModified: meta.lastModified })
         const [attachment] = await native.add(id, [file])
-        if (attachment === undefined) throw new Error('DSH 未恢复附件')
+        if (attachment === undefined) throw new Error(t('panel.response.restoreAttachmentFailed'))
         if (!current(id, entry)) { native.remove(attachment.id); return }
         if (![...entry.state.content.files, ...(entry.state.pending?.content.files ?? [])].some(item => item.id === meta.id)) { native.remove(attachment.id); continue }
         entry.files.set(meta.id, { meta, native: attachment, saved: true })
-      } catch (error) { fail(id, entry, `无法恢复 ${meta.name}：${String(error)}；请移除或重新添加`) }
+      } catch (error) { fail(id, entry, t('panel.error.restoreFile', { name: meta.name, error: String(error) })) }
     }
   }
   const ensureEntry = async (id: string, entry: Entry): Promise<void> => {
@@ -76,7 +77,7 @@ export function createDraftController(request: Request, native: NativeComposer, 
     if (entry.loading !== undefined) return entry.loading
     entry.loading = (async () => {
       const response = await request({ action: 'draft-get', topicSessionId: id })
-      if (response.kind !== 'draft') throw new Error('草稿响应类型不匹配')
+      if (response.kind !== 'draft') throw new Error(t('panel.response.draftMismatch'))
       if (!current(id, entry)) return
       entry.state = response.state
       entry.base = response.state
@@ -144,7 +145,7 @@ export function createDraftController(request: Request, native: NativeComposer, 
         const outgoing = entry.state
         const response = await request({ action: 'draft-save', topicSessionId: id, state: outgoing })
         if (!current(id, entry)) return
-        if (response.kind !== 'draft') throw new Error('草稿保存响应类型不匹配')
+        if (response.kind !== 'draft') throw new Error(t('panel.response.draftSaveMismatch'))
         if (response.conflict) {
           entry.remote = response.state
           // Yield after repeated competing writes; keep unsaved work and retry quietly.
@@ -210,7 +211,7 @@ export function createDraftController(request: Request, native: NativeComposer, 
       const entry = entryOf(id)
       await ensureEntry(id, entry)
       if (!current(id, entry)) return
-      if (entry.state.content.files.length + files.length > 32 || files.some(file => file.size > 100 * 1024 * 1024)) throw new Error('草稿最多保留 32 个附件，每个附件不超过 100 MiB')
+      if (entry.state.content.files.length + files.length > 32 || files.some(file => file.size > 100 * 1024 * 1024)) throw new Error(t('panel.error.draftLimit'))
       const added = await native.add(id, files)
       if (!current(id, entry)) { for (const item of added) native.remove(item.id); return }
       const metas = added.map(attachment => {
@@ -235,18 +236,18 @@ export function createDraftController(request: Request, native: NativeComposer, 
       emit(id, entry, { sending: true })
       try {
         if (entry.composing) return false
-        if (entry.view.missing.length !== 0) throw new Error('请先移除或重新添加无法恢复的附件')
-        if (entry.state.pending !== null && !retry) throw new Error('上次发送状态未确认，请先核对或明确重试上次发送')
+        if (entry.view.missing.length !== 0) throw new Error(t('panel.error.removeMissing'))
+        if (entry.state.pending !== null && !retry) throw new Error(t('panel.error.pendingSend'))
         // Freeze the user's submit event before saving can yield to later editing.
         // Pin its files via pending so a concurrent remove cannot release this send's bytes.
         const content = entry.state.pending?.content ?? entry.state.content
-        if (content.files.some(file => !entry.files.has(file.id))) throw new Error('上次发送的附件无法恢复，请先核对发送状态')
+        if (content.files.some(file => !entry.files.has(file.id))) throw new Error(t('panel.error.missingSentFile'))
         const outgoingFiles = content.files.map(file => entry.files.get(file.id)!.native)
         const requestId = entry.state.pending?.requestId ?? crypto.randomUUID()
         entry.state = { ...entry.state, pending: { requestId, content } }; entry.generation++
         await flushEntry(id, entry)
         if (!current(id, entry)) return false
-        if (entry.state.pending?.requestId !== requestId || entry.base.pending?.requestId !== requestId) throw new Error('草稿尚未保存，未发送；请稍后重试')
+        if (entry.state.pending?.requestId !== requestId || entry.base.pending?.requestId !== requestId) throw new Error(t('panel.error.draftNotSaved'))
         const sent = await send(content, outgoingFiles, requestId)
         if (!current(id, entry)) return false
         if (sent) {
@@ -266,7 +267,7 @@ export function createDraftController(request: Request, native: NativeComposer, 
       await flushEntry(id, entry)
       if (!current(id, entry)) return
       const response = await request({ action: 'draft-get', topicSessionId: id })
-      if (response.kind !== 'draft') throw new Error('草稿响应类型不匹配')
+      if (response.kind !== 'draft') throw new Error(t('panel.response.draftMismatch'))
       if (!current(id, entry)) return
       if (response.state.revision <= entry.state.revision) return
       entry.remote = response.state

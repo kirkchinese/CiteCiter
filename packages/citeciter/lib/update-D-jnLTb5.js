@@ -1244,6 +1244,14 @@ const DEFAULT_WHEEL_SLOTS = [
 	null,
 	null
 ];
+englishLearningQuestion("Underlying logic"), englishLearningQuestion("Quantitative analysis (blackboard)"), englishLearningQuestion("Summary study cards", "Organize the content around this quote.");
+function englishLearningQuestion(stage, question = "") {
+	return `[Learning stage: ${stage}]\n${{
+		"Underlying logic": "Explain the underlying logic of the current topic: start with definitions and conditions, then explain the causal mechanism and why it works. Distinguish source evidence, general knowledge, and assumptions. Cover this stage only; do not advance automatically.",
+		"Quantitative analysis (blackboard)": "Analyze the current topic quantitatively and use blackboard_apply to organize the blackboard: specify variables, units, assumptions, derivation steps, and one verifiable worked example. Mark example values as hypothetical; do not invent source data. If quantitative analysis is unsuitable or information is insufficient, explain why. Cover this stage only; do not advance automatically.",
+		"Summary study cards": "First check and correct the conclusions and existing blackboard in this Topic: review definitions, conditions, derivations, numbers, and contradictions. Do not treat earlier model responses as evidence; consult available sources if needed. Correct mistakes and mark unverifiable claims as unverified or omit them; do not invent sources or locations. Then call learning_cards to create 1–6 study cards, each with a key conclusion, a concrete example, an optional self-test question, and a reference answer. Check that these fields agree, including corrections in examples and answers. Preserve real source locations for source-dependent facts and distinguish evidence from general knowledge. Briefly report corrections and remaining unverified claims; do not schedule reviews."
+	}[stage]}${question.trim() === "" ? "" : `\n\nMy question: ${question.trim()}`}`;
+}
 //#endregion
 //#region lib/types/tool-outcome-contract.js
 /** Recognized question outcomes shared by Host and Client without importing either service face. */

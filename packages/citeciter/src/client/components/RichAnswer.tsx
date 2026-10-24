@@ -3,6 +3,7 @@ import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import { splitRichContent } from '../rich-content.ts'
 import css from './CiteCiter.module.css'
 import { markdownLabels } from '../copy.ts'
+import { t, useLocale } from '../i18n.ts'
 
 /** Assistant response text and its current stream state. */
 export interface RichAnswerProps {
@@ -16,6 +17,7 @@ export interface RichAnswerProps {
  * @returns isolated rich-answer element.
  */
 export function RichAnswer({ text, streaming }: RichAnswerProps) {
+  useLocale()
   const segments = useMemo(() => splitRichContent(text), [text])
   return (
     <div className={css.richAnswer} data-citeciter-answer>
@@ -24,7 +26,7 @@ export function RichAnswer({ text, streaming }: RichAnswerProps) {
         if (segment.kind === 'svg') {
           return (
             <figure className={css.richFigure} key={key} data-citeciter-svg>
-              <img className={css.richSvg} src={segment.dataUrl} alt="Citer 图示" style={segment.size === null ? undefined : { width: segment.size.width }} />
+              <img className={css.richSvg} src={segment.dataUrl} alt={t('transcript.answer.svgAlt')} style={segment.size === null ? undefined : { width: segment.size.width }} />
             </figure>
           )
         }
@@ -33,7 +35,7 @@ export function RichAnswer({ text, streaming }: RichAnswerProps) {
             <figure className={css.richFigure} key={key} data-citeciter-html>
               <iframe
                 className={css.richHtml}
-                title="Citer 网页图示"
+                title={t('transcript.answer.htmlTitle')}
                 sandbox=""
                 referrerPolicy="no-referrer"
                 srcDoc={segment.document}

@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 import type { ActionSource } from './action-controller.ts'
 import type { DraftReference } from './draft-references.ts'
 
@@ -8,7 +9,7 @@ const actionSourceSession = (source: ActionSource): string => source.kind === 'c
 /** Capture an actual selected passage and its address; never reconstruct a citation from Topic metadata. */
 export function selectionReferences(source: ActionSource, documentId?: string): readonly DraftReference[] {
   const quote = actionSourceQuote(source)
-  if (quote.trim() === '') throw new Error('请先选中要引用的内容')
+  if (quote.trim() === '') throw new Error(t('settings.error.selectQuote'))
   // A passage of the Topic's own transcript needs no source address: the Topic already has its source.
   if (source.kind === 'topic') return [{ id: JSON.stringify(['selection', `topic:${source.topicSessionId}`, quote]), kind: 'excerpt', label: '引用文段', content: quote }]
   const sourceId = actionSourceSession(source)
@@ -16,7 +17,7 @@ export function selectionReferences(source: ActionSource, documentId?: string): 
   const references: DraftReference[] = [{ id: address, kind: 'source', label: '来源对话', content: sourceId, address }]
   let quoteAddress = address
   if (source.kind === 'document') {
-    if (documentId === undefined) throw new Error('文档快照尚未保存，请重新选择')
+    if (documentId === undefined) throw new Error(t('settings.error.documentNotSaved'))
     quoteAddress = `dsh://document/${encodeURIComponent(documentId)}`
     references.push({ id: quoteAddress, kind: 'source', label: '来源文档', content: source.title, address: quoteAddress })
   }

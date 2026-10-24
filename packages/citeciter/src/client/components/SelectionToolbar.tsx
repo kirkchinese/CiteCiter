@@ -1,17 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
-import { DEFAULT_WHEEL_SLOTS, type CiteAction } from '../../actions.ts'
+import { localizedWheelSlots, type CiteAction } from '../../actions.ts'
 import type { ActionSource } from '../action-controller.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { SelectionAnchor, SelectionToolbarSnapshot } from '../selection-toolbar.ts'
 import { OverlayPortal } from './OverlayPortal.tsx'
 import mascotUrl from '../assets/citeciter-mascot.png'
+import { isChinese, t, useLocale } from '../i18n.ts'
 import css from './SelectionToolbar.module.css'
 
 const INLINE_ACTIONS = 4
 const GAP = 8
 /** The explicit way to start a separate Topic: the user's own question about the selection. */
-const NEW_TOPIC_ACTION: CiteAction = { label: '新 Topic', prompt: '', ask: true, presentation: 'side' }
 
 /** Toolbar callbacks; the controllers stay with the Client plugin. */
 export interface SelectionToolbarActions {
@@ -36,8 +36,11 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
   readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
   readonly toolbar: SelectionToolbarActions
 }) {
+  useLocale()
   const current = useToolbar(value => value.current)
-  const slots = useCompanion(value => value.settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS)
+  const savedSlots = useCompanion(value => value.settings.wheelSlots)
+  const slots = localizedWheelSlots(savedSlots, isChinese())
+  const newTopicAction: CiteAction = { label: t('settings.toolbar.newTopic'), prompt: '', ask: true, presentation: 'side' }
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ left: number, top: number } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -74,19 +77,19 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
   const inTopic = current.source.kind === 'topic'
   const style = (position === null ? { visibility: 'hidden', left: 0, top: 0 } : position) as CSSProperties
   return <OverlayPortal>
-    <div ref={ref} className={css.toolbar} style={style} role="toolbar" aria-label="Citer 选文动作" data-citeciter-toolbar
+    <div ref={ref} className={css.toolbar} style={style} role="toolbar" aria-label={t('settings.toolbar.title')} data-citeciter-toolbar
       onMouseDown={event => event.preventDefault()} onPointerDown={event => event.preventDefault()}>
       <img className={css.mark} src={mascotUrl} alt="" aria-hidden="true" />
-      <button type="button" disabled={quoting} title={inTopic ? '引用到当前 Topic 草稿' : current.source.kind === 'document' ? '引用到 Citer Topic 草稿' : '引用到主对话草稿'} onClick={() => { void quote() }}>引用</button>
+      <button type="button" disabled={quoting} title={inTopic ? t('settings.toolbar.quoteTopic') : current.source.kind === 'document' ? t('settings.toolbar.quoteCiter') : t('settings.toolbar.quoteMain')} onClick={() => { void quote() }}>{t('settings.toolbar.quote')}</button>
       {quoteError !== null && <span className={css.error} role="alert" title={quoteError}>{quoteError}</span>}
-      {inline.map((action, index) => <button key={index} type="button" title={action.ask ? '在 Citer 中写下问题' : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
-      {(more.length > 0 || !inTopic) && <button type="button" className={css.more} aria-label="更多动作" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
+      {inline.map((action, index) => <button key={index} type="button" title={action.ask ? t('settings.toolbar.ask') : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
+      {(more.length > 0 || !inTopic) && <button type="button" className={css.more} aria-label={t('settings.toolbar.more')} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h.01M10 10h.01M15 10h.01" /></svg>
       </button>}
-      {menuOpen && <div className={css.menu} role="menu" aria-label="更多动作">
-        {more.map((action, index) => <button key={index} type="button" role="menuitem" title={action.ask ? '在 Citer 中写下问题' : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
+      {menuOpen && <div className={css.menu} role="menu" aria-label={t('settings.toolbar.more')}>
+        {more.map((action, index) => <button key={index} type="button" role="menuitem" title={action.ask ? t('settings.toolbar.ask') : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
         {more.length > 0 && !inTopic && <hr />}
-        {!inTopic && <button type="button" role="menuitem" onClick={() => choose(actions.find(action => action.ask) ?? NEW_TOPIC_ACTION, true)}>在新 Topic 中提问</button>}
+        {!inTopic && <button type="button" role="menuitem" onClick={() => choose(actions.find(action => action.ask) ?? newTopicAction, true)}>{t('settings.toolbar.askNewTopic')}</button>}
       </div>}
     </div>
   </OverlayPortal>

@@ -1,66 +1,73 @@
-/** Chinese presentation copy owned by CiteCiter, including shared primitive chrome. */
+/** Presentation copy for shared UI primitives. */
 import type { CodeToolbarLabels, DiffBlockLabels, JsonTreeLabels, MarkdownLabels, ReadBlockLabels, SearchBlockLabels, TerminalBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import { t } from './i18n.ts'
 
-/** Localized labels supplied to the Cordis-free Markdown renderer. */
+/** Live getters keep consumers outside the transcript slice localized without changing their API. */
 export const markdownLabels: MarkdownLabels = {
-  code: { copyLabel: '复制代码', copiedLabel: '已复制' },
-  footnotes: '脚注',
+  code: {
+    get copyLabel() { return t('transcript.copy.code') },
+    get copiedLabel() { return t('transcript.copy.copied') },
+  },
+  get footnotes() { return t('transcript.copy.footnotes') },
 }
 
 /** Localized labels supplied to the Cordis-free JSON inspector. */
-export const jsonTreeLabels: JsonTreeLabels = {
-  copyValue: '复制值',
-  copyJson: '复制 JSON',
-  copyPath: '复制路径',
-  copyPrettyJson: '复制格式化 JSON',
-  copyCompactJson: '复制紧凑 JSON',
-  copied: '已复制',
-  copyFailed: '复制失败',
-  collapseNode: '折叠节点',
-  expandNode: '展开节点',
-  copyButtonTitle: (action) => action,
+export function jsonTreeLabels(): JsonTreeLabels {
+  return {
+    copyValue: t('transcript.copy.value'), copyJson: t('transcript.copy.json'),
+    copyPath: t('transcript.copy.path'), copyPrettyJson: t('transcript.copy.prettyJson'),
+    copyCompactJson: t('transcript.copy.compactJson'), copied: t('transcript.copy.copied'),
+    copyFailed: t('transcript.copy.failed'), collapseNode: t('transcript.copy.collapseNode'),
+    expandNode: t('transcript.copy.expandNode'), copyButtonTitle: action => action,
+  }
 }
 
 /** Shared toolbar copy for read and diff code surfaces. */
-export const codeToolbarLabels: CodeToolbarLabels = {
-  codeLabel: '代码',
-  wrapLabel: '自动换行',
-  unwrapLabel: '不换行',
+export function codeToolbarLabels(): CodeToolbarLabels {
+  return { codeLabel: t('transcript.copy.codeLabel'), wrapLabel: t('transcript.copy.wrap'), unwrapLabel: t('transcript.copy.unwrap') }
 }
 
 /** DSH-style labels for numbered file reads. */
-export const readBlockLabels: ReadBlockLabels = {
-  ...codeToolbarLabels,
-  window: (shown, total) => `显示 ${shown} / ${total} 行`,
-  copy: '复制', copied: '已复制',
-  collapseAria: '收起内容', expandAria: hidden => `展开其余 ${hidden} 行`,
-  collapse: '收起', expand: hidden => `… 其余 ${hidden} 行`,
+export function readBlockLabels(): ReadBlockLabels {
+  return {
+    ...codeToolbarLabels(),
+    window: (shown, total) => t('transcript.copy.window', { shown, total }),
+    copy: t('transcript.copy.copy'), copied: t('transcript.copy.copied'),
+    collapseAria: t('transcript.copy.collapseContent'), expandAria: hidden => t('transcript.copy.expandRemaining', { hidden }),
+    collapse: t('transcript.copy.collapse'), expand: hidden => t('transcript.copy.remaining', { hidden }),
+  }
 }
 
 /** DSH-style labels for applied file differences. */
-export const diffBlockLabels: DiffBlockLabels = {
-  ...codeToolbarLabels,
-  copy: '复制', copied: '已复制',
-  collapseAria: '收起差异', expandAria: hidden => `展开其余 ${hidden} 行差异`,
-  collapse: '收起', expand: hidden => `… 其余 ${hidden} 行`,
+export function diffBlockLabels(): DiffBlockLabels {
+  return {
+    ...codeToolbarLabels(),
+    copy: t('transcript.copy.copy'), copied: t('transcript.copy.copied'),
+    collapseAria: t('transcript.copy.collapseDiff'), expandAria: hidden => t('transcript.copy.expandDiff', { hidden }),
+    collapse: t('transcript.copy.collapse'), expand: hidden => t('transcript.copy.remaining', { hidden }),
+  }
 }
 
 /** Terminal status and output controls. */
-export const terminalBlockLabels: TerminalBlockLabels & { commandLine: (line: number) => string } = {
-  commandLine: line => `命令第 ${line} 行`,
-  signal: signal => `信号 ${signal}`, exitCode: exitCode => `退出码 ${exitCode}`,
-  noExitCode: '未正常退出', running: '运行中', failed: '失败', done: '已完成',
-  copy: '复制', copied: '已复制', noOutput: '无输出',
-  collapseAria: '收起输出', collapse: '收起',
-  expandAria: hidden => `展开其余 ${hidden} 行输出`, expand: hidden => `… 其余 ${hidden} 行`,
+export function terminalBlockLabels(): TerminalBlockLabels & { commandLine: (line: number) => string } {
+  return {
+    commandLine: line => t('transcript.copy.commandLine', { line }),
+    signal: signal => t('transcript.copy.signal', { signal }), exitCode: code => t('transcript.copy.exitCode', { code }),
+    noExitCode: t('transcript.copy.noExitCode'), running: t('transcript.copy.running'),
+    failed: t('transcript.copy.failedStatus'), done: t('transcript.copy.done'),
+    copy: t('transcript.copy.copy'), copied: t('transcript.copy.copied'), noOutput: t('transcript.copy.noOutput'),
+    collapseAria: t('transcript.copy.collapseOutput'), collapse: t('transcript.copy.collapse'),
+    expandAria: hidden => t('transcript.copy.expandOutput', { hidden }), expand: hidden => t('transcript.copy.remainingOutput', { hidden }),
+  }
 }
 
 /** Result-count labels for grouped grep matches and glob paths. */
-export const searchBlockLabels: SearchBlockLabels = {
-  pathsSummary: (shown, total, truncated) => truncated ? `显示 ${shown} / 共 ${total} 个路径` : `${shown} 个路径`,
-  matchesSummary: (shown, total, files, truncated) => truncated
-    ? `显示 ${shown} / 共 ${total} 处匹配 · ${files} 个文件` : `${shown} 处匹配 · ${files} 个文件`,
-  copy: '复制', copied: '已复制', noResults: '无结果',
-  collapseAria: '收起结果', collapse: '收起',
-  expandAria: hidden => `展开其余 ${hidden} 行结果`, expand: hidden => `… 其余 ${hidden} 行`,
+export function searchBlockLabels(): SearchBlockLabels {
+  return {
+    pathsSummary: (shown, total, truncated) => t(truncated ? 'transcript.copy.pathsShown' : 'transcript.copy.paths', { shown, total }),
+    matchesSummary: (shown, total, files, truncated) => t(truncated ? 'transcript.copy.matchesShown' : 'transcript.copy.matches', { shown, total, files }),
+    copy: t('transcript.copy.copy'), copied: t('transcript.copy.copied'), noResults: t('transcript.copy.noResults'),
+    collapseAria: t('transcript.copy.collapseResults'), collapse: t('transcript.copy.collapse'),
+    expandAria: hidden => t('transcript.copy.expandResults', { hidden }), expand: hidden => t('transcript.copy.remaining', { hidden }),
+  }
 }

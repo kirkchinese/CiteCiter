@@ -4,8 +4,8 @@ import { RichAnswer } from './RichAnswer.tsx'
 import type { QuestionReply } from '../../question-reply.ts'
 import { QuestionReplyBody } from './QuestionReplyBody.tsx'
 
-const STAGE_PREFIX = '【学习阶段：'
-const ASKED = '\n\n我的问题：'
+const STAGE_PREFIXES = ['【学习阶段：', '[Learning stage: '] as const
+const ASKED = ['\n\n我的问题：', '\n\nMy question:'] as const
 
 /**
  * Read-only presentation of a committed user message. Attachments remain inspectable as reference
@@ -21,9 +21,10 @@ export function UserMessageBody({ text, questionReply, sourceTitle, stageClassNa
   if (questionReply !== undefined) return <QuestionReplyBody reply={questionReply} />
   const { question, references } = parseSentReferences(text)
   const chips = references.length > 0 && <ReferenceAttachments references={references} sourceTitle={sourceTitle} />
-  if (question.startsWith(STAGE_PREFIX)) {
+  if (STAGE_PREFIXES.some(prefix => question.startsWith(prefix))) {
     const stage = question.split('\n')[0] ?? ''
-    const asked = question.includes(ASKED) ? question.split(ASKED).slice(1).join(ASKED).trim() : ''
+    const separator = ASKED.find(value => question.includes(value))
+    const asked = separator === undefined ? '' : question.split(separator).slice(1).join(separator).trim()
     return <>{chips}<details className={stageClassName}><summary>{stage}{asked === '' ? '' : ` · ${asked}`}</summary><p>{question}</p></details></>
   }
   return <>{chips}{question !== '' && <RichAnswer text={question} streaming={false} />}</>

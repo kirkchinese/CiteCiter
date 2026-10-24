@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { actionDelivery, actionQuestion, DEFAULT_WHEEL_SLOTS, undeliveredActionMessage, wheelSlotsSchema } from '../lib/types/actions.js'
+import { actionDelivery, actionQuestion, DEFAULT_WHEEL_SLOTS, ENGLISH_WHEEL_SLOTS, localizedWheelSlots, undeliveredActionMessage, wheelSlotsSchema } from '../lib/types/actions.js'
 import { MODEL_SELECTION_REQUIRED } from '../lib/types/model-admission.js'
 
 const ask = { label: '提问', prompt: '', ask: true, presentation: 'side' }
@@ -18,6 +18,20 @@ test('default actions are valid, start with a question and carry no per-slot tar
   assert.deepEqual(wheelSlotsSchema.parse(DEFAULT_WHEEL_SLOTS), DEFAULT_WHEEL_SLOTS)
   assert.equal(DEFAULT_WHEEL_SLOTS[0]?.ask, true)
   assert.equal(DEFAULT_WHEEL_SLOTS.some(slot => slot !== null && 'target' in slot), false)
+})
+
+test('English defaults replace only the complete built-in Chinese action list', () => {
+  assert.deepEqual(wheelSlotsSchema.parse(ENGLISH_WHEEL_SLOTS), ENGLISH_WHEEL_SLOTS)
+  assert.equal(localizedWheelSlots(undefined, false), ENGLISH_WHEEL_SLOTS)
+  assert.equal(localizedWheelSlots(DEFAULT_WHEEL_SLOTS, false), ENGLISH_WHEEL_SLOTS)
+  assert.equal(localizedWheelSlots(DEFAULT_WHEEL_SLOTS.map(slot => slot && { ...slot, target: 'current' }), false), ENGLISH_WHEEL_SLOTS)
+  assert.equal(localizedWheelSlots(DEFAULT_WHEEL_SLOTS, true), DEFAULT_WHEEL_SLOTS)
+  const custom = DEFAULT_WHEEL_SLOTS.map(slot => slot && { ...slot })
+  custom[1].label = 'My explanation'
+  assert.equal(localizedWheelSlots(custom, false), custom)
+  assert.equal(ENGLISH_WHEEL_SLOTS[3].prompt.includes('into English'), true)
+  assert.equal(ENGLISH_WHEEL_SLOTS[5].prompt.startsWith('[Learning stage: '), true)
+  assert.equal(ENGLISH_WHEEL_SLOTS[5].prompt.endsWith('\n\nMy question: Organize the content around this quote.'), true)
 })
 
 test('an action question is its prompt plus the optional user question', () => {

@@ -1,3 +1,4 @@
+import { t, useLocale } from '../i18n.ts'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import css from './TopicNavigation.module.css'
 
@@ -6,6 +7,7 @@ import css from './TopicNavigation.module.css'
  * changed `renameRequest` (the Topic menu) start editing.
  */
 export function TopicTitle({ id, title, onRename, renameRequest = 0 }: { readonly id: string, readonly title: string, readonly onRename: (title: string) => Promise<boolean>, readonly renameRequest?: number }) {
+  useLocale()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(title)
   const [error, setError] = useState(false)
@@ -33,8 +35,8 @@ export function TopicTitle({ id, title, onRename, renameRequest = 0 }: { readonl
     try { if (await onRename(value.trim())) setEditing(false); else setError(true) }
     finally { saving.current = false }
   }
-  return editing ? <input className={css.rename} aria-label="Topic 名称" aria-invalid={error} title={error ? '保存失败，可重试或按 Escape 取消' : undefined} autoFocus value={value} maxLength={120} onFocus={event => event.currentTarget.select()} onChange={event => setValue(event.currentTarget.value)} onBlur={() => { void save() }} onKeyDown={event => {
+  return editing ? <input className={css.rename} aria-label={t('panel.title.name')} aria-invalid={error} title={error ? t('panel.title.saveFailed') : undefined} autoFocus value={value} maxLength={120} onFocus={event => event.currentTarget.select()} onChange={event => setValue(event.currentTarget.value)} onBlur={() => { void save() }} onKeyDown={event => {
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelled.current = true; restoreFocus.current = true; setEditing(false) }
     if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); void save() }
-  }} /> : <strong ref={titleRef} data-topic-title className={css.title} tabIndex={0} title="双击重命名 · F2" onDoubleClick={start} onKeyDown={event => { if (event.key === 'F2') { event.preventDefault(); start() } }}>{title}</strong>
+  }} /> : <strong ref={titleRef} data-topic-title className={css.title} tabIndex={0} title={t('panel.title.renameHint')} onDoubleClick={start} onKeyDown={event => { if (event.key === 'F2') { event.preventDefault(); start() } }}>{title}</strong>
 }

@@ -9,6 +9,7 @@ import { Button, SegmentedControl, Switch } from '@deepseek-ai/dsh-client-ui-pri
 import type { CiteCiterSettings as CiteCiterSettingsValue } from '../../topic.ts'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import mascotUrl from '../assets/citeciter-mascot.png'
+import { t, useLocale } from '../i18n.ts'
 import css from './Settings.module.css'
 import { ActionSettings } from './ActionSettings.tsx'
 import { parseAccelerator } from '../hotkeys.ts'
@@ -36,12 +37,14 @@ function Row({ title, desc, children }: { readonly title: string, readonly desc?
  * @param view - `summary` for the bundle row, `page` for the bundle's own page.
  */
 export function CiterPluginConfig(props: CiteCiterSettingsProps & { readonly view: 'summary' | 'page' }) {
-  if (props.view === 'summary') return <>选文工具条、预设动作、新 Topic 的模型与权限</>
+  useLocale()
+  if (props.view === 'summary') return <>{t('settings.summary')}</>
   return <CiteCiterSettings {...props} />
 }
 
 /** Native DSH settings page for Citer preferences. */
 export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
+  useLocale()
   const snapshot = useCompanion(value => value)
   const documentSnapshot = useDocument(value => value)
   const updateSnapshot = useUpdate(value => value)
@@ -66,7 +69,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
   const commitShortcut = () => {
     const value = shortcutDraft.trim()
     if (value !== '' && parseAccelerator(value) === null) {
-      setShortcutError('快捷键格式无效；请使用 Control+Shift+C 这样的组合，或留空禁用。')
+      setShortcutError(t('settings.panel.shortcutError'))
       return
     }
     setShortcutError(null)
@@ -81,7 +84,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
         <img src={mascotUrl} alt="" aria-hidden="true" />
         <div>
           <h2>Citer</h2>
-          <p>选中 Agent 工作中的内容，在独立的 Topic 里追问，不改动主对话。</p>
+          <p>{t('settings.intro')}</p>
         </div>
       </header>
       {snapshot.settingsSaveMessage !== null && (
@@ -93,44 +96,44 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
 
       <section className={css.group}>
         <h3>Topic</h3>
-        <Row title="新 Topic 的权限" desc="只影响之后新建的 Topic；DSH 的审批和沙箱照常生效。">
+        <Row title={t('settings.topic.permission')} desc={t('settings.topic.permissionDesc')}>
           <PermissionControl value={settings.defaultPermission ?? 'read-only'} onChange={mode => { void companion.setSetting('defaultPermission', mode) }} />
         </Row>
-        <Row title="重新打开上次的 Topic" desc="回到来源对话时自动展开 Citer 并恢复最近的 Topic。">{toggle('reopenLastTopic', '重新打开上次的 Topic', true)}</Row>
-        <Row title="读取来源时包含思考过程" desc="关闭后，Citer 读取来源对话时看不到主 Agent 的思考内容。">{toggle('includeSourceReasoning', '读取来源时包含思考过程', true)}</Row>
-        <Row title="首个回答附带追问建议" desc="在第一个回答末尾给出三个可以接着问的问题。">{toggle('followupQuestions', '首个回答附带追问建议', true)}</Row>
-        <Row title="自动附上来源摘录" desc="来源附件发送后，每轮开头附上来源对话最近的新内容。关闭时由 Citer 按需调用工具读取。">{toggle('autoReadSource', '自动附上来源摘录', false)}</Row>
-        <Row title="代码库变化感知" desc="每轮开头告诉 Citer 上一轮以来 git 工作区改了哪些文件。“附带 diff”会直接附上逐行改动；“仅清单”只列文件，Citer 需要时再用工具读取。">
-          <SegmentedControl<NonNullable<CiteCiterSettingsValue['workspaceChanges']>> id="citeciter-workspace-changes" label="代码库变化感知" value={settings.workspaceChanges ?? 'summary'} disabled={saving}
-            options={[{ value: 'off', label: '关闭' }, { value: 'summary', label: '仅清单' }, { value: 'diff', label: '附带 diff' }]}
+        <Row title={t('settings.topic.reopen')} desc={t('settings.topic.reopenDesc')}>{toggle('reopenLastTopic', t('settings.topic.reopen'), true)}</Row>
+        <Row title={t('settings.topic.reasoning')} desc={t('settings.topic.reasoningDesc')}>{toggle('includeSourceReasoning', t('settings.topic.reasoning'), true)}</Row>
+        <Row title={t('settings.topic.followups')} desc={t('settings.topic.followupsDesc')}>{toggle('followupQuestions', t('settings.topic.followups'), true)}</Row>
+        <Row title={t('settings.topic.autoRead')} desc={t('settings.topic.autoReadDesc')}>{toggle('autoReadSource', t('settings.topic.autoRead'), false)}</Row>
+        <Row title={t('settings.topic.changes')} desc={t('settings.topic.changesDesc')}>
+          <SegmentedControl<NonNullable<CiteCiterSettingsValue['workspaceChanges']>> id="citeciter-workspace-changes" label={t('settings.topic.changes')} value={settings.workspaceChanges ?? 'summary'} disabled={saving}
+            options={[{ value: 'off', label: t('settings.topic.off') }, { value: 'summary', label: t('settings.topic.summary') }, { value: 'diff', label: t('settings.topic.diff') }]}
             onChange={value => { void companion.setSetting('workspaceChanges', value) }} />
         </Row>
       </section>
 
       <section className={css.group}>
-        <h3>学习</h3>
-        <Row title="主动回忆" desc="学习卡先显示自测问题，点开才看到结论和答案。">{toggle('activeRecall', '主动回忆', false)}</Row>
-        <Row title="板书动画" desc="关闭后板书直接显示最终状态。">{toggle('boardAnimations', '板书动画', true)}</Row>
+        <h3>{t('settings.learning.title')}</h3>
+        <Row title={t('settings.learning.recall')} desc={t('settings.learning.recallDesc')}>{toggle('activeRecall', t('settings.learning.recall'), false)}</Row>
+        <Row title={t('settings.learning.animations')} desc={t('settings.learning.animationsDesc')}>{toggle('boardAnimations', t('settings.learning.animations'), true)}</Row>
         <div className={css.row} data-stack>
-          <div className={css.rowText}><span className={css.title}>导师提示词</span><span className={css.desc}>补充你的讲解偏好，下次发送起生效；留空使用内置提示词。</span></div>
-          <textarea className={css.textarea} value={settings.tutorPrompt ?? ''} maxLength={4000} rows={4} aria-label="导师提示词" placeholder="例如：先给结论，再用一个小例子说明。"
+          <div className={css.rowText}><span className={css.title}>{t('settings.learning.tutor')}</span><span className={css.desc}>{t('settings.learning.tutorDesc')}</span></div>
+          <textarea className={css.textarea} value={settings.tutorPrompt ?? ''} maxLength={4000} rows={4} aria-label={t('settings.learning.tutor')} placeholder={t('settings.learning.tutorPlaceholder')}
             onChange={(event) => { void companion.setSetting('tutorPrompt', event.currentTarget.value === '' ? undefined : event.currentTarget.value) }} />
         </div>
       </section>
 
       <section className={css.group}>
-        <h3>面板</h3>
-        <Row title="默认宽度" desc="也可以拖动面板左边缘调整。">
-          <input className={css.range} type="range" min={28} max={55} step={1} value={widthDraft} aria-label="面板默认宽度"
+        <h3>{t('settings.panel.title')}</h3>
+        <Row title={t('settings.panel.width')} desc={t('settings.panel.widthDesc')}>
+          <input className={css.range} type="range" min={28} max={55} step={1} value={widthDraft} aria-label={t('settings.panel.widthAria')}
             onChange={(event) => setWidthDraft(Number(event.currentTarget.value))}
             onPointerUp={(event) => commitWidth(Number(event.currentTarget.value))}
             onBlur={(event) => commitWidth(Number(event.currentTarget.value))}
             onKeyUp={(event) => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) commitWidth(Number(event.currentTarget.value)) }} />
           <output className={css.value}>{widthDraft}%</output>
         </Row>
-        <Row title="打开 Citer 的快捷键" desc="例如 Control+Shift+C；留空表示不使用。输入框里的按键不会被拦截。">
+        <Row title={t('settings.panel.shortcut')} desc={t('settings.panel.shortcutDesc')}>
           <div className={css.field}>
-            <input className={css.text} type="text" value={shortcutDraft} maxLength={40} placeholder="Control+Shift+C" aria-label="打开 Citer 的快捷键"
+            <input className={css.text} type="text" value={shortcutDraft} maxLength={40} placeholder="Control+Shift+C" aria-label={t('settings.panel.shortcut')}
               aria-invalid={shortcutError !== null} aria-describedby={shortcutError === null ? undefined : 'citeciter-shortcut-error'}
               onChange={event => { setShortcutDraft(event.currentTarget.value); setShortcutError(null) }}
               onBlur={commitShortcut} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) event.currentTarget.blur() }} />
@@ -140,23 +143,23 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
       </section>
 
       <section className={css.group}>
-        <h3>其他</h3>
-        <Row title="版本更新提醒" desc={updateSnapshot.preferencePersistence === 'browser' ? '远程 Web 只在当前浏览器保存这个选择。' : '有新版本时提醒你。'}>
-          <Switch label="版本更新提醒" checked={updateSnapshot.notificationsEnabled}
+        <h3>{t('settings.other.title')}</h3>
+        <Row title={t('settings.other.update')} desc={updateSnapshot.preferencePersistence === 'browser' ? t('settings.other.updateBrowserDesc') : t('settings.other.updateDesc')}>
+          <Switch label={t('settings.other.update')} checked={updateSnapshot.notificationsEnabled}
             disabled={!updateSnapshot.preferenceReady || updateSnapshot.preferenceStatus === 'saving'}
             onChange={value => { void updateController.setNotificationsEnabled(value) }} />
         </Row>
         {updateSnapshot.preferenceMessage !== null && <p className={css.status} data-status={updateSnapshot.preferenceStatus === 'error' ? 'error' : undefined} role={updateSnapshot.preferenceStatus === 'error' ? 'alert' : 'status'}>{updateSnapshot.preferenceMessage}</p>}
-        <Row title="配置文件" desc="直接编辑 Citer 的全部设置。">
+        <Row title={t('settings.other.config')} desc={t('settings.other.configDesc')}>
           <Button variant="outline" size="sm"
             disabled={['loading', 'missing', 'unavailable'].includes(documentSnapshot.status) || documentSnapshot.opening}
             aria-busy={documentSnapshot.opening || documentSnapshot.status === 'loading'}
             onClick={() => { void settingsDocument.open() }}>
-            {documentSnapshot.opening ? '正在打开…'
-              : documentSnapshot.status === 'loading' ? '正在检查…'
-                : documentSnapshot.status === 'unavailable' ? '宿主不支持打开'
-                  : documentSnapshot.status === 'missing' ? '配置文件不存在'
-                    : documentSnapshot.status === 'error' ? '重新打开' : '打开配置文件'}
+            {documentSnapshot.opening ? t('settings.other.opening')
+              : documentSnapshot.status === 'loading' ? t('settings.other.checking')
+                : documentSnapshot.status === 'unavailable' ? t('settings.other.unsupported')
+                  : documentSnapshot.status === 'missing' ? t('settings.other.missing')
+                    : documentSnapshot.status === 'error' ? t('settings.other.reopen') : t('settings.other.open')}
           </Button>
         </Row>
         {(documentSnapshot.error !== null || documentSnapshot.message !== null) && (

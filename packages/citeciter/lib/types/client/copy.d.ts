@@ -1,18 +1,18 @@
-/** Chinese presentation copy owned by CiteCiter, including shared primitive chrome. */
+/** Presentation copy for shared UI primitives. */
 import type { CodeToolbarLabels, DiffBlockLabels, JsonTreeLabels, MarkdownLabels, ReadBlockLabels, SearchBlockLabels, TerminalBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives';
-/** Localized labels supplied to the Cordis-free Markdown renderer. */
+/** Live getters keep consumers outside the transcript slice localized without changing their API. */
 export declare const markdownLabels: MarkdownLabels;
 /** Localized labels supplied to the Cordis-free JSON inspector. */
-export declare const jsonTreeLabels: JsonTreeLabels;
+export declare function jsonTreeLabels(): JsonTreeLabels;
 /** Shared toolbar copy for read and diff code surfaces. */
-export declare const codeToolbarLabels: CodeToolbarLabels;
+export declare function codeToolbarLabels(): CodeToolbarLabels;
 /** DSH-style labels for numbered file reads. */
-export declare const readBlockLabels: ReadBlockLabels;
+export declare function readBlockLabels(): ReadBlockLabels;
 /** DSH-style labels for applied file differences. */
-export declare const diffBlockLabels: DiffBlockLabels;
+export declare function diffBlockLabels(): DiffBlockLabels;
 /** Terminal status and output controls. */
-export declare const terminalBlockLabels: TerminalBlockLabels & {
+export declare function terminalBlockLabels(): TerminalBlockLabels & {
     commandLine: (line: number) => string;
 };
 /** Result-count labels for grouped grep matches and glob paths. */
-export declare const searchBlockLabels: SearchBlockLabels;
+export declare function searchBlockLabels(): SearchBlockLabels;
