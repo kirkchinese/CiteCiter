@@ -5,5 +5,8 @@ export interface LearningDocumentActions {
     readonly registerSurface: SelectionSurfaces['register'];
     readonly openActions: (source: ActionSource, x: number, y: number) => void;
 }
-/** Alternate native document renderer. DSH owns loading, reload and file navigation. */
-export declare function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface, openActions }: DocumentPreviewProps & LearningDocumentActions): import("react").JSX.Element;
+/**
+ * Citer's reading view of a workspace file, offered by DSH's file preview next to its own views.
+ * DSH owns loading, reload and file navigation; Citer renders the text like a library document.
+ */
+export declare function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface }: DocumentPreviewProps & LearningDocumentActions): import("react").JSX.Element;

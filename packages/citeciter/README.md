@@ -1,14 +1,14 @@
 # CiteCiter
 
-[简体中文](README.zh.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.5/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
+[简体中文](README.zh.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.6/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
-![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.5/assets/hero/citeciter-hero.png)
+![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.6/assets/hero/citeciter-hero.png)
 
 **The AI finished the task. I still want to understand how it did it.**
 
 CiteCiter is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) plugin that helps you learn from your agent's real work. Select part of a conversation, a tool result or a document, ask about it in a separate Topic that keeps its source, use a blackboard to see how the pieces relate, then return to your work. The main conversation is never modified.
 
-[![CiteCiter demo](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.5/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
+[![CiteCiter demo](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.6/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
 [Watch the demo on Bilibili](https://www.bilibili.com/video/BV1tqeA65EJ8/) (recorded with an earlier version; the interface has changed slightly).
 
@@ -18,7 +18,7 @@ CiteCiter needs DSH and a working model. The plugin declares exact host versions
 
 | DSH version | CiteCiter version |
 | --- | --- |
-| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2`, `0.2.1-rc.3` | `0.9.0-beta.5` |
+| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2`, `0.2.1-rc.3` | `0.9.0-beta.6` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -28,13 +28,13 @@ CiteCiter needs DSH and a working model. The plugin declares exact host versions
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.5
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.6
 ```
 
 You can also install a release tag straight from the repository, which contains the built plugin, so nothing is built at install time:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.5"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.6"
 ```
 
 Restart DSH and refresh the page after installing or upgrading. Do not use `dsh plugin allow-version` to force a plugin that does not match your host version. Do not run two host processes on the same DSH home.
@@ -57,7 +57,7 @@ Creating a Topic or choosing 提问 only prepares a draft; preset actions such a
 | Understand an answer, code or tool result | A separate Topic with a source citation; follow-ups never touch the main conversation |
 | See relationships and processes | A blackboard with Markdown, formulas, tables, SVG, images and sandboxed HTML; vision models can inspect the rendered board and fix it; board elements can be animated with keyframes, paths or formulas, and you can play, pause, scrub and step through the animation |
 | Keep what you learned | Learning cards you can export and revise, with prose and code examples shown separately |
-| Discuss real files | File and image attachments, a `.txt` / `.md` document reader, and a "CiteCiter 学习" entry in native file previews |
+| Discuss real files | File and image attachments; read imported Markdown / text documents and workspace files in the right sidebar, select to ask, with citations that carry line numbers and lead back to the source |
 | Act on what you understood | DSH models, tools, approvals, permissions, queueing and steering; new Topics are read-only by default |
 | Pick up where you left off | Drafts (text, references, attachments) and unsubmitted question answers are saved and restored after switching, refreshing or restarting, never sent automatically |
 
@@ -66,6 +66,8 @@ Creating a Topic or choosing 提问 only prepares a draft; preset actions such a
 **Toolbar and actions.** After you select text in an assistant answer, your own message, a tool result or a document, a toolbar appears next to it: the first action (Ask Citer by default), then Quote, then the next three actions; the rest plus "Ask in a new Topic" are under "⋯". Quote puts the selected sentences into the main conversation's composer as a quote chip that looks like an `@file` chip, keeping the text and attachments already there. When you send, the main agent receives the exact passage and who said it (its reply, your message or a tool result), so it knows which sentence your next words are about, which helps when you discuss or dispute an answer. From DSH `0.2.1-rc.2`, sent messages show the quote as a chip too. Actions go to the open Topic by default, or create one when there is none or it is archived. Selecting text in Citer's own answers shows the toolbar too; the action continues that Topic, and Quote adds the passage to that Topic's composer. Ask Citer opens the composer for your own question; preset actions such as Explain, Find errors and Translate send directly without touching an existing draft. Action names, prompts and order are configurable in Settings. If you prefer gestures, turn on the wheel in Settings: hold the right mouse button (or the chosen key) after selecting text, move to an action and release.
 
 **Right sidebar.** Citer is a tab in DSH's right sidebar. Open it from the sidebar's guide page, the desktop pet or the toolbar; it sits beside files, terminals and other plugins' tabs, and can be split, floated or made fullscreen like them; closing the tab closes Citer. If you prefer the standalone panel of earlier versions, turn on "Don't use DSH's right sidebar" under Settings → Citer → Panel. The interface follows DSH's language setting (Chinese or English), and so do the names and prompts of the default actions; actions you changed stay as you wrote them. Each Topic shows its own usage under the composer: tokens, cache hit rate and context occupancy.
+
+**Documents.** Choose "Open document" in Citer's empty state, or import a `.md` / `.txt` file from the Documents page of the Topic list; the document opens as a tab in the right sidebar. Markdown is typeset (headings, lists, code blocks, math), text and code show line numbers, and long documents render as you scroll. Selecting text shows the same toolbar, so Ask Citer, Explain and Quote all work. A Topic asked from a document shows "document · line N" under its quote; "Open source" returns to that passage and briefly highlights it. Workspace files open in DSH's own file preview; choose "Citer Reading" in its view menu to select and ask the same way, and asking saves a snapshot of the file to Citer's documents. The Documents page of the Topic list searches and deletes documents; deleting removes only the document, and the Topics about it keep their conversations. Without DSH's right sidebar, documents open as a tab inside Citer's panel.
 
 **Desktop pet.** While Citer is closed, its mascot peeks over the window edge; she stands up when the pointer comes near, and a click opens Citer. Drag her to either side at any height and the place is remembered. A small dot appears next to her when an answer finishes or a question waits for you while Citer is closed.
 
@@ -122,6 +124,6 @@ CiteCiter turns real AI work into material you can cite, question and check. Sta
 
 Bring a task where "the agent finished, but I still can't explain it" to the [issue tracker](https://github.com/kirkchinese/CiteCiter/issues). Include your DSH and plugin versions and whether you got stuck installing, citing and asking, or understanding the answer. Remove keys and private content before pasting material.
 
-See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.5/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.5/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
+See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.6/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.6/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
 
 MIT License.

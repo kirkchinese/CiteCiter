@@ -167,6 +167,65 @@
   font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
 }
 
+/* Topics | Documents, in the host's tab style. */
+.pages {
+  display: flex;
+  gap: 16px;
+  margin: 0 4px 8px;
+  border-bottom: .5px solid var(--dsw-alias-border-l3, #e4e7ec);
+}
+
+.pages button {
+  padding: 4px 0 7px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font: var(--dsw-font-xs-13, 13px/20px system-ui, sans-serif);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pages button[aria-selected='true'] {
+  color: var(--dsw-alias-state-business-primary);
+  border-bottom-color: currentColor;
+}
+
+.pages button:focus-visible,
+.remove:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.documentRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Delete shows on hover or focus; the second click confirms. */
+.remove {
+  flex: none;
+  height: 26px;
+  padding: 0 8px;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 6px);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.documentRow:hover .remove,
+.remove:focus-visible,
+.remove[data-confirming] {
+  opacity: 1;
+}
+
+.remove:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.remove[data-confirming] { color: var(--dsw-alias-state-danger-label, #d92d20); }
+
 .running {
   flex: none;
   width: 6px;

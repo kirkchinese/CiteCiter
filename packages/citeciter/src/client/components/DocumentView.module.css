@@ -1,0 +1,87 @@
+/* The reading surface: it scrolls on its own, inside a sidebar tab, Citer's panel or a file preview. */
+.scroller {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base, #fff);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+}
+
+.note {
+  margin: 4px 20px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+}
+
+/* Markdown at DSH's message size, one block per source paragraph. */
+.markdown {
+  padding: 8px 20px 24px;
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+}
+
+.block {
+  border-radius: var(--dsw-radius-sm, 6px);
+  transition: background-color .6s ease-out;
+}
+
+.block + .block {
+  margin-top: 12px;
+}
+
+/* Text and code: one row per source line, the number drawn in the gutter so it is never copied. */
+.lines {
+  padding: 8px 0 24px;
+  font-family: var(--dsw-font-markdown-code-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 20px;
+  tab-size: 4;
+}
+
+.line {
+  position: relative;
+  min-height: 20px;
+  padding: 0 20px 0 calc(var(--citeciter-gutter, 4ch) + 28px);
+  white-space: pre;
+  transition: background-color .6s ease-out;
+}
+
+.lines[data-wrap] .line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.line::before {
+  position: absolute;
+  left: 16px;
+  width: var(--citeciter-gutter, 4ch);
+  color: var(--dsw-alias-label-quaternary, var(--dsw-alias-label-tertiary));
+  text-align: right;
+  content: attr(data-line);
+  user-select: none;
+}
+
+.eol {
+  display: none;
+}
+
+.block[data-flash],
+.line[data-flash] {
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary, #3478f6) 12%, transparent);
+  transition: none;
+}
+
+.more {
+  height: 1px;
+}

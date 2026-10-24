@@ -22,6 +22,8 @@ export function selectionReferences(source: ActionSource, documentId?: string): 
     references.push({ id: quoteAddress, kind: 'source', label: '来源文档', content: source.title, address: quoteAddress })
   }
   const anchor = source.kind === 'conversation' ? source.selection.anchorKey : source.kind === 'quote' ? source.anchorKey : documentId
-  references.push({ id: JSON.stringify(['selection', quoteAddress, anchor, quote]), kind: 'excerpt', label: '引用文段', content: source.kind === 'document' ? `文档：${source.title}\n\n${quote}` : quote })
+  // A document excerpt names its document and, when known, the line it starts on.
+  const documentHeading = source.kind === 'document' ? `文档：${source.title}${source.line === undefined ? '' : `（第 ${source.line} 行）`}` : ''
+  references.push({ id: JSON.stringify(['selection', quoteAddress, anchor, quote]), kind: 'excerpt', label: '引用文段', content: source.kind === 'document' ? `${documentHeading}\n\n${quote}` : quote })
   return references
 }

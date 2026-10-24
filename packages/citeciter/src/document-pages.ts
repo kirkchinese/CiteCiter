@@ -1,6 +1,14 @@
 /** Shared Host/Client page budget; full text stays in the document owner. */
 export const DOCUMENT_CONTENT_MAX_BYTES = 500 * 1024
 
+/** @returns the one-based line holding `offset` (UTF-16 code units) of `content`. */
+export function lineAtOffset(content: string, offset: number): number {
+  let line = 1
+  const end = Math.min(Math.max(0, offset), content.length)
+  for (let at = content.indexOf('\n'); at >= 0 && at < end; at = content.indexOf('\n', at + 1)) line++
+  return line
+}
+
 /** Split UTF-8 text without breaking code points; concatenation exactly reproduces the input. */
 export function documentPages(content: string): string[] {
   const pages: string[] = []

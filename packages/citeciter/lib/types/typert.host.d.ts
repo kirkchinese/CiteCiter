@@ -133,6 +133,7 @@ export declare const TYPERT: {
                 contextWindow: import("zod").ZodOptional<import("zod").ZodNumber>;
             }, import("zod/v4/core").$strict>>;
             documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
+            documentLine: import("zod").ZodOptional<import("zod").ZodNumber>;
             topic: import("zod").ZodObject<{
                 modelSelectionRequired: import("zod").ZodOptional<import("zod").ZodBoolean>;
                 permission: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -488,6 +489,10 @@ export declare const TYPERT: {
                 displayText: import("zod").ZodString;
                 prefixText: import("zod").ZodString;
                 suffixText: import("zod").ZodString;
+                sourceRange: import("zod").ZodOptional<import("zod").ZodObject<{
+                    start: import("zod").ZodNumber;
+                    end: import("zod").ZodNumber;
+                }, import("zod/v4/core").$strict>>;
             }, import("zod/v4/core").$strict>;
             action: import("zod").ZodLiteral<"create">;
             modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
@@ -686,6 +691,9 @@ export declare const TYPERT: {
             action: import("zod").ZodLiteral<"document-get">;
             documentId: import("zod").ZodString;
             page: import("zod").ZodOptional<import("zod").ZodNumber>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"document-delete">;
+            documentId: import("zod").ZodString;
         }, import("zod/v4/core").$strict>], "action">]>;
     }, {
         name: string;
@@ -1013,6 +1021,7 @@ export declare const TYPERT: {
                     contextWindow: import("zod").ZodOptional<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>>;
                 documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
+                documentLine: import("zod").ZodOptional<import("zod").ZodNumber>;
                 topic: import("zod").ZodObject<{
                     modelSelectionRequired: import("zod").ZodOptional<import("zod").ZodBoolean>;
                     permission: import("zod").ZodOptional<import("zod").ZodEnum<{
@@ -1539,6 +1548,10 @@ export declare const TYPERT: {
                         displayText: import("zod").ZodString;
                         prefixText: import("zod").ZodString;
                         suffixText: import("zod").ZodString;
+                        sourceRange: import("zod").ZodOptional<import("zod").ZodObject<{
+                            start: import("zod").ZodNumber;
+                            end: import("zod").ZodNumber;
+                        }, import("zod/v4/core").$strict>>;
                     }, import("zod/v4/core").$strict>;
                     action: import("zod").ZodLiteral<"create">;
                     modelRoute: import("zod").ZodOptional<import("zod").ZodObject<{
@@ -1737,6 +1750,9 @@ export declare const TYPERT: {
                     action: import("zod").ZodLiteral<"document-get">;
                     documentId: import("zod").ZodString;
                     page: import("zod").ZodOptional<import("zod").ZodNumber>;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"document-delete">;
+                    documentId: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>], "action">]>;
             };
         }];
@@ -2070,6 +2086,7 @@ export declare const TYPERT: {
                         contextWindow: import("zod").ZodOptional<import("zod").ZodNumber>;
                     }, import("zod/v4/core").$strict>>;
                     documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
+                    documentLine: import("zod").ZodOptional<import("zod").ZodNumber>;
                     topic: import("zod").ZodObject<{
                         modelSelectionRequired: import("zod").ZodOptional<import("zod").ZodBoolean>;
                         permission: import("zod").ZodOptional<import("zod").ZodEnum<{

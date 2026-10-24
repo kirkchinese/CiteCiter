@@ -52,11 +52,20 @@ export interface CiteOverlaySnapshot {
   readonly activation: number
   readonly presentation: PanelPresentation
   readonly boardCitation: BoardCitationRequest | null
+  /** The library document Citer's own panel shows, when documents cannot open in the sidebar. */
+  readonly document: PanelDocument | null
+}
+
+/** A document shown in Citer's own panel; `revision` changes on every request to show it. */
+export interface PanelDocument {
+  readonly documentId: string
+  readonly offset?: number
+  readonly revision: number
 }
 
 /** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export class CiteBus {
-  private snapshot: CiteOverlaySnapshot = { panelOpen: false, host: 'overlay', sidebarAvailable: false, activation: 0, presentation: 'side', boardCitation: null }
+  private snapshot: CiteOverlaySnapshot = { panelOpen: false, host: 'overlay', sidebarAvailable: false, activation: 0, presentation: 'side', boardCitation: null, document: null }
   private readonly listeners = new Set<() => void>()
 
   /** @param reportListenerError - contains one failed browser subscriber. */
@@ -97,6 +106,20 @@ export class CiteBus {
       this.visibleTabs -= 1
       if (this.visibleTabs === 0) this.setPanelOpen(false)
     }
+  }
+
+  /** Show a library document in Citer's own panel, scrolled to `offset` when given. */
+  showDocument(documentId: string, offset?: number): void {
+    const revision = (this.snapshot.document?.revision ?? 0) + 1
+    this.snapshot = { ...this.snapshot, document: { documentId, ...(offset === undefined ? {} : { offset }), revision } }
+    this.notify()
+  }
+
+  /** Close the document shown in Citer's own panel. */
+  closeDocument(): void {
+    if (this.snapshot.document === null) return
+    this.snapshot = { ...this.snapshot, document: null }
+    this.notify()
   }
 
   /** Record whether the host offers DSH's right sidebar. */

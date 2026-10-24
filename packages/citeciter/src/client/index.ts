@@ -18,7 +18,9 @@ import { createCompanionController, INITIAL_COMPANION_SNAPSHOT } from './compani
 import { BlackboardWorkspace } from './components/BlackboardWorkspace.tsx'
 import { CitePanel } from './components/CitePanel.tsx'
 import { CiteCiterSettings as CiteCiterSettingsView, CiterPluginConfig } from './components/CiteCiterSettings.tsx'
-import { DocumentReader } from './components/DocumentReader.tsx'
+import { DocumentTab } from './components/DocumentTab.tsx'
+import { createDocumentLibrary } from './document-library.ts'
+import { DOCUMENT_ADDRESS_PATTERN, DOCUMENT_TAB_ID, DOCUMENT_TAB_KIND, documentAddress, documentIdFromAddress } from './document-address.ts'
 import { localizedWheelSlots } from '../actions.ts'
 import { createActionExecutor } from './action-executor.ts'
 import { createActionController } from './action-controller.ts'
@@ -34,7 +36,6 @@ import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceE
 import { insertMainQuote, installQuoteSource } from './main-quote.ts'
 import { installQuoteRendering } from './user-text-quote.ts'
 import { installDynamicAccelerator } from './hotkeys.ts'
-import { createReaderController } from './reader-controller.ts'
 import { createSettingsDocumentController } from './settings-document.ts'
 import { CiteBus } from './types.ts'
 import { createNativeComposer } from './native-composer.ts'
@@ -157,12 +158,30 @@ export async function apply(ctx: Context): Promise<void> {
       createSnapshotStore(INITIAL_COMPANION_SNAPSHOT),
       nativeComposer,
     )
-    const reader = createReaderController(
-      (request, signal) => remoteCtx.remote.citeciter.request(request, signal),
-      companion,
-    )
+    const library = createDocumentLibrary((request, signal) => remoteCtx.remote.citeciter.request(request, signal))
+    void library.refresh()
+    // Set while DSH's right sidebar opens library documents as tabs; otherwise Citer's panel shows them.
+    let openDocumentTab: ((documentId: string, offset?: number) => void) | undefined
+    const openDocument = (documentId: string, offset?: number) => {
+      if (openDocumentTab !== undefined && bus.getSnapshot().host === 'tab') {
+        openDocumentTab(documentId, offset)
+        return
+      }
+      bus.showDocument(documentId, offset)
+      bus.setPanelOpen(true)
+    }
+    const documentActions: import('./view-actions.ts').DocumentActions = {
+      open: openDocument,
+      load: library.load,
+      remove: library.remove,
+      refresh: library.refresh,
+      importFile: async (file) => {
+        const imported = await library.importFile(file)
+        if (imported !== null) openDocument(imported.documentId)
+      },
+    }
     const surfaces = createSelectionSurfaces()
-    const execute = createActionExecutor(companion, reader, presentation => {
+    const execute = createActionExecutor(companion, library, presentation => {
       bus.setPresentation(presentation)
       openPanel()
     })
@@ -233,15 +252,16 @@ export async function apply(ctx: Context): Promise<void> {
     }, 'citeciter: selection capture')
 
     const companionActions = viewActions(companion)
-    const readerActions = viewActions(reader)
+    const libraryActions = viewActions(library)
     const updateActions = viewActions(updateController)
-    const documentActions = viewActions(settingsDocument)
+    const settingsDocumentActions = viewActions(settingsDocument)
     const busActions = {
       setPanelOpen: bus.setPanelOpen.bind(bus),
       holdTabVisible: bus.holdTabVisible.bind(bus),
       setPresentation: bus.setPresentation.bind(bus),
       requestBoardCitation: bus.requestBoardCitation.bind(bus),
       clearBoardCitation: bus.clearBoardCitation.bind(bus),
+      closeDocument: bus.closeDocument.bind(bus),
     }
 
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
@@ -279,7 +299,7 @@ export async function apply(ctx: Context): Promise<void> {
       id: 'citeciter.launcher',
       inject: () => ({ openPanel, companion: companionActions, hooks: { companion, overlay: bus } }),
     }, CiteLauncher))
-    const panelInject = () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions } })
+    const panelInject = () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, documents: documentActions, reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions, library } })
     // Citer's own dock, for hosts without DSH's right sidebar; it renders nothing while a tab hosts Citer.
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
@@ -299,6 +319,31 @@ export async function apply(ctx: Context): Promise<void> {
         key: CITER_TAB_ID,
         inject: panelInject,
       }, CiterTab))
+      // Library documents open as resource tabs: one tab per document, reopened at a new place.
+      sideCtx.effect(() => sideCtx.sidebarRightTabs.register({
+        id: DOCUMENT_TAB_ID,
+        kind: DOCUMENT_TAB_KIND,
+        patterns: [DOCUMENT_ADDRESS_PATTERN],
+        // A visited document keeps its place while hidden, and closes itself when it is deleted.
+        keepMounted: true,
+        title: (address) => {
+          const documentId = documentIdFromAddress(address)
+          return (documentId === undefined ? undefined : library.title(documentId)) ?? t('settings.reader.title')
+        },
+      }), 'citeciter: document tab type')
+      sideCtx.slots.inject('sidebar.right.pane.tab', () => sideCtx.slots.register({
+        name: 'sidebar.right.pane.tab',
+        key: DOCUMENT_TAB_ID,
+        inject: () => ({ library: libraryActions, registerSurface: surfaces.register, sourceSessionId: () => companion.getSnapshot().sourceSessionId, hooks: { library } }),
+      }, DocumentTab))
+      openDocumentTab = (documentId, offset) => {
+        try {
+          sideCtx.sidebarRight.openResource(documentAddress(documentId), offset === undefined ? {} : { params: { offset } })
+        } catch (error) {
+          remoteCtx.logger.warn('Citer could not open a document tab', error)
+        }
+      }
+      sideCtx.effect(() => () => { openDocumentTab = undefined }, 'citeciter: document tabs')
       const openSidebarTab = (presentation: import('../actions.ts').PanelPresentation) => {
         try {
           // A floating action opens beside the current tab instead of taking its place.
@@ -328,11 +373,6 @@ export async function apply(ctx: Context): Promise<void> {
     })
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
-      id: 'citeciter.reader',
-      inject: () => ({ reader: readerActions, registerSurface: surfaces.register, sourceSessionId: () => companion.getSnapshot().sourceSessionId, hooks: { reader } }),
-    }, DocumentReader))
-    remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
-      name: 'shell.overlay',
       id: 'citeciter.update-notice',
       inject: () => ({ updateController: updateActions, hooks: { update: updateController } }),
     }, UpdateNotice))
@@ -343,7 +383,7 @@ export async function apply(ctx: Context): Promise<void> {
       label: () => t('settings.blackboard.title'),
       inject: () => ({ companion: companionActions, bus: busActions, openPanel, hooks: { companion } }),
     }, BlackboardWorkspace))
-    const settingsInject = () => ({ companion: companionActions, settingsDocument: documentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController, overlay: bus } })
+    const settingsInject = () => ({ companion: companionActions, settingsDocument: settingsDocumentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController, overlay: bus } })
     remoteCtx.slots.inject('settings.section', () => remoteCtx.slots.register({
       name: 'settings.section',
       id: 'citeciter',
@@ -362,7 +402,7 @@ export async function apply(ctx: Context): Promise<void> {
       unsubscribeSessions()
       disposeHotkey()
       closePanel()
-      await Promise.all([actions.dispose(), companion.dispose(), reader.dispose(), settingsDocument.dispose(), updateController.dispose()])
+      await Promise.all([actions.dispose(), companion.dispose(), library.dispose(), settingsDocument.dispose(), updateController.dispose()])
     }, 'citeciter: browser controller')
     void updateController.start()
   })

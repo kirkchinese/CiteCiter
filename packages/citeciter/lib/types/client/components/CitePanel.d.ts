@@ -7,7 +7,8 @@ import type { CiteOverlaySnapshot } from '../types.ts';
 import type { SelectionSurfaces } from '../wheel-gesture.ts';
 import type { FileOpener } from '../native-file-link.ts';
 import type { CompanionSnapshot } from '../companion-controller.ts';
-import type { CompanionActions, OverlayActions } from '../view-actions.ts';
+import type { CompanionActions, DocumentActions, OverlayActions } from '../view-actions.ts';
+import type { DocumentLibrarySnapshot } from '../document-library.ts';
 export interface CitePanelProps {
     readonly drafts: Omit<DraftController, 'getSnapshot' | 'subscribe' | 'dispose'>;
     readonly useDrafts: SnapshotSelectorHook<DraftSnapshot>;
@@ -19,7 +20,9 @@ export interface CitePanelProps {
     readonly bus: OverlayActions;
     readonly companion: CompanionActions;
     readonly closePanel: () => void;
-    readonly openReader: () => void;
+    /** Citer's documents: the library list and opening documents in the sidebar or this panel. */
+    readonly documents: DocumentActions;
+    readonly useLibrary: SnapshotSelectorHook<DocumentLibrarySnapshot>;
     readonly reportParseError: (messageId: string) => void;
     /** Host standard prop: the session list, used to show source titles on reference chips. */
     readonly useSessions?: UseSessions;
@@ -40,4 +43,4 @@ export interface CitePanelProps {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile, host, tabVisible }: CitePanelProps): import("react").JSX.Element | null;
+export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, useLibrary, reportParseError, registerSurface, openFile, host, tabVisible }: CitePanelProps): import("react").JSX.Element | null;

@@ -25,6 +25,7 @@ import { projectCitableAssistantContent } from './assistant-content.ts'
 import {
   resolveCitationRange,
   resolveDocumentRange,
+  resolveRenderedDocumentRange,
   type CitationTextSelection,
   type ResolvedCitationRange,
 } from './citation-mapping.ts'
@@ -202,7 +203,7 @@ export function resolveDocumentEvidence(
   rawClaim: DocumentEvidenceClaim,
 ): ValidatedDocumentEvidence {
   const claim = documentEvidenceClaimSchema.parse(rawClaim) as DocumentEvidenceClaim
-  const range = resolveDocumentRange(claim, content)
+  const range = claim.sourceRange === undefined ? resolveDocumentRange(claim, content) : resolveRenderedDocumentRange(claim, content, claim.sourceRange)
   return {
     evidence: {
       sourceSessionId: claim.sourceSessionId,

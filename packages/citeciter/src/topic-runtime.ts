@@ -359,6 +359,9 @@ export class TopicRuntime {
         return { kind: 'documents', documents: await this.documents.list() }
       case 'document-get':
         return { kind: 'document-content', document: await this.documents.get(request.documentId, request.page) }
+      case 'document-delete':
+        await this.documents.delete(request.documentId)
+        return { kind: 'documents', documents: await this.documents.list() }
       default:
         return request satisfies never
     }
@@ -1383,10 +1386,13 @@ export class TopicRuntime {
     ]
     const captureId = this.boardCapture.id(current.sessionId)
     const document = current.documentId === null ? null : await this.documents.summary(current.documentId)
+    const entry = current.citation?.entry
+    const documentLine = document === null || entry?.kind !== 'document-range' ? undefined : await this.documents.lineAt(entry.documentId, entry.startOffset)
     const usage = projectTopicUsage(log)
     return {
       ...(captureId === undefined ? {} : { captureId }),
       ...(document === null ? {} : { documentTitle: document.title }),
+      ...(documentLine === undefined ? {} : { documentLine }),
       topic: this.summaryFromMetadata(current),
       ...topicMessages(log),
       ...(usage === undefined ? {} : { usage }),

@@ -6142,6 +6142,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			captureId: string().optional(),
 			usage: topicUsageSchema.optional(),
 			documentTitle: string().optional(),
+			/** One-based line of the document where the Topic's citation starts. */
+			documentLine: number().int().positive().optional(),
 			topic: topicSummarySchema,
 			messages: array(topicMessageSchema),
 			pendingQuestion: pendingQuestionSchema.nullable(),
@@ -6183,7 +6185,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			documentId: string().min(1),
 			displayText: string().min(1).max(32e3),
 			prefixText: string().max(1e3),
-			suffixText: string().max(1e3)
+			suffixText: string().max(1e3),
+			/** Source range of the rendered Markdown blocks holding the selection; absent for literal text. */
+			sourceRange: object({
+				start: number().int().nonnegative(),
+				end: number().int().positive()
+			}).strict().optional()
 		}).strict();
 		/** Document format accepted by the CiteCiter private document library. */
 		const documentFormatSchema = _enum(["text", "markdown"]);
@@ -6361,6 +6368,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				action: literal("document-get"),
 				documentId: string().min(1),
 				page: number().int().nonnegative().optional()
+			}).strict(),
+			object({
+				action: literal("document-delete"),
+				documentId: string().min(1)
 			}).strict()
 		])]);
 		/** Strict response union returned by the single Remote command endpoint. */
@@ -7505,31 +7516,29 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"settings.wheel.closeAsk": "关闭提问",
 			"settings.wheel.retained": "选中的内容已保留",
 			"settings.wheel.retry": "重试",
-			"settings.reader.title": "文档阅读",
-			"settings.reader.close": "关闭文档阅读",
-			"settings.reader.importAria": "导入文本 / Markdown",
+			"settings.reader.title": "文档",
+			"settings.reader.topics": "Topic",
+			"settings.reader.search": "搜索文档",
+			"settings.reader.import": "导入文档…",
 			"settings.reader.importing": "导入中…",
-			"settings.reader.import": "+ 导入文档",
+			"settings.reader.importHint": "Markdown 或文本文件，在右侧栏阅读，选中文字即可提问。",
 			"settings.reader.text": "文本",
 			"settings.reader.empty": "还没有文档",
-			"settings.reader.body": "文档正文",
-			"settings.reader.choose": "选择文档开始阅读",
-			"settings.reader.pagination": "文档分页",
-			"settings.reader.previous": "上一页",
-			"settings.reader.next": "下一页",
-			"settings.reader.loading": "加载中…",
-			"settings.reader.page": "第 {page} / {total} 页",
-			"settings.reader.questionPlaceholder": "选中正文后，写下你的问题",
-			"settings.reader.questionAria": "关于选中内容的问题",
-			"settings.reader.opening": "正在打开…",
-			"settings.reader.ask": "在 Citer 中提问",
-			"settings.native.title": "Citer 学习",
-			"settings.native.hint": "选中正文后，用工具条提问",
-			"settings.native.select": "请先在正文中选中文字",
-			"settings.native.actions": "Citer 动作",
-			"settings.native.snapshot": "提问时会保存这份文件的快照。Markdown 和代码按源文本显示。",
-			"settings.native.pagination": "学习文档分页",
-			"settings.native.body": "原生文件学习正文",
+			"settings.reader.loading": "正在打开文档…",
+			"settings.reader.lines": "{count} 行",
+			"settings.reader.hint": "选中文字即可提问",
+			"settings.reader.missing": "这份文档已被删除",
+			"settings.reader.retry": "重试",
+			"settings.reader.emptyFile": "文件是空的",
+			"settings.reader.delete": "删除",
+			"settings.reader.confirmDelete": "确认删除",
+			"settings.reader.deleteAria": "删除文档：{title}",
+			"settings.reader.open": "打开原文",
+			"settings.reader.citedAt": "{title} · 第 {line} 行",
+			"settings.reader.openFile": "打开文档",
+			"settings.reader.close": "关闭文档",
+			"settings.native.title": "Citer 阅读",
+			"settings.native.snapshot": "提问时，这份文件会以快照存入 Citer 的文档。",
 			"settings.update.announcement": "Citer 有新版本 {version}",
 			"settings.update.title": "Citer 有新版本",
 			"settings.update.description": "“更新”复制安装命令。执行前请核对目标 Profile 与新版 DSH 要求，完成后重启当前 DSH。",
@@ -7688,31 +7697,29 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"settings.wheel.closeAsk": "Close question",
 			"settings.wheel.retained": "Selection retained",
 			"settings.wheel.retry": "Retry",
-			"settings.reader.title": "Document reader",
-			"settings.reader.close": "Close document reader",
-			"settings.reader.importAria": "Import text / Markdown",
+			"settings.reader.title": "Documents",
+			"settings.reader.topics": "Topics",
+			"settings.reader.search": "Search documents",
+			"settings.reader.import": "Import document…",
 			"settings.reader.importing": "Importing…",
-			"settings.reader.import": "+ Import document",
+			"settings.reader.importHint": "Markdown or text files. Read them in the right sidebar and select text to ask.",
 			"settings.reader.text": "Text",
 			"settings.reader.empty": "No documents yet",
-			"settings.reader.body": "Document body",
-			"settings.reader.choose": "Select a document to start reading",
-			"settings.reader.pagination": "Document pages",
-			"settings.reader.previous": "Previous page",
-			"settings.reader.next": "Next page",
-			"settings.reader.loading": "Loading…",
-			"settings.reader.page": "Page {page} / {total}",
-			"settings.reader.questionPlaceholder": "Select text, then write your question",
-			"settings.reader.questionAria": "Question about the selection",
-			"settings.reader.opening": "Opening…",
-			"settings.reader.ask": "Ask in Citer",
-			"settings.native.title": "Citer Learning",
-			"settings.native.hint": "Select text and ask with the toolbar",
-			"settings.native.select": "Select text in the document first",
-			"settings.native.actions": "Citer actions",
-			"settings.native.snapshot": "A snapshot of this file is saved when you ask. Markdown and code are shown as source text.",
-			"settings.native.pagination": "Learning document pages",
-			"settings.native.body": "Native file content for learning",
+			"settings.reader.loading": "Opening document…",
+			"settings.reader.lines": "{count} lines",
+			"settings.reader.hint": "Select text to ask",
+			"settings.reader.missing": "This document was deleted",
+			"settings.reader.retry": "Retry",
+			"settings.reader.emptyFile": "The file is empty",
+			"settings.reader.delete": "Delete",
+			"settings.reader.confirmDelete": "Confirm delete",
+			"settings.reader.deleteAria": "Delete document: {title}",
+			"settings.reader.open": "Open source",
+			"settings.reader.citedAt": "{title} · line {line}",
+			"settings.reader.openFile": "Open document",
+			"settings.reader.close": "Close document",
+			"settings.native.title": "Citer Reading",
+			"settings.native.snapshot": "When you ask, a snapshot of this file is saved to Citer’s documents.",
 			"settings.update.announcement": "Citer version {version} is available",
 			"settings.update.title": "New Citer version available",
 			"settings.update.description": "“Update” copies the installation command. Check the target profile and new DSH requirements before running it, then restart this DSH.",
@@ -9455,7 +9462,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				claim.displayText,
 				claim.prefixText,
 				claim.suffixText,
-				question
+				question,
+				...claim.sourceRange === void 0 ? [] : [claim.sourceRange.start, claim.sourceRange.end]
 			]));
 		}
 		/**
@@ -9623,7 +9631,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			includeArchived: false,
 			error: null
 		};
-		function remoteValue$1(result) {
+		function remoteValue(result) {
 			if (!result.ok) throw new Error(result.error.message);
 			return result.value;
 		}
@@ -9780,7 +9788,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				lifecycle.signal.throwIfAborted();
 				const result = await request(command, lifecycle.signal);
 				lifecycle.signal.throwIfAborted();
-				return remoteValue$1(result);
+				return remoteValue(result);
 			})());
 			const openTopic = async (sessionId, operationGeneration = activeGeneration) => {
 				if (disposed) return;
@@ -10247,7 +10255,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							documentId: claim.documentId,
 							displayText: claim.displayText,
 							prefixText: claim.prefixText,
-							suffixText: claim.suffixText
+							suffixText: claim.suffixText,
+							...claim.sourceRange === void 0 ? {} : { sourceRange: {
+								start: claim.sourceRange.start,
+								end: claim.sourceRange.end
+							} }
 						},
 						question,
 						modelRoute
@@ -38498,7 +38510,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/CiteCiter.module.css.mjs
-		const css$24 = "body:has([role=dialog][aria-modal=true]) .p2EjMq_dock{visibility:hidden;pointer-events:none}[data-rightbar-fullscreen] .p2EjMq_dock{visibility:hidden;pointer-events:none}[data-citeciter-layout=columns]{grid-template-columns:var(--citeciter-host-columns) var(--citeciter-dock-width)!important;transition:none!important}[data-citeciter-layout=columns]>[data-side=rightbar]{translate:calc(-1 * var(--citeciter-dock-width)) 0}[data-citeciter-covered]{visibility:hidden;pointer-events:none}.p2EjMq_dock{-webkit-app-region:no-drag;z-index:1;box-sizing:border-box;width:clamp(360px, var(--citeciter-panel-width), calc(100vw - 24px));min-width:0;color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family,system-ui, -apple-system, \"Segoe UI\", \"Microsoft YaHei\", sans-serif);background:var(--dsw-alias-bg-base,#fff);border-left:.5px solid var(--dsw-alias-border-l3,#e4e7ec);pointer-events:auto;display:block;position:absolute;top:0;bottom:0;right:0;overflow:visible;container-type:inline-size}.p2EjMq_dock[data-arrangement=page]{border-top:.5px solid var(--dsw-alias-border-l3,#e4e7ec);border-left:0}.p2EjMq_dock[data-arrangement=suspended]{visibility:hidden;pointer-events:none}.p2EjMq_dock.p2EjMq_floating{z-index:500;border-radius:var(--dsw-radius-panel,12px);width:min(520px,100vw - 32px);height:min(720px,100vh - 100px);box-shadow:var(--dsw-elevation-prominent,0 0 0 .5px #0000001f, 0 3px 8px #0000000a, 0 0 20px #0000000d);border:0;animation:.16s ease-out p2EjMq_citerFloatIn;position:fixed;top:72px;bottom:auto;right:24px;overflow:hidden}@keyframes p2EjMq_citerFloatIn{0%{opacity:0;translate:0 6px}to{opacity:1;translate:0}}.p2EjMq_dock[data-arrangement=unsupported]{border-radius:var(--dsw-radius-lg,10px);width:min(360px,100% - 24px);height:auto;box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);border:0;padding:12px 16px;top:auto;bottom:12px;right:12px}.p2EjMq_dock[data-arrangement=unsupported] .p2EjMq_dockBody,.p2EjMq_fullscreenNotice{display:none}body:has([data-rightbar-fullscreen]) .p2EjMq_fullscreenNotice{z-index:501;box-sizing:border-box;max-width:calc(100vw - 32px);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);pointer-events:auto;padding:8px 12px;display:block;position:fixed;bottom:16px;left:16px}.p2EjMq_fullscreenNotice button{color:var(--dsw-alias-link,var(--dsw-alias-state-business-primary));font:inherit;cursor:pointer;background:0 0;border:0;padding:0}[data-rightbar-fullscreen] .p2EjMq_floating{visibility:visible;pointer-events:auto}body:has([role=dialog][aria-modal=true]) .p2EjMq_floating,body:has([role=dialog][aria-modal=true]) .p2EjMq_fullscreenNotice{visibility:hidden;pointer-events:none}.p2EjMq_layoutNotice{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:0}.p2EjMq_usageBar{flex:none;justify-content:center;min-width:0;padding:0 16px 8px;display:flex;overflow:hidden}.p2EjMq_tabPanel{box-sizing:border-box;width:100%;min-width:0;height:100%;min-height:0;color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family,system-ui, -apple-system, \"Segoe UI\", \"Microsoft YaHei\", sans-serif);background:var(--dsw-alias-bg-base,#fff);grid-template-columns:minmax(0,1fr);display:grid;position:relative;overflow:hidden}.p2EjMq_dockBody{grid-template-columns:minmax(0,1fr);width:100%;min-width:0;height:100%;min-height:0;display:grid;overflow:hidden}.p2EjMq_resizeHandle{z-index:3;cursor:col-resize;touch-action:none;width:10px;position:absolute;top:0;bottom:0;left:-5px}.p2EjMq_resizeHandle:after{content:\"\";background:0 0;border-radius:2px;width:2px;height:40px;transition:background .12s;position:absolute;top:50%;left:4px;transform:translateY(-50%)}.p2EjMq_resizeHandle:hover:after,.p2EjMq_resizeHandle:focus-visible:after{background:var(--dsw-alias-scrollbar-hover-l2,var(--dsw-alias-border-l3,#c9ced8))}.p2EjMq_dockTarget{z-index:9999;background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#3478f6) 10%, transparent);border:2px dashed var(--dsw-alias-state-business-primary,#3478f6);border-radius:var(--dsw-radius-xl,16px);pointer-events:none;width:72px;position:fixed;top:48px;bottom:16px;right:8px}.p2EjMq_learningWorkspace{background:var(--dsw-alias-bg-base,#fff);flex-direction:column;min-width:0;min-height:0;display:flex;overflow:hidden}.p2EjMq_emptyState{box-sizing:border-box;text-align:center;flex-direction:column;flex:1;justify-content:safe center;align-items:center;gap:8px;min-height:0;padding:32px 24px;display:flex;overflow-y:auto}.p2EjMq_emptyMascot{corner-shape:round;border-radius:50%;width:72px;height:72px;margin-bottom:4px}.p2EjMq_emptyState h2{color:var(--dsw-alias-label-primary);margin:0;font-size:15px;font-weight:500;line-height:22px}.p2EjMq_emptyState>p{max-width:360px;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:0 0 8px}.p2EjMq_contextBar{color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px);line-height:calc(20px + var(--dsh-content-font-delta-secondary,0px));border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;padding:6px 16px}.p2EjMq_contextBar summary{white-space:nowrap;text-overflow:ellipsis;cursor:pointer;overflow:hidden}.p2EjMq_contextBar blockquote{max-height:120px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;border-left:2px solid var(--dsw-alias-border-l3,#d9dde5);margin:6px 0 2px;padding-left:10px;overflow:auto}.p2EjMq_dock[data-arrangement=page] .p2EjMq_contextBar blockquote{max-height:60px}.p2EjMq_panelNotice{color:var(--dsw-alias-state-warn-label,var(--dsw-alias-label-secondary));font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);background:var(--dsw-alias-state-warn-tertiary,transparent);border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;margin:0;padding:6px 16px}.p2EjMq_views{border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;gap:24px;padding:8px 16px 0;display:flex}.p2EjMq_views button{color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;padding:0 0 8px;font-size:13px;font-weight:500;line-height:16px;position:relative}.p2EjMq_views button:after{content:\"\";border-radius:2px;height:2px;position:absolute;bottom:-1px;left:0;right:0}.p2EjMq_views button[aria-selected=true]{color:var(--dsw-alias-state-business-primary)}.p2EjMq_views button[aria-selected=true]:after{background:var(--dsw-alias-state-business-primary)}.p2EjMq_transcript{overflow-anchor:none;flex-direction:column;flex:1;gap:16px;min-height:0;padding:16px clamp(12px,4%,24px) 24px;display:flex;position:relative;overflow:hidden auto}.p2EjMq_assistantTurn,.p2EjMq_userTurn,.p2EjMq_errorTurn{overflow-wrap:anywhere;min-width:0;font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px))}.p2EjMq_userTurn{box-sizing:border-box;max-width:86%;color:var(--dsw-alias-label-primary);background:var(--dsw-specific-bubble,#f1f3f7);border-radius:var(--dsw-radius-xl,16px);align-self:flex-end;padding:10px 16px}.p2EjMq_assistantTurn p,.p2EjMq_userTurn p,.p2EjMq_errorTurn p{margin-top:0;margin-bottom:8px}.p2EjMq_errorTurn,.p2EjMq_panelError{color:var(--dsw-alias-state-error-primary,#c93f3f);background:color-mix(in srgb, var(--dsw-alias-state-error-primary,#c93f3f) 6%, transparent);border-radius:var(--dsw-radius-md,8px)}.p2EjMq_errorTurn{padding:8px 12px}.p2EjMq_errorTurn>p:last-child{margin-bottom:0}.p2EjMq_errorTurn strong{font-weight:500}.p2EjMq_errorTurn[data-status=stopped]{color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px);background:0 0;padding:0}.p2EjMq_errorNote{color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px)}.p2EjMq_errorTurn details{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:4px}.p2EjMq_errorTurn pre{white-space:pre-wrap;max-height:160px;margin:4px 0 0;overflow:auto}.p2EjMq_panelError{overflow-wrap:anywhere;font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:0;padding:8px 12px}.p2EjMq_flowDisclosure{min-width:0;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px)}.p2EjMq_flowRow,.p2EjMq_flowRowRunning{min-width:0;height:calc(24px + var(--dsh-content-font-delta,0px));align-items:center;display:flex;position:relative;overflow:hidden}.p2EjMq_flowRowRunning:after{content:\"\";pointer-events:none;background:linear-gradient(90deg, transparent 20%, color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 60%, transparent) 48%, transparent 76%);animation:1.7s linear infinite p2EjMq_citeciterSweep;position:absolute;inset:0;transform:translate(-100%)}@keyframes p2EjMq_citeciterSweep{to{transform:translate(100%)}}.p2EjMq_flowDot{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));flex:none;margin:0 6px}.p2EjMq_flowSummary{min-width:0;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.p2EjMq_toolPreview{background:var(--dsw-alias-markdown-code-block,var(--dsw-specific-bubble,#f5f6f8));border-radius:var(--dsw-radius-md,8px);gap:6px;max-height:360px;margin:4px 0 4px 22px;padding:8px 10px;display:grid;overflow:auto}.p2EjMq_toolPreview>strong{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);font-weight:500}.p2EjMq_toolPreview pre{overflow-wrap:anywhere;font:12px/18px var(--dsw-font-mono,ui-monospace, SFMono-Regular, Menlo, monospace);white-space:pre-wrap;margin:0}.p2EjMq_loadingCard{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);align-self:flex-start}.p2EjMq_nextQuestions{border:0;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0;display:flex}.p2EjMq_nextQuestions legend{width:100%;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-bottom:6px;padding:0}.p2EjMq_nextQuestions button{color:var(--dsw-alias-label-secondary);text-align:left;border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;padding:4px 10px}.p2EjMq_nextQuestions button:hover:not(:disabled){color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.p2EjMq_nextQuestions button:disabled{cursor:default;opacity:.4}.p2EjMq_questionFrame{color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-panel,12px);box-shadow:var(--dsw-elevation-soft,0 1px 4px #0000000f);flex:none;margin:0 12px 12px;padding:12px}.p2EjMq_questionHeader{color:var(--dsw-alias-label-secondary);grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:8px;display:grid}.p2EjMq_questionHeader>div{flex-direction:column;gap:2px;min-width:0;display:flex}.p2EjMq_questionHeader span{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.p2EjMq_questionHeader strong{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:500;line-height:22px}.p2EjMq_questionOptions{gap:6px;margin-top:10px;display:grid}.p2EjMq_questionOptions>button{color:inherit;text-align:left;border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:8px;padding:8px 10px;display:grid}.p2EjMq_questionOptions>button:hover{background:var(--dsw-alias-interactive-bg-hover)}.p2EjMq_questionOptions>button[data-selected]{background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#3478f6) 8%, transparent);border-color:var(--dsw-alias-state-business-primary,#3478f6)}.p2EjMq_questionOptions>button>span:first-child{width:20px;height:20px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-xs,4px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);place-items:center;display:grid}.p2EjMq_questionOptions>button>span:last-child{flex-direction:column;min-width:0;display:flex}.p2EjMq_questionOptions strong{font:var(--dsw-font-xs-strong-13,500 13px/20px system-ui, sans-serif)}.p2EjMq_questionOptions small{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:2px}.p2EjMq_questionCustom{box-sizing:border-box;resize:vertical;width:100%;color:inherit;background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);outline:0;margin-top:8px;padding:8px 10px}.p2EjMq_questionCustom:focus{border-color:var(--dsw-alias-state-business-primary,#3478f6)}.p2EjMq_questionFooter{align-items:center;gap:6px;margin-top:10px;display:flex}.p2EjMq_questionFooter span{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);flex:1}.p2EjMq_questionFooter button{height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0 10px}.p2EjMq_questionFooter button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.p2EjMq_questionFooter button:last-child{color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-state-business-primary,#3478f6))}.p2EjMq_questionFooter button:last-child:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-state-business-primary,#3478f6))}.p2EjMq_questionFooter button:disabled{cursor:default;opacity:.4}.p2EjMq_richAnswer{min-width:0}.p2EjMq_richFigure{background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-md,8px);margin:10px 0;overflow:hidden}.p2EjMq_richSvg{width:auto;max-width:100%;height:auto;display:block}.p2EjMq_richHtml{border:0;width:100%;min-height:240px;display:block}.p2EjMq_deleteForm{flex-direction:column;gap:12px;width:100%;min-width:0;display:flex}.p2EjMq_deleteForm input{box-sizing:border-box;width:100%;height:36px;color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-base,#fff));border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);outline:none;padding:0 10px}.p2EjMq_deleteForm input:focus{border-color:var(--dsw-alias-state-business-primary,#3478f6)}.p2EjMq_deleteForm code{overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-markdown-code-block,var(--dsw-specific-bubble,#f5f7fa));border-radius:var(--dsw-radius-md,8px);font:12px/18px var(--dsw-font-mono,ui-monospace, monospace);user-select:all;padding:8px 10px}.p2EjMq_modalError{color:var(--dsw-alias-state-error-primary,#c93f3f);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.p2EjMq_deleteAction{color:var(--dsw-alias-state-error-primary,#c93f3f)!important}@media (prefers-reduced-motion:reduce){.p2EjMq_dock.p2EjMq_floating,.p2EjMq_flowRowRunning:after{animation:none}}";
+		const css$24 = "body:has([role=dialog][aria-modal=true]) .p2EjMq_dock{visibility:hidden;pointer-events:none}[data-rightbar-fullscreen] .p2EjMq_dock{visibility:hidden;pointer-events:none}[data-citeciter-layout=columns]{grid-template-columns:var(--citeciter-host-columns) var(--citeciter-dock-width)!important;transition:none!important}[data-citeciter-layout=columns]>[data-side=rightbar]{translate:calc(-1 * var(--citeciter-dock-width)) 0}[data-citeciter-covered]{visibility:hidden;pointer-events:none}.p2EjMq_dock{-webkit-app-region:no-drag;z-index:1;box-sizing:border-box;width:clamp(360px, var(--citeciter-panel-width), calc(100vw - 24px));min-width:0;color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family,system-ui, -apple-system, \"Segoe UI\", \"Microsoft YaHei\", sans-serif);background:var(--dsw-alias-bg-base,#fff);border-left:.5px solid var(--dsw-alias-border-l3,#e4e7ec);pointer-events:auto;display:block;position:absolute;top:0;bottom:0;right:0;overflow:visible;container-type:inline-size}.p2EjMq_dock[data-arrangement=page]{border-top:.5px solid var(--dsw-alias-border-l3,#e4e7ec);border-left:0}.p2EjMq_dock[data-arrangement=suspended]{visibility:hidden;pointer-events:none}.p2EjMq_dock.p2EjMq_floating{z-index:500;border-radius:var(--dsw-radius-panel,12px);width:min(520px,100vw - 32px);height:min(720px,100vh - 100px);box-shadow:var(--dsw-elevation-prominent,0 0 0 .5px #0000001f, 0 3px 8px #0000000a, 0 0 20px #0000000d);border:0;animation:.16s ease-out p2EjMq_citerFloatIn;position:fixed;top:72px;bottom:auto;right:24px;overflow:hidden}@keyframes p2EjMq_citerFloatIn{0%{opacity:0;translate:0 6px}to{opacity:1;translate:0}}.p2EjMq_dock[data-arrangement=unsupported]{border-radius:var(--dsw-radius-lg,10px);width:min(360px,100% - 24px);height:auto;box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);border:0;padding:12px 16px;top:auto;bottom:12px;right:12px}.p2EjMq_dock[data-arrangement=unsupported] .p2EjMq_dockBody,.p2EjMq_fullscreenNotice{display:none}body:has([data-rightbar-fullscreen]) .p2EjMq_fullscreenNotice{z-index:501;box-sizing:border-box;max-width:calc(100vw - 32px);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);pointer-events:auto;padding:8px 12px;display:block;position:fixed;bottom:16px;left:16px}.p2EjMq_fullscreenNotice button{color:var(--dsw-alias-link,var(--dsw-alias-state-business-primary));font:inherit;cursor:pointer;background:0 0;border:0;padding:0}[data-rightbar-fullscreen] .p2EjMq_floating{visibility:visible;pointer-events:auto}body:has([role=dialog][aria-modal=true]) .p2EjMq_floating,body:has([role=dialog][aria-modal=true]) .p2EjMq_fullscreenNotice{visibility:hidden;pointer-events:none}.p2EjMq_layoutNotice{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:0}.p2EjMq_usageBar{flex:none;justify-content:center;min-width:0;padding:0 16px 8px;display:flex;overflow:hidden}.p2EjMq_tabPanel{box-sizing:border-box;width:100%;min-width:0;height:100%;min-height:0;color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family,system-ui, -apple-system, \"Segoe UI\", \"Microsoft YaHei\", sans-serif);background:var(--dsw-alias-bg-base,#fff);grid-template-columns:minmax(0,1fr);display:grid;position:relative;overflow:hidden}.p2EjMq_dockBody{grid-template-columns:minmax(0,1fr);width:100%;min-width:0;height:100%;min-height:0;display:grid;overflow:hidden}.p2EjMq_resizeHandle{z-index:3;cursor:col-resize;touch-action:none;width:10px;position:absolute;top:0;bottom:0;left:-5px}.p2EjMq_resizeHandle:after{content:\"\";background:0 0;border-radius:2px;width:2px;height:40px;transition:background .12s;position:absolute;top:50%;left:4px;transform:translateY(-50%)}.p2EjMq_resizeHandle:hover:after,.p2EjMq_resizeHandle:focus-visible:after{background:var(--dsw-alias-scrollbar-hover-l2,var(--dsw-alias-border-l3,#c9ced8))}.p2EjMq_dockTarget{z-index:9999;background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#3478f6) 10%, transparent);border:2px dashed var(--dsw-alias-state-business-primary,#3478f6);border-radius:var(--dsw-radius-xl,16px);pointer-events:none;width:72px;position:fixed;top:48px;bottom:16px;right:8px}.p2EjMq_learningWorkspace{background:var(--dsw-alias-bg-base,#fff);flex-direction:column;min-width:0;min-height:0;display:flex;overflow:hidden}.p2EjMq_emptyState{box-sizing:border-box;text-align:center;flex-direction:column;flex:1;justify-content:safe center;align-items:center;gap:8px;min-height:0;padding:32px 24px;display:flex;overflow-y:auto}.p2EjMq_emptyMascot{corner-shape:round;border-radius:50%;width:72px;height:72px;margin-bottom:4px}.p2EjMq_emptyState h2{color:var(--dsw-alias-label-primary);margin:0;font-size:15px;font-weight:500;line-height:22px}.p2EjMq_emptyState>p{max-width:360px;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:0 0 8px}.p2EjMq_emptyActions{flex-wrap:wrap;justify-content:center;gap:8px;display:flex}.p2EjMq_contextBar{color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px);line-height:calc(20px + var(--dsh-content-font-delta-secondary,0px));border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;padding:6px 16px}.p2EjMq_contextBar summary{white-space:nowrap;text-overflow:ellipsis;cursor:pointer;overflow:hidden}.p2EjMq_contextBar blockquote{max-height:120px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;border-left:2px solid var(--dsw-alias-border-l3,#d9dde5);margin:6px 0 2px;padding-left:10px;overflow:auto}.p2EjMq_dock[data-arrangement=page] .p2EjMq_contextBar blockquote{max-height:60px}.p2EjMq_panelNotice{color:var(--dsw-alias-state-warn-label,var(--dsw-alias-label-secondary));font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);background:var(--dsw-alias-state-warn-tertiary,transparent);border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;margin:0;padding:6px 16px}.p2EjMq_views{border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;gap:24px;padding:8px 16px 0;display:flex}.p2EjMq_views button{color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;padding:0 0 8px;font-size:13px;font-weight:500;line-height:16px;position:relative}.p2EjMq_views button:after{content:\"\";border-radius:2px;height:2px;position:absolute;bottom:-1px;left:0;right:0}.p2EjMq_views button[aria-selected=true]{color:var(--dsw-alias-state-business-primary)}.p2EjMq_views button[aria-selected=true]:after{background:var(--dsw-alias-state-business-primary)}.p2EjMq_documentTab{gap:4px;min-width:0;max-width:50%;display:inline-flex}.p2EjMq_documentTab>button[role=tab]{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.p2EjMq_views .p2EjMq_documentClose{color:var(--dsw-alias-label-tertiary);padding:0 2px 8px;font-size:15px;font-weight:400}.p2EjMq_views .p2EjMq_documentClose:after{display:none}.p2EjMq_views .p2EjMq_documentClose:hover{color:var(--dsw-alias-label-primary)}.p2EjMq_documentPane{flex:1;min-height:0;overflow:hidden}.p2EjMq_contextSource{min-width:0;color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px);line-height:calc(20px + var(--dsh-content-font-delta-secondary,0px));border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;align-items:center;gap:8px;padding:4px 16px 6px;display:flex}.p2EjMq_contextSource>span{white-space:nowrap;text-overflow:ellipsis;min-width:0;overflow:hidden}.p2EjMq_contextSource>button{color:var(--dsw-alias-state-business-primary);font:inherit;cursor:pointer;background:0 0;border:0;flex:none;padding:0}.p2EjMq_contextSource>button:hover{text-decoration:underline}.p2EjMq_contextSource>button:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px}.p2EjMq_transcript{overflow-anchor:none;flex-direction:column;flex:1;gap:16px;min-height:0;padding:16px clamp(12px,4%,24px) 24px;display:flex;position:relative;overflow:hidden auto}.p2EjMq_assistantTurn,.p2EjMq_userTurn,.p2EjMq_errorTurn{overflow-wrap:anywhere;min-width:0;font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px))}.p2EjMq_userTurn{box-sizing:border-box;max-width:86%;color:var(--dsw-alias-label-primary);background:var(--dsw-specific-bubble,#f1f3f7);border-radius:var(--dsw-radius-xl,16px);align-self:flex-end;padding:10px 16px}.p2EjMq_assistantTurn p,.p2EjMq_userTurn p,.p2EjMq_errorTurn p{margin-top:0;margin-bottom:8px}.p2EjMq_errorTurn,.p2EjMq_panelError{color:var(--dsw-alias-state-error-primary,#c93f3f);background:color-mix(in srgb, var(--dsw-alias-state-error-primary,#c93f3f) 6%, transparent);border-radius:var(--dsw-radius-md,8px)}.p2EjMq_errorTurn{padding:8px 12px}.p2EjMq_errorTurn>p:last-child{margin-bottom:0}.p2EjMq_errorTurn strong{font-weight:500}.p2EjMq_errorTurn[data-status=stopped]{color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px);background:0 0;padding:0}.p2EjMq_errorNote{color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px)}.p2EjMq_errorTurn details{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:4px}.p2EjMq_errorTurn pre{white-space:pre-wrap;max-height:160px;margin:4px 0 0;overflow:auto}.p2EjMq_panelError{overflow-wrap:anywhere;font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:0;padding:8px 12px}.p2EjMq_flowDisclosure{min-width:0;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px)}.p2EjMq_flowRow,.p2EjMq_flowRowRunning{min-width:0;height:calc(24px + var(--dsh-content-font-delta,0px));align-items:center;display:flex;position:relative;overflow:hidden}.p2EjMq_flowRowRunning:after{content:\"\";pointer-events:none;background:linear-gradient(90deg, transparent 20%, color-mix(in srgb, var(--dsw-alias-bg-base,#fff) 60%, transparent) 48%, transparent 76%);animation:1.7s linear infinite p2EjMq_citeciterSweep;position:absolute;inset:0;transform:translate(-100%)}@keyframes p2EjMq_citeciterSweep{to{transform:translate(100%)}}.p2EjMq_flowDot{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));flex:none;margin:0 6px}.p2EjMq_flowSummary{min-width:0;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.p2EjMq_toolPreview{background:var(--dsw-alias-markdown-code-block,var(--dsw-specific-bubble,#f5f6f8));border-radius:var(--dsw-radius-md,8px);gap:6px;max-height:360px;margin:4px 0 4px 22px;padding:8px 10px;display:grid;overflow:auto}.p2EjMq_toolPreview>strong{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);font-weight:500}.p2EjMq_toolPreview pre{overflow-wrap:anywhere;font:12px/18px var(--dsw-font-mono,ui-monospace, SFMono-Regular, Menlo, monospace);white-space:pre-wrap;margin:0}.p2EjMq_loadingCard{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);align-self:flex-start}.p2EjMq_nextQuestions{border:0;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0;display:flex}.p2EjMq_nextQuestions legend{width:100%;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-bottom:6px;padding:0}.p2EjMq_nextQuestions button{color:var(--dsw-alias-label-secondary);text-align:left;border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;padding:4px 10px}.p2EjMq_nextQuestions button:hover:not(:disabled){color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.p2EjMq_nextQuestions button:disabled{cursor:default;opacity:.4}.p2EjMq_questionFrame{color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-panel,12px);box-shadow:var(--dsw-elevation-soft,0 1px 4px #0000000f);flex:none;margin:0 12px 12px;padding:12px}.p2EjMq_questionHeader{color:var(--dsw-alias-label-secondary);grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:8px;display:grid}.p2EjMq_questionHeader>div{flex-direction:column;gap:2px;min-width:0;display:flex}.p2EjMq_questionHeader span{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.p2EjMq_questionHeader strong{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:500;line-height:22px}.p2EjMq_questionOptions{gap:6px;margin-top:10px;display:grid}.p2EjMq_questionOptions>button{color:inherit;text-align:left;border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;grid-template-columns:20px minmax(0,1fr);align-items:start;gap:8px;padding:8px 10px;display:grid}.p2EjMq_questionOptions>button:hover{background:var(--dsw-alias-interactive-bg-hover)}.p2EjMq_questionOptions>button[data-selected]{background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#3478f6) 8%, transparent);border-color:var(--dsw-alias-state-business-primary,#3478f6)}.p2EjMq_questionOptions>button>span:first-child{width:20px;height:20px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-xs,4px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);place-items:center;display:grid}.p2EjMq_questionOptions>button>span:last-child{flex-direction:column;min-width:0;display:flex}.p2EjMq_questionOptions strong{font:var(--dsw-font-xs-strong-13,500 13px/20px system-ui, sans-serif)}.p2EjMq_questionOptions small{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:2px}.p2EjMq_questionCustom{box-sizing:border-box;resize:vertical;width:100%;color:inherit;background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);outline:0;margin-top:8px;padding:8px 10px}.p2EjMq_questionCustom:focus{border-color:var(--dsw-alias-state-business-primary,#3478f6)}.p2EjMq_questionFooter{align-items:center;gap:6px;margin-top:10px;display:flex}.p2EjMq_questionFooter span{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);flex:1}.p2EjMq_questionFooter button{height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0 10px}.p2EjMq_questionFooter button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.p2EjMq_questionFooter button:last-child{color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-state-business-primary,#3478f6))}.p2EjMq_questionFooter button:last-child:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-state-business-primary,#3478f6))}.p2EjMq_questionFooter button:disabled{cursor:default;opacity:.4}.p2EjMq_richAnswer{min-width:0}.p2EjMq_richFigure{background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-md,8px);margin:10px 0;overflow:hidden}.p2EjMq_richSvg{width:auto;max-width:100%;height:auto;display:block}.p2EjMq_richHtml{border:0;width:100%;min-height:240px;display:block}.p2EjMq_deleteForm{flex-direction:column;gap:12px;width:100%;min-width:0;display:flex}.p2EjMq_deleteForm input{box-sizing:border-box;width:100%;height:36px;color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-base,#fff));border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);outline:none;padding:0 10px}.p2EjMq_deleteForm input:focus{border-color:var(--dsw-alias-state-business-primary,#3478f6)}.p2EjMq_deleteForm code{overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-markdown-code-block,var(--dsw-specific-bubble,#f5f7fa));border-radius:var(--dsw-radius-md,8px);font:12px/18px var(--dsw-font-mono,ui-monospace, monospace);user-select:all;padding:8px 10px}.p2EjMq_modalError{color:var(--dsw-alias-state-error-primary,#c93f3f);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.p2EjMq_deleteAction{color:var(--dsw-alias-state-error-primary,#c93f3f)!important}@media (prefers-reduced-motion:reduce){.p2EjMq_dock.p2EjMq_floating,.p2EjMq_flowRowRunning:after{animation:none}}";
 		const tagId$24 = "@kirkchinese/dsh-citeciter/CiteCiter.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$24) + "]") === null) {
 			const tag = document.createElement("style");
@@ -38512,11 +38524,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"citeciterSweep": "p2EjMq_citeciterSweep",
 			"citerFloatIn": "p2EjMq_citerFloatIn",
 			"contextBar": "p2EjMq_contextBar",
+			"contextSource": "p2EjMq_contextSource",
 			"deleteAction": "p2EjMq_deleteAction",
 			"deleteForm": "p2EjMq_deleteForm",
 			"dock": "p2EjMq_dock",
 			"dockBody": "p2EjMq_dockBody",
 			"dockTarget": "p2EjMq_dockTarget",
+			"documentClose": "p2EjMq_documentClose",
+			"documentPane": "p2EjMq_documentPane",
+			"documentTab": "p2EjMq_documentTab",
+			"emptyActions": "p2EjMq_emptyActions",
 			"emptyMascot": "p2EjMq_emptyMascot",
 			"emptyState": "p2EjMq_emptyState",
 			"errorNote": "p2EjMq_errorNote",
@@ -40505,6 +40522,441 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		//#endregion
+		//#region lib/types/document-pages.js
+		/** @returns the one-based line holding `offset` (UTF-16 code units) of `content`. */
+		function lineAtOffset(content, offset) {
+			let line = 1;
+			const end = Math.min(Math.max(0, offset), content.length);
+			for (let at = content.indexOf("\n"); at >= 0 && at < end; at = content.indexOf("\n", at + 1)) line++;
+			return line;
+		}
+		//#endregion
+		//#region lib/types/client/document-layout.js
+		/**
+		* How the document reader cuts a document into renderable pieces. Pure functions, so the
+		* reader can render progressively and still know exactly which source text each piece holds.
+		*/
+		function sourceLines(content) {
+			const lines = [];
+			let start = 0;
+			while (start <= content.length) {
+				const newline = content.indexOf("\n", start);
+				const end = newline < 0 ? content.length : newline;
+				lines.push({
+					start,
+					end,
+					text: content.slice(start, end).replace(/\r$/u, "")
+				});
+				if (newline < 0) break;
+				start = newline + 1;
+			}
+			return lines;
+		}
+		/** Each line of a text document, for the line-numbered view. */
+		function textLines(content) {
+			return sourceLines(content).map((line, index) => ({
+				start: line.start,
+				end: line.end,
+				line: index + 1
+			}));
+		}
+		const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
+		/**
+		* Top-level Markdown blocks: runs of lines separated by blank lines. A fenced code block or a
+		* `$$` math block stays whole across blank lines, and an indented line after a blank line
+		* continues the block before it, so list items with several paragraphs stay together.
+		*/
+		function markdownBlocks(content) {
+			const lines = sourceLines(content);
+			const blocks = [];
+			let first = -1;
+			let last = -1;
+			let fence = null;
+			let math = false;
+			const close = () => {
+				if (first >= 0) blocks.push({
+					start: lines[first].start,
+					end: lines[last].end,
+					line: first + 1
+				});
+				first = -1;
+				last = -1;
+			};
+			lines.forEach((line, index) => {
+				const blank = line.text.trim() === "";
+				if (fence === null && !math) {
+					if (blank) return;
+					if (first >= 0 && last < index - 1 && !/^[ \t]/u.test(line.text)) close();
+					if (first < 0) first = index;
+					last = index;
+					const opened = FENCE.exec(line.text);
+					if (opened !== null) fence = {
+						marker: opened[1][0],
+						length: opened[1].length
+					};
+					else if (line.text.trim() === "$$") math = true;
+					return;
+				}
+				last = index;
+				if (fence !== null) {
+					const closed = /^ {0,3}(`{3,}|~{3,})\s*$/u.exec(line.text);
+					if (closed !== null && closed[1][0] === fence.marker && closed[1].length >= fence.length) fence = null;
+				} else if (line.text.trim() === "$$") math = false;
+			});
+			close();
+			return blocks;
+		}
+		/** @returns the index of the piece holding `offset`, or of the last piece starting before it. */
+		function pieceAt(pieces, offset) {
+			let low = 0;
+			let high = pieces.length - 1;
+			let found = 0;
+			while (low <= high) {
+				const middle = low + high >> 1;
+				if (pieces[middle].start <= offset) {
+					found = middle;
+					low = middle + 1;
+				} else high = middle - 1;
+			}
+			return found;
+		}
+		/**
+		* A literal selection trimmed of surrounding whitespace, with its context.
+		* @param content - the document text.
+		* @param start - selection start offset.
+		* @param end - selection end offset.
+		* @returns the trimmed range and quote, or null when only whitespace was selected.
+		*/
+		function literalSelection(content, start, end) {
+			const raw = content.slice(start, end);
+			const text = raw.trim();
+			if (text === "") return null;
+			const from = start + raw.length - raw.trimStart().length;
+			const to = from + text.length;
+			return {
+				start: from,
+				end: to,
+				displayText: text,
+				prefixText: content.slice(Math.max(0, from - 240), from),
+				suffixText: content.slice(to, to + 240)
+			};
+		}
+		//#endregion
+		//#region \0dsh-css:src/client/components/DocumentView.module.css.mjs
+		const css$14 = ".tIC7za_scroller{box-sizing:border-box;overscroll-behavior:contain;height:100%;min-height:0;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-base,#fff);overflow:auto}.tIC7za_meta{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);flex-wrap:wrap;gap:6px;padding:10px 20px 0;display:flex}.tIC7za_note{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin:4px 20px 0}.tIC7za_markdown{font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));padding:8px 20px 24px}.tIC7za_block{border-radius:var(--dsw-radius-sm,6px);transition:background-color .6s ease-out}.tIC7za_block+.tIC7za_block{margin-top:12px}.tIC7za_lines{font-family:var(--dsw-font-markdown-code-font-family,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);tab-size:4;padding:8px 0 24px;font-size:12.5px;line-height:20px}.tIC7za_line{min-height:20px;padding:0 20px 0 calc(var(--citeciter-gutter,4ch) + 28px);white-space:pre;transition:background-color .6s ease-out;position:relative}.tIC7za_lines[data-wrap] .tIC7za_line{white-space:pre-wrap;overflow-wrap:anywhere}.tIC7za_line:before{width:var(--citeciter-gutter,4ch);color:var(--dsw-alias-label-quaternary,var(--dsw-alias-label-tertiary));text-align:right;content:attr(data-line);user-select:none;position:absolute;left:16px}.tIC7za_eol{display:none}.tIC7za_block[data-flash],.tIC7za_line[data-flash]{background:color-mix(in srgb, var(--dsw-alias-state-business-primary,#3478f6) 12%, transparent);transition:none}.tIC7za_more{height:1px}";
+		const tagId$14 = "@kirkchinese/dsh-citeciter/DocumentView.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$14) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$14;
+			tag.textContent = css$14;
+			document.head.appendChild(tag);
+		}
+		var DocumentView_module_css_default = {
+			"block": "tIC7za_block",
+			"eol": "tIC7za_eol",
+			"line": "tIC7za_line",
+			"lines": "tIC7za_lines",
+			"markdown": "tIC7za_markdown",
+			"meta": "tIC7za_meta",
+			"more": "tIC7za_more",
+			"note": "tIC7za_note",
+			"scroller": "tIC7za_scroller"
+		};
+		//#endregion
+		//#region lib/types/client/components/DocumentView.js
+		/** Pieces rendered at first and added each time the reader nears the end. */
+		const LINE_BATCH = 800;
+		const BLOCK_BATCH = 60;
+		/** How long a jumped-to passage stays highlighted. */
+		const FLASH_MS = 1600;
+		/** A text node walk position: `node` and `offset` as a Range boundary. */
+		function textBefore(root, node, offset) {
+			const range = document.createRange();
+			range.selectNodeContents(root);
+			range.setEnd(node, offset);
+			return range.toString();
+		}
+		function textAfter(root, node, offset) {
+			const range = document.createRange();
+			range.selectNodeContents(root);
+			range.setStart(node, offset);
+			return range.toString();
+		}
+		/** The rendered Markdown block holding a Range boundary. */
+		function blockAt(blocks, node, offset, edge) {
+			if (node === blocks) {
+				const children = blocks.querySelectorAll(":scope > [data-source-start]");
+				return children[Math.min(Math.max(edge === "start" ? offset : offset - 1, 0), children.length - 1)] ?? null;
+			}
+			return (node instanceof Element ? node : node.parentElement)?.closest("[data-source-start]") ?? null;
+		}
+		/**
+		* Read a document: Markdown is typeset with DSH's Markdown renderer, text and code show line
+		* numbers. Long documents render progressively as the reader scrolls. Selecting text offers
+		* Citer's toolbar; the selection is mapped back to the exact source, so citations name the
+		* passage and its line.
+		*/
+		function DocumentView({ format, content, focus, wrap = true, note, registerSurface, toSource, scrollRef }) {
+			useLocale();
+			const pieces = (0, react.useMemo)(() => format === "markdown" ? markdownBlocks(content) : textLines(content), [format, content]);
+			const batch = format === "markdown" ? BLOCK_BATCH : LINE_BATCH;
+			const [limit, setLimit] = (0, react.useState)(batch);
+			const [flash, setFlash] = (0, react.useState)(null);
+			const scroller = (0, react.useRef)(null);
+			const body = (0, react.useRef)(null);
+			const sentinel = (0, react.useRef)(null);
+			const pendingFocus = (0, react.useRef)(null);
+			const lineCount = (0, react.useMemo)(() => format === "markdown" ? lineAtOffset(content, content.length) : pieces.length, [
+				format,
+				content,
+				pieces
+			]);
+			const shown = Math.min(limit, pieces.length);
+			(0, react.useEffect)(() => {
+				setLimit(batch);
+			}, [content, batch]);
+			(0, react.useEffect)(() => {
+				const element = sentinel.current;
+				if (element === null || shown >= pieces.length) return;
+				const observer = new IntersectionObserver((entries) => {
+					if (entries.some((entry) => entry.isIntersecting)) setLimit((current) => current + batch);
+				}, {
+					root: scroller.current,
+					rootMargin: "600px 0px"
+				});
+				observer.observe(element);
+				return () => observer.disconnect();
+			}, [
+				shown,
+				pieces.length,
+				batch
+			]);
+			const shownRef = (0, react.useRef)(shown);
+			shownRef.current = shown;
+			const reveal = (index) => {
+				body.current?.querySelector(`[data-piece="${index}"]`)?.scrollIntoView({ block: "center" });
+				setFlash(index);
+			};
+			(0, react.useEffect)(() => {
+				if (focus === void 0 || pieces.length === 0) return;
+				const index = pieceAt(pieces, focus.offset);
+				if (index < shownRef.current) {
+					reveal(index);
+					return;
+				}
+				pendingFocus.current = index;
+				setLimit((current) => Math.max(current, index + batch));
+			}, [
+				focus?.offset,
+				focus?.revision,
+				pieces,
+				batch
+			]);
+			(0, react.useLayoutEffect)(() => {
+				const index = pendingFocus.current;
+				if (index === null || index >= shown) return;
+				pendingFocus.current = null;
+				reveal(index);
+			}, [shown]);
+			(0, react.useEffect)(() => {
+				if (flash === null) return;
+				const timer = setTimeout(() => setFlash(null), FLASH_MS);
+				return () => clearTimeout(timer);
+			}, [flash]);
+			const read = () => {
+				const root = body.current;
+				const selection = window.getSelection();
+				if (root === null || selection === null || selection.isCollapsed || selection.rangeCount === 0) return null;
+				const range = selection.getRangeAt(0);
+				if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
+				if (format === "text") {
+					const start = textBefore(root, range.startContainer, range.startOffset).length;
+					const end = textBefore(root, range.endContainer, range.endOffset).length;
+					const literal = literalSelection(content, start, end);
+					if (literal === null) return null;
+					return toSource({
+						displayText: literal.displayText,
+						prefixText: literal.prefixText,
+						suffixText: literal.suffixText,
+						line: lineAtOffset(content, literal.start)
+					});
+				}
+				const first = blockAt(root, range.startContainer, range.startOffset, "start");
+				const last = blockAt(root, range.endContainer, range.endOffset, "end");
+				const displayText = range.toString().trim();
+				if (first === null || last === null || displayText === "") return null;
+				const sourceRange = {
+					start: Number(first.dataset.sourceStart),
+					end: Number(last.dataset.sourceEnd)
+				};
+				if (!(sourceRange.start < sourceRange.end)) return null;
+				const lead = displayText.split("\n")[0].trim().slice(0, 40);
+				const at = lead === "" ? -1 : content.indexOf(lead, sourceRange.start);
+				const line = at >= 0 && at < sourceRange.end ? lineAtOffset(content, at) : Number(first.dataset.line);
+				return toSource({
+					displayText,
+					prefixText: textBefore(first, range.startContainer, range.startOffset).slice(-240),
+					suffixText: textAfter(last, range.endContainer, range.endOffset).slice(0, 240),
+					line,
+					sourceRange
+				});
+			};
+			const readRef = (0, react.useRef)(read);
+			readRef.current = read;
+			(0, react.useEffect)(() => {
+				const element = body.current;
+				if (element === null) return;
+				return registerSurface(element, () => readRef.current());
+			}, [registerSurface]);
+			const rendered = pieces.slice(0, shown);
+			return (0, react_jsx_runtime.jsxs)("div", {
+				ref: (element) => {
+					scroller.current = element;
+					scrollRef?.(element);
+				},
+				className: DocumentView_module_css_default.scroller,
+				children: [
+					(0, react_jsx_runtime.jsxs)("div", {
+						className: DocumentView_module_css_default.meta,
+						children: [
+							(0, react_jsx_runtime.jsx)("span", { children: format === "markdown" ? "Markdown" : t("settings.reader.text") }),
+							(0, react_jsx_runtime.jsx)("span", {
+								"aria-hidden": "true",
+								children: "·"
+							}),
+							(0, react_jsx_runtime.jsx)("span", { children: t("settings.reader.lines", { count: lineCount }) }),
+							(0, react_jsx_runtime.jsx)("span", {
+								"aria-hidden": "true",
+								children: "·"
+							}),
+							(0, react_jsx_runtime.jsx)("span", { children: t("settings.reader.hint") })
+						]
+					}),
+					note !== void 0 && (0, react_jsx_runtime.jsx)("p", {
+						className: DocumentView_module_css_default.note,
+						children: note
+					}),
+					format === "markdown" ? (0, react_jsx_runtime.jsx)("div", {
+						ref: body,
+						className: DocumentView_module_css_default.markdown,
+						"data-citeciter-document": true,
+						children: rendered.map((piece, index) => (0, react_jsx_runtime.jsx)("div", {
+							className: DocumentView_module_css_default.block,
+							"data-piece": index,
+							"data-source-start": piece.start,
+							"data-source-end": piece.end,
+							"data-line": piece.line,
+							"data-flash": flash === index || void 0,
+							children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MarkdownText, {
+								text: content.slice(piece.start, piece.end),
+								streaming: false,
+								labels: markdownLabels
+							})
+						}, piece.start))
+					}) : (0, react_jsx_runtime.jsx)("div", {
+						ref: body,
+						className: DocumentView_module_css_default.lines,
+						"data-wrap": wrap || void 0,
+						"data-citeciter-document": true,
+						style: { "--citeciter-gutter": `${String(lineCount).length + 1}ch` },
+						children: rendered.map((piece, index) => (0, react_jsx_runtime.jsxs)("div", {
+							className: DocumentView_module_css_default.line,
+							"data-piece": index,
+							"data-line": piece.line,
+							"data-flash": flash === index || void 0,
+							children: [content.slice(piece.start, piece.end), index + 1 < pieces.length && (0, react_jsx_runtime.jsx)("span", {
+								className: DocumentView_module_css_default.eol,
+								children: content.slice(piece.end, pieces[index + 1].start)
+							})]
+						}, piece.start))
+					}),
+					shown < pieces.length && (0, react_jsx_runtime.jsx)("div", {
+						ref: sentinel,
+						className: DocumentView_module_css_default.more,
+						"aria-hidden": "true"
+					})
+				]
+			});
+		}
+		//#endregion
+		//#region \0dsh-css:src/client/components/LibraryDocument.module.css.mjs
+		const css$13 = ".KhwGFW_state{box-sizing:border-box;height:100%;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);text-align:center;flex-direction:column;justify-content:center;align-items:center;gap:10px;margin:0;padding:24px;display:flex}.KhwGFW_state p{margin:0}";
+		const tagId$13 = "@kirkchinese/dsh-citeciter/LibraryDocument.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$13) + "]") === null) {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
+			tag.dataset.pluginCss = tagId$13;
+			tag.textContent = css$13;
+			document.head.appendChild(tag);
+		}
+		var LibraryDocument_module_css_default = { "state": "KhwGFW_state" };
+		//#endregion
+		//#region lib/types/client/components/LibraryDocument.js
+		/** One document of Citer's library, loaded once and read in the shared document view. */
+		function LibraryDocument({ documentId, focus, library, registerSurface, sourceSessionId }) {
+			useLocale();
+			const [state, setState] = (0, react.useState)({ status: "loading" });
+			const [attempt, setAttempt] = (0, react.useState)(0);
+			(0, react.useEffect)(() => {
+				let current = true;
+				setState({ status: "loading" });
+				library.load(documentId).then((document) => {
+					if (current) setState({
+						status: "ready",
+						document
+					});
+				}, (error) => {
+					if (current) setState({
+						status: "error",
+						error: error instanceof Error ? error.message : String(error)
+					});
+				});
+				return () => {
+					current = false;
+				};
+			}, [
+				library,
+				documentId,
+				attempt
+			]);
+			if (state.status === "loading") return (0, react_jsx_runtime.jsx)("p", {
+				className: LibraryDocument_module_css_default.state,
+				role: "status",
+				children: t("settings.reader.loading")
+			});
+			if (state.status === "error") {
+				const missing = /ENOENT|no such file/iu.test(state.error);
+				return (0, react_jsx_runtime.jsxs)("div", {
+					className: LibraryDocument_module_css_default.state,
+					role: "alert",
+					children: [(0, react_jsx_runtime.jsx)("p", { children: missing ? t("settings.reader.missing") : state.error }), !missing && (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+						variant: "outline",
+						size: "sm",
+						onClick: () => setAttempt((value) => value + 1),
+						children: t("settings.reader.retry")
+					})]
+				});
+			}
+			const { document } = state;
+			return (0, react_jsx_runtime.jsx)(DocumentView, {
+				format: document.format,
+				content: document.content,
+				focus,
+				registerSurface,
+				toSource: (selection) => {
+					const source = sourceSessionId();
+					return source === null ? null : {
+						kind: "document",
+						sourceSessionId: source,
+						documentId: document.documentId,
+						title: document.title,
+						...selection
+					};
+				}
+			});
+		}
+		//#endregion
 		//#region lib/types/client/topic-presentation.js
 		/**
 		* Decide whether one Topic event belongs in the user-facing transcript. Like DSH's chat, ordinary
@@ -40538,13 +40990,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/CiterPet.module.css.mjs
-		const css$14 = ".dy3EAG_pet{z-index:200;cursor:pointer;touch-action:none;-webkit-app-region:no-drag;pointer-events:auto;background:0 0;border:0;width:54px;height:84px;margin:0;padding:0;transition:width .2s cubic-bezier(.2,.8,.2,1),height .2s cubic-bezier(.2,.8,.2,1),margin-top .2s cubic-bezier(.2,.8,.2,1);position:fixed}.dy3EAG_pet[data-side=right]{right:0}.dy3EAG_pet[data-side=left]{left:0}.dy3EAG_pet[data-expanded]{width:95px;height:112px;margin-top:-28px}.dy3EAG_pet[data-dragging]{cursor:grabbing;margin-top:0;transition:none}.dy3EAG_pet:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px;border-radius:var(--dsw-radius-md,8px)}.dy3EAG_pet img{pointer-events:none;user-select:none;transition:opacity .16s,transform .2s cubic-bezier(.2,.8,.2,1);position:absolute;bottom:0}.dy3EAG_peek{width:54px;height:84px}.dy3EAG_proud{opacity:0;width:95px;height:112px}.dy3EAG_pet[data-side=right] img{right:0}.dy3EAG_pet[data-side=left] img{left:0}.dy3EAG_pet[data-side=right] .dy3EAG_proud{transform:translate(20px)scale(.92)}.dy3EAG_pet[data-side=left] .dy3EAG_peek{transform:scaleX(-1)}.dy3EAG_pet[data-side=left] .dy3EAG_proud{transform:scaleX(-1)translate(20px)scale(.92)}.dy3EAG_pet[data-expanded] .dy3EAG_peek{opacity:0}.dy3EAG_pet[data-expanded][data-side=right] .dy3EAG_proud{opacity:1;transform:none}.dy3EAG_pet[data-expanded][data-side=left] .dy3EAG_proud{opacity:1;transform:scaleX(-1)}.dy3EAG_dot{background:var(--dsw-alias-state-business-primary,#3478f6);corner-shape:round;width:10px;height:10px;box-shadow:0 0 0 2px var(--dsw-alias-bg-base,#fff);border-radius:50%;position:absolute;top:10px}.dy3EAG_pet[data-side=right] .dy3EAG_dot{left:6px}.dy3EAG_pet[data-side=left] .dy3EAG_dot{right:6px}.dy3EAG_pet[data-expanded] .dy3EAG_dot{top:8px}body:has([role=dialog][aria-modal=true]) .dy3EAG_pet,[data-rightbar-fullscreen] .dy3EAG_pet{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.dy3EAG_pet,.dy3EAG_pet img{transition:none}}";
-		const tagId$14 = "@kirkchinese/dsh-citeciter/CiterPet.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$14) + "]") === null) {
+		const css$12 = ".dy3EAG_pet{z-index:200;cursor:pointer;touch-action:none;-webkit-app-region:no-drag;pointer-events:auto;background:0 0;border:0;width:54px;height:84px;margin:0;padding:0;transition:width .2s cubic-bezier(.2,.8,.2,1),height .2s cubic-bezier(.2,.8,.2,1),margin-top .2s cubic-bezier(.2,.8,.2,1);position:fixed}.dy3EAG_pet[data-side=right]{right:0}.dy3EAG_pet[data-side=left]{left:0}.dy3EAG_pet[data-expanded]{width:95px;height:112px;margin-top:-28px}.dy3EAG_pet[data-dragging]{cursor:grabbing;margin-top:0;transition:none}.dy3EAG_pet:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px;border-radius:var(--dsw-radius-md,8px)}.dy3EAG_pet img{pointer-events:none;user-select:none;transition:opacity .16s,transform .2s cubic-bezier(.2,.8,.2,1);position:absolute;bottom:0}.dy3EAG_peek{width:54px;height:84px}.dy3EAG_proud{opacity:0;width:95px;height:112px}.dy3EAG_pet[data-side=right] img{right:0}.dy3EAG_pet[data-side=left] img{left:0}.dy3EAG_pet[data-side=right] .dy3EAG_proud{transform:translate(20px)scale(.92)}.dy3EAG_pet[data-side=left] .dy3EAG_peek{transform:scaleX(-1)}.dy3EAG_pet[data-side=left] .dy3EAG_proud{transform:scaleX(-1)translate(20px)scale(.92)}.dy3EAG_pet[data-expanded] .dy3EAG_peek{opacity:0}.dy3EAG_pet[data-expanded][data-side=right] .dy3EAG_proud{opacity:1;transform:none}.dy3EAG_pet[data-expanded][data-side=left] .dy3EAG_proud{opacity:1;transform:scaleX(-1)}.dy3EAG_dot{background:var(--dsw-alias-state-business-primary,#3478f6);corner-shape:round;width:10px;height:10px;box-shadow:0 0 0 2px var(--dsw-alias-bg-base,#fff);border-radius:50%;position:absolute;top:10px}.dy3EAG_pet[data-side=right] .dy3EAG_dot{left:6px}.dy3EAG_pet[data-side=left] .dy3EAG_dot{right:6px}.dy3EAG_pet[data-expanded] .dy3EAG_dot{top:8px}body:has([role=dialog][aria-modal=true]) .dy3EAG_pet,[data-rightbar-fullscreen] .dy3EAG_pet{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.dy3EAG_pet,.dy3EAG_pet img{transition:none}}";
+		const tagId$12 = "@kirkchinese/dsh-citeciter/CiterPet.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$12) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$14;
-			tag.textContent = css$14;
+			tag.dataset.pluginCss = tagId$12;
+			tag.textContent = css$12;
 			document.head.appendChild(tag);
 		}
 		var CiterPet_module_css_default = {
@@ -40798,13 +41250,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/ReasoningDisclosure.module.css.mjs
-		const css$13 = ".IA5OBa_disclosure{min-width:0;color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px);margin-bottom:6px}.IA5OBa_row,.IA5OBa_activeRow{min-width:0;min-height:calc(24px + var(--dsh-content-font-delta,0px));border-radius:var(--dsw-radius-sm,6px)}.IA5OBa_row:focus-visible,.IA5OBa_activeRow:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:2px}.IA5OBa_activeRow{color:var(--dsw-alias-label-secondary)}.IA5OBa_preview{min-width:0;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;margin-left:6px;overflow:hidden}.IA5OBa_body{overflow-wrap:anywhere;min-width:0;color:var(--dsw-alias-label-secondary);line-height:calc(20px + var(--dsh-content-font-delta-secondary,0px));border-left:1px solid var(--dsw-alias-border-l2,#e4e7ec);margin:4px 0 10px 7px;padding:2px 0 2px 14px}.IA5OBa_body pre{max-width:100%;overflow-x:auto}";
-		const tagId$13 = "@kirkchinese/dsh-citeciter/ReasoningDisclosure.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$13) + "]") === null) {
+		const css$11 = ".IA5OBa_disclosure{min-width:0;color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary,13px);margin-bottom:6px}.IA5OBa_row,.IA5OBa_activeRow{min-width:0;min-height:calc(24px + var(--dsh-content-font-delta,0px));border-radius:var(--dsw-radius-sm,6px)}.IA5OBa_row:focus-visible,.IA5OBa_activeRow:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:2px}.IA5OBa_activeRow{color:var(--dsw-alias-label-secondary)}.IA5OBa_preview{min-width:0;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;margin-left:6px;overflow:hidden}.IA5OBa_body{overflow-wrap:anywhere;min-width:0;color:var(--dsw-alias-label-secondary);line-height:calc(20px + var(--dsh-content-font-delta-secondary,0px));border-left:1px solid var(--dsw-alias-border-l2,#e4e7ec);margin:4px 0 10px 7px;padding:2px 0 2px 14px}.IA5OBa_body pre{max-width:100%;overflow-x:auto}";
+		const tagId$11 = "@kirkchinese/dsh-citeciter/ReasoningDisclosure.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$11) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$13;
-			tag.textContent = css$13;
+			tag.dataset.pluginCss = tagId$11;
+			tag.textContent = css$11;
 			document.head.appendChild(tag);
 		}
 		var ReasoningDisclosure_module_css_default = {
@@ -40922,13 +41374,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/LearningRoute.module.css.mjs
-		const css$12 = ".Z1kONa_route{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;padding:6px 16px}.Z1kONa_route summary{white-space:nowrap;text-overflow:ellipsis;cursor:pointer;overflow:hidden}.Z1kONa_route ol{margin:6px 0 2px;padding:0;list-style:none}.Z1kONa_route li{gap:8px;padding:2px 0;display:flex}.Z1kONa_route li[data-state=completed]{color:var(--dsw-alias-label-tertiary)}.Z1kONa_route li[data-state=in_progress]{color:var(--dsw-alias-state-business-primary)}";
-		const tagId$12 = "@kirkchinese/dsh-citeciter/LearningRoute.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$12) + "]") === null) {
+		const css$10 = ".Z1kONa_route{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);flex:none;padding:6px 16px}.Z1kONa_route summary{white-space:nowrap;text-overflow:ellipsis;cursor:pointer;overflow:hidden}.Z1kONa_route ol{margin:6px 0 2px;padding:0;list-style:none}.Z1kONa_route li{gap:8px;padding:2px 0;display:flex}.Z1kONa_route li[data-state=completed]{color:var(--dsw-alias-label-tertiary)}.Z1kONa_route li[data-state=in_progress]{color:var(--dsw-alias-state-business-primary)}";
+		const tagId$10 = "@kirkchinese/dsh-citeciter/LearningRoute.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$10) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$12;
-			tag.textContent = css$12;
+			tag.dataset.pluginCss = tagId$10;
+			tag.textContent = css$10;
 			document.head.appendChild(tag);
 		}
 		var LearningRoute_module_css_default = { "route": "Z1kONa_route" };
@@ -40971,13 +41423,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/LearningWorkspace.module.css.mjs
-		const css$11 = ".BQsJ4a_content{flex:1;min-height:0;display:flex;overflow:auto}.BQsJ4a_content>*{flex:1;min-width:0}.BQsJ4a_cards{color:var(--dsw-alias-label-primary);padding:16px clamp(12px,4%,24px) 24px}.BQsJ4a_cardsHeader,.BQsJ4a_cardActions{flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;display:flex}.BQsJ4a_eyebrow,.BQsJ4a_cardEyebrow{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.BQsJ4a_cards h2{margin:2px 0 0;font-size:15px;font-weight:500;line-height:22px}.BQsJ4a_recallToggle{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;align-items:center;gap:6px;display:flex}.BQsJ4a_recallToggle input{accent-color:var(--dsw-alias-state-business-primary)}.BQsJ4a_muted{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.BQsJ4a_card{overflow-wrap:anywhere;font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px));background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-lg,10px);margin:16px 0;padding:16px}.BQsJ4a_card h3{margin:6px 0 12px;font-size:15px;font-weight:500;line-height:22px}.BQsJ4a_example{border-left:2px solid var(--dsw-alias-border-l3,#d9dde5);margin-top:12px;padding-left:12px}.BQsJ4a_example strong,.BQsJ4a_recallQuestion strong,.BQsJ4a_reference strong{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);font-weight:500}.BQsJ4a_reference{border-top:.5px solid var(--dsw-alias-border-l2,#e4e7ec);margin-top:12px;padding-top:12px}.BQsJ4a_action{height:28px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;align-items:center;padding:0 10px;text-decoration:none;display:inline-flex}.BQsJ4a_action:hover{background:var(--dsw-alias-interactive-bg-hover)}.BQsJ4a_empty{text-align:center;border:.5px dashed var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-lg,10px);margin-top:16px;padding:24px 12px}.BQsJ4a_empty h3{margin:0;font-size:14px;font-weight:500}.BQsJ4a_empty p{max-width:34em;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:8px auto 16px}.BQsJ4a_emptyGlyph{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font-size:28px}.BQsJ4a_provenance{overflow-wrap:anywhere;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:16px}.BQsJ4a_provenance summary{cursor:pointer}.BQsJ4a_questionDetails>summary{color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px);cursor:pointer}.BQsJ4a_questionDetails p{white-space:pre-wrap;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px)}";
-		const tagId$11 = "@kirkchinese/dsh-citeciter/LearningWorkspace.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$11) + "]") === null) {
+		const css$9 = ".BQsJ4a_content{flex:1;min-height:0;display:flex;overflow:auto}.BQsJ4a_content>*{flex:1;min-width:0}.BQsJ4a_cards{color:var(--dsw-alias-label-primary);padding:16px clamp(12px,4%,24px) 24px}.BQsJ4a_cardsHeader,.BQsJ4a_cardActions{flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;display:flex}.BQsJ4a_eyebrow,.BQsJ4a_cardEyebrow{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.BQsJ4a_cards h2{margin:2px 0 0;font-size:15px;font-weight:500;line-height:22px}.BQsJ4a_recallToggle{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;align-items:center;gap:6px;display:flex}.BQsJ4a_recallToggle input{accent-color:var(--dsw-alias-state-business-primary)}.BQsJ4a_muted{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.BQsJ4a_card{overflow-wrap:anywhere;font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px));background:var(--dsw-alias-bg-base,#fff);border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-lg,10px);margin:16px 0;padding:16px}.BQsJ4a_card h3{margin:6px 0 12px;font-size:15px;font-weight:500;line-height:22px}.BQsJ4a_example{border-left:2px solid var(--dsw-alias-border-l3,#d9dde5);margin-top:12px;padding-left:12px}.BQsJ4a_example strong,.BQsJ4a_recallQuestion strong,.BQsJ4a_reference strong{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);font-weight:500}.BQsJ4a_reference{border-top:.5px solid var(--dsw-alias-border-l2,#e4e7ec);margin-top:12px;padding-top:12px}.BQsJ4a_action{height:28px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;align-items:center;padding:0 10px;text-decoration:none;display:inline-flex}.BQsJ4a_action:hover{background:var(--dsw-alias-interactive-bg-hover)}.BQsJ4a_empty{text-align:center;border:.5px dashed var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-lg,10px);margin-top:16px;padding:24px 12px}.BQsJ4a_empty h3{margin:0;font-size:14px;font-weight:500}.BQsJ4a_empty p{max-width:34em;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:8px auto 16px}.BQsJ4a_emptyGlyph{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font-size:28px}.BQsJ4a_provenance{overflow-wrap:anywhere;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:16px}.BQsJ4a_provenance summary{cursor:pointer}.BQsJ4a_questionDetails>summary{color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px);cursor:pointer}.BQsJ4a_questionDetails p{white-space:pre-wrap;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px)}";
+		const tagId$9 = "@kirkchinese/dsh-citeciter/LearningWorkspace.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$9) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$11;
-			tag.textContent = css$11;
+			tag.dataset.pluginCss = tagId$9;
+			tag.textContent = css$9;
 			document.head.appendChild(tag);
 		}
 		var LearningWorkspace_module_css_default = {
@@ -41135,13 +41587,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/TopicModelControls.module.css.mjs
-		const css$10 = ".pasBHW_controls{flex:1 1 0;min-width:0;margin-left:auto;display:flex}.pasBHW_controls .pasBHW_trigger{width:100%;min-width:0;max-width:none}.pasBHW_controls .pasBHW_trigger>span:first-child{text-align:right;flex:1;min-width:0}.pasBHW_trigger{max-width:240px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;align-items:center;gap:6px;padding:0 8px;display:flex}.pasBHW_trigger>span:first-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.pasBHW_trigger small{color:var(--dsw-alias-label-tertiary);white-space:nowrap;flex:none}.pasBHW_trigger{overflow:hidden}@container (width<=400px){.pasBHW_controls .pasBHW_trigger small{display:none}}.pasBHW_trigger svg{flex:none}.pasBHW_chevron{color:var(--dsw-alias-label-tertiary)}.pasBHW_trigger:hover,.pasBHW_trigger[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.pasBHW_trigger:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:-2px}.pasBHW_trigger[aria-disabled=true]{cursor:wait;opacity:.5}";
-		const tagId$10 = "@kirkchinese/dsh-citeciter/TopicModelControls.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$10) + "]") === null) {
+		const css$8 = ".pasBHW_controls{flex:1 1 0;min-width:0;margin-left:auto;display:flex}.pasBHW_controls .pasBHW_trigger{width:100%;min-width:0;max-width:none}.pasBHW_controls .pasBHW_trigger>span:first-child{text-align:right;flex:1;min-width:0}.pasBHW_trigger{max-width:240px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;align-items:center;gap:6px;padding:0 8px;display:flex}.pasBHW_trigger>span:first-child{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.pasBHW_trigger small{color:var(--dsw-alias-label-tertiary);white-space:nowrap;flex:none}.pasBHW_trigger{overflow:hidden}@container (width<=400px){.pasBHW_controls .pasBHW_trigger small{display:none}}.pasBHW_trigger svg{flex:none}.pasBHW_chevron{color:var(--dsw-alias-label-tertiary)}.pasBHW_trigger:hover,.pasBHW_trigger[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.pasBHW_trigger:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:-2px}.pasBHW_trigger[aria-disabled=true]{cursor:wait;opacity:.5}";
+		const tagId$8 = "@kirkchinese/dsh-citeciter/TopicModelControls.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$8) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$10;
-			tag.textContent = css$10;
+			tag.dataset.pluginCss = tagId$8;
+			tag.textContent = css$8;
 			document.head.appendChild(tag);
 		}
 		var TopicModelControls_module_css_default = {
@@ -41281,13 +41733,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/TopicComposer.module.css.mjs
-		const css$9 = ".fcUp-q_composer{--dsw-elevation-stroke-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border-radius:var(--dsw-radius-panel,12px);box-shadow:var(--dsw-elevation-soft,0 0 0 .5px #0000001f, 0 1px 4px #0000000f);flex:none;margin:8px 12px 12px;padding:10px 8px 6px;container-type:inline-size}.fcUp-q_composer textarea{box-sizing:border-box;resize:none;width:100%;min-width:0;min-height:48px;max-height:160px;color:inherit;font-family:inherit;font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));background:0 0;border:0;outline:none;padding:2px 10px 0;display:block}.fcUp-q_composer textarea::placeholder{color:var(--dsw-alias-label-tertiary)}.fcUp-q_composer>p{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin:0 10px 6px}.fcUp-q_composer>p[role=alert]{color:var(--dsw-alias-state-error-primary,#c93f3f)}.fcUp-q_composer>p>button,.fcUp-q_composer>button:not([class]){color:var(--dsw-alias-state-business-primary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0}.fcUp-q_composer>p>button{margin-left:8px}.fcUp-q_composer>button:not([class]){margin:0 10px 6px;display:block}.fcUp-q_composer>p>button:hover,.fcUp-q_composer>button:not([class]):hover{text-decoration:underline}.fcUp-q_composerActions{align-items:center;gap:4px;min-width:0;margin-top:6px;display:flex}.fcUp-q_sendButton{color:#fff;background:var(--dsw-alias-button-info-fill,#4176e6);corner-shape:round;cursor:pointer;border:0;border-radius:999px;flex:none;place-items:center;width:34px;height:34px;padding:0;transition:background-color .1s;display:grid}.fcUp-q_sendButton:hover:not(:disabled){background:var(--dsw-alias-button-info-hover,#3567d1)}.fcUp-q_sendButton:disabled{cursor:default;opacity:.4}.fcUp-q_sendButton:focus-visible,.fcUp-q_expandButton:focus-visible,.fcUp-q_attachButton:focus-visible,.fcUp-q_composer>p>button:focus-visible,.fcUp-q_composer>button:not([class]):focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:2px}.fcUp-q_composer[data-folded]{padding-top:6px}.fcUp-q_composer[data-folded] textarea{display:none}.fcUp-q_expandButton{height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0 8px}.fcUp-q_expandButton:hover{background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_attachButton{width:32px;height:32px;color:var(--dsw-alias-label-secondary);corner-shape:round;cursor:pointer;background:0 0;border:0;border-radius:50%;flex:none;place-items:center;font-size:20px;display:grid}.fcUp-q_attachButton:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_composerActions>button[data-citeciter-permission]{white-space:nowrap;flex:none;max-width:140px}@container (width<=430px){.fcUp-q_composerActions>button[data-citeciter-permission]>span{display:none}.fcUp-q_composerActions>button[data-citeciter-permission]{padding:6px}}";
-		const tagId$9 = "@kirkchinese/dsh-citeciter/TopicComposer.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$9) + "]") === null) {
+		const css$7 = ".fcUp-q_composer{--dsw-elevation-stroke-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));border-radius:var(--dsw-radius-panel,12px);box-shadow:var(--dsw-elevation-soft,0 0 0 .5px #0000001f, 0 1px 4px #0000000f);flex:none;margin:8px 12px 12px;padding:10px 8px 6px;container-type:inline-size}.fcUp-q_composer textarea{box-sizing:border-box;resize:none;width:100%;min-width:0;min-height:48px;max-height:160px;color:inherit;font-family:inherit;font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));background:0 0;border:0;outline:none;padding:2px 10px 0;display:block}.fcUp-q_composer textarea::placeholder{color:var(--dsw-alias-label-tertiary)}.fcUp-q_composer>p{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin:0 10px 6px}.fcUp-q_composer>p[role=alert]{color:var(--dsw-alias-state-error-primary,#c93f3f)}.fcUp-q_composer>p>button,.fcUp-q_composer>button:not([class]){color:var(--dsw-alias-state-business-primary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0}.fcUp-q_composer>p>button{margin-left:8px}.fcUp-q_composer>button:not([class]){margin:0 10px 6px;display:block}.fcUp-q_composer>p>button:hover,.fcUp-q_composer>button:not([class]):hover{text-decoration:underline}.fcUp-q_composerActions{align-items:center;gap:4px;min-width:0;margin-top:6px;display:flex}.fcUp-q_sendButton{color:#fff;background:var(--dsw-alias-button-info-fill,#4176e6);corner-shape:round;cursor:pointer;border:0;border-radius:999px;flex:none;place-items:center;width:34px;height:34px;padding:0;transition:background-color .1s;display:grid}.fcUp-q_sendButton:hover:not(:disabled){background:var(--dsw-alias-button-info-hover,#3567d1)}.fcUp-q_sendButton:disabled{cursor:default;opacity:.4}.fcUp-q_sendButton:focus-visible,.fcUp-q_expandButton:focus-visible,.fcUp-q_attachButton:focus-visible,.fcUp-q_composer>p>button:focus-visible,.fcUp-q_composer>button:not([class]):focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:2px}.fcUp-q_composer[data-folded]{padding-top:6px}.fcUp-q_composer[data-folded] textarea{display:none}.fcUp-q_expandButton{height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;padding:0 8px}.fcUp-q_expandButton:hover{background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_attachButton{width:32px;height:32px;color:var(--dsw-alias-label-secondary);corner-shape:round;cursor:pointer;background:0 0;border:0;border-radius:50%;flex:none;place-items:center;font-size:20px;display:grid}.fcUp-q_attachButton:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.fcUp-q_composerActions>button[data-citeciter-permission]{white-space:nowrap;flex:none;max-width:140px}@container (width<=430px){.fcUp-q_composerActions>button[data-citeciter-permission]>span{display:none}.fcUp-q_composerActions>button[data-citeciter-permission]{padding:6px}}";
+		const tagId$7 = "@kirkchinese/dsh-citeciter/TopicComposer.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$7) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$9;
-			tag.textContent = css$9;
+			tag.dataset.pluginCss = tagId$7;
+			tag.textContent = css$7;
 			document.head.appendChild(tag);
 		}
 		var TopicComposer_module_css_default = {
@@ -41428,21 +41880,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/TopicNavigation.module.css.mjs
-		const css$8 = ".hyscqa_title{white-space:nowrap;text-overflow:ellipsis;cursor:text;min-width:0;font-weight:500;display:block;overflow:hidden}.hyscqa_title:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-xs,4px)}.hyscqa_rename{box-sizing:border-box;width:100%;min-width:60px;color:inherit;background:var(--dsw-specific-input-major,transparent);border:1px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-sm,6px);font:inherit;padding:2px 6px}.hyscqa_navigation{flex:none}.hyscqa_actions{gap:2px;display:flex}.hyscqa_actions button{width:28px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;border:0;place-items:center;padding:0;display:grid}.hyscqa_actions button:hover,.hyscqa_actions button[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.hyscqa_actions button:focus-visible,.hyscqa_search button:focus-visible,.hyscqa_row:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:-2px}.hyscqa_actions svg.hyscqa_drawn{fill:none;stroke:currentColor;stroke-width:1.6px;stroke-linecap:round;stroke-linejoin:round;width:16px;height:16px}.hyscqa_list{z-index:50;color:var(--dsw-alias-label-primary);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);padding:8px;animation:.12s ease-out hyscqa_show;position:absolute;inset:52px 10px auto}.hyscqa_search{align-items:center;gap:6px;margin-bottom:6px;display:flex}.hyscqa_search input{box-sizing:border-box;width:100%;min-width:0;height:32px;color:inherit;background:var(--dsw-alias-bg-module-platform,var(--dsw-alias-interactive-bg-hover));border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);border:0;padding:0 10px}.hyscqa_archiveToggle{height:32px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;flex:none;padding:0 10px}.hyscqa_archiveToggle:hover,.hyscqa_archiveToggle[aria-pressed=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.hyscqa_rows{max-height:min(55vh,440px);overflow:auto}.hyscqa_rows>p{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:8px 10px}.hyscqa_row{width:100%;color:inherit;text-align:left;border-radius:var(--dsw-radius-md,8px);font:inherit;cursor:pointer;background:0 0;border:0;align-items:center;gap:8px;padding:6px 10px;display:flex}.hyscqa_row:hover{background:var(--dsw-alias-interactive-bg-hover)}.hyscqa_row[aria-current]{background:var(--dsw-alias-interactive-bg-active,var(--dsw-alias-interactive-bg-hover))}.hyscqa_rowText{flex:1;min-width:0;display:grid}.hyscqa_rowText strong{font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.hyscqa_rowText small{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.hyscqa_running{background:var(--dsw-alias-state-business-primary);corner-shape:round;border-radius:50%;flex:none;width:6px;height:6px}@keyframes hyscqa_show{0%{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.hyscqa_list{animation:none}}";
-		const tagId$8 = "@kirkchinese/dsh-citeciter/TopicNavigation.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$8) + "]") === null) {
+		const css$6 = ".hyscqa_title{white-space:nowrap;text-overflow:ellipsis;cursor:text;min-width:0;font-weight:500;display:block;overflow:hidden}.hyscqa_title:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-xs,4px)}.hyscqa_rename{box-sizing:border-box;width:100%;min-width:60px;color:inherit;background:var(--dsw-specific-input-major,transparent);border:1px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-sm,6px);font:inherit;padding:2px 6px}.hyscqa_navigation{flex:none}.hyscqa_actions{gap:2px;display:flex}.hyscqa_actions button{width:28px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;border:0;place-items:center;padding:0;display:grid}.hyscqa_actions button:hover,.hyscqa_actions button[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.hyscqa_actions button:focus-visible,.hyscqa_search button:focus-visible,.hyscqa_row:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:-2px}.hyscqa_actions svg.hyscqa_drawn{fill:none;stroke:currentColor;stroke-width:1.6px;stroke-linecap:round;stroke-linejoin:round;width:16px;height:16px}.hyscqa_list{z-index:50;color:var(--dsw-alias-label-primary);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);padding:8px;animation:.12s ease-out hyscqa_show;position:absolute;inset:52px 10px auto}.hyscqa_search{align-items:center;gap:6px;margin-bottom:6px;display:flex}.hyscqa_search input{box-sizing:border-box;width:100%;min-width:0;height:32px;color:inherit;background:var(--dsw-alias-bg-module-platform,var(--dsw-alias-interactive-bg-hover));border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);border:0;padding:0 10px}.hyscqa_archiveToggle{height:32px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;flex:none;padding:0 10px}.hyscqa_archiveToggle:hover,.hyscqa_archiveToggle[aria-pressed=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.hyscqa_rows{max-height:min(55vh,440px);overflow:auto}.hyscqa_rows>p{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);margin:8px 10px}.hyscqa_row{width:100%;color:inherit;text-align:left;border-radius:var(--dsw-radius-md,8px);font:inherit;cursor:pointer;background:0 0;border:0;align-items:center;gap:8px;padding:6px 10px;display:flex}.hyscqa_row:hover{background:var(--dsw-alias-interactive-bg-hover)}.hyscqa_row[aria-current]{background:var(--dsw-alias-interactive-bg-active,var(--dsw-alias-interactive-bg-hover))}.hyscqa_rowText{flex:1;min-width:0;display:grid}.hyscqa_rowText strong{font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.hyscqa_rowText small{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.hyscqa_pages{border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);gap:16px;margin:0 4px 8px;display:flex}.hyscqa_pages button{color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;border-bottom:2px solid #0000;padding:4px 0 7px;font-weight:500}.hyscqa_pages button[aria-selected=true]{color:var(--dsw-alias-state-business-primary);border-bottom-color:currentColor}.hyscqa_pages button:focus-visible,.hyscqa_remove:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px}.hyscqa_documentRow{align-items:center;gap:4px;display:flex}.hyscqa_remove{height:26px;color:var(--dsw-alias-label-tertiary);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;opacity:0;background:0 0;border:0;flex:none;padding:0 8px}.hyscqa_documentRow:hover .hyscqa_remove,.hyscqa_remove:focus-visible,.hyscqa_remove[data-confirming]{opacity:1}.hyscqa_remove:hover{background:var(--dsw-alias-interactive-bg-hover)}.hyscqa_remove[data-confirming]{color:var(--dsw-alias-state-danger-label,#d92d20)}.hyscqa_running{background:var(--dsw-alias-state-business-primary);corner-shape:round;border-radius:50%;flex:none;width:6px;height:6px}@keyframes hyscqa_show{0%{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.hyscqa_list{animation:none}}";
+		const tagId$6 = "@kirkchinese/dsh-citeciter/TopicNavigation.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$6) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$8;
-			tag.textContent = css$8;
+			tag.dataset.pluginCss = tagId$6;
+			tag.textContent = css$6;
 			document.head.appendChild(tag);
 		}
 		var TopicNavigation_module_css_default = {
 			"actions": "hyscqa_actions",
 			"archiveToggle": "hyscqa_archiveToggle",
+			"documentRow": "hyscqa_documentRow",
 			"drawn": "hyscqa_drawn",
 			"list": "hyscqa_list",
 			"navigation": "hyscqa_navigation",
+			"pages": "hyscqa_pages",
+			"remove": "hyscqa_remove",
 			"rename": "hyscqa_rename",
 			"row": "hyscqa_row",
 			"rowText": "hyscqa_rowText",
@@ -41514,12 +41969,65 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region lib/types/client/components/TopicNavigation.js
-		/** Topic list with search, new Topic and the Topic menu. Receives domain rows and callbacks, without service discovery. */
-		function TopicNavigation({ topics, activeId, archived, onOpen, onNew, onArchiveView, menu }) {
+		function formatSize(bytes) {
+			if (bytes < 1024) return `${bytes} B`;
+			if (bytes < 1048576) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
+			return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+		}
+		const dateFormat = (time) => new Date(time).toLocaleString(isChinese() ? "zh-CN" : "en", {
+			month: "short",
+			day: "numeric",
+			hour: "2-digit",
+			minute: "2-digit"
+		});
+		/** One library document: open on click; deleting asks for a second click. */
+		function DocumentRow({ document, onOpen, onRemove }) {
+			const [confirming, setConfirming] = (0, react.useState)(false);
+			(0, react.useEffect)(() => {
+				if (!confirming) return;
+				const timer = setTimeout(() => setConfirming(false), 3e3);
+				return () => clearTimeout(timer);
+			}, [confirming]);
+			return (0, react_jsx_runtime.jsxs)("div", {
+				className: TopicNavigation_module_css_default.documentRow,
+				children: [(0, react_jsx_runtime.jsx)("button", {
+					className: TopicNavigation_module_css_default.row,
+					type: "button",
+					onClick: onOpen,
+					children: (0, react_jsx_runtime.jsxs)("span", {
+						className: TopicNavigation_module_css_default.rowText,
+						children: [(0, react_jsx_runtime.jsx)("strong", { children: document.title }), (0, react_jsx_runtime.jsxs)("small", { children: [
+							document.format === "markdown" ? "Markdown" : t("settings.reader.text"),
+							" · ",
+							formatSize(document.size),
+							" · ",
+							dateFormat(document.importedAt)
+						] })]
+					})
+				}), (0, react_jsx_runtime.jsx)("button", {
+					type: "button",
+					className: TopicNavigation_module_css_default.remove,
+					"data-confirming": confirming || void 0,
+					"aria-label": t("settings.reader.deleteAria", { title: document.title }),
+					onClick: () => {
+						if (confirming) {
+							setConfirming(false);
+							onRemove();
+						} else setConfirming(true);
+					},
+					children: confirming ? t("settings.reader.confirmDelete") : t("settings.reader.delete")
+				})]
+			});
+		}
+		/** Topic list and Citer's documents, with the new-Topic button and the Topic menu. Receives rows and callbacks, without service discovery. */
+		function TopicNavigation({ topics, activeId, archived, onOpen, onNew, onArchiveView, menu, useLibrary, documents, listRequest }) {
 			useLocale();
+			const library = useLibrary((value) => value);
 			const [open, setOpen] = (0, react.useState)(false);
+			const [page, setPage] = (0, react.useState)("topics");
 			const [query, setQuery] = (0, react.useState)("");
 			const ref = (0, react.useRef)(null);
+			const fileInput = (0, react.useRef)(null);
 			(0, react.useEffect)(() => {
 				if (!open) return;
 				const outside = (event) => {
@@ -41528,7 +42036,21 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				document.addEventListener("pointerdown", outside);
 				return () => document.removeEventListener("pointerdown", outside);
 			}, [open]);
-			const rows = topics.filter((topic) => topic.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+			(0, react.useEffect)(() => {
+				if (listRequest === void 0) return;
+				setPage(listRequest.page);
+				setOpen(true);
+			}, [listRequest?.revision]);
+			(0, react.useEffect)(() => {
+				if (open && page === "documents") documents.refresh();
+			}, [
+				open,
+				page,
+				documents
+			]);
+			const needle = query.toLocaleLowerCase();
+			const rows = topics.filter((topic) => topic.title.toLocaleLowerCase().includes(needle));
+			const documentRows = library.documents.filter((document) => document.title.toLocaleLowerCase().includes(needle));
 			return (0, react_jsx_runtime.jsxs)("div", {
 				ref,
 				className: TopicNavigation_module_css_default.navigation,
@@ -41566,45 +42088,100 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					onKeyDown: (event) => {
 						if (event.key === "Escape") setOpen(false);
 					},
-					children: [(0, react_jsx_runtime.jsxs)("div", {
-						className: TopicNavigation_module_css_default.search,
-						children: [(0, react_jsx_runtime.jsx)("input", {
-							autoFocus: true,
-							placeholder: t("panel.nav.search"),
-							"aria-label": t("panel.nav.search"),
-							value: query,
-							onChange: (event) => setQuery(event.currentTarget.value)
-						}), (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							className: TopicNavigation_module_css_default.archiveToggle,
-							"aria-pressed": archived,
-							onClick: () => onArchiveView(!archived),
-							children: archived ? t("panel.nav.showActive") : t("panel.nav.showArchived")
-						})]
-					}), (0, react_jsx_runtime.jsxs)("div", {
-						className: TopicNavigation_module_css_default.rows,
-						children: [rows.length === 0 && (0, react_jsx_runtime.jsx)("p", { children: query ? t("panel.nav.noMatches") : archived ? t("panel.nav.noArchived") : t("panel.nav.empty") }), rows.map((topic) => (0, react_jsx_runtime.jsxs)("button", {
-							className: TopicNavigation_module_css_default.row,
-							type: "button",
-							"aria-current": activeId === topic.sessionId ? "page" : void 0,
-							onClick: () => {
-								onOpen(topic.sessionId);
-								setOpen(false);
-							},
-							children: [(0, react_jsx_runtime.jsxs)("span", {
-								className: TopicNavigation_module_css_default.rowText,
-								children: [(0, react_jsx_runtime.jsx)("strong", { children: topic.title }), (0, react_jsx_runtime.jsx)("small", { children: new Date(topic.updatedAt).toLocaleString(isChinese() ? "zh-CN" : "en", {
-									month: "short",
-									day: "numeric",
-									hour: "2-digit",
-									minute: "2-digit"
-								}) })]
-							}), topic.running && (0, react_jsx_runtime.jsx)("span", {
-								className: TopicNavigation_module_css_default.running,
-								"aria-label": t("panel.phase.running")
+					children: [
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: TopicNavigation_module_css_default.pages,
+							role: "tablist",
+							children: [(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								role: "tab",
+								"aria-selected": page === "topics",
+								onClick: () => setPage("topics"),
+								children: t("settings.reader.topics")
+							}), (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								role: "tab",
+								"aria-selected": page === "documents",
+								onClick: () => setPage("documents"),
+								children: t("settings.reader.title")
 							})]
-						}, topic.sessionId))]
-					})]
+						}),
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: TopicNavigation_module_css_default.search,
+							children: [
+								(0, react_jsx_runtime.jsx)("input", {
+									autoFocus: true,
+									placeholder: page === "topics" ? t("panel.nav.search") : t("settings.reader.search"),
+									"aria-label": page === "topics" ? t("panel.nav.search") : t("settings.reader.search"),
+									value: query,
+									onChange: (event) => setQuery(event.currentTarget.value)
+								}),
+								page === "topics" ? (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: TopicNavigation_module_css_default.archiveToggle,
+									"aria-pressed": archived,
+									onClick: () => onArchiveView(!archived),
+									children: archived ? t("panel.nav.showActive") : t("panel.nav.showArchived")
+								}) : (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: TopicNavigation_module_css_default.archiveToggle,
+									disabled: library.importing,
+									onClick: () => fileInput.current?.click(),
+									children: library.importing ? t("settings.reader.importing") : t("settings.reader.import")
+								}),
+								(0, react_jsx_runtime.jsx)("input", {
+									ref: fileInput,
+									type: "file",
+									hidden: true,
+									accept: ".md,.markdown,.txt,text/plain,text/markdown",
+									onChange: (event) => {
+										const input = event.currentTarget;
+										const file = input.files?.[0];
+										input.value = "";
+										if (file !== void 0) documents.importFile(file).then(() => setOpen(false));
+									}
+								})
+							]
+						}),
+						page === "topics" ? (0, react_jsx_runtime.jsxs)("div", {
+							className: TopicNavigation_module_css_default.rows,
+							children: [rows.length === 0 && (0, react_jsx_runtime.jsx)("p", { children: query ? t("panel.nav.noMatches") : archived ? t("panel.nav.noArchived") : t("panel.nav.empty") }), rows.map((topic) => (0, react_jsx_runtime.jsxs)("button", {
+								className: TopicNavigation_module_css_default.row,
+								type: "button",
+								"aria-current": activeId === topic.sessionId ? "page" : void 0,
+								onClick: () => {
+									onOpen(topic.sessionId);
+									setOpen(false);
+								},
+								children: [(0, react_jsx_runtime.jsxs)("span", {
+									className: TopicNavigation_module_css_default.rowText,
+									children: [(0, react_jsx_runtime.jsx)("strong", { children: topic.title }), (0, react_jsx_runtime.jsx)("small", { children: dateFormat(topic.updatedAt) })]
+								}), topic.running && (0, react_jsx_runtime.jsx)("span", {
+									className: TopicNavigation_module_css_default.running,
+									"aria-label": t("panel.phase.running")
+								})]
+							}, topic.sessionId))]
+						}) : (0, react_jsx_runtime.jsxs)("div", {
+							className: TopicNavigation_module_css_default.rows,
+							children: [
+								library.error !== null && (0, react_jsx_runtime.jsx)("p", {
+									role: "alert",
+									children: library.error
+								}),
+								documentRows.length === 0 && (0, react_jsx_runtime.jsx)("p", { children: query ? t("panel.nav.noMatches") : t("settings.reader.importHint") }),
+								documentRows.map((document) => (0, react_jsx_runtime.jsx)(DocumentRow, {
+									document,
+									onOpen: () => {
+										documents.open(document.documentId);
+										setOpen(false);
+									},
+									onRemove: () => {
+										documents.remove(document.documentId);
+									}
+								}, document.documentId))
+							]
+						})
+					]
 				})]
 			});
 		}
@@ -41806,7 +42383,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param props - shared panel bus, Topic controller, and host callbacks.
 		* @returns the responsive Topic dock and its dialogs, or null while closed.
 		*/
-		function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile, host = "overlay", tabVisible = true }) {
+		function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, useLibrary, reportParseError, registerSurface, openFile, host = "overlay", tabVisible = true }) {
 			useLocale();
 			const overlay = useOverlay((value) => value);
 			const snapshot = useCompanion((value) => value);
@@ -41832,11 +42409,29 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const consumedSeeds = (0, react.useRef)(/* @__PURE__ */ new Set());
 			const [views, setViews] = (0, react.useState)({});
 			const cards = (0, react.useMemo)(() => projectLearningCards(snapshot.active?.messages ?? []), [snapshot.active?.messages]);
-			const view = cards.cards.length === 0 ? "explain" : views[draftKey] ?? "explain";
-			const setView = (next) => setViews((current) => ({
-				...current,
-				[draftKey]: next
-			}));
+			const panelDocument = host === "tab" ? null : overlay.document;
+			const panelDocumentTitle = useLibrary((value) => panelDocument === null ? void 0 : value.documents.find((document) => document.documentId === panelDocument.documentId)?.title);
+			const [documentShown, setDocumentShown] = (0, react.useState)(false);
+			(0, react.useEffect)(() => {
+				if (panelDocument !== null) setDocumentShown(true);
+			}, [panelDocument?.revision]);
+			const panelDocumentDeleted = useLibrary((value) => panelDocument !== null && value.deleted.includes(panelDocument.documentId));
+			(0, react.useEffect)(() => {
+				if (panelDocumentDeleted) {
+					setDocumentShown(false);
+					bus.closeDocument();
+				}
+			}, [panelDocumentDeleted, bus]);
+			const view = documentShown && panelDocument !== null ? "document" : cards.cards.length === 0 ? "explain" : views[draftKey] ?? "explain";
+			const setView = (next) => {
+				setDocumentShown(false);
+				setViews((current) => ({
+					...current,
+					[draftKey]: next
+				}));
+			};
+			const [listRequest, setListRequest] = (0, react.useState)(void 0);
+			const documentInput = (0, react.useRef)(null);
 			const [renameRequest, setRenameRequest] = (0, react.useState)(0);
 			const [allContext, setAllContext] = (0, react.useState)(false);
 			const [deleteTarget, setDeleteTarget] = (0, react.useState)(null);
@@ -41859,6 +42454,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const active = snapshot.active;
 			const activeTopicId = active?.topic.sessionId;
 			const activeSourceId = active?.topic.sourceSessionId;
+			const citationEntry = active?.topic.citation?.entry;
+			const citedDocument = citationEntry?.kind === "document-range" && active?.documentTitle !== void 0 ? {
+				documentId: citationEntry.documentId,
+				offset: citationEntry.startOffset,
+				title: active.documentTitle,
+				line: active.documentLine
+			} : null;
 			const openTopicFile = openFile === void 0 || activeSourceId === void 0 ? void 0 : (path, line) => openFile(activeSourceId, path, line);
 			(0, react.useEffect)(() => {
 				if (transcriptNode === null || registerSurface === void 0 || activeTopicId === void 0 || activeSourceId === void 0) return;
@@ -42096,7 +42698,19 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					role: "status",
 					children: localizedNotice(snapshot.notice)
 				}),
-				active === null && snapshot.draftQuote === null ? (0, react_jsx_runtime.jsxs)("div", {
+				(0, react_jsx_runtime.jsx)("input", {
+					ref: documentInput,
+					type: "file",
+					hidden: true,
+					accept: ".md,.markdown,.txt,text/plain,text/markdown",
+					onChange: (event) => {
+						const input = event.currentTarget;
+						const file = input.files?.[0];
+						input.value = "";
+						if (file !== void 0) documents.importFile(file);
+					}
+				}),
+				active === null && snapshot.draftQuote === null && view !== "document" ? (0, react_jsx_runtime.jsxs)("div", {
 					className: CiteCiter_module_css_default.emptyState,
 					children: [
 						(0, react_jsx_runtime.jsx)("img", {
@@ -42107,11 +42721,19 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						}),
 						(0, react_jsx_runtime.jsx)("h2", { children: t("panel.empty.title") }),
 						(0, react_jsx_runtime.jsx)("p", { children: t("panel.empty.description") }),
-						(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-							variant: "outline",
-							size: "sm",
-							onClick: openNewTopic,
-							children: t("panel.newTopic")
+						(0, react_jsx_runtime.jsxs)("div", {
+							className: CiteCiter_module_css_default.emptyActions,
+							children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "outline",
+								size: "sm",
+								onClick: openNewTopic,
+								children: t("panel.newTopic")
+							}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "outline",
+								size: "sm",
+								onClick: () => documentInput.current?.click(),
+								children: t("settings.reader.openFile")
+							})]
 						}),
 						snapshot.phase === "creating" && (0, react_jsx_runtime.jsx)("div", {
 							className: CiteCiter_module_css_default.loadingCard,
@@ -42128,6 +42750,17 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						className: CiteCiter_module_css_default.contextBar,
 						children: [(0, react_jsx_runtime.jsxs)("summary", { children: [t("panel.quote"), compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? "", 70)] }), (0, react_jsx_runtime.jsx)("blockquote", { children: active?.topic.citation?.displayText ?? snapshot.draftQuote })]
 					}),
+					citedDocument !== null && (0, react_jsx_runtime.jsxs)("div", {
+						className: CiteCiter_module_css_default.contextSource,
+						children: [(0, react_jsx_runtime.jsx)("span", { children: citedDocument.line === void 0 ? citedDocument.title : t("settings.reader.citedAt", {
+							title: citedDocument.title,
+							line: citedDocument.line
+						}) }), (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => documents.open(citedDocument.documentId, citedDocument.offset),
+							children: t("settings.reader.open")
+						})]
+					}),
 					active !== null && !active.topic.sourceAvailable && (0, react_jsx_runtime.jsx)("p", {
 						className: CiteCiter_module_css_default.panelNotice,
 						role: "status",
@@ -42137,23 +42770,60 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						enabled: snapshot.settings.learningRoute ?? false,
 						messages: active?.messages ?? []
 					}),
-					cards.cards.length > 0 && (0, react_jsx_runtime.jsxs)("div", {
+					(cards.cards.length > 0 || panelDocument !== null) && (0, react_jsx_runtime.jsxs)("div", {
 						className: CiteCiter_module_css_default.views,
 						role: "tablist",
 						"aria-label": t("panel.content"),
-						children: [(0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							role: "tab",
-							"aria-selected": view === "explain",
-							onClick: () => setView("explain"),
-							children: t("panel.conversation")
-						}), (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							role: "tab",
-							"aria-selected": view === "cards",
-							onClick: () => setView("cards"),
-							children: t("panel.cardsCount", { count: cards.cards.length })
-						})]
+						children: [
+							(0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								role: "tab",
+								"aria-selected": view === "explain",
+								onClick: () => setView("explain"),
+								children: t("panel.conversation")
+							}),
+							cards.cards.length > 0 && (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								role: "tab",
+								"aria-selected": view === "cards",
+								onClick: () => setView("cards"),
+								children: t("panel.cardsCount", { count: cards.cards.length })
+							}),
+							panelDocument !== null && (0, react_jsx_runtime.jsxs)("span", {
+								className: CiteCiter_module_css_default.documentTab,
+								children: [(0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									role: "tab",
+									"aria-selected": view === "document",
+									title: panelDocumentTitle,
+									onClick: () => setDocumentShown(true),
+									children: panelDocumentTitle ?? t("settings.reader.title")
+								}), (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: CiteCiter_module_css_default.documentClose,
+									"aria-label": t("settings.reader.close"),
+									title: t("settings.reader.close"),
+									onClick: () => {
+										setDocumentShown(false);
+										bus.closeDocument();
+									},
+									children: "×"
+								})]
+							})
+						]
+					}),
+					view === "document" && panelDocument !== null && (0, react_jsx_runtime.jsx)("div", {
+						className: CiteCiter_module_css_default.documentPane,
+						children: (0, react_jsx_runtime.jsx)(LibraryDocument, {
+							documentId: panelDocument.documentId,
+							focus: panelDocument.offset === void 0 ? void 0 : {
+								offset: panelDocument.offset,
+								revision: panelDocument.revision
+							},
+							library: documents,
+							registerSurface: registerSurface ?? (() => () => {}),
+							sourceSessionId: () => snapshot.sourceSessionId
+						})
 					}),
 					view === "explain" && (0, react_jsx_runtime.jsxs)("div", {
 						ref: transcriptRef,
@@ -42394,6 +43064,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						topics: snapshot.topics,
 						activeId: active?.topic.sessionId,
 						archived: snapshot.includeArchived,
+						useLibrary,
+						documents,
+						listRequest,
 						onOpen: (id) => {
 							companion.openTopic(id);
 						},
@@ -42409,7 +43082,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							onLearningRoute: (value) => {
 								companion.setSetting("learningRoute", value);
 							},
-							onReader: openReader,
+							onReader: () => setListRequest((current) => ({
+								page: "documents",
+								revision: (current?.revision ?? 0) + 1
+							})),
 							onArchive: (archived) => {
 								companion.archive(archived);
 							},
@@ -42508,13 +43184,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/Settings.module.css.mjs
-		const css$7 = ".ukqE2G_page{width:min(760px,100%);color:var(--dsw-alias-label-primary);flex-direction:column;gap:24px;padding-bottom:32px;display:flex}.ukqE2G_intro{align-items:center;gap:12px;display:flex}.ukqE2G_intro img{corner-shape:round;border-radius:50%;width:32px;height:32px}.ukqE2G_intro h2{margin:0;font-size:16px;font-weight:500;line-height:24px}.ukqE2G_intro p{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.ukqE2G_group h3{color:var(--dsw-alias-label-secondary);margin:0 0 4px;font-size:13px;font-weight:500;line-height:20px}.ukqE2G_row{border-bottom:.5px solid var(--dsw-alias-border-l2,#e4e7ec);align-items:center;gap:8px;padding:16px 0;display:flex}.ukqE2G_row[data-stack]{flex-direction:column;align-items:stretch}.ukqE2G_rowText{flex-direction:column;flex:1;gap:4px;min-width:0;padding-right:48px;display:flex}.ukqE2G_title{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:400;line-height:22px}.ukqE2G_desc{color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:400;line-height:18px}.ukqE2G_control{flex:none;align-items:center;gap:8px;display:inline-flex}.ukqE2G_select,.ukqE2G_textarea,.ukqE2G_text{box-sizing:border-box;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-module-platform,var(--dsw-specific-input-major,#fff));border-radius:var(--dsw-radius-md,8px);border:0;font-family:inherit;font-size:14px;line-height:22px}.ukqE2G_select{max-width:260px;height:36px;padding:0 10px}.ukqE2G_text{width:220px;height:36px;padding:0 10px}.ukqE2G_textarea{resize:vertical;width:100%;min-height:88px;padding:8px 10px}.ukqE2G_select:focus-visible,.ukqE2G_textarea:focus-visible,.ukqE2G_text:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}.ukqE2G_range{width:180px;accent-color:var(--dsw-alias-state-business-primary)}.ukqE2G_value{min-width:40px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right;font-size:14px;line-height:22px}.ukqE2G_status{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.ukqE2G_status[data-status=error]{color:var(--dsw-alias-state-error-primary)}.ukqE2G_status[data-status=success]{color:var(--dsw-alias-state-success-primary)}.ukqE2G_slots{flex-direction:column;margin-top:8px;display:flex}.ukqE2G_slot{border-top:.5px solid var(--dsw-alias-border-l2,#e4e7ec)}.ukqE2G_slot summary{cursor:pointer;align-items:center;gap:10px;padding:10px 0;list-style:none;display:flex}.ukqE2G_slot summary::-webkit-details-marker{display:none}.ukqE2G_slotIndex{width:16px;color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font-variant-numeric:tabular-nums;font-size:12px}.ukqE2G_slotLabel{white-space:nowrap;text-overflow:ellipsis;flex:1;min-width:0;font-size:14px;line-height:22px;overflow:hidden}.ukqE2G_slotLabel[data-empty]{color:var(--dsw-alias-label-tertiary)}.ukqE2G_slotKind{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.ukqE2G_slotBody{gap:10px;padding:0 0 14px 26px;display:grid}.ukqE2G_field{color:var(--dsw-alias-label-secondary);gap:6px;font-size:12px;line-height:18px;display:grid}.ukqE2G_slotButtons,.ukqE2G_footer{flex-wrap:wrap;gap:8px;display:flex}.ukqE2G_footer{justify-content:flex-end;margin-top:12px}";
-		const tagId$7 = "@kirkchinese/dsh-citeciter/Settings.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$7) + "]") === null) {
+		const css$5 = ".ukqE2G_page{width:min(760px,100%);color:var(--dsw-alias-label-primary);flex-direction:column;gap:24px;padding-bottom:32px;display:flex}.ukqE2G_intro{align-items:center;gap:12px;display:flex}.ukqE2G_intro img{corner-shape:round;border-radius:50%;width:32px;height:32px}.ukqE2G_intro h2{margin:0;font-size:16px;font-weight:500;line-height:24px}.ukqE2G_intro p{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.ukqE2G_group h3{color:var(--dsw-alias-label-secondary);margin:0 0 4px;font-size:13px;font-weight:500;line-height:20px}.ukqE2G_row{border-bottom:.5px solid var(--dsw-alias-border-l2,#e4e7ec);align-items:center;gap:8px;padding:16px 0;display:flex}.ukqE2G_row[data-stack]{flex-direction:column;align-items:stretch}.ukqE2G_rowText{flex-direction:column;flex:1;gap:4px;min-width:0;padding-right:48px;display:flex}.ukqE2G_title{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:400;line-height:22px}.ukqE2G_desc{color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:400;line-height:18px}.ukqE2G_control{flex:none;align-items:center;gap:8px;display:inline-flex}.ukqE2G_select,.ukqE2G_textarea,.ukqE2G_text{box-sizing:border-box;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-module-platform,var(--dsw-specific-input-major,#fff));border-radius:var(--dsw-radius-md,8px);border:0;font-family:inherit;font-size:14px;line-height:22px}.ukqE2G_select{max-width:260px;height:36px;padding:0 10px}.ukqE2G_text{width:220px;height:36px;padding:0 10px}.ukqE2G_textarea{resize:vertical;width:100%;min-height:88px;padding:8px 10px}.ukqE2G_select:focus-visible,.ukqE2G_textarea:focus-visible,.ukqE2G_text:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}.ukqE2G_range{width:180px;accent-color:var(--dsw-alias-state-business-primary)}.ukqE2G_value{min-width:40px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right;font-size:14px;line-height:22px}.ukqE2G_status{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.ukqE2G_status[data-status=error]{color:var(--dsw-alias-state-error-primary)}.ukqE2G_status[data-status=success]{color:var(--dsw-alias-state-success-primary)}.ukqE2G_slots{flex-direction:column;margin-top:8px;display:flex}.ukqE2G_slot{border-top:.5px solid var(--dsw-alias-border-l2,#e4e7ec)}.ukqE2G_slot summary{cursor:pointer;align-items:center;gap:10px;padding:10px 0;list-style:none;display:flex}.ukqE2G_slot summary::-webkit-details-marker{display:none}.ukqE2G_slotIndex{width:16px;color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font-variant-numeric:tabular-nums;font-size:12px}.ukqE2G_slotLabel{white-space:nowrap;text-overflow:ellipsis;flex:1;min-width:0;font-size:14px;line-height:22px;overflow:hidden}.ukqE2G_slotLabel[data-empty]{color:var(--dsw-alias-label-tertiary)}.ukqE2G_slotKind{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.ukqE2G_slotBody{gap:10px;padding:0 0 14px 26px;display:grid}.ukqE2G_field{color:var(--dsw-alias-label-secondary);gap:6px;font-size:12px;line-height:18px;display:grid}.ukqE2G_slotButtons,.ukqE2G_footer{flex-wrap:wrap;gap:8px;display:flex}.ukqE2G_footer{justify-content:flex-end;margin-top:12px}";
+		const tagId$5 = "@kirkchinese/dsh-citeciter/Settings.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$5) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$7;
-			tag.textContent = css$7;
+			tag.dataset.pluginCss = tagId$5;
+			tag.textContent = css$5;
 			document.head.appendChild(tag);
 		}
 		var Settings_module_css_default = {
@@ -43314,216 +43990,233 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			});
 		}
 		//#endregion
-		//#region lib/types/client/reader-selection.js
-		/** Reader textarea selection facts resolved from the user-owned textarea value. */
-		const READER_CONTEXT_CHARS = 240;
+		//#region lib/types/client/document-address.js
+		/** Addresses of Citer's library documents in DSH's right sidebar. */
+		/** Tab type id and kind of Citer's document tabs. */
+		const DOCUMENT_TAB_ID = "@kirkchinese/dsh-citeciter/document";
+		const DOCUMENT_TAB_KIND = "citeciter-document";
+		const PREFIX = "dsh-resource://citeciter-document/";
+		/** Glob the document tab type claims. */
+		const DOCUMENT_ADDRESS_PATTERN = `${PREFIX}**`;
+		/** @returns the sidebar address of one library document. */
+		function documentAddress(documentId) {
+			return `${PREFIX}${encodeURIComponent(documentId)}`;
+		}
+		/** @returns the document id of a Citer document address, or undefined for any other address. */
+		function documentIdFromAddress(address) {
+			if (!address.startsWith(PREFIX)) return void 0;
+			try {
+				const id = decodeURIComponent(address.slice(34));
+				return id === "" || id.includes("/") ? void 0 : id;
+			} catch {
+				return;
+			}
+		}
+		//#endregion
+		//#region lib/types/client/components/DocumentTab.js
+		/** The navigation offset a document tab was opened at, read field by field. */
+		function navigationOffset(params) {
+			if (typeof params !== "object" || params === null || !("offset" in params)) return void 0;
+			const { offset } = params;
+			return typeof offset === "number" && Number.isInteger(offset) && offset >= 0 ? offset : void 0;
+		}
 		/**
-		* Resolve the current textarea selection into a verifiable document claim.
-		* @param textarea - read-only document textarea holding the complete loaded page.
-		* @returns trimmed quote with surrounding context, or null for a collapsed/empty selection.
+		* A Citer library document as a DSH right-sidebar tab. Reopening it scrolls to the new place;
+		* deleting the document closes the tab.
 		*/
-		function readTextareaSelection(textarea) {
-			const value = textarea.value;
-			const start = textarea.selectionStart;
-			const end = textarea.selectionEnd;
-			if (start === end) return null;
-			const raw = value.slice(start, end);
-			const leading = raw.length - raw.trimStart().length;
-			const trailing = raw.length - raw.trimEnd().length;
-			const text = raw.trim();
-			if (text === "") return null;
-			const startOffset = start + leading;
-			const endOffset = end - trailing;
-			return {
-				displayText: text,
-				prefixText: value.slice(Math.max(0, startOffset - READER_CONTEXT_CHARS), startOffset),
-				suffixText: value.slice(endOffset, endOffset + READER_CONTEXT_CHARS)
-			};
-		}
-		//#endregion
-		//#region \0dsh-css:src/client/components/DocumentReader.module.css.mjs
-		const css$6 = ".Se9Cda_root{z-index:9000;font-family:var(--dsw-font-family,system-ui, -apple-system, \"Segoe UI\", \"Microsoft YaHei\", sans-serif);pointer-events:auto;position:fixed;bottom:16px;left:50%;transform:translate(-50%)}.Se9Cda_root:empty{display:none}body:has([role=dialog][aria-modal=true]) .Se9Cda_root{visibility:hidden;pointer-events:none}.Se9Cda_panel{box-sizing:border-box;width:min(520px,100vw - 32px);height:min(640px,100vh - 32px);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-base,#fff);border-radius:var(--dsw-radius-panel,12px);box-shadow:var(--dsw-elevation-prominent,0 0 0 .5px #0000001f, 0 3px 8px #0000000a, 0 0 20px #0000000d);flex-direction:column;gap:8px;padding:12px 16px 16px;display:flex}.Se9Cda_header{justify-content:space-between;align-items:center;display:flex}.Se9Cda_header h2{margin:0;font-size:14px;font-weight:500;line-height:22px}.Se9Cda_header button{width:28px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;border:0;font-size:18px}.Se9Cda_header button:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.Se9Cda_error{color:var(--dsw-alias-state-error-primary,#c93f3f);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin:0}.Se9Cda_import{flex-wrap:wrap;align-items:center;gap:8px;display:inline-flex}.Se9Cda_import input{min-width:0;max-width:100%}.Se9Cda_import button{height:28px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;padding:0 10px}.Se9Cda_import button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.Se9Cda_documents{flex-direction:column;gap:2px;max-height:120px;margin:0;padding:0;list-style:none;display:flex;overflow:auto}.Se9Cda_documents button{width:100%;color:inherit;text-align:left;overflow-wrap:anywhere;border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;background:0 0;border:0;flex-direction:column;align-items:flex-start;padding:6px 8px;display:flex}.Se9Cda_documents button:hover{background:var(--dsw-alias-interactive-bg-hover)}.Se9Cda_documents button.Se9Cda_activeDocument{background:var(--dsw-alias-interactive-bg-active,var(--dsw-alias-interactive-bg-hover))}.Se9Cda_documents span{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif)}.Se9Cda_documents .Se9Cda_empty{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);padding:6px 8px}.Se9Cda_content{box-sizing:border-box;resize:none;width:100%;min-height:60px;color:var(--dsw-alias-label-primary);white-space:pre-wrap;background:var(--dsw-alias-bg-module-platform,var(--dsw-specific-bubble,#f5f6f8));border-radius:var(--dsw-radius-md,8px);font-family:inherit;font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px));border:0;flex:1;padding:10px 12px}.Se9Cda_pagination{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);justify-content:space-between;align-items:center;gap:8px;display:flex}.Se9Cda_pagination button{width:28px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;border:0;padding:0;font-size:18px;line-height:1}.Se9Cda_pagination button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.Se9Cda_pagination button:disabled{cursor:default;opacity:.4}.Se9Cda_ask{gap:8px;display:flex}.Se9Cda_ask input{min-width:0;height:36px;color:inherit;background:var(--dsw-specific-input-major,var(--dsw-alias-bg-base,#fff));border:.5px solid var(--dsw-alias-border-l2,#d9dde5);border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);flex:1;padding:0 10px}.Se9Cda_ask button{height:36px;color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-state-business-primary,#3478f6));border-radius:var(--dsw-radius-md,8px);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);cursor:pointer;border:0;padding:0 14px}.Se9Cda_ask button:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-state-business-primary,#3478f6))}.Se9Cda_ask button:disabled{cursor:not-allowed;opacity:.4}.Se9Cda_panel button:focus-visible,.Se9Cda_panel input:focus-visible,.Se9Cda_content:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);outline-offset:1px}";
-		const tagId$6 = "@kirkchinese/dsh-citeciter/DocumentReader.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$6) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$6;
-			tag.textContent = css$6;
-			document.head.appendChild(tag);
-		}
-		var DocumentReader_module_css_default = {
-			"activeDocument": "Se9Cda_activeDocument",
-			"ask": "Se9Cda_ask",
-			"content": "Se9Cda_content",
-			"documents": "Se9Cda_documents",
-			"empty": "Se9Cda_empty",
-			"error": "Se9Cda_error",
-			"header": "Se9Cda_header",
-			"import": "Se9Cda_import",
-			"pagination": "Se9Cda_pagination",
-			"panel": "Se9Cda_panel",
-			"root": "Se9Cda_root"
-		};
-		//#endregion
-		//#region lib/types/client/components/DocumentReader.js
-		/** Human-readable size for the document list. */
-		function formatSize(bytes) {
-			if (bytes < 1024) return `${bytes} B`;
-			if (bytes < 1048576) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
-			return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-		}
-		/** The document library panel, opened from the Topic menu. */
-		function DocumentReader({ reader, useReader, registerSurface, sourceSessionId }) {
+		function DocumentTab({ useTabInfo, useLibrary, ...props }) {
 			useLocale();
-			const snapshot = useReader((value) => value);
-			const textareaRef = (0, react.useRef)(null);
-			const importRef = (0, react.useRef)(null);
+			const { navigation, actions } = useTabInfo().tab;
+			const documentId = documentIdFromAddress(navigation.address);
+			const deleted = useLibrary((value) => documentId !== void 0 && value.deleted.includes(documentId));
 			(0, react.useEffect)(() => {
-				const element = textareaRef.current;
-				const active = snapshot.active;
-				if (element === null || active === null || snapshot.loading) return;
-				return registerSurface(element, () => {
-					const selected = readTextareaSelection(element);
-					const source = sourceSessionId();
-					return selected === null || source === null ? null : {
-						kind: "document",
-						sourceSessionId: source,
-						title: active.title,
-						documentId: active.documentId,
-						...selected
-					};
+				if (deleted) actions.close();
+			}, [deleted, actions]);
+			const offset = navigationOffset(navigation.params);
+			if (documentId === void 0 || deleted) return (0, react_jsx_runtime.jsx)("p", {
+				className: LibraryDocument_module_css_default.state,
+				role: "alert",
+				children: t("settings.reader.missing")
+			});
+			return (0, react_jsx_runtime.jsx)(LibraryDocument, {
+				...props,
+				documentId,
+				focus: offset === void 0 ? void 0 : {
+					offset,
+					revision: navigation.revision
+				}
+			});
+		}
+		//#endregion
+		//#region lib/types/client/document-library.js
+		/** Citer's document library in the browser: the list, imports, deletion and full-text loading. */
+		/** Largest local file Citer imports, before decoding. */
+		const MAX_FILE_BYTES = 8388608;
+		/** Largest document text, in UTF-16 code units; matches the Host's import limit. */
+		const MAX_TEXT_LENGTH = 2e6;
+		const INITIAL_DOCUMENT_LIBRARY = {
+			documents: [],
+			status: "idle",
+			error: null,
+			importing: false,
+			deleted: []
+		};
+		function formatFromName(name) {
+			return /\.(md|markdown)$/iu.test(name) ? "markdown" : "text";
+		}
+		/** Bind the library to the Citer Remote. */
+		function createDocumentLibrary(request, store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(INITIAL_DOCUMENT_LIBRARY)) {
+			let disposed = false;
+			const lifecycle = new AbortController();
+			const operations = /* @__PURE__ */ new Set();
+			const loads = /* @__PURE__ */ new Map();
+			const titles = /* @__PURE__ */ new Map();
+			let refreshGeneration = 0;
+			const update = (mutator) => {
+				if (!disposed) store.update(mutator);
+			};
+			const call = (command) => {
+				const operation = (async () => {
+					lifecycle.signal.throwIfAborted();
+					const result = await request(command, lifecycle.signal);
+					lifecycle.signal.throwIfAborted();
+					if (!result.ok) throw new Error(result.error.message);
+					return result.value;
+				})().finally(() => operations.delete(operation));
+				operations.add(operation);
+				return operation;
+			};
+			const accept = (documents) => {
+				for (const document of documents) titles.set(document.documentId, document.title);
+				update((draft) => {
+					draft.documents = documents;
+					draft.status = "ready";
+					draft.error = null;
 				});
-			}, [
-				registerSurface,
-				sourceSessionId,
-				snapshot.active,
-				snapshot.open,
-				snapshot.loading
-			]);
-			const syncSelection = () => {
-				const textarea = textareaRef.current;
-				reader.setSelection(textarea === null ? null : readTextareaSelection(textarea));
 			};
-			const onImport = async (event) => {
-				const input = event.currentTarget;
-				const file = input.files?.[0];
-				if (file === void 0) return;
-				await reader.importLocalFile(file);
-				input.value = "";
+			const refresh = async () => {
+				if (disposed) return;
+				const generation = ++refreshGeneration;
+				update((draft) => {
+					draft.status = draft.status === "ready" ? "ready" : "loading";
+				});
+				try {
+					const response = await call({ action: "documents" });
+					if (generation !== refreshGeneration) return;
+					if (response.kind !== "documents") throw new Error(t("settings.error.readerList"));
+					accept(response.documents);
+				} catch (error) {
+					if (!disposed && generation === refreshGeneration) update((draft) => {
+						draft.status = "error";
+						draft.error = error instanceof Error ? error.message : String(error);
+					});
+				}
 			};
-			const onCreate = (event) => {
-				event.preventDefault();
-				reader.createTopic();
+			const importText = async (title, content) => {
+				const name = title.trim() === "" ? t("settings.error.untitled") : title.trim();
+				const response = await call({
+					action: "document-import",
+					title: name.slice(0, 200),
+					format: formatFromName(name),
+					content
+				});
+				if (response.kind !== "document") throw new Error(t("settings.error.readerImport"));
+				titles.set(response.document.documentId, response.document.title);
+				refresh();
+				return response.document;
 			};
-			return (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
-				className: DocumentReader_module_css_default.root,
-				children: snapshot.open && (0, react_jsx_runtime.jsxs)("section", {
-					className: DocumentReader_module_css_default.panel,
-					"data-citeciter-reader": true,
-					children: [
-						(0, react_jsx_runtime.jsxs)("header", {
-							className: DocumentReader_module_css_default.header,
-							children: [(0, react_jsx_runtime.jsx)("h2", { children: t("settings.reader.title") }), (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								onClick: () => reader.setOpen(false),
-								"aria-label": t("settings.reader.close"),
-								children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, {})
-							})]
-						}),
-						snapshot.error !== null ? (0, react_jsx_runtime.jsx)("p", {
-							className: DocumentReader_module_css_default.error,
-							children: snapshot.error
-						}) : null,
-						(0, react_jsx_runtime.jsxs)("div", {
-							className: DocumentReader_module_css_default.import,
-							children: [(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: snapshot.importing,
-								onClick: () => importRef.current?.click(),
-								"aria-label": t("settings.reader.importAria"),
-								children: snapshot.importing ? t("settings.reader.importing") : t("settings.reader.import")
-							}), (0, react_jsx_runtime.jsx)("input", {
-								ref: importRef,
-								type: "file",
-								hidden: true,
-								disabled: snapshot.importing,
-								accept: ".txt,.md,.markdown,text/plain,text/markdown",
-								onChange: (event) => void onImport(event)
-							})]
-						}),
-						(0, react_jsx_runtime.jsxs)("ul", {
-							className: DocumentReader_module_css_default.documents,
-							children: [snapshot.documents.map((document) => (0, react_jsx_runtime.jsx)("li", { children: (0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								onClick: () => void reader.openDocument(document.documentId),
-								className: snapshot.active?.documentId === document.documentId ? DocumentReader_module_css_default.activeDocument : void 0,
-								children: [document.title, (0, react_jsx_runtime.jsxs)("span", { children: [
-									document.format === "markdown" ? "Markdown" : t("settings.reader.text"),
-									" · ",
-									formatSize(document.size)
-								] })]
-							}) }, document.documentId)), snapshot.documentsStatus === "ready" && snapshot.documents.length === 0 ? (0, react_jsx_runtime.jsx)("li", {
-								className: DocumentReader_module_css_default.empty,
-								children: t("settings.reader.empty")
-							}) : null]
-						}),
-						(0, react_jsx_runtime.jsx)("textarea", {
-							"aria-label": t("settings.reader.body"),
-							"aria-busy": snapshot.loading,
-							ref: textareaRef,
-							className: DocumentReader_module_css_default.content,
-							readOnly: true,
-							value: snapshot.active?.content ?? "",
-							placeholder: t("settings.reader.choose"),
-							onSelect: snapshot.loading ? void 0 : syncSelection,
-							onMouseUp: snapshot.loading ? void 0 : syncSelection,
-							onKeyUp: snapshot.loading ? void 0 : syncSelection
-						}),
-						snapshot.active !== null ? (0, react_jsx_runtime.jsxs)("nav", {
-							className: DocumentReader_module_css_default.pagination,
-							"aria-label": t("settings.reader.pagination"),
-							children: [
-								(0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									"aria-label": t("settings.reader.previous"),
-									disabled: snapshot.loading || snapshot.active.page === 0,
-									onClick: () => void reader.openPage(snapshot.active.page - 1),
-									children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronLeftOutlineRegular, {})
-								}),
-								(0, react_jsx_runtime.jsx)("span", {
-									role: "status",
-									children: snapshot.loading ? t("settings.reader.loading") : t("settings.reader.page", {
-										page: snapshot.active.page + 1,
-										total: snapshot.active.pageCount
-									})
-								}),
-								(0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									"aria-label": t("settings.reader.next"),
-									disabled: snapshot.loading || snapshot.active.page + 1 >= snapshot.active.pageCount,
-									onClick: () => void reader.openPage(snapshot.active.page + 1),
-									children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronRightOutlineRegular, {})
-								})
-							]
-						}) : null,
-						(0, react_jsx_runtime.jsxs)("form", {
-							className: DocumentReader_module_css_default.ask,
-							onSubmit: onCreate,
-							children: [(0, react_jsx_runtime.jsx)("input", {
-								value: snapshot.question,
-								maxLength: 12e3,
-								onChange: (event) => reader.setQuestion(event.target.value),
-								placeholder: t("settings.reader.questionPlaceholder"),
-								"aria-label": t("settings.reader.questionAria")
-							}), (0, react_jsx_runtime.jsx)("button", {
-								type: "submit",
-								disabled: snapshot.creating || snapshot.loading || snapshot.selection === null || snapshot.question.trim() === "",
-								children: snapshot.creating ? t("settings.other.opening") : t("settings.reader.ask")
-							})]
-						})
-					]
-				})
-			}) });
+			const importFile = async (file) => {
+				if (disposed || store.getSnapshot().importing) return null;
+				update((draft) => {
+					draft.importing = true;
+					draft.error = null;
+				});
+				try {
+					if (file.size > MAX_FILE_BYTES) throw new Error(t("settings.error.fileTooLarge"));
+					const content = await file.text();
+					if (content.length > MAX_TEXT_LENGTH) throw new Error(t("settings.error.textTooLarge"));
+					if (content.trim() === "") throw new Error(t("settings.reader.emptyFile"));
+					return await importText(file.name, content);
+				} catch (error) {
+					update((draft) => {
+						draft.error = error instanceof Error ? error.message : String(error);
+					});
+					return null;
+				} finally {
+					update((draft) => {
+						draft.importing = false;
+					});
+				}
+			};
+			const remove = async (documentId) => {
+				if (disposed) return;
+				try {
+					const response = await call({
+						action: "document-delete",
+						documentId
+					});
+					if (response.kind !== "documents") throw new Error(t("settings.error.readerList"));
+					loads.delete(documentId);
+					accept(response.documents);
+					update((draft) => {
+						draft.deleted = [...draft.deleted, documentId];
+					});
+				} catch (error) {
+					update((draft) => {
+						draft.error = error instanceof Error ? error.message : String(error);
+					});
+				}
+			};
+			const load = (documentId) => {
+				const cached = loads.get(documentId);
+				if (cached !== void 0) return cached;
+				const loading = (async () => {
+					const first = await call({
+						action: "document-get",
+						documentId,
+						page: 0
+					});
+					if (first.kind !== "document-content") throw new Error(t("settings.error.readerContent"));
+					const pages = [first.document.content];
+					for (let page = 1; page < first.document.pageCount; page++) {
+						const next = await call({
+							action: "document-get",
+							documentId,
+							page
+						});
+						if (next.kind !== "document-content") throw new Error(t("settings.error.readerContent"));
+						pages.push(next.document.content);
+					}
+					titles.set(documentId, first.document.title);
+					return {
+						documentId,
+						title: first.document.title,
+						format: first.document.format,
+						content: pages.join("")
+					};
+				})();
+				loads.set(documentId, loading);
+				loading.catch(() => {
+					if (loads.get(documentId) === loading) loads.delete(documentId);
+				});
+				return loading;
+			};
+			return {
+				getSnapshot: store.getSnapshot,
+				subscribe: store.subscribe,
+				refresh,
+				importText,
+				importFile,
+				remove,
+				load,
+				title: (documentId) => titles.get(documentId),
+				dispose: async () => {
+					if (disposed) return;
+					disposed = true;
+					lifecycle.abort(new DOMException("Citer is shutting down", "AbortError"));
+					while (operations.size > 0) await Promise.allSettled([...operations]);
+				}
+			};
 		}
 		//#endregion
 		//#region lib/types/client/action-controller.js
@@ -43742,6 +44435,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				});
 			}
 			const anchor = source.kind === "conversation" ? source.selection.anchorKey : source.kind === "quote" ? source.anchorKey : documentId;
+			const documentHeading = source.kind === "document" ? `文档：${source.title}${source.line === void 0 ? "" : `（第 ${source.line} 行）`}` : "";
 			references.push({
 				id: JSON.stringify([
 					"selection",
@@ -43751,21 +44445,30 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				]),
 				kind: "excerpt",
 				label: "引用文段",
-				content: source.kind === "document" ? `文档：${source.title}\n\n${quote}` : quote
+				content: source.kind === "document" ? `${documentHeading}\n\n${quote}` : quote
 			});
 			return references;
 		}
 		//#endregion
 		//#region lib/types/client/action-executor.js
+		/** The host-verifiable claim for a document selection. */
+		function documentClaim(source, documentId) {
+			return {
+				documentId,
+				displayText: source.displayText,
+				prefixText: source.prefixText,
+				suffixText: source.suffixText,
+				sourceRange: source.sourceRange
+			};
+		}
 		/** Bind explicit Topic and document services. No UI, global listeners or Cordis discovery. */
-		function createActionExecutor(companion, reader, open) {
+		function createActionExecutor(companion, documents, open) {
 			const imports = /* @__PURE__ */ new WeakMap();
 			const importDocument = async (source) => {
 				const cached = source.documentId ?? imports.get(source);
 				if (cached !== void 0) return cached;
 				if (source.content === void 0) throw new Error(t("settings.error.snapshotUnavailable"));
-				const imported = await reader.importFile(source.title.slice(0, 200), source.content);
-				if (imported === null) throw new Error(reader.getSnapshot().error ?? t("settings.error.saveSnapshot"));
+				const imported = await documents.importText(source.title.slice(0, 200), source.content);
 				imports.set(source, imported.documentId);
 				return imported.documentId;
 			};
@@ -43807,14 +44510,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const documentId = await importDocument(source);
 				assertSource();
 				if (target !== null) await companion.appendSelection(sourceId, target, question, selectionReferences(source, documentId), delivery);
-				else await companion.createFromDocument({
-					documentId,
-					displayText: source.displayText,
-					prefixText: source.prefixText,
-					suffixText: source.suffixText
-				}, question, sourceId, modelRoute, delivery);
+				else await companion.createFromDocument(documentClaim(source, documentId), question, sourceId, modelRoute, delivery);
 				assertSource();
-				reader.setOpen(false);
 			};
 			const quote = async (source) => {
 				const sourceId = actionSourceSession$1(source);
@@ -43843,12 +44540,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				} else if (source.kind === "document") {
 					const documentId = await importDocument(source);
 					assertSource();
-					await companion.createFromDocument({
-						documentId,
-						displayText: source.displayText,
-						prefixText: source.prefixText,
-						suffixText: source.suffixText
-					}, "", sourceId);
+					await companion.createFromDocument(documentClaim(source, documentId), "", sourceId);
 				} else {
 					if (!await companion.createFree("")) throw new Error(companion.getSnapshot().error ?? t("settings.error.create"));
 					const topicId = companion.getSnapshot().active?.topic.sessionId;
@@ -43856,7 +44548,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					await companion.appendSelection(sourceId, topicId, "", selectionReferences(source));
 				}
 				assertSource();
-				if (source.kind === "document") reader.setOpen(false);
 			};
 			return Object.assign(run, { quote });
 		}
@@ -44121,13 +44812,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/ActionWheel.module.css.mjs
-		const css$5 = ".QqF0Iq_wheel{z-index:10020;width:360px;height:360px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);transform:translate(-50%, -50%) scale(var(--wheel-scale,1));filter:drop-shadow(0 6px 18px #0000001f);pointer-events:auto;user-select:none;outline:none;animation:.16s ease-out QqF0Iq_wheelIn;position:fixed}.QqF0Iq_wheel:before{content:\"\";background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);corner-shape:round;box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #0000001f);border-radius:50%;position:absolute;inset:1px}.QqF0Iq_ring{pointer-events:none;width:100%;height:100%;position:absolute;inset:0}.QqF0Iq_ring path{fill:#0000;stroke:var(--dsw-alias-border-l2,#e4e7ec);stroke-width:1px;transition:fill .12s}.QqF0Iq_ring path[data-active]{fill:color-mix(in srgb, var(--dsw-alias-state-business-primary,#3478f6) 12%, transparent)}.QqF0Iq_ring path[data-empty]{fill:var(--dsw-alias-interactive-bg-hover,#00000008)}.QqF0Iq_slot{width:92px;color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;flex-direction:column;align-items:center;gap:2px;padding:4px 0;display:flex;position:absolute;transform:translate(-50%,-50%)}.QqF0Iq_slot strong{white-space:nowrap;text-overflow:ellipsis;max-width:90px;font-weight:500;overflow:hidden}.QqF0Iq_slot small{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11,11px/14px system-ui, sans-serif)}.QqF0Iq_slot[data-active]{color:var(--dsw-alias-state-business-primary,#3478f6)}.QqF0Iq_slot[aria-disabled=true]{cursor:default;opacity:.5}.QqF0Iq_slot:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);border-radius:var(--dsw-radius-md,8px)}.QqF0Iq_slotNumber{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font:var(--dsw-font-xxxs-11,11px/14px system-ui, sans-serif)}.QqF0Iq_center{width:80px;height:80px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-base,#fff);corner-shape:round;box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #0000001f);font:inherit;cursor:pointer;border:0;border-radius:50%;flex-direction:column;justify-content:center;align-items:center;gap:2px;display:flex;position:absolute;top:140px;left:140px}.QqF0Iq_center small{color:var(--dsw-alias-label-tertiary)}.QqF0Iq_caption{box-sizing:border-box;width:360px;color:var(--dsw-alias-label-secondary);text-align:center;font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));border-radius:var(--dsw-radius-md,8px);box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #0000001f);padding:4px;position:absolute;top:366px;left:0}.QqF0Iq_prompt{--prompt-top:clamp(48px, var(--prompt-y), calc(100vh - 370px));z-index:10021;top:var(--prompt-top);left:clamp(12px, var(--prompt-x), calc(100vw - 432px));box-sizing:border-box;width:min(420px,100vw - 24px);max-height:calc(100vh - var(--prompt-top) - 16px);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);pointer-events:auto;padding:12px 14px;animation:.14s ease-out QqF0Iq_promptIn;position:fixed;overflow:auto}.QqF0Iq_prompt header,.QqF0Iq_prompt footer{justify-content:space-between;align-items:center;gap:12px;display:flex}.QqF0Iq_prompt header strong{font-weight:500}.QqF0Iq_prompt header button{width:28px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;border:0;font-size:18px}.QqF0Iq_prompt header button:hover{background:var(--dsw-alias-interactive-bg-hover)}.QqF0Iq_prompt blockquote{max-height:70px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);border-left:2px solid var(--dsw-alias-border-l3,#d9dde5);margin:10px 0;padding-left:10px;overflow:auto}.QqF0Iq_prompt footer{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:10px}.QqF0Iq_prompt footer button{height:28px;color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-state-business-primary,#3478f6));border-radius:var(--dsw-radius-sm,6px);font:inherit;cursor:pointer;border:0;padding:0 12px}.QqF0Iq_prompt footer button:disabled{cursor:default;opacity:.4}.QqF0Iq_error{color:var(--dsw-alias-state-error-primary,#c93f3f)}@keyframes QqF0Iq_wheelIn{0%{opacity:0;transform:translate(-50%, -50%) scale(calc(var(--wheel-scale,1) * .94))}to{opacity:1;transform:translate(-50%, -50%) scale(var(--wheel-scale,1))}}@keyframes QqF0Iq_promptIn{0%{opacity:0;translate:0 4px}to{opacity:1;translate:0}}body:has([role=dialog][aria-modal=true]) .QqF0Iq_wheel,body:has([role=dialog][aria-modal=true]) .QqF0Iq_prompt{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.QqF0Iq_wheel,.QqF0Iq_prompt,.QqF0Iq_ring path{transition:none;animation:none}}";
-		const tagId$5 = "@kirkchinese/dsh-citeciter/ActionWheel.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$5) + "]") === null) {
+		const css$4 = ".QqF0Iq_wheel{z-index:10020;width:360px;height:360px;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);transform:translate(-50%, -50%) scale(var(--wheel-scale,1));filter:drop-shadow(0 6px 18px #0000001f);pointer-events:auto;user-select:none;outline:none;animation:.16s ease-out QqF0Iq_wheelIn;position:fixed}.QqF0Iq_wheel:before{content:\"\";background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);corner-shape:round;box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #0000001f);border-radius:50%;position:absolute;inset:1px}.QqF0Iq_ring{pointer-events:none;width:100%;height:100%;position:absolute;inset:0}.QqF0Iq_ring path{fill:#0000;stroke:var(--dsw-alias-border-l2,#e4e7ec);stroke-width:1px;transition:fill .12s}.QqF0Iq_ring path[data-active]{fill:color-mix(in srgb, var(--dsw-alias-state-business-primary,#3478f6) 12%, transparent)}.QqF0Iq_ring path[data-empty]{fill:var(--dsw-alias-interactive-bg-hover,#00000008)}.QqF0Iq_slot{width:92px;color:inherit;font:inherit;cursor:pointer;background:0 0;border:0;flex-direction:column;align-items:center;gap:2px;padding:4px 0;display:flex;position:absolute;transform:translate(-50%,-50%)}.QqF0Iq_slot strong{white-space:nowrap;text-overflow:ellipsis;max-width:90px;font-weight:500;overflow:hidden}.QqF0Iq_slot small{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxxs-11,11px/14px system-ui, sans-serif)}.QqF0Iq_slot[data-active]{color:var(--dsw-alias-state-business-primary,#3478f6)}.QqF0Iq_slot[aria-disabled=true]{cursor:default;opacity:.5}.QqF0Iq_slot:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#3478f6);border-radius:var(--dsw-radius-md,8px)}.QqF0Iq_slotNumber{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font:var(--dsw-font-xxxs-11,11px/14px system-ui, sans-serif)}.QqF0Iq_center{width:80px;height:80px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-base,#fff);corner-shape:round;box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #0000001f);font:inherit;cursor:pointer;border:0;border-radius:50%;flex-direction:column;justify-content:center;align-items:center;gap:2px;display:flex;position:absolute;top:140px;left:140px}.QqF0Iq_center small{color:var(--dsw-alias-label-tertiary)}.QqF0Iq_caption{box-sizing:border-box;width:360px;color:var(--dsw-alias-label-secondary);text-align:center;font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));border-radius:var(--dsw-radius-md,8px);box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #0000001f);padding:4px;position:absolute;top:366px;left:0}.QqF0Iq_prompt{--prompt-top:clamp(48px, var(--prompt-y), calc(100vh - 370px));z-index:10021;top:var(--prompt-top);left:clamp(12px, var(--prompt-x), calc(100vw - 432px));box-sizing:border-box;width:min(420px,100vw - 24px);max-height:calc(100vh - var(--prompt-top) - 16px);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);pointer-events:auto;padding:12px 14px;animation:.14s ease-out QqF0Iq_promptIn;position:fixed;overflow:auto}.QqF0Iq_prompt header,.QqF0Iq_prompt footer{justify-content:space-between;align-items:center;gap:12px;display:flex}.QqF0Iq_prompt header strong{font-weight:500}.QqF0Iq_prompt header button{width:28px;height:28px;color:var(--dsw-alias-label-secondary);border-radius:var(--dsw-radius-md,8px);cursor:pointer;background:0 0;border:0;font-size:18px}.QqF0Iq_prompt header button:hover{background:var(--dsw-alias-interactive-bg-hover)}.QqF0Iq_prompt blockquote{max-height:70px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);border-left:2px solid var(--dsw-alias-border-l3,#d9dde5);margin:10px 0;padding-left:10px;overflow:auto}.QqF0Iq_prompt footer{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin-top:10px}.QqF0Iq_prompt footer button{height:28px;color:var(--dsw-alias-label-primary-foreground,#fff);background:var(--dsw-alias-button-primary-fill,var(--dsw-alias-state-business-primary,#3478f6));border-radius:var(--dsw-radius-sm,6px);font:inherit;cursor:pointer;border:0;padding:0 12px}.QqF0Iq_prompt footer button:disabled{cursor:default;opacity:.4}.QqF0Iq_error{color:var(--dsw-alias-state-error-primary,#c93f3f)}@keyframes QqF0Iq_wheelIn{0%{opacity:0;transform:translate(-50%, -50%) scale(calc(var(--wheel-scale,1) * .94))}to{opacity:1;transform:translate(-50%, -50%) scale(var(--wheel-scale,1))}}@keyframes QqF0Iq_promptIn{0%{opacity:0;translate:0 4px}to{opacity:1;translate:0}}body:has([role=dialog][aria-modal=true]) .QqF0Iq_wheel,body:has([role=dialog][aria-modal=true]) .QqF0Iq_prompt{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.QqF0Iq_wheel,.QqF0Iq_prompt,.QqF0Iq_ring path{transition:none;animation:none}}";
+		const tagId$4 = "@kirkchinese/dsh-citeciter/ActionWheel.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$4) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$5;
-			tag.textContent = css$5;
+			tag.dataset.pluginCss = tagId$4;
+			tag.textContent = css$4;
 			document.head.appendChild(tag);
 		}
 		var ActionWheel_module_css_default = {
@@ -44278,13 +44969,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/SelectionToolbar.module.css.mjs
-		const css$4 = ".k91x4a_toolbar{z-index:10020;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);pointer-events:auto;user-select:none;align-items:center;gap:2px;padding:4px;animation:.12s ease-out k91x4a_toolbarIn;display:flex;position:fixed}.k91x4a_mark{corner-shape:round;border-radius:50%;width:18px;height:18px;margin:0 4px 0 2px}.k91x4a_toolbar button{height:28px;color:inherit;font:inherit;white-space:nowrap;border-radius:var(--dsw-radius-sm,6px);cursor:pointer;background:0 0;border:0;align-items:center;padding:0 8px;display:inline-flex}.k91x4a_toolbar button:hover,.k91x4a_toolbar button[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.k91x4a_toolbar button:disabled{opacity:.55;cursor:default}.k91x4a_error{text-overflow:ellipsis;white-space:nowrap;max-width:220px;color:var(--dsw-alias-label-danger,var(--dsw-alias-label-primary));overflow:hidden}.k91x4a_toolbar button:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:-2px}.k91x4a_more{justify-content:center;width:28px;padding:0}.k91x4a_more svg{fill:none;stroke:currentColor;stroke-width:2.4px;stroke-linecap:round;width:16px;height:16px}.k91x4a_menu{background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));min-width:148px;backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);padding:4px;display:grid;position:absolute;top:calc(100% + 4px);right:0}.k91x4a_menu button{justify-content:flex-start;width:100%}.k91x4a_menu hr{border:0;border-top:1px solid var(--dsw-alias-border-l1);width:100%;margin:4px 0}body:has([role=dialog][aria-modal=true]) .k91x4a_toolbar{visibility:hidden;pointer-events:none}@keyframes k91x4a_toolbarIn{0%{opacity:0;translate:0 2px}to{opacity:1;translate:0}}@media (prefers-reduced-motion:reduce){.k91x4a_toolbar{animation:none}}";
-		const tagId$4 = "@kirkchinese/dsh-citeciter/SelectionToolbar.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$4) + "]") === null) {
+		const css$3 = ".k91x4a_toolbar{z-index:10020;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);pointer-events:auto;user-select:none;align-items:center;gap:2px;padding:4px;animation:.12s ease-out k91x4a_toolbarIn;display:flex;position:fixed}.k91x4a_mark{corner-shape:round;border-radius:50%;width:18px;height:18px;margin:0 4px 0 2px}.k91x4a_toolbar button{height:28px;color:inherit;font:inherit;white-space:nowrap;border-radius:var(--dsw-radius-sm,6px);cursor:pointer;background:0 0;border:0;align-items:center;padding:0 8px;display:inline-flex}.k91x4a_toolbar button:hover,.k91x4a_toolbar button[aria-expanded=true]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.k91x4a_toolbar button:disabled{opacity:.55;cursor:default}.k91x4a_error{text-overflow:ellipsis;white-space:nowrap;max-width:220px;color:var(--dsw-alias-label-danger,var(--dsw-alias-label-primary));overflow:hidden}.k91x4a_toolbar button:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:-2px}.k91x4a_more{justify-content:center;width:28px;padding:0}.k91x4a_more svg{fill:none;stroke:currentColor;stroke-width:2.4px;stroke-linecap:round;width:16px;height:16px}.k91x4a_menu{background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1,#fff));min-width:148px;backdrop-filter:var(--dsw-menu-backdrop-filter);border-radius:var(--dsw-radius-lg,10px);box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 3px 8px #00000014);padding:4px;display:grid;position:absolute;top:calc(100% + 4px);right:0}.k91x4a_menu button{justify-content:flex-start;width:100%}.k91x4a_menu hr{border:0;border-top:1px solid var(--dsw-alias-border-l1);width:100%;margin:4px 0}body:has([role=dialog][aria-modal=true]) .k91x4a_toolbar{visibility:hidden;pointer-events:none}@keyframes k91x4a_toolbarIn{0%{opacity:0;translate:0 2px}to{opacity:1;translate:0}}@media (prefers-reduced-motion:reduce){.k91x4a_toolbar{animation:none}}";
+		const tagId$3 = "@kirkchinese/dsh-citeciter/SelectionToolbar.module.css";
+		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$3) + "]") === null) {
 			const tag = document.createElement("style");
 			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$4;
-			tag.textContent = css$4;
+			tag.dataset.pluginCss = tagId$3;
+			tag.textContent = css$3;
 			document.head.appendChild(tag);
 		}
 		var SelectionToolbar_module_css_default = {
@@ -44542,43 +45233,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 		}
 		//#endregion
-		//#region \0dsh-css:src/client/components/NativeLearningDocument.module.css.mjs
-		const css$3 = ".cNpn2a_document{height:100%;min-height:0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13,13px/20px system-ui, sans-serif);flex-direction:column;display:flex}.cNpn2a_document header{border-bottom:.5px solid var(--dsw-alias-border-l3,#e4e7ec);justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;display:flex}.cNpn2a_document strong{font-weight:500}.cNpn2a_document small{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);display:block}.cNpn2a_document button{height:28px;color:var(--dsw-alias-label-primary);white-space:nowrap;border:.5px solid var(--dsw-alias-border-l3,#d9dde5);border-radius:var(--dsw-radius-sm,6px);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);cursor:pointer;background:0 0;padding:0 10px}.cNpn2a_document button:hover{background:var(--dsw-alias-interactive-bg-hover)}.cNpn2a_document p{font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);margin:8px 12px}.cNpn2a_document nav{justify-content:center;align-items:center;gap:16px;padding:8px;display:flex}.cNpn2a_document [role=alert]{color:var(--dsw-alias-state-error-primary,#c93f3f)}.cNpn2a_document textarea{box-sizing:border-box;resize:none;width:100%;min-height:120px;color:inherit;font:13px/1.7 var(--dsw-font-mono,ui-monospace, Consolas, monospace);tab-size:4;background:0 0;border:0;outline:none;flex:1;padding:12px 14px}";
-		const tagId$3 = "@kirkchinese/dsh-citeciter/NativeLearningDocument.module.css";
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$3) + "]") === null) {
-			const tag = document.createElement("style");
-			tag.dataset.plugin = "@kirkchinese/dsh-citeciter";
-			tag.dataset.pluginCss = tagId$3;
-			tag.textContent = css$3;
-			document.head.appendChild(tag);
-		}
-		var NativeLearningDocument_module_css_default = { "document": "cNpn2a_document" };
-		/** Split UTF-8 text without breaking code points; concatenation exactly reproduces the input. */
-		function documentPages(content) {
-			const pages = [];
-			let start = 0, offset = 0, bytes = 0;
-			for (const character of content) {
-				const code = character.codePointAt(0);
-				const size = code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
-				if (bytes + size > 512e3) {
-					pages.push(content.slice(start, offset));
-					start = offset;
-					bytes = 0;
-				}
-				offset += character.length;
-				bytes += size;
-			}
-			pages.push(content.slice(start));
-			return pages;
-		}
-		//#endregion
 		//#region lib/types/client/components/NativeLearningDocument.js
-		/** Alternate native document renderer. DSH owns loading, reload and file navigation. */
-		function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface, openActions }) {
+		/**
+		* Citer's reading view of a workspace file, offered by DSH's file preview next to its own views.
+		* DSH owns loading, reload and file navigation; Citer renders the text like a library document.
+		*/
+		function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface }) {
 			const localeRevision = useLocale();
-			const field = (0, react.useRef)(null);
-			const [error, setError] = (0, react.useState)(null);
-			const [page, setPage] = (0, react.useState)(0);
 			const decoded = (0, react.useMemo)(() => {
 				try {
 					return {
@@ -44592,96 +45253,26 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					};
 				}
 			}, [content, localeRevision]);
-			const pages = (0, react.useMemo)(() => documentPages(decoded.text), [decoded.text]);
-			const currentPage = Math.min(page, pages.length - 1);
-			const read = () => {
-				const selected = field.current === null ? null : readTextareaSelection(field.current);
-				if (selected === null || decoded.error !== null) return null;
-				try {
-					return nativeDocumentSource(resourceAddress, decoded.text, selected);
-				} catch (error) {
-					setError(error instanceof Error ? error.message : String(error));
-					return null;
-				}
-			};
-			(0, react.useEffect)(() => {
-				const element = field.current;
-				if (element === null) return;
-				return registerSurface(element, read);
-			}, [
+			const format = /\.(md|markdown)$/iu.test(resourceAddress) ? "markdown" : "text";
+			if (decoded.error !== null) return (0, react_jsx_runtime.jsx)("p", {
+				className: LibraryDocument_module_css_default.state,
+				role: "alert",
+				children: decoded.error
+			});
+			return (0, react_jsx_runtime.jsx)(DocumentView, {
+				format,
+				content: decoded.text,
+				wrap,
+				note: t("settings.native.snapshot"),
+				scrollRef: scrollportRef,
 				registerSurface,
-				resourceAddress,
-				decoded.text,
-				currentPage
-			]);
-			(0, react.useEffect)(() => {
-				setError(null);
-				setPage(0);
-			}, [content, resourceAddress]);
-			(0, react.useEffect)(() => {
-				field.current?.setSelectionRange(0, 0);
-				if (field.current !== null) field.current.scrollTop = 0;
-			}, [currentPage, decoded.text]);
-			return (0, react_jsx_runtime.jsxs)("section", {
-				className: NativeLearningDocument_module_css_default.document,
-				children: [
-					(0, react_jsx_runtime.jsxs)("header", { children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("strong", { children: t("settings.native.title") }), (0, react_jsx_runtime.jsx)("small", { children: t("settings.native.hint") })] }), (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						onClick: (event) => {
-							try {
-								const source = read();
-								if (source === null) {
-									setError(t("settings.native.select"));
-									return;
-								}
-								setError(null);
-								const rect = event.currentTarget.getBoundingClientRect();
-								openActions(source, rect.left, rect.bottom);
-							} catch (error) {
-								setError(String(error));
-							}
-						},
-						children: t("settings.native.actions")
-					})] }),
-					(0, react_jsx_runtime.jsx)("p", { children: t("settings.native.snapshot") }),
-					(decoded.error ?? error) !== null && (0, react_jsx_runtime.jsx)("p", {
-						role: "alert",
-						children: decoded.error ?? error
-					}),
-					pages.length > 1 && (0, react_jsx_runtime.jsxs)("nav", {
-						"aria-label": t("settings.native.pagination"),
-						children: [
-							(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: currentPage === 0,
-								onClick: () => setPage(currentPage - 1),
-								children: t("settings.reader.previous")
-							}),
-							(0, react_jsx_runtime.jsxs)("span", { children: [
-								currentPage + 1,
-								" / ",
-								pages.length
-							] }),
-							(0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								disabled: currentPage === pages.length - 1,
-								onClick: () => setPage(currentPage + 1),
-								children: t("settings.reader.next")
-							})
-						]
-					}),
-					(0, react_jsx_runtime.jsx)("textarea", {
-						ref: (element) => {
-							field.current = element;
-							scrollportRef(element);
-						},
-						readOnly: true,
-						"aria-label": t("settings.native.body"),
-						value: pages[currentPage] ?? "",
-						wrap: wrap ? "soft" : "off",
-						spellCheck: false
-					})
-				]
+				toSource: (selection) => {
+					try {
+						return nativeDocumentSource(resourceAddress, decoded.text, selection);
+					} catch {
+						return null;
+					}
+				}
 			});
 		}
 		//#endregion
@@ -45880,230 +46471,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}, QuoteReference));
 		}
 		//#endregion
-		//#region lib/types/client/reader-controller.js
-		/** Reader panel controller: document library browsing, import, selection, and Topic creation. */
-		/** Initial Reader snapshot. */
-		function createInitialReaderSnapshot() {
-			return {
-				open: false,
-				documents: [],
-				documentsStatus: "idle",
-				active: null,
-				selection: null,
-				question: "",
-				creating: false,
-				importing: false,
-				loading: false,
-				error: null
-			};
-		}
-		function remoteValue(result) {
-			if (!result.ok) throw new Error(result.error.message);
-			return result.value;
-		}
-		function formatFromName(name) {
-			return /\.(md|markdown)$/iu.test(name) ? "markdown" : "text";
-		}
-		/** Bind the Reader store to the CiteCiter Remote and the companion Topic creator. */
-		function createReaderController(request, companion, store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(createInitialReaderSnapshot())) {
-			let disposed = false;
-			const lifecycle = new AbortController();
-			const operations = /* @__PURE__ */ new Set();
-			let documentGeneration = 0;
-			let refreshGeneration = 0;
-			const update = (mutator) => {
-				if (!disposed) store.update(mutator);
-			};
-			const fail = (error) => {
-				if (disposed) return;
-				update((draft) => {
-					draft.error = error instanceof Error ? error.message : String(error);
-					draft.creating = false;
-				});
-			};
-			const call = (command) => {
-				const operation = (async () => {
-					lifecycle.signal.throwIfAborted();
-					const result = await request(command, lifecycle.signal);
-					lifecycle.signal.throwIfAborted();
-					return remoteValue(result);
-				})().finally(() => operations.delete(operation));
-				operations.add(operation);
-				return operation;
-			};
-			const refresh = async () => {
-				if (disposed) return;
-				const generation = ++refreshGeneration;
-				update((draft) => {
-					draft.documentsStatus = "loading";
-					draft.error = null;
-				});
-				try {
-					const response = await call({ action: "documents" });
-					if (generation !== refreshGeneration) return;
-					if (response.kind !== "documents") throw new Error(t("settings.error.readerList"));
-					update((draft) => {
-						draft.documents = response.documents;
-						draft.documentsStatus = "ready";
-					});
-				} catch (error) {
-					if (!disposed && generation === refreshGeneration) update((draft) => {
-						draft.documentsStatus = "error";
-						draft.error = error instanceof Error ? error.message : String(error);
-					});
-				}
-			};
-			const setOpen = (open) => {
-				if (disposed || store.getSnapshot().open === open) return;
-				update((draft) => {
-					draft.open = open;
-					draft.error = null;
-				});
-				if (open) refresh();
-			};
-			const importFile = async (name, content) => {
-				if (disposed) return null;
-				try {
-					const title = name.trim() === "" ? t("settings.error.untitled") : name.trim();
-					const response = await call({
-						action: "document-import",
-						title,
-						format: formatFromName(name),
-						content
-					});
-					if (response.kind !== "document") throw new Error(t("settings.error.readerImport"));
-					await refresh();
-					return response.document;
-				} catch (error) {
-					fail(error);
-					return null;
-				}
-			};
-			const loadPage = async (documentId, page, resetQuestion) => {
-				if (disposed) return;
-				const generation = ++documentGeneration;
-				update((draft) => {
-					if (resetQuestion) draft.active = null;
-					draft.selection = null;
-					if (resetQuestion) draft.question = "";
-					draft.error = null;
-					draft.loading = true;
-				});
-				try {
-					const response = await call({
-						action: "document-get",
-						documentId,
-						page
-					});
-					if (generation !== documentGeneration) return;
-					if (response.kind !== "document-content") throw new Error(t("settings.error.readerContent"));
-					update((draft) => {
-						draft.active = response.document;
-					});
-				} catch (error) {
-					if (generation === documentGeneration) fail(error);
-				} finally {
-					if (generation === documentGeneration) update((draft) => {
-						draft.loading = false;
-					});
-				}
-			};
-			const openDocument = (documentId) => loadPage(documentId, 0, true);
-			const openPage = async (page) => {
-				const { active, loading } = store.getSnapshot();
-				if (active === null || loading || page < 0 || page >= active.pageCount) return;
-				await loadPage(active.documentId, page, false);
-			};
-			const importLocalFile = async (file) => {
-				if (disposed || store.getSnapshot().importing) return;
-				update((draft) => {
-					draft.importing = true;
-					draft.error = null;
-				});
-				try {
-					if (file.size > 8388608) throw new Error(t("settings.error.fileTooLarge"));
-					const content = await file.text();
-					if (disposed) return;
-					if (content.length > 2e6) throw new Error(t("settings.error.textTooLarge"));
-					const imported = await importFile(file.name, content);
-					if (imported !== null) await openDocument(imported.documentId);
-				} catch (error) {
-					fail(error);
-				} finally {
-					update((draft) => {
-						draft.importing = false;
-					});
-				}
-			};
-			const createTopic = async () => {
-				if (disposed) return;
-				const snapshot = store.getSnapshot();
-				if (snapshot.creating || snapshot.loading) return;
-				const generation = documentGeneration;
-				const selection = snapshot.selection;
-				const question = snapshot.question.trim();
-				if (snapshot.active === null || selection === null) {
-					fail(new Error(t("settings.error.selectDocument")));
-					return;
-				}
-				if (question === "") {
-					fail(new Error(t("settings.error.enterQuestion")));
-					return;
-				}
-				update((draft) => {
-					draft.creating = true;
-					draft.error = null;
-				});
-				try {
-					await companion.createFromDocument({
-						documentId: snapshot.active.documentId,
-						displayText: selection.displayText,
-						prefixText: selection.prefixText,
-						suffixText: selection.suffixText
-					}, question);
-					update((draft) => {
-						draft.creating = false;
-						if (generation === documentGeneration && draft.question === snapshot.question) {
-							draft.open = false;
-							draft.selection = null;
-							draft.question = "";
-						}
-					});
-				} catch (error) {
-					fail(error);
-				}
-			};
-			return {
-				getSnapshot: store.getSnapshot,
-				subscribe: store.subscribe,
-				setOpen,
-				refresh,
-				importFile,
-				importLocalFile,
-				openDocument,
-				openPage,
-				setSelection: (selection) => {
-					if (disposed) return;
-					update((draft) => {
-						draft.selection = selection;
-					});
-				},
-				setQuestion: (question) => {
-					if (disposed) return;
-					update((draft) => {
-						draft.question = question;
-					});
-				},
-				createTopic,
-				dispose: async () => {
-					if (disposed) return;
-					disposed = true;
-					lifecycle.abort(new DOMException("CiteCiter is shutting down", "AbortError"));
-					while (operations.size > 0) await Promise.allSettled([...operations]);
-				}
-			};
-		}
-		//#endregion
 		//#region lib/types/client/settings-document.js
 		const INITIAL = Object.freeze({
 			status: "idle",
@@ -46237,7 +46604,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				sidebarAvailable: false,
 				activation: 0,
 				presentation: "side",
-				boardCitation: null
+				boardCitation: null,
+				document: null
 			};
 			listeners = /* @__PURE__ */ new Set();
 			/** @param reportListenerError - contains one failed browser subscriber. */
@@ -46279,6 +46647,28 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					this.visibleTabs -= 1;
 					if (this.visibleTabs === 0) this.setPanelOpen(false);
 				};
+			}
+			/** Show a library document in Citer's own panel, scrolled to `offset` when given. */
+			showDocument(documentId, offset) {
+				const revision = (this.snapshot.document?.revision ?? 0) + 1;
+				this.snapshot = {
+					...this.snapshot,
+					document: {
+						documentId,
+						...offset === void 0 ? {} : { offset },
+						revision
+					}
+				};
+				this.notify();
+			}
+			/** Close the document shown in Citer's own panel. */
+			closeDocument() {
+				if (this.snapshot.document === null) return;
+				this.snapshot = {
+					...this.snapshot,
+					document: null
+				};
+				this.notify();
 			}
 			/** Record whether the host offers DSH's right sidebar. */
 			setSidebarAvailable(sidebarAvailable) {
@@ -48739,9 +49129,29 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				};
 				const disposeHotkey = installDynamicAccelerator(() => settings.getSnapshot().value?.shortcutOpenPanel, openPanel);
 				const companion = createCompanionController(readChat, settings, (request, signal) => remoteCtx.remote.citeciter.request(request, signal), openPanel, (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(INITIAL_COMPANION_SNAPSHOT), nativeComposer);
-				const reader = createReaderController((request, signal) => remoteCtx.remote.citeciter.request(request, signal), companion);
+				const library = createDocumentLibrary((request, signal) => remoteCtx.remote.citeciter.request(request, signal));
+				library.refresh();
+				let openDocumentTab;
+				const openDocument = (documentId, offset) => {
+					if (openDocumentTab !== void 0 && bus.getSnapshot().host === "tab") {
+						openDocumentTab(documentId, offset);
+						return;
+					}
+					bus.showDocument(documentId, offset);
+					bus.setPanelOpen(true);
+				};
+				const documentActions = {
+					open: openDocument,
+					load: library.load,
+					remove: library.remove,
+					refresh: library.refresh,
+					importFile: async (file) => {
+						const imported = await library.importFile(file);
+						if (imported !== null) openDocument(imported.documentId);
+					}
+				};
 				const surfaces = createSelectionSurfaces();
-				const execute = createActionExecutor(companion, reader, (presentation) => {
+				const execute = createActionExecutor(companion, library, (presentation) => {
 					bus.setPresentation(presentation);
 					openPanel();
 				});
@@ -48817,15 +49227,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					};
 				}, "citeciter: selection capture");
 				const companionActions = viewActions(companion);
-				const readerActions = viewActions(reader);
+				const libraryActions = viewActions(library);
 				const updateActions = viewActions(updateController);
-				const documentActions = viewActions(settingsDocument);
+				const settingsDocumentActions = viewActions(settingsDocument);
 				const busActions = {
 					setPanelOpen: bus.setPanelOpen.bind(bus),
 					holdTabVisible: bus.holdTabVisible.bind(bus),
 					setPresentation: bus.setPresentation.bind(bus),
 					requestBoardCitation: bus.requestBoardCitation.bind(bus),
-					clearBoardCitation: bus.clearBoardCitation.bind(bus)
+					clearBoardCitation: bus.clearBoardCitation.bind(bus),
+					closeDocument: bus.closeDocument.bind(bus)
 				};
 				remoteCtx.slots.inject("shell.overlay", () => remoteCtx.slots.register({
 					name: "shell.overlay",
@@ -48933,7 +49344,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					bus: busActions,
 					companion: companionActions,
 					closePanel,
-					openReader: () => reader.setOpen(true),
+					documents: documentActions,
 					reportParseError,
 					registerSurface: surfaces.register,
 					openFile,
@@ -48942,7 +49353,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						companion,
 						overlay: bus,
 						submission: submissionPreference,
-						interactions
+						interactions,
+						library
 					}
 				});
 				remoteCtx.slots.inject("shell.overlay", () => remoteCtx.slots.register({
@@ -48968,6 +49380,36 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						key: CITER_TAB_ID,
 						inject: panelInject
 					}, CiterTab));
+					sideCtx.effect(() => sideCtx.sidebarRightTabs.register({
+						id: DOCUMENT_TAB_ID,
+						kind: DOCUMENT_TAB_KIND,
+						patterns: [DOCUMENT_ADDRESS_PATTERN],
+						keepMounted: true,
+						title: (address) => {
+							const documentId = documentIdFromAddress(address);
+							return (documentId === void 0 ? void 0 : library.title(documentId)) ?? t("settings.reader.title");
+						}
+					}), "citeciter: document tab type");
+					sideCtx.slots.inject("sidebar.right.pane.tab", () => sideCtx.slots.register({
+						name: "sidebar.right.pane.tab",
+						key: DOCUMENT_TAB_ID,
+						inject: () => ({
+							library: libraryActions,
+							registerSurface: surfaces.register,
+							sourceSessionId: () => companion.getSnapshot().sourceSessionId,
+							hooks: { library }
+						})
+					}, DocumentTab));
+					openDocumentTab = (documentId, offset) => {
+						try {
+							sideCtx.sidebarRight.openResource(documentAddress(documentId), offset === void 0 ? {} : { params: { offset } });
+						} catch (error) {
+							remoteCtx.logger.warn("Citer could not open a document tab", error);
+						}
+					};
+					sideCtx.effect(() => () => {
+						openDocumentTab = void 0;
+					}, "citeciter: document tabs");
 					const openSidebarTab = (presentation) => {
 						try {
 							sideCtx.sidebarRight.openTab(CITER_TAB_KIND, presentation === "floating" ? { preferNewPane: true } : {});
@@ -48993,16 +49435,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				});
 				remoteCtx.slots.inject("shell.overlay", () => remoteCtx.slots.register({
 					name: "shell.overlay",
-					id: "citeciter.reader",
-					inject: () => ({
-						reader: readerActions,
-						registerSurface: surfaces.register,
-						sourceSessionId: () => companion.getSnapshot().sourceSessionId,
-						hooks: { reader }
-					})
-				}, DocumentReader));
-				remoteCtx.slots.inject("shell.overlay", () => remoteCtx.slots.register({
-					name: "shell.overlay",
 					id: "citeciter.update-notice",
 					inject: () => ({
 						updateController: updateActions,
@@ -49023,7 +49455,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				}, BlackboardWorkspace));
 				const settingsInject = () => ({
 					companion: companionActions,
-					settingsDocument: documentActions,
+					settingsDocument: settingsDocumentActions,
 					updateController: updateActions,
 					hooks: {
 						companion,
@@ -49051,7 +49483,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					await Promise.all([
 						actions.dispose(),
 						companion.dispose(),
-						reader.dispose(),
+						library.dispose(),
 						settingsDocument.dispose(),
 						updateController.dispose()
 					]);

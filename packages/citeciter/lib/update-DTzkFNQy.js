@@ -1740,6 +1740,8 @@ const topicSnapshotSchema = z.object({
 	captureId: z.string().optional(),
 	usage: topicUsageSchema.optional(),
 	documentTitle: z.string().optional(),
+	/** One-based line of the document where the Topic's citation starts. */
+	documentLine: z.number().int().positive().optional(),
 	topic: topicSummarySchema,
 	messages: z.array(topicMessageSchema),
 	pendingQuestion: pendingQuestionSchema.nullable(),
@@ -1781,7 +1783,12 @@ const documentEvidenceClaimSchema = z.object({
 	documentId: z.string().min(1),
 	displayText: z.string().min(1).max(32e3),
 	prefixText: z.string().max(1e3),
-	suffixText: z.string().max(1e3)
+	suffixText: z.string().max(1e3),
+	/** Source range of the rendered Markdown blocks holding the selection; absent for literal text. */
+	sourceRange: z.object({
+		start: z.number().int().nonnegative(),
+		end: z.number().int().positive()
+	}).strict().optional()
 }).strict();
 /** Document format accepted by the CiteCiter private document library. */
 const documentFormatSchema = z.enum(["text", "markdown"]);
@@ -1961,6 +1968,10 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 		action: z.literal("document-get"),
 		documentId: z.string().min(1),
 		page: z.number().int().nonnegative().optional()
+	}).strict(),
+	z.object({
+		action: z.literal("document-delete"),
+		documentId: z.string().min(1)
 	}).strict()
 ])]);
 /** Strict response union returned by the single Remote command endpoint. */

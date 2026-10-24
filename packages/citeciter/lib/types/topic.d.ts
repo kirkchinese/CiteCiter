@@ -565,6 +565,7 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         contextWindow: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>;
     documentTitle: z.ZodOptional<z.ZodString>;
+    documentLine: z.ZodOptional<z.ZodNumber>;
     topic: z.ZodObject<{
         modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
         permission: z.ZodOptional<z.ZodEnum<{
@@ -912,6 +913,10 @@ export declare const documentEvidenceClaimSchema: z.ZodObject<{
     displayText: z.ZodString;
     prefixText: z.ZodString;
     suffixText: z.ZodString;
+    sourceRange: z.ZodOptional<z.ZodObject<{
+        start: z.ZodNumber;
+        end: z.ZodNumber;
+    }, z.core.$strict>>;
 }, z.core.$strict>;
 /** Browser claim whose offsets the Host re-resolves against the stored document text. */
 export type DocumentEvidenceClaim = z.infer<typeof documentEvidenceClaimSchema>;
@@ -998,6 +1003,10 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
         displayText: z.ZodString;
         prefixText: z.ZodString;
         suffixText: z.ZodString;
+        sourceRange: z.ZodOptional<z.ZodObject<{
+            start: z.ZodNumber;
+            end: z.ZodNumber;
+        }, z.core.$strict>>;
     }, z.core.$strict>;
     action: z.ZodLiteral<"create">;
     modelRoute: z.ZodOptional<z.ZodObject<{
@@ -1196,6 +1205,9 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
     action: z.ZodLiteral<"document-get">;
     documentId: z.ZodString;
     page: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"document-delete">;
+    documentId: z.ZodString;
 }, z.core.$strict>], "action">]>;
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>;
 /** Strict response union returned by the single Remote command endpoint. */
@@ -1523,6 +1535,7 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             contextWindow: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strict>>;
         documentTitle: z.ZodOptional<z.ZodString>;
+        documentLine: z.ZodOptional<z.ZodNumber>;
         topic: z.ZodObject<{
             modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
             permission: z.ZodOptional<z.ZodEnum<{
