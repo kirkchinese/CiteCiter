@@ -18,6 +18,7 @@ import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { UseSessions } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { CiteOverlaySnapshot } from '../types.ts'
 import type { SelectionSurfaces } from '../wheel-gesture.ts'
+import type { FileOpener } from '../native-file-link.ts'
 import { MODEL_SELECTION_REQUIRED } from '../../model-admission.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
 import type { CompanionActions, OverlayActions } from '../view-actions.ts'
@@ -163,6 +164,8 @@ export interface CitePanelProps {
   readonly useSessions?: UseSessions
   /** Makes text selected in the transcript a Citer action source that continues this Topic. */
   readonly registerSurface?: SelectionSurfaces['register']
+  /** Opens a source-workspace file in DSH's right sidebar. */
+  readonly openFile?: FileOpener
 }
 
 /** Text selected inside the transcript element, or null. */
@@ -179,7 +182,7 @@ function transcriptSelection(transcript: HTMLElement): string | null {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface }: CitePanelProps) {
+export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile }: CitePanelProps) {
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
   const sessionRows = useSessions?.(value => value.byId)
@@ -220,6 +223,9 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const active = snapshot.active
   const activeTopicId = active?.topic.sessionId
   const activeSourceId = active?.topic.sourceSessionId
+  // Topic tools run in the source Session's workspace, so its root resolves their paths.
+  const openTopicFile = openFile === undefined || activeSourceId === undefined ? undefined
+    : (path: string, line?: number) => openFile(activeSourceId, path, line)
   useEffect(() => {
     if (transcriptNode === null || registerSurface === undefined || activeTopicId === undefined || activeSourceId === undefined) return
     return registerSurface(transcriptNode, () => {
@@ -510,7 +516,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                 {visibleMessages.map((message) => {
                   if (message.role === 'tool') {
                     if (message.parentCallId !== undefined && toolIds.has(message.parentCallId)) return null
-                    return <ToolRow key={message.id} message={message} childCalls={childCalls.get(message.id) ?? NO_CHILD_CALLS} sessionId={active!.topic.sessionId} load={nativeComposer.attachment} />
+                    return <ToolRow key={message.id} message={message} childCalls={childCalls.get(message.id) ?? NO_CHILD_CALLS} sessionId={active!.topic.sessionId} load={nativeComposer.attachment} openFile={openTopicFile} />
                   }
                   if (message.role === 'user') return (
                     <article key={message.id} className={css.userTurn} data-citeciter-message={message.id} aria-label="用户消息">

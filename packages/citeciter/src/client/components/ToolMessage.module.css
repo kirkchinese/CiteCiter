@@ -71,3 +71,25 @@
   padding-left: 12px;
   border-left: 1px solid var(--dsw-alias-border-l3);
 }
+
+/* The file a read or edit touched, opening in DSH's right sidebar like the host's own file links. */
+.fileLink {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 0 6px;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-link, var(--dsw-alias-state-business-primary));
+  font: inherit;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fileLink:hover {
+  text-decoration: underline;
+}

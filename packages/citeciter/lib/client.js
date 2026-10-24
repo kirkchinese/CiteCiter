@@ -37144,7 +37144,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/ToolMessage.module.css.mjs
-		const css$20 = ".lS8PaG_flowDisclosure{min-width:0;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px)}.lS8PaG_flowRow{min-width:0;height:calc(24px + var(--dsh-content-font-delta,0px));align-items:center;display:flex}.lS8PaG_flowDot{color:var(--dsw-alias-label-tertiary);flex:none;margin:0 6px}.lS8PaG_flowSummary{min-width:0;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.lS8PaG_toolBody{min-width:0;margin:4px 0 4px 22px}.lS8PaG_genericBody{background:var(--dsw-alias-markdown-code-block);border-radius:var(--dsw-radius-md);gap:6px;max-height:360px;padding:8px 10px;display:grid;overflow:auto}.lS8PaG_genericBody>strong{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);font-weight:500}.lS8PaG_genericBody pre,.lS8PaG_recovery pre{overflow-wrap:anywhere;font:12px/18px var(--dsw-font-mono,ui-monospace, monospace);white-space:pre-wrap;margin:0}.lS8PaG_recovery{color:var(--dsw-alias-label-tertiary);margin-top:6px}.lS8PaG_recovery pre{max-height:240px;overflow:auto}.lS8PaG_childCalls{border-left:1px solid var(--dsw-alias-border-l3);gap:4px;margin-top:8px;padding-left:12px;display:grid}";
+		const css$20 = ".lS8PaG_flowDisclosure{min-width:0;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px)}.lS8PaG_flowRow{min-width:0;height:calc(24px + var(--dsh-content-font-delta,0px));align-items:center;display:flex}.lS8PaG_flowDot{color:var(--dsw-alias-label-tertiary);flex:none;margin:0 6px}.lS8PaG_flowSummary{min-width:0;color:var(--dsw-alias-label-tertiary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.lS8PaG_toolBody{min-width:0;margin:4px 0 4px 22px}.lS8PaG_genericBody{background:var(--dsw-alias-markdown-code-block);border-radius:var(--dsw-radius-md);gap:6px;max-height:360px;padding:8px 10px;display:grid;overflow:auto}.lS8PaG_genericBody>strong{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12,12px/18px system-ui, sans-serif);font-weight:500}.lS8PaG_genericBody pre,.lS8PaG_recovery pre{overflow-wrap:anywhere;font:12px/18px var(--dsw-font-mono,ui-monospace, monospace);white-space:pre-wrap;margin:0}.lS8PaG_recovery{color:var(--dsw-alias-label-tertiary);margin-top:6px}.lS8PaG_recovery pre{max-height:240px;overflow:auto}.lS8PaG_childCalls{border-left:1px solid var(--dsw-alias-border-l3);gap:4px;margin-top:8px;padding-left:12px;display:grid}.lS8PaG_fileLink{max-width:100%;color:var(--dsw-alias-link,var(--dsw-alias-state-business-primary));font:inherit;font-size:var(--dsh-content-font-size-secondary,13px);text-align:start;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;background:0 0;border:none;margin:0 0 6px;padding:0;display:inline-block;overflow:hidden}.lS8PaG_fileLink:hover{text-decoration:underline}";
 		const tagId$20 = "@kirkchinese/dsh-citeciter/ToolMessage.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$20) + "]") === null) {
 			const tag = document.createElement("style");
@@ -37155,6 +37155,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		var ToolMessage_module_css_default = {
 			"childCalls": "lS8PaG_childCalls",
+			"fileLink": "lS8PaG_fileLink",
 			"flowDisclosure": "lS8PaG_flowDisclosure",
 			"flowDot": "lS8PaG_flowDot",
 			"flowRow": "lS8PaG_flowRow",
@@ -37267,11 +37268,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				})] });
 			}
 		}
+		/** The file a read or edit card is about, and the first line it showed. */
+		function cardFile(message, card) {
+			if (card?.kind === "diff") return { path: card.path };
+			if (card?.kind !== "read") return null;
+			const args = jsonObject(message.arguments);
+			const path = typeof args?.path === "string" ? args.path : typeof args?.file_path === "string" ? args.file_path : null;
+			const line = card.lines[0]?.number;
+			return path === null ? null : {
+				path,
+				...line === void 0 ? {} : { line }
+			};
+		}
 		/** Keep a tool tree inside the parent's disclosure; absent metadata uses the original lossless inspector. */
-		function ToolRow({ message, childCalls, sessionId, load }) {
+		function ToolRow({ message, childCalls, sessionId, load, openFile }) {
 			const view = toolPresentation(message);
 			const card = deriveToolCard(message);
 			const reply = deriveQuestionReply(message);
+			const file = openFile === void 0 ? null : cardFile(message, card);
 			return (0, react_jsx_runtime.jsxs)("div", {
 				"data-citeciter-message": message.id,
 				children: [(0, react_jsx_runtime.jsx)(FlowDisclosure, {
@@ -37281,19 +37295,30 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					running: view.running,
 					children: (0, react_jsx_runtime.jsxs)("div", {
 						className: ToolMessage_module_css_default.toolBody,
-						children: [reply !== null ? (0, react_jsx_runtime.jsx)(QuestionReplyBody, { reply }) : message.name === "workspace_changes" && message.result !== null && !message.isError ? (0, react_jsx_runtime.jsx)(RichAnswer, {
-							text: message.result,
-							streaming: false
-						}) : card !== null ? (0, react_jsx_runtime.jsx)(CardBody, { card }) : (0, react_jsx_runtime.jsx)(GenericBody, { message }), childCalls.length > 0 && (0, react_jsx_runtime.jsx)("div", {
-							className: ToolMessage_module_css_default.childCalls,
-							"aria-label": "子工具调用",
-							children: childCalls.map((child) => (0, react_jsx_runtime.jsx)(ToolRow, {
-								message: child,
-								childCalls: [],
-								sessionId,
-								load
-							}, child.id))
-						})]
+						children: [
+							file !== null && (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: ToolMessage_module_css_default.fileLink,
+								title: "在右侧栏打开",
+								onClick: () => openFile?.(file.path, file.line),
+								children: file.path
+							}),
+							reply !== null ? (0, react_jsx_runtime.jsx)(QuestionReplyBody, { reply }) : message.name === "workspace_changes" && message.result !== null && !message.isError ? (0, react_jsx_runtime.jsx)(RichAnswer, {
+								text: message.result,
+								streaming: false
+							}) : card !== null ? (0, react_jsx_runtime.jsx)(CardBody, { card }) : (0, react_jsx_runtime.jsx)(GenericBody, { message }),
+							childCalls.length > 0 && (0, react_jsx_runtime.jsx)("div", {
+								className: ToolMessage_module_css_default.childCalls,
+								"aria-label": "子工具调用",
+								children: childCalls.map((child) => (0, react_jsx_runtime.jsx)(ToolRow, {
+									message: child,
+									childCalls: [],
+									sessionId,
+									load,
+									openFile
+								}, child.id))
+							})
+						]
 					})
 				}), (0, react_jsx_runtime.jsx)(MessageAttachments, {
 					sessionId,
@@ -40183,7 +40208,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* @param props - shared panel bus, Topic controller, and host callbacks.
 		* @returns the responsive Topic dock and its dialogs, or null while closed.
 		*/
-		function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface }) {
+		function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile }) {
 			const overlay = useOverlay((value) => value);
 			const snapshot = useCompanion((value) => value);
 			const sessionRows = useSessions?.((value) => value.byId);
@@ -40234,6 +40259,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const active = snapshot.active;
 			const activeTopicId = active?.topic.sessionId;
 			const activeSourceId = active?.topic.sourceSessionId;
+			const openTopicFile = openFile === void 0 || activeSourceId === void 0 ? void 0 : (path, line) => openFile(activeSourceId, path, line);
 			(0, react.useEffect)(() => {
 				if (transcriptNode === null || registerSurface === void 0 || activeTopicId === void 0 || activeSourceId === void 0) return;
 				return registerSurface(transcriptNode, () => {
@@ -40637,7 +40663,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 																message,
 																childCalls: childCalls.get(message.id) ?? NO_CHILD_CALLS,
 																sessionId: active.topic.sessionId,
-																load: nativeComposer.attachment
+																load: nativeComposer.attachment,
+																openFile: openTopicFile
 															}, message.id);
 														}
 														if (message.role === "user") return (0, react_jsx_runtime.jsxs)("article", {
@@ -42693,9 +42720,27 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		*/
 		/** The scheme and type every file address opens with. */
 		const FILE_ADDRESS_PREFIX = "dsh-resource://file/";
+		/** Component-encode one id or path segment, keeping `:` literal for drive letters. */
+		function encodeSegment(segment) {
+			return encodeURIComponent(segment).replace(/%3A/gi, ":");
+		}
+		/** Encode a `/`-separated path segment by segment. */
+		function encodePath(path) {
+			return path.split("/").map(encodeSegment).join("/");
+		}
 		/** Whether a decoded first path segment is a Windows drive (`C:`). */
 		function isDriveSegment(segment) {
 			return segment !== void 0 && /^[A-Za-z]:$/.test(segment);
+		}
+		/**
+		* Build the address of a file read through one Session.
+		* @param sessionId - the Session whose Host workspace resolves the path.
+		* @param path - absolute or workspace-relative path; backslashes are normalized to `/`, and leading `./` prefixes are dropped.
+		* @returns the `dsh-resource://file/session/<sessionId>/<path>` address.
+		*/
+		function sessionFileAddress(sessionId, path) {
+			const normalized = path.replace(/\\/g, "/").replace(/^(?:\.\/)+/, "");
+			return `${FILE_ADDRESS_PREFIX}session/${encodeSegment(sessionId)}/${encodePath(normalized)}`;
 		}
 		/**
 		* Read a file address back into its parts without resolving `.` or `..`.
@@ -46492,6 +46537,34 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 		}
 		//#endregion
+		//#region lib/types/client/native-file-link.js
+		/**
+		* Follow the optional right-sidebar service for the lifetime of `ctx`.
+		* @param ctx - Client context; the sidebar may be absent or come and go with its plugin.
+		* @returns an opener that resolves paths against the source Session's workspace root.
+		*/
+		function createFileOpener(ctx) {
+			let sidebar;
+			ctx.inject(["sidebarRight"], (sidebarCtx) => {
+				const service = sidebarCtx.sidebarRight;
+				if (typeof service?.openResource !== "function") return;
+				sidebar = service;
+				sidebarCtx.effect(() => () => {
+					sidebar = void 0;
+				}, "citeciter: right sidebar file links");
+			});
+			return (sessionId, path, line) => {
+				if (sidebar === void 0 || path.trim() === "") return false;
+				try {
+					sidebar.openResource(sessionFileAddress(sessionId, path), line === void 0 ? void 0 : { params: { line } });
+					return true;
+				} catch (error) {
+					ctx.logger.warn("Citer could not open a file in the right sidebar", error);
+					return false;
+				}
+			};
+		}
+		//#endregion
 		//#region lib/types/client/index.js
 		const name = "@kirkchinese/dsh-citeciter";
 		const inject = [
@@ -46531,6 +46604,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					} : null;
 				}, (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(INITIAL_UPDATE_SNAPSHOT), void 0, (error) => remoteCtx.logger.warn("CiteCiter update check failed", error));
 				const nativeComposer = createNativeComposer(remoteCtx);
+				const openFile = createFileOpener(remoteCtx);
 				const drafts = createDraftController(async (request) => {
 					const response = await remoteCtx.remote.citeciter.request(request);
 					if (!response.ok) throw new Error(response.error.message);
@@ -46754,6 +46828,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						openReader: () => reader.setOpen(true),
 						reportParseError,
 						registerSurface: surfaces.register,
+						openFile,
 						hooks: {
 							drafts,
 							companion,

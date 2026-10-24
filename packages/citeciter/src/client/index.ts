@@ -44,6 +44,7 @@ import { BoardCaptureWorker } from './components/BoardCaptureWorker.tsx'
 import { createDraftController } from './draft-controller.ts'
 import { hostSettings, hostInteractions } from './host-ui-adapter.ts'
 import { createSourceChatReader } from './host-source-chat.ts'
+import { createFileOpener } from './native-file-link.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
 export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'remote.userQuestions', 'conversation']
@@ -81,6 +82,7 @@ export async function apply(ctx: Context): Promise<void> {
       (error) => remoteCtx.logger.warn('CiteCiter update check failed', error),
     )
     const nativeComposer = createNativeComposer(remoteCtx)
+    const openFile = createFileOpener(remoteCtx)
     const drafts = createDraftController(async request => {
       const response = await remoteCtx.remote.citeciter.request(request)
       if (!response.ok) throw new Error(response.error.message)
@@ -250,7 +252,7 @@ export async function apply(ctx: Context): Promise<void> {
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.panel',
-      inject: () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, registerSurface: surfaces.register, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions } }),
+      inject: () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions } }),
     }, CitePanel))
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',

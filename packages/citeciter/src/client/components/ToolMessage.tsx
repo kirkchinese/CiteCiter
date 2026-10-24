@@ -88,25 +88,39 @@ function CardBody({ card }: { readonly card: ToolCard }) {
   }
 }
 
+/** The file a read or edit card is about, and the first line it showed. */
+function cardFile(message: ToolMessage, card: ToolCard | null): { readonly path: string, readonly line?: number } | null {
+  if (card?.kind === 'diff') return { path: card.path }
+  if (card?.kind !== 'read') return null
+  const args = jsonObject(message.arguments) as { readonly path?: unknown, readonly file_path?: unknown } | null
+  const path = typeof args?.path === 'string' ? args.path : typeof args?.file_path === 'string' ? args.file_path : null
+  const line = card.lines[0]?.number
+  return path === null ? null : { path, ...(line === undefined ? {} : { line }) }
+}
+
 /** Keep a tool tree inside the parent's disclosure; absent metadata uses the original lossless inspector. */
-export function ToolRow({ message, childCalls, sessionId, load }: {
+export function ToolRow({ message, childCalls, sessionId, load, openFile }: {
   readonly message: ToolMessage
   readonly childCalls: readonly ToolMessage[]
   readonly sessionId: string
   readonly load: NativeComposer['attachment']
+  /** Open a source-workspace file in DSH's right sidebar; absent when the host has none. */
+  readonly openFile?: ((path: string, line?: number) => boolean) | undefined
 }) {
   const view = toolPresentation(message)
   const card = deriveToolCard(message)
   const reply = deriveQuestionReply(message)
+  const file = openFile === undefined ? null : cardFile(message, card)
   return <div data-citeciter-message={message.id}>
     <FlowDisclosure icon={<ToolIcon name={message.name} />} title={view.title} summary={view.summary} running={view.running}>
       <div className={css.toolBody}>
+        {file !== null && <button type="button" className={css.fileLink} title="在右侧栏打开" onClick={() => openFile?.(file.path, file.line)}>{file.path}</button>}
         {reply !== null ? <QuestionReplyBody reply={reply} />
           : message.name === 'workspace_changes' && message.result !== null && !message.isError
             ? <RichAnswer text={message.result} streaming={false} />
             : card !== null ? <CardBody card={card} /> : <GenericBody message={message} />}
         {childCalls.length > 0 && <div className={css.childCalls} aria-label="子工具调用">
-          {childCalls.map(child => <ToolRow key={child.id} message={child} childCalls={[]} sessionId={sessionId} load={load} />)}
+          {childCalls.map(child => <ToolRow key={child.id} message={child} childCalls={[]} sessionId={sessionId} load={load} openFile={openFile} />)}
         </div>}
       </div>
     </FlowDisclosure>
