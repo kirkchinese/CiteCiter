@@ -2,6 +2,19 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## 0.9.0-beta.5 — 2026-10-25
+
+Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` and `0.2.1-rc.3`.
+
+### Selection
+
+- 引用 (Quote) in the main conversation inserts a native DSH reference chip into the main composer, after the existing text and attachments, with the caret after it. The main agent receives `<quote from="assistant|user|tool">` with the exact passage, and from DSH `0.2.1-rc.2` sent messages show it as a chip. The clipboard fallback is gone.
+- The toolbar shows the first action, then 引用, then the next three actions. The built-in ask action is now 问 Citer (Ask Citer); built-in actions saved in English or by earlier versions show in the current language.
+
+### Workspace
+
+- Settings → Citer → Panel → "Don't use DSH's right sidebar" keeps Citer in its own panel, as in 0.9.0-beta.3; a Citer tab opened from the sidebar hands over to it.
+
 ## 0.9.0-beta.4 — 2026-10-25
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` and `0.2.1-rc.3`.

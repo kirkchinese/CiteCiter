@@ -1,0 +1,18 @@
+/* Matches DSH's reference chips in sent user text: inline, on the text's own baseline. */
+.chip {
+  display: inline;
+  max-width: 100%;
+  margin: 0 2px;
+  color: var(--dsw-alias-state-business-primary);
+  font-weight: 500;
+  white-space: inherit;
+  overflow-wrap: anywhere;
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 4px;
+  vertical-align: -0.125em;
+  fill: currentColor;
+}

@@ -1206,7 +1206,7 @@ const actionModelSchema = z.object({
 /** Toolbar order, and clockwise from twelve o'clock on the wheel. Empty slots retain their positions. */
 const DEFAULT_WHEEL_SLOTS = [
 	{
-		label: "提问",
+		label: "问 Citer",
 		prompt: "",
 		ask: true,
 		presentation: "side"
@@ -1341,6 +1341,8 @@ const topicScenarioSchema = z.enum([
 const citeCiterSettingsSchema = z.object({
 	includeSourceReasoning: z.boolean(),
 	panelWidthPercent: z.number().int().min(28).max(55),
+	/** Use Citer's own panel instead of a tab in DSH's right sidebar. */
+	standalonePanel: z.boolean().optional(),
 	reopenLastTopic: z.boolean(),
 	tutorPrompt: z.string().max(4e3).optional(),
 	followupQuestions: z.boolean().optional(),
@@ -1371,6 +1373,7 @@ const citeCiterSettingsSchema = z.object({
 const DEFAULT_CITECITER_SETTINGS = Object.freeze({
 	includeSourceReasoning: true,
 	panelWidthPercent: 34,
+	standalonePanel: false,
 	reopenLastTopic: true,
 	followupQuestions: true,
 	boardAnimations: true,

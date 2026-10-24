@@ -73,6 +73,8 @@ export declare const zh: {
     'settings.learning.tutorDesc': "补充你的讲解偏好，下次发送起生效；留空使用内置提示词。";
     'settings.learning.tutorPlaceholder': "例如：先给结论，再用一个小例子说明。";
     'settings.panel.title': "面板";
+    'settings.panel.standalone': "不使用 DSH 右侧栏";
+    'settings.panel.standaloneDesc': "改用 Citer 自己的独立面板，与 0.9.0-beta.3 及更早的版本相同。";
     'settings.panel.width': "默认宽度";
     'settings.panel.widthDesc': "也可以拖动面板左边缘调整。";
     'settings.panel.widthAria': "面板默认宽度";
@@ -99,11 +101,11 @@ export declare const zh: {
     'settings.actions.trigger': "轮盘触发键";
     'settings.actions.rightButton': "鼠标右键";
     'settings.actions.delivery': "预设动作";
-    'settings.actions.deliveryDesc': "“解释”“翻译”这类动作是直接发送，还是先放进输入框。“提问”总是先打开输入框。";
+    'settings.actions.deliveryDesc': "“解释”“翻译”这类动作是直接发送，还是先放进输入框。“问 Citer”总是先打开输入框。";
     'settings.actions.send': "直接发送";
     'settings.actions.draft': "放进输入框";
     'settings.actions.model': "新 Topic 的模型";
-    'settings.actions.modelDesc': "未指定时使用来源对话的模型。";
+    'settings.actions.modelDesc': "未指定时使用来源对话当前选择的模型。";
     'settings.actions.slots': "动作";
     'settings.actions.slotsDesc': "工具条显示前四个，其余在“⋯”里；轮盘从正上方顺时针排列。";
     'settings.actions.empty': "空";
@@ -211,8 +213,12 @@ export declare const zh: {
     'settings.status.saveFailed': "无法保存更新提醒设置，请重试。";
     'settings.status.enabled': "已开启版本更新提醒";
     'settings.status.disabled': "已关闭版本更新提醒";
-    'settings.status.quoteCopied': "输入框里有附件引用，引用已复制，粘贴到需要的位置即可";
     'settings.error.mainSubmitting': "主对话正在提交，请稍后重新引用";
+    'settings.error.quoteUnavailable': "当前 DSH 的输入框不接受引用，请升级 DSH";
+    'settings.error.quoteUnreadable': "这条引用无法读取，请删除后重新引用";
+    'settings.quote.fromAssistant': "引用助手的回复";
+    'settings.quote.fromUser': "引用你的消息";
+    'settings.quote.fromTool': "引用工具结果";
     'settings.error.deletedReceipt': "Citer 草稿删除回执身份不匹配";
     'settings.error.topicDeleted': "这个 Topic 已永久删除，未继续保存草稿";
     'settings.guide.description': "在独立 Topic 里追问选中的内容";

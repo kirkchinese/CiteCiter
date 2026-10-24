@@ -31,6 +31,7 @@ export const CITECITER_SETTINGS_NS = CITECITER_SETTINGS_NAMESPACE
 export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
   includeSourceReasoning: z.boolean().default(DEFAULT_CITECITER_SETTINGS.includeSourceReasoning),
   panelWidthPercent: z.number().step(1).min(28).max(55).default(DEFAULT_CITECITER_SETTINGS.panelWidthPercent),
+  standalonePanel: z.boolean().default(DEFAULT_CITECITER_SETTINGS.standalonePanel ?? false),
   reopenLastTopic: z.boolean().default(DEFAULT_CITECITER_SETTINGS.reopenLastTopic),
   tutorPrompt: z.string().max(4000).default(''),
   followupQuestions: z.boolean().default(DEFAULT_CITECITER_SETTINGS.followupQuestions ?? true),

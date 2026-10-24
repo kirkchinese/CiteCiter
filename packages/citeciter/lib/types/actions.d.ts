@@ -59,7 +59,8 @@ export declare const ENGLISH_WHEEL_SLOTS: readonly (CiteAction | null)[];
 /**
  * Resolve the actions for the current UI language without changing persisted settings. Saving
  * actions stores the whole list, so each slot is judged on its own: a built-in action the user
- * left unchanged (even if moved) follows the language; an edited or added action stays as written.
+ * left unchanged (even if moved, saved in another language or by an earlier version) shows in the
+ * current language; an edited or added action stays as written.
  */
 export declare function localizedWheelSlots(slots: readonly (CiteAction | null)[] | undefined, chinese: boolean): readonly (CiteAction | null)[];
 /**
@@ -69,12 +70,5 @@ export declare function localizedWheelSlots(slots: readonly (CiteAction | null)[
  * @returns `draft` for questions the user writes, otherwise the preference.
  */
 export declare function actionDelivery(action: CiteAction, preference: ActionDelivery | undefined): ActionDelivery;
-/**
- * Explain a preset action the host refused to send, which then moves into the composer.
- * The composer already explains a missing model, so that reason is not repeated.
- * @param reason - the host's refusal message.
- * @returns one message for the panel.
- */
-export declare function undeliveredActionMessage(reason: string): string;
 /** Combine a mode and optional user question without hidden system state. */
 export declare function actionQuestion(action: CiteAction, question: string): string;

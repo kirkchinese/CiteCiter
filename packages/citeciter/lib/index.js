@@ -1,4 +1,4 @@
-import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-D-jnLTb5.js";
+import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-Bti3dxU-.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -29,23 +29,6 @@ var __exportAll = (all, no_symbols) => {
 	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
 	return target;
 };
-//#endregion
-//#region lib/types/model-admission.js
-/** Keep an unavailable inherited route visible until the user explicitly replaces it. */
-const MODEL_SELECTION_REQUIRED = "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。";
-/** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
-async function selectInitialModel(metadata, select) {
-	try {
-		await select();
-	} catch (error) {
-		if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "session/model-unavailable") throw error;
-		metadata.modelSelectionRequired = true;
-	}
-}
-/** Check the durable flag before an explicit submission, without changing permissions or model defaults. */
-function requireSelectedModel(metadata) {
-	if (metadata.modelSelectionRequired === true) throw new Error(MODEL_SELECTION_REQUIRED);
-}
 //#endregion
 //#region lib/types/host-settings-adapter.js
 /** Keep settings live through the official Cordis configuration contract. */
@@ -2809,6 +2792,23 @@ async function migrateLegacyTopics(host, index, sources, native) {
 	} finally {
 		await legacy?.dispose();
 	}
+}
+//#endregion
+//#region lib/types/model-admission.js
+/** Keep an unavailable inherited route visible until the user explicitly replaces it. */
+const MODEL_SELECTION_REQUIRED = "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。";
+/** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
+async function selectInitialModel(metadata, select) {
+	try {
+		await select();
+	} catch (error) {
+		if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "session/model-unavailable") throw error;
+		metadata.modelSelectionRequired = true;
+	}
+}
+/** Check the durable flag before an explicit submission, without changing permissions or model defaults. */
+function requireSelectedModel(metadata) {
+	if (metadata.modelSelectionRequired === true) throw new Error(MODEL_SELECTION_REQUIRED);
 }
 //#endregion
 //#region lib/types/native-attachment-read.js
@@ -21249,6 +21249,7 @@ const CITECITER_SETTINGS_NS = CITECITER_SETTINGS_NAMESPACE;
 const CITECITER_SETTINGS_SCHEMA = z$1.object({
 	includeSourceReasoning: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.includeSourceReasoning),
 	panelWidthPercent: z$1.number().step(1).min(28).max(55).default(DEFAULT_CITECITER_SETTINGS.panelWidthPercent),
+	standalonePanel: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.standalonePanel ?? false),
 	reopenLastTopic: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.reopenLastTopic),
 	tutorPrompt: z$1.string().max(4e3).default(""),
 	followupQuestions: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.followupQuestions ?? true),

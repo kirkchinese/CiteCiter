@@ -44,8 +44,10 @@ export interface BoardCitationRequest {
 export interface CiteOverlaySnapshot {
   /** Visible: the docked overlay is open, or the right-sidebar tab is on screen. */
   readonly panelOpen: boolean
-  /** Where the workspace lives: DSH's right sidebar when the host offers it, else Citer's own overlay. */
+  /** Where the workspace lives: DSH's right sidebar, or Citer's own overlay. */
   readonly host: 'overlay' | 'tab'
+  /** Whether the host offers DSH's right sidebar, so the user can choose between the two. */
+  readonly sidebarAvailable: boolean
   /** Explicit navigation request, including reopening a temporarily covered panel. */
   readonly activation: number
   readonly presentation: PanelPresentation
@@ -54,7 +56,7 @@ export interface CiteOverlaySnapshot {
 
 /** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export class CiteBus {
-  private snapshot: CiteOverlaySnapshot = { panelOpen: false, host: 'overlay', activation: 0, presentation: 'side', boardCitation: null }
+  private snapshot: CiteOverlaySnapshot = { panelOpen: false, host: 'overlay', sidebarAvailable: false, activation: 0, presentation: 'side', boardCitation: null }
   private readonly listeners = new Set<() => void>()
 
   /** @param reportListenerError - contains one failed browser subscriber. */
@@ -95,6 +97,13 @@ export class CiteBus {
       this.visibleTabs -= 1
       if (this.visibleTabs === 0) this.setPanelOpen(false)
     }
+  }
+
+  /** Record whether the host offers DSH's right sidebar. */
+  setSidebarAvailable(sidebarAvailable: boolean): void {
+    if (this.snapshot.sidebarAvailable === sidebarAvailable) return
+    this.snapshot = { ...this.snapshot, sidebarAvailable }
+    this.notify()
   }
 
   /** Move the workspace between Citer's overlay and DSH's right sidebar; the overlay closes when the sidebar takes over. */
