@@ -1,14 +1,14 @@
 # CiteCiter
 
-[English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [更新记录](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.4/CHANGELOG.md) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
+[English](README.md) · [npm](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) · [更新记录](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.5/CHANGELOG.md) · [问题反馈](https://github.com/kirkchinese/CiteCiter/issues)
 
-![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.4/assets/hero/citeciter-hero.png)
+![CiteCiter](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.5/assets/hero/citeciter-hero.png)
 
 **AI 已经完成了任务，我还想弄明白它是怎么做的。**
 
 CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 的插件，帮助你从 Agent 的真实工作中学习。选中对话、工具结果或文档中的一段内容，在保留来源的独立 Topic 里追问，用小黑板理解关键关系，再回到原来的工作。主对话不会被改动。
 
-[![CiteCiter 演示](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.4/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
+[![CiteCiter 演示](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.5/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
 [在 B 站观看演示](https://www.bilibili.com/video/BV1tqeA65EJ8/)（早期版本录制，界面与当前版本略有不同）。
 
@@ -18,7 +18,7 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主�
 
 | DSH 版本 | CiteCiter 版本 |
 | --- | --- |
-| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2`、`0.2.1-rc.3` | `0.9.0-beta.4` |
+| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2`、`0.2.1-rc.3` | `0.9.0-beta.5` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -28,13 +28,13 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主�
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.4
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.5
 ```
 
 也可以从仓库安装某个发布标签，仓库内已包含构建好的插件，安装时无需构建：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.4"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.5"
 ```
 
 安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件。同一个 DSH 主目录不要同时运行两个宿主进程。
@@ -122,6 +122,6 @@ CiteCiter 尝试把真实的 AI 工作过程变成可引用、可追问、可检
 
 欢迎带着"Agent 已经完成了，但我还讲不清"的任务来[反馈](https://github.com/kirkchinese/CiteCiter/issues)。请写明 DSH 和插件版本，以及卡在安装、引用追问还是理解回答。贴材料前请移除密钥和私人内容。
 
-开发说明见 [CONTRIBUTING.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.4/CONTRIBUTING.zh.md)，产品规则见 [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.4/docs/product.zh.md)。同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于在 Claude Code 与 DSH 之间迁移会话和资产。
+开发说明见 [CONTRIBUTING.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.5/CONTRIBUTING.zh.md)，产品规则见 [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.5/docs/product.zh.md)。同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于在 Claude Code 与 DSH 之间迁移会话和资产。
 
 MIT License.

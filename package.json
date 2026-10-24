@@ -66,7 +66,7 @@
     "packages/citeciter/README.zh.md"
   ],
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.9.0-beta.4",
+  "version": "0.9.0-beta.5",
   "description": "Explore source conversations in private Topics with citations, drafts, visual boards, and learning cards.",
   "keywords": [
     "deepseek-harness",
