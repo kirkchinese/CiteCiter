@@ -11,7 +11,7 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 ### Workspace
 
 - Citer is a tab in DSH's right sidebar, with an entry on the sidebar's guide page. It sits beside files, terminals and other plugins' tabs, and DSH splits, floats, fullscreens and closes it like them; the desktop pet, the shortcut and the toolbar open it. Hosts without the right sidebar keep Citer's own panel.
-- The interface follows DSH's language setting, Chinese or English, through DSH's locale service, so language packs can add languages. Default actions change their names and prompts with the language; actions you saved stay as written.
+- The interface follows DSH's language setting, Chinese or English, through DSH's locale service, so language packs can add languages. Built-in actions change their names and prompts with the language one by one, also after you edit, add or reorder other actions; actions you edited or added stay as written.
 - Each Topic shows its token usage, cache hit rate and context occupancy under the composer.
 - DSH's plugin page shows Citer by name with its mascot and a description, and its page holds Citer's settings.
 
