@@ -1,6 +1,6 @@
 /** Private CiteCiter document library: durable text/Markdown sources for Reading Topics. */
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, unlink, writeFile } from 'node:fs/promises'
 import { isAbsolute, relative, resolve } from 'node:path'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import {
@@ -11,7 +11,7 @@ import {
   type DocumentSummary,
 } from './topic.ts'
 
-import { documentPages } from './document-pages.ts'
+import { documentPages, lineAtOffset } from './document-pages.ts'
 import { atomicReplace } from './atomic-replace.ts'
 export { DOCUMENT_CONTENT_MAX_BYTES } from './document-pages.ts'
 
@@ -74,6 +74,8 @@ function parseRecord(value: unknown, documentId: string): DocumentRecordFile {
 /** Validate and persist one imported text document under the private library. */
 export class DocumentStore {
   private readonly summaries = new Map<string, DocumentSummary>()
+  /** Line numbers of cited offsets; documents never change after import. */
+  private readonly lines = new Map<string, number>()
   /** @param root - private document library root. */
   constructor(private readonly root: string = DOCUMENT_ROOT) {}
 
@@ -134,6 +136,37 @@ export class DocumentStore {
     const content = await readFile(resolve(directory, 'content.txt'), 'utf8')
     if (record.size !== Buffer.byteLength(content, 'utf8')) throw new Error('文档内容与保存的长度不一致')
     return { record, content }
+  }
+
+  /**
+   * Remove one imported document. Topics that cited it keep their conversation; they only lose
+   * the document itself, as when it was missing.
+   * @param documentId - private document identity.
+   */
+  async delete(documentId: string): Promise<void> {
+    await rm(documentDirectory(this.root, documentId), { recursive: true, force: true })
+    this.summaries.delete(documentId)
+    for (const key of this.lines.keys()) if (key.startsWith(`${documentId}:`)) this.lines.delete(key)
+  }
+
+  /**
+   * One-based line holding an offset of a stored document, for showing where a citation starts.
+   * @returns the line, or undefined when the document can no longer be read.
+   */
+  async lineAt(documentId: string, offset: number): Promise<number | undefined> {
+    const key = `${documentId}:${offset}`
+    const cached = this.lines.get(key)
+    if (cached !== undefined) return cached
+    let content: string
+    try {
+      content = (await this.read(documentId)).content
+    } catch {
+      // ENOENT or a damaged record: the Topic shows no line rather than failing its snapshot.
+      return undefined
+    }
+    const line = lineAtOffset(content, offset)
+    this.lines.set(key, line)
+    return line
   }
 
   /** @returns all documents sorted by import time descending. */

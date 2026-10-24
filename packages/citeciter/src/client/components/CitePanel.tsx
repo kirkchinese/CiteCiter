@@ -22,7 +22,10 @@ import type { CiteOverlaySnapshot } from '../types.ts'
 import type { SelectionSurfaces } from '../wheel-gesture.ts'
 import type { FileOpener } from '../native-file-link.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
-import type { CompanionActions, OverlayActions } from '../view-actions.ts'
+import type { CompanionActions, DocumentActions, OverlayActions } from '../view-actions.ts'
+import type { DocumentLibrarySnapshot } from '../document-library.ts'
+import { LibraryDocument } from './LibraryDocument.tsx'
+import type { ListRequest } from './TopicNavigation.tsx'
 import {
   type CSSProperties,
   type FormEvent,
@@ -175,7 +178,9 @@ export interface CitePanelProps {
   readonly bus: OverlayActions
   readonly companion: CompanionActions
   readonly closePanel: () => void
-  readonly openReader: () => void
+  /** Citer's documents: the library list and opening documents in the sidebar or this panel. */
+  readonly documents: DocumentActions
+  readonly useLibrary: SnapshotSelectorHook<DocumentLibrarySnapshot>
   readonly reportParseError: (messageId: string) => void
   /** Host standard prop: the session list, used to show source titles on reference chips. */
   readonly useSessions?: UseSessions
@@ -206,7 +211,7 @@ function transcriptSelection(transcript: HTMLElement): string | null {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile, host = 'overlay', tabVisible = true }: CitePanelProps) {
+export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, useLibrary, reportParseError, registerSurface, openFile, host = 'overlay', tabVisible = true }: CitePanelProps) {
   useLocale()
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
@@ -226,9 +231,18 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const consumedSeeds = useRef(new Set<string>())
   const [views, setViews] = useState<Record<string, 'explain' | 'cards'>>({})
   const cards = useMemo(() => projectLearningCards(snapshot.active?.messages ?? []), [snapshot.active?.messages])
+  // Without DSH's right sidebar, a library document opens here, as a page beside the conversation.
+  const panelDocument = host === 'tab' ? null : overlay.document
+  const panelDocumentTitle = useLibrary(value => panelDocument === null ? undefined : value.documents.find(document => document.documentId === panelDocument.documentId)?.title)
+  const [documentShown, setDocumentShown] = useState(false)
+  useEffect(() => { if (panelDocument !== null) setDocumentShown(true) }, [panelDocument?.revision])
+  const panelDocumentDeleted = useLibrary(value => panelDocument !== null && value.deleted.includes(panelDocument.documentId))
+  useEffect(() => { if (panelDocumentDeleted) { setDocumentShown(false); bus.closeDocument() } }, [panelDocumentDeleted, bus])
   // The card tab exists only once a Topic has cards.
-  const view = cards.cards.length === 0 ? 'explain' : views[draftKey] ?? 'explain'
-  const setView = (next: 'explain' | 'cards') => setViews(current => ({ ...current, [draftKey]: next }))
+  const view: 'explain' | 'cards' | 'document' = documentShown && panelDocument !== null ? 'document' : cards.cards.length === 0 ? 'explain' : views[draftKey] ?? 'explain'
+  const setView = (next: 'explain' | 'cards') => { setDocumentShown(false); setViews(current => ({ ...current, [draftKey]: next })) }
+  const [listRequest, setListRequest] = useState<ListRequest | undefined>(undefined)
+  const documentInput = useRef<HTMLInputElement>(null)
   const [renameRequest, setRenameRequest] = useState(0)
   // Like DSH's chat, ordinary context stays out of the transcript unless the reader asks for it.
   const [allContext, setAllContext] = useState(false)
@@ -250,6 +264,11 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const active = snapshot.active
   const activeTopicId = active?.topic.sessionId
   const activeSourceId = active?.topic.sourceSessionId
+  // A Topic asked from a document names it and the line, and can open it there again.
+  const citationEntry = active?.topic.citation?.entry
+  const citedDocument = citationEntry?.kind === 'document-range' && active?.documentTitle !== undefined
+    ? { documentId: citationEntry.documentId, offset: citationEntry.startOffset, title: active.documentTitle, line: active.documentLine }
+    : null
   // Topic tools run in the source Session's workspace, so its root resolves their paths.
   const openTopicFile = openFile === undefined || activeSourceId === undefined ? undefined
     : (path: string, line?: number) => openFile(activeSourceId, path, line)
@@ -455,12 +474,21 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     {snapshot.topicsStatus === 'error' && <p className={css.panelError} role="alert">{t('panel.error.topics')}{snapshot.topicsError === null ? null : friendlyFailure(snapshot.topicsError)}</p>}
     {snapshot.notice !== null && <div className={css.panelNotice} role="status">{localizedNotice(snapshot.notice)}</div>}
 
-    {active === null && snapshot.draftQuote === null ? (
+    <input ref={documentInput} type="file" hidden accept=".md,.markdown,.txt,text/plain,text/markdown" onChange={(event) => {
+      const input = event.currentTarget
+      const file = input.files?.[0]
+      input.value = ''
+      if (file !== undefined) void documents.importFile(file)
+    }} />
+    {active === null && snapshot.draftQuote === null && view !== 'document' ? (
       <div className={css.emptyState}>
         <img className={css.emptyMascot} src={mascotUrl} alt="" aria-hidden="true" />
         <h2>{t('panel.empty.title')}</h2>
         <p>{t('panel.empty.description')}</p>
-        <Button variant="outline" size="sm" onClick={openNewTopic}>{t('panel.newTopic')}</Button>
+        <div className={css.emptyActions}>
+          <Button variant="outline" size="sm" onClick={openNewTopic}>{t('panel.newTopic')}</Button>
+          <Button variant="outline" size="sm" onClick={() => documentInput.current?.click()}>{t('settings.reader.openFile')}</Button>
+        </div>
         {snapshot.phase === 'creating' && <div className={css.loadingCard}>{t('panel.phase.creating')}</div>}
         {snapshot.error !== null && <p className={css.panelError} role="alert">{friendlyFailure(snapshot.error)}</p>}
       </div>
@@ -470,13 +498,25 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
           <summary>{t('panel.quote')}{compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? '', 70)}</summary>
           <blockquote>{active?.topic.citation?.displayText ?? snapshot.draftQuote}</blockquote>
         </details>}
+        {citedDocument !== null && <div className={css.contextSource}>
+          <span>{citedDocument.line === undefined ? citedDocument.title : t('settings.reader.citedAt', { title: citedDocument.title, line: citedDocument.line })}</span>
+          <button type="button" onClick={() => documents.open(citedDocument.documentId, citedDocument.offset)}>{t('settings.reader.open')}</button>
+        </div>}
         {active !== null && !active.topic.sourceAvailable && <p className={css.panelNotice} role="status">{t('panel.sourceUnavailable')}</p>}
 
         <LearningRoute enabled={snapshot.settings.learningRoute ?? false} messages={active?.messages ?? []} />
 
-        {cards.cards.length > 0 && <div className={css.views} role="tablist" aria-label={t('panel.content')}>
+        {(cards.cards.length > 0 || panelDocument !== null) && <div className={css.views} role="tablist" aria-label={t('panel.content')}>
           <button type="button" role="tab" aria-selected={view === 'explain'} onClick={() => setView('explain')}>{t('panel.conversation')}</button>
-          <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')}>{t('panel.cardsCount', { count: cards.cards.length })}</button>
+          {cards.cards.length > 0 && <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')}>{t('panel.cardsCount', { count: cards.cards.length })}</button>}
+          {panelDocument !== null && <span className={css.documentTab}>
+            <button type="button" role="tab" aria-selected={view === 'document'} title={panelDocumentTitle} onClick={() => setDocumentShown(true)}>{panelDocumentTitle ?? t('settings.reader.title')}</button>
+            <button type="button" className={css.documentClose} aria-label={t('settings.reader.close')} title={t('settings.reader.close')} onClick={() => { setDocumentShown(false); bus.closeDocument() }}>×</button>
+          </span>}
+        </div>}
+        {view === 'document' && panelDocument !== null && <div className={css.documentPane}>
+          <LibraryDocument documentId={panelDocument.documentId} focus={panelDocument.offset === undefined ? undefined : { offset: panelDocument.offset, revision: panelDocument.revision }}
+            library={documents} registerSurface={registerSurface ?? (() => () => {})} sourceSessionId={() => snapshot.sourceSessionId} />
         </div>}
 
         {view === 'explain' && <div ref={transcriptRef} className={css.transcript} aria-live="polite" onScroll={transcript.onScroll}>
@@ -605,6 +645,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
       <TopicHeader compact={compact} onBack={closePanel} onClose={inTab ? undefined : closePanel} onDrag={inTab ? undefined : drag.start} status={phaseLabel()[snapshot.phase]}
         title={active === null ? <strong>Citer</strong> : <TopicTitle id={active.topic.sessionId} title={active.topic.title} onRename={companion.rename} renameRequest={renameRequest} />}>
         <TopicNavigation topics={snapshot.topics} activeId={active?.topic.sessionId} archived={snapshot.includeArchived}
+          useLibrary={useLibrary} documents={documents} listRequest={listRequest}
           onOpen={id => { void companion.openTopic(id) }} onNew={openNewTopic} onArchiveView={companion.setIncludeArchived}
           menu={{
             topic: active === null ? undefined : { archived: active.topic.archived },
@@ -614,7 +655,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
             onAllContext: setAllContext,
             onRename: () => setRenameRequest(value => value + 1),
             onLearningRoute: value => { void companion.setSetting('learningRoute', value) },
-            onReader: openReader,
+            onReader: () => setListRequest(current => ({ page: 'documents', revision: (current?.revision ?? 0) + 1 })),
             onArchive: archived => { void companion.archive(archived) },
             onDelete: requestDelete,
           }}

@@ -111,6 +111,8 @@ export interface DocumentClaimIntent {
   readonly displayText: string
   readonly prefixText: string
   readonly suffixText: string
+  /** Source range of the rendered Markdown blocks holding the selection. */
+  readonly sourceRange?: { readonly start: number, readonly end: number } | undefined
 }
 
 /**
@@ -133,6 +135,7 @@ export function claimCreateDocumentIntent(
     claim.prefixText,
     claim.suffixText,
     question,
+    ...(claim.sourceRange === undefined ? [] : [claim.sourceRange.start, claim.sourceRange.end]),
   ]))
 }
 

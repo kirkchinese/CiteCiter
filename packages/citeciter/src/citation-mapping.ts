@@ -68,6 +68,28 @@ export function resolveDocumentRange(selection: CitationTextSelection, content: 
     prefixText: content.slice(Math.max(0, startOffset - 240), startOffset), suffixText: content.slice(endOffset, endOffset + 240) }
 }
 
+/**
+ * Locate a selection made in rendered Markdown, inside the source of the blocks it touched.
+ * The reader reports those blocks' source range; searching only there keeps a repeated phrase
+ * elsewhere in the document from competing.
+ * @param selection - visible selected text and its visible surrounding context.
+ * @param content - complete normalized document; offsets use UTF-16 code units.
+ * @param blocks - source range of the rendered blocks containing the selection.
+ * @returns the exact source range with document-level context.
+ */
+export function resolveRenderedDocumentRange(
+  selection: CitationTextSelection,
+  content: string,
+  blocks: { readonly start: number, readonly end: number },
+): ResolvedCitationRange {
+  if (blocks.start >= blocks.end || blocks.end > content.length) throw new Error('选区无法映射到文档原文，请重新选择正文后重试')
+  const local = resolveCitationRange(selection, content.slice(blocks.start, blocks.end))
+  const startOffset = blocks.start + local.startOffset
+  const endOffset = blocks.start + local.endOffset
+  return { startOffset, endOffset, sourceText: content.slice(startOffset, endOffset),
+    prefixText: content.slice(Math.max(0, startOffset - 240), startOffset), suffixText: content.slice(endOffset, endOffset + 240) }
+}
+
 /** Resolve rendered selection context against authoritative Markdown source. */
 export function resolveCitationRange(
   selection: CitationTextSelection,

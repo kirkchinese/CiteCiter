@@ -272,6 +272,20 @@ test('literal document context distinguishes Markdown punctuation and rejects am
   assert.throws(() => resolveDocumentEvidence('[label](target)', { ...claim, displayText: 'labeltarget' }), /无法映射/u)
 })
 
+test('a selection in rendered Markdown resolves inside the blocks the reader reported', () => {
+  const content = '# Guide\n\nThe **same** phrase.\n\nAgain the **same** phrase.'
+  const second = content.indexOf('Again')
+  const claim = {
+    sourceSessionId: sourceId, documentId: 'document-1', displayText: 'same phrase', prefixText: 'Again the ', suffixText: '.',
+    sourceRange: { start: second, end: content.length },
+  }
+  const resolved = resolveDocumentEvidence(content, claim)
+  // The range is in the second paragraph, and its source keeps the Markdown emphasis.
+  assert.ok(resolved.evidence.entry.startOffset >= second)
+  assert.equal(resolved.evidence.sourceText.replaceAll('*', ''), 'same phrase')
+  assert.throws(() => resolveDocumentEvidence(content, { ...claim, sourceRange: { start: 0, end: content.length + 5 } }), /无法映射/u)
+})
+
 test('terminal and diff projections resolve their dedicated whole-card text', () => {  const terminal = resolveToolEvidence({
     session: { id: sourceId },
     events: [

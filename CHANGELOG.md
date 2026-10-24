@@ -2,6 +2,16 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## Unreleased
+
+### Documents
+
+- Documents open as tabs in DSH's right sidebar, or as a tab in Citer's own panel without the sidebar. Markdown is typeset with DSH's renderer, text and code show line numbers, and long documents render as you scroll instead of page by page.
+- Asking about a document uses the same selection toolbar as the conversation; the reader's question box and floating overlay are gone. Selections in typeset Markdown resolve within their own paragraphs, so a repeated phrase is not mistaken for another occurrence.
+- A Topic asked from a document shows the document and line under its quote, and "Open source" returns to that passage and highlights it. Quoted document excerpts name their line.
+- The Topic list has a Documents page to search, import and delete documents; deleting closes the document's tabs and keeps the Topics about it. The empty state offers "Open document".
+- Workspace files keep the "Citer Reading" view in DSH's file preview, now rendered like library documents.
+
 ## 0.9.0-beta.5 — 2026-10-25
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` and `0.2.1-rc.3`.

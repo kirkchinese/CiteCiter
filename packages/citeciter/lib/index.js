@@ -1,4 +1,4 @@
-import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-Bti3dxU-.js";
+import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-DTzkFNQy.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -1779,6 +1779,13 @@ function createDocumentSearchTool(read) {
 		})
 	});
 }
+/** @returns the one-based line holding `offset` (UTF-16 code units) of `content`. */
+function lineAtOffset(content, offset) {
+	let line = 1;
+	const end = Math.min(Math.max(0, offset), content.length);
+	for (let at = content.indexOf("\n"); at >= 0 && at < end; at = content.indexOf("\n", at + 1)) line++;
+	return line;
+}
 /** Split UTF-8 text without breaking code points; concatenation exactly reproduces the input. */
 function documentPages(content) {
 	const pages = [];
@@ -1870,6 +1877,8 @@ function parseRecord(value, documentId) {
 var DocumentStore = class {
 	root;
 	summaries = /* @__PURE__ */ new Map();
+	/** Line numbers of cited offsets; documents never change after import. */
+	lines = /* @__PURE__ */ new Map();
 	/** @param root - private document library root. */
 	constructor(root = DOCUMENT_ROOT) {
 		this.root = root;
@@ -1940,6 +1949,37 @@ var DocumentStore = class {
 			record,
 			content
 		};
+	}
+	/**
+	* Remove one imported document. Topics that cited it keep their conversation; they only lose
+	* the document itself, as when it was missing.
+	* @param documentId - private document identity.
+	*/
+	async delete(documentId) {
+		await rm(documentDirectory(this.root, documentId), {
+			recursive: true,
+			force: true
+		});
+		this.summaries.delete(documentId);
+		for (const key of this.lines.keys()) if (key.startsWith(`${documentId}:`)) this.lines.delete(key);
+	}
+	/**
+	* One-based line holding an offset of a stored document, for showing where a citation starts.
+	* @returns the line, or undefined when the document can no longer be read.
+	*/
+	async lineAt(documentId, offset) {
+		const key = `${documentId}:${offset}`;
+		const cached = this.lines.get(key);
+		if (cached !== void 0) return cached;
+		let content;
+		try {
+			content = (await this.read(documentId)).content;
+		} catch {
+			return;
+		}
+		const line = lineAtOffset(content, offset);
+		this.lines.set(key, line);
+		return line;
 	}
 	/** @returns all documents sorted by import time descending. */
 	async list() {
@@ -17729,6 +17769,28 @@ function resolveDocumentRange(selection, content) {
 		suffixText: content.slice(endOffset, endOffset + 240)
 	};
 }
+/**
+* Locate a selection made in rendered Markdown, inside the source of the blocks it touched.
+* The reader reports those blocks' source range; searching only there keeps a repeated phrase
+* elsewhere in the document from competing.
+* @param selection - visible selected text and its visible surrounding context.
+* @param content - complete normalized document; offsets use UTF-16 code units.
+* @param blocks - source range of the rendered blocks containing the selection.
+* @returns the exact source range with document-level context.
+*/
+function resolveRenderedDocumentRange(selection, content, blocks) {
+	if (blocks.start >= blocks.end || blocks.end > content.length) throw new Error("选区无法映射到文档原文，请重新选择正文后重试");
+	const local = resolveCitationRange(selection, content.slice(blocks.start, blocks.end));
+	const startOffset = blocks.start + local.startOffset;
+	const endOffset = blocks.start + local.endOffset;
+	return {
+		startOffset,
+		endOffset,
+		sourceText: content.slice(startOffset, endOffset),
+		prefixText: content.slice(Math.max(0, startOffset - 240), startOffset),
+		suffixText: content.slice(endOffset, endOffset + 240)
+	};
+}
 /** Resolve rendered selection context against authoritative Markdown source. */
 function resolveCitationRange(selection, answer) {
 	const candidates = [...markdownSourceCandidates(answer, selection.sourceHintText ?? selection.displayText)];
@@ -17863,7 +17925,7 @@ function resolveToolEvidence(source, rawClaim) {
 */
 function resolveDocumentEvidence(content, rawClaim) {
 	const claim = documentEvidenceClaimSchema.parse(rawClaim);
-	const range = resolveDocumentRange(claim, content);
+	const range = claim.sourceRange === void 0 ? resolveDocumentRange(claim, content) : resolveRenderedDocumentRange(claim, content, claim.sourceRange);
 	return { evidence: {
 		sourceSessionId: claim.sourceSessionId,
 		anchorSeq: 0,
@@ -20236,6 +20298,12 @@ var TopicRuntime = class {
 				kind: "document-content",
 				document: await this.documents.get(request.documentId, request.page)
 			};
+			case "document-delete":
+				await this.documents.delete(request.documentId);
+				return {
+					kind: "documents",
+					documents: await this.documents.list()
+				};
 			default: return request;
 		}
 	}
@@ -21145,10 +21213,13 @@ var TopicRuntime = class {
 		];
 		const captureId = this.boardCapture.id(current.sessionId);
 		const document = current.documentId === null ? null : await this.documents.summary(current.documentId);
+		const entry = current.citation?.entry;
+		const documentLine = document === null || entry?.kind !== "document-range" ? void 0 : await this.documents.lineAt(entry.documentId, entry.startOffset);
 		const usage = projectTopicUsage(log);
 		return {
 			...captureId === void 0 ? {} : { captureId },
 			...document === null ? {} : { documentTitle: document.title },
+			...documentLine === void 0 ? {} : { documentLine },
 			topic: this.summaryFromMetadata(current),
 			...topicMessages(log),
 			...usage === void 0 ? {} : { usage },

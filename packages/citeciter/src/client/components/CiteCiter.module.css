@@ -265,6 +265,13 @@
   font: var(--dsw-font-xs-13, 13px/20px system-ui, sans-serif);
 }
 
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
 /* A quiet, collapsible reminder of what the Topic cites. */
 .contextBar {
   flex: none;
@@ -339,6 +346,70 @@
 
 .views button[aria-selected="true"] { color: var(--dsw-alias-state-business-primary); }
 .views button[aria-selected="true"]::after { background: var(--dsw-alias-state-business-primary); }
+
+/* A document opened in Citer's own panel: its title is the tab, with a close mark beside it. */
+.documentTab {
+  display: inline-flex;
+  gap: 4px;
+  min-width: 0;
+  max-width: 50%;
+}
+
+.documentTab > button[role="tab"] {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.views .documentClose {
+  padding: 0 2px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.views .documentClose::after { display: none; }
+.views .documentClose:hover { color: var(--dsw-alias-label-primary); }
+
+.documentPane {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Where a document-based Topic's citation comes from, and the way back to it. */
+.contextSource {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 16px 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(20px + var(--dsh-content-font-delta-secondary, 0px));
+  border-bottom: .5px solid var(--dsw-alias-border-l3, #e4e7ec);
+}
+
+.contextSource > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.contextSource > button {
+  flex: none;
+  padding: 0;
+  color: var(--dsw-alias-state-business-primary);
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.contextSource > button:hover { text-decoration: underline; }
+.contextSource > button:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 2px; }
 
 .transcript {
   position: relative;

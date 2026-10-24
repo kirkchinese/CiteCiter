@@ -2,7 +2,8 @@ import { t } from './i18n.ts'
 import { actionDelivery, type CiteAction, type ActionModel, type PanelPresentation } from '../actions.ts'
 import { actionSourceSession, type ActionSource } from './action-controller.ts'
 import type { CompanionFace } from './companion-controller.ts'
-import type { ReaderFace } from './reader-controller.ts'
+import type { DocumentLibraryFace } from './document-library.ts'
+import type { DocumentClaimIntent } from './request-guard.ts'
 import { selectionReferences } from './selection-references.ts'
 
 /** Where a chosen action goes: the selected Topic by default, or a new Topic when the user asks for one. */
@@ -10,15 +11,20 @@ export interface ActionRunOptions {
   readonly newTopic?: boolean
 }
 
+/** The host-verifiable claim for a document selection. */
+function documentClaim(source: Extract<ActionSource, { kind: 'document' }>, documentId: string): DocumentClaimIntent {
+  return { documentId, displayText: source.displayText, prefixText: source.prefixText, suffixText: source.suffixText, sourceRange: source.sourceRange }
+}
+
 /** Bind explicit Topic and document services. No UI, global listeners or Cordis discovery. */
-export function createActionExecutor(companion: CompanionFace, reader: ReaderFace, open: (presentation: PanelPresentation) => void) {
+export function createActionExecutor(companion: CompanionFace, documents: Pick<DocumentLibraryFace, 'importText'>, open: (presentation: PanelPresentation) => void) {
   const imports = new WeakMap<ActionSource, string>()
+  // A workspace file is saved into the document library the first time it is asked about.
   const importDocument = async (source: Extract<ActionSource, { kind: 'document' }>): Promise<string> => {
     const cached = source.documentId ?? imports.get(source)
     if (cached !== undefined) return cached
     if (source.content === undefined) throw new Error(t('settings.error.snapshotUnavailable'))
-    const imported = await reader.importFile(source.title.slice(0, 200), source.content)
-    if (imported === null) throw new Error(reader.getSnapshot().error ?? t('settings.error.saveSnapshot'))
+    const imported = await documents.importText(source.title.slice(0, 200), source.content)
     imports.set(source, imported.documentId)
     return imported.documentId
   }
@@ -59,9 +65,8 @@ export function createActionExecutor(companion: CompanionFace, reader: ReaderFac
     const documentId = await importDocument(source)
     assertSource()
     if (target !== null) await companion.appendSelection(sourceId, target, question, selectionReferences(source, documentId), delivery)
-    else await companion.createFromDocument({ documentId, displayText: source.displayText, prefixText: source.prefixText, suffixText: source.suffixText }, question, sourceId, modelRoute, delivery)
+    else await companion.createFromDocument(documentClaim(source, documentId), question, sourceId, modelRoute, delivery)
     assertSource()
-    reader.setOpen(false)
   }
   const quote = async (source: ActionSource): Promise<void> => {
     const sourceId = actionSourceSession(source)
@@ -89,7 +94,7 @@ export function createActionExecutor(companion: CompanionFace, reader: ReaderFac
     } else if (source.kind === 'document') {
       const documentId = await importDocument(source)
       assertSource()
-      await companion.createFromDocument({ documentId, displayText: source.displayText, prefixText: source.prefixText, suffixText: source.suffixText }, '', sourceId)
+      await companion.createFromDocument(documentClaim(source, documentId), '', sourceId)
     } else {
       if (!await companion.createFree('')) throw new Error(companion.getSnapshot().error ?? t('settings.error.create'))
       const topicId = companion.getSnapshot().active?.topic.sessionId
@@ -97,7 +102,6 @@ export function createActionExecutor(companion: CompanionFace, reader: ReaderFac
       await companion.appendSelection(sourceId, topicId, '', selectionReferences(source))
     }
     assertSource()
-    if (source.kind === 'document') reader.setOpen(false)
   }
   return Object.assign(run, { quote })
 }

@@ -818,6 +818,7 @@ export function createCompanionController(
           displayText: claim.displayText,
           prefixText: claim.prefixText,
           suffixText: claim.suffixText,
+          ...(claim.sourceRange === undefined ? {} : { sourceRange: { start: claim.sourceRange.start, end: claim.sourceRange.end } }),
         },
         question,
         modelRoute,

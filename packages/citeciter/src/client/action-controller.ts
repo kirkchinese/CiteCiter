@@ -19,6 +19,10 @@ export type ActionSource = { readonly kind: 'conversation', readonly selection: 
   readonly title: string
   readonly documentId?: string
   readonly content?: string
+  /** Source range of the rendered Markdown blocks holding the selection; absent for literal text. */
+  readonly sourceRange?: { readonly start: number, readonly end: number }
+  /** One-based line where the selection starts. */
+  readonly line?: number
 } | {
   /** Text selected in a Topic's own answers or tool output; actions continue that Topic. */
   readonly kind: 'topic'

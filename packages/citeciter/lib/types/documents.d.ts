@@ -12,6 +12,8 @@ interface DocumentRecordFile {
 export declare class DocumentStore {
     private readonly root;
     private readonly summaries;
+    /** Line numbers of cited offsets; documents never change after import. */
+    private readonly lines;
     /** @param root - private document library root. */
     constructor(root?: string);
     /** Read validated, immutable metadata without loading the document body. Missing documents return null; successful reads are cached for this store's lifetime. */
@@ -35,6 +37,17 @@ export declare class DocumentStore {
         readonly record: DocumentRecordFile;
         readonly content: string;
     }>;
+    /**
+     * Remove one imported document. Topics that cited it keep their conversation; they only lose
+     * the document itself, as when it was missing.
+     * @param documentId - private document identity.
+     */
+    delete(documentId: string): Promise<void>;
+    /**
+     * One-based line holding an offset of a stored document, for showing where a citation starts.
+     * @returns the line, or undefined when the document can no longer be read.
+     */
+    lineAt(documentId: string, offset: number): Promise<number | undefined>;
     /** @returns all documents sorted by import time descending. */
     list(): Promise<DocumentSummary[]>;
     /**

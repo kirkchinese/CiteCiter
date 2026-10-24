@@ -47,6 +47,14 @@ export interface CiteOverlaySnapshot {
     readonly activation: number;
     readonly presentation: PanelPresentation;
     readonly boardCitation: BoardCitationRequest | null;
+    /** The library document Citer's own panel shows, when documents cannot open in the sidebar. */
+    readonly document: PanelDocument | null;
+}
+/** A document shown in Citer's own panel; `revision` changes on every request to show it. */
+export interface PanelDocument {
+    readonly documentId: string;
+    readonly offset?: number;
+    readonly revision: number;
 }
 /** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export declare class CiteBus {
@@ -68,6 +76,10 @@ export declare class CiteBus {
      * @returns release, idempotent.
      */
     holdTabVisible(): () => void;
+    /** Show a library document in Citer's own panel, scrolled to `offset` when given. */
+    showDocument(documentId: string, offset?: number): void;
+    /** Close the document shown in Citer's own panel. */
+    closeDocument(): void;
     /** Record whether the host offers DSH's right sidebar. */
     setSidebarAvailable(sidebarAvailable: boolean): void;
     /** Move the workspace between Citer's overlay and DSH's right sidebar; the overlay closes when the sidebar takes over. */

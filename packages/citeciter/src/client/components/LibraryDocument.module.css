@@ -1,0 +1,19 @@
+/* Loading, missing and failed documents: a quiet centered message, like an empty DSH tab. */
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13, 13px/20px system-ui, sans-serif);
+  text-align: center;
+}
+
+.state p {
+  margin: 0;
+}
