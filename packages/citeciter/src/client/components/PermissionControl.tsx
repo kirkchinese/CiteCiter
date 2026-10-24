@@ -26,7 +26,7 @@ export function PermissionControl({ value, onChange }: { readonly value: Permiss
     items={options.map(choice => ({ id: choice.mode, label: choice.label, icon: choice.icon() }))}
     selectedId={value}
     onSelect={id => { setOpen(false); onChange(id as PermissionMode) }}
-    anchor={<button type="button" className={css.trigger} aria-label={t('panel.permission.label', { mode: current.label })} title={t('panel.permission.host')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(state => !state)}>
+    anchor={<button type="button" className={css.trigger} data-citeciter-permission="" aria-label={t('panel.permission.label', { mode: current.label })} title={t('panel.permission.host')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(state => !state)}>
       {current.icon()}<span>{current.label}</span>
     </button>}
   />

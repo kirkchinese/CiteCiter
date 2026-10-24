@@ -5,9 +5,6 @@ import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/cli
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 
-/** Characters DSH's composer uses to stand for reference chips inside its draft text. */
-const REFERENCE_PLACEHOLDER = /[\uE100-\uE11D\uFFFC]/u
-
 /** Plain Markdown, including a blank paragraph after the quoted passage. */
 export function markdownQuote(passage: string): string {
   const text = passage.trim()
@@ -17,11 +14,13 @@ export function markdownQuote(passage: string): string {
 
 /**
  * The draft text after adding a quote, for hosts that cannot append themselves. Rewriting the
- * text is only safe while it holds no reference chips, which a plain-text rewrite would drop.
- * @returns the next draft text, or null when the draft holds reference chips.
+ * text is only safe while the composer holds no reference chips: its draft text shows chips in
+ * their clipboard form, and writing that text back turns them into plain text.
+ * @param chips - reference chips in the composer (`occurrences`), counted by the host.
+ * @returns the next draft text, or null when the composer holds reference chips.
  */
-export function appendedDraft(draft: string, quote: string): string | null {
-  if (REFERENCE_PLACEHOLDER.test(draft)) return null
+export function appendedDraft(draft: string, quote: string, chips: number): string | null {
+  if (chips > 0) return null
   const kept = draft.replace(/\s+$/u, '')
   return kept === '' ? quote : `${kept}\n\n${quote}`
 }
@@ -46,7 +45,9 @@ export async function appendMainQuote(ctx: Context, sessionId: SessionId, passag
   const outcome = resolver.requestDraftInitialization?.(binding, { prompt: quote, whenDraftExists: 'append' }) ?? 'preserved'
   if (outcome === 'blocked') throw new Error(t('settings.error.mainSubmitting'))
   if (outcome === 'preserved') {
-    const next = appendedDraft(composer.state.getSnapshot().draft, quote)
+    const state = composer.state.getSnapshot() as { readonly draft: string, readonly occurrences?: readonly unknown[] }
+    // Without the chip list we cannot prove the rewrite is lossless, so treat it as holding chips.
+    const next = appendedDraft(state.draft, quote, state.occurrences?.length ?? 1)
     if (next === null) {
       await navigator.clipboard.writeText(quote)
       composer.notify('info', t('settings.status.quoteCopied'))

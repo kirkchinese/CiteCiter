@@ -235,6 +235,7 @@ export async function apply(ctx: Context): Promise<void> {
     const documentActions = viewActions(settingsDocument)
     const busActions = {
       setPanelOpen: bus.setPanelOpen.bind(bus),
+      holdTabVisible: bus.holdTabVisible.bind(bus),
       setPresentation: bus.setPresentation.bind(bus),
       requestBoardCitation: bus.requestBoardCitation.bind(bus),
       clearBoardCitation: bus.clearBoardCitation.bind(bus),
@@ -323,7 +324,7 @@ export async function apply(ctx: Context): Promise<void> {
       label: () => t('settings.blackboard.title'),
       inject: () => ({ companion: companionActions, bus: busActions, openPanel, hooks: { companion } }),
     }, BlackboardWorkspace))
-    const settingsInject = () => ({ companion: companionActions, settingsDocument: documentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController } })
+    const settingsInject = () => ({ companion: companionActions, settingsDocument: documentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController, overlay: bus } })
     remoteCtx.slots.inject('settings.section', () => remoteCtx.slots.register({
       name: 'settings.section',
       id: 'citeciter',

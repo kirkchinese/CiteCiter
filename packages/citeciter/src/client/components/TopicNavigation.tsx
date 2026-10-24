@@ -1,4 +1,4 @@
-import { t, useLocale } from '../i18n.ts'
+import { isChinese, t, useLocale } from '../i18n.ts'
 import { useEffect, useRef, useState } from 'react'
 import { IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { TopicSummary } from '../../topic.ts'
@@ -38,7 +38,7 @@ export function TopicNavigation({ topics, activeId, archived, onOpen, onNew, onA
         <button type="button" className={css.archiveToggle} aria-pressed={archived} onClick={() => onArchiveView(!archived)}>{archived ? t('panel.nav.showActive') : t('panel.nav.showArchived')}</button>
       </div>
       <div className={css.rows}>{rows.length === 0 && <p>{query ? t('panel.nav.noMatches') : archived ? t('panel.nav.noArchived') : t('panel.nav.empty')}</p>}{rows.map(topic => <button className={css.row} type="button" key={topic.sessionId} aria-current={activeId === topic.sessionId ? 'page' : undefined} onClick={() => { onOpen(topic.sessionId); setOpen(false) }}>
-        <span className={css.rowText}><strong>{topic.title}</strong><small>{new Date(topic.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small></span>
+        <span className={css.rowText}><strong>{topic.title}</strong><small>{new Date(topic.updatedAt).toLocaleString(isChinese() ? 'zh-CN' : 'en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</small></span>
         {topic.running && <span className={css.running} aria-label={t('panel.phase.running')} />}
       </button>)}</div>
     </section>}

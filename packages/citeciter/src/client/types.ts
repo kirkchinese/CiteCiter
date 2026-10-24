@@ -78,6 +78,25 @@ export class CiteBus {
     this.notify()
   }
 
+  private visibleTabs = 0
+
+  /**
+   * Count one Citer sidebar tab on screen. Several can be (split panes, a floating copy); Citer
+   * stays open until the last of them is hidden or closed.
+   * @returns release, idempotent.
+   */
+  holdTabVisible(): () => void {
+    this.visibleTabs += 1
+    this.setPanelOpen(true)
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      this.visibleTabs -= 1
+      if (this.visibleTabs === 0) this.setPanelOpen(false)
+    }
+  }
+
   /** Move the workspace between Citer's overlay and DSH's right sidebar; the overlay closes when the sidebar takes over. */
   setHost(host: CiteOverlaySnapshot['host']): void {
     if (this.snapshot.host === host) return

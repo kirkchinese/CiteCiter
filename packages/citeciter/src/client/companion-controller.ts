@@ -221,6 +221,9 @@ export function createCompanionController(
   let topicsShowLoading = false
   let reopenAttemptedGeneration = -1
   let reopenSuppressedGeneration = -1
+  // Hidden while the source's Topics load: do not pop Citer open later. Showing Citer again lifts it,
+  // which matters in DSH's right sidebar, where a session switch remounts the tab.
+  let reopenHiddenGeneration = -1
   let settingOperation = 0
   let settingsReady = false
   const pendingSettings = new Map<keyof CiteCiterSettings, { readonly operation: number, readonly value: CiteCiterSettings[keyof CiteCiterSettings] }>()
@@ -408,7 +411,7 @@ export function createCompanionController(
       accepted.settings.reopenLastTopic,
       includeArchived,
       reopenAttemptedGeneration === generation,
-      reopenSuppressedGeneration === generation,
+      reopenSuppressedGeneration === generation || reopenHiddenGeneration === generation,
     )) return
     reopenAttemptedGeneration = generation
     const remembered = readLastTopic(sourceSessionId)
@@ -546,6 +549,7 @@ export function createCompanionController(
     pendingEffort = null
     reopenAttemptedGeneration = -1
     reopenSuppressedGeneration = -1
+    reopenHiddenGeneration = -1
     update((draft) => {
       draft.sourceSessionId = sessionId
       draft.phase = 'idle'
@@ -570,11 +574,12 @@ export function createCompanionController(
     if (disposed || visible === next) return
     visible = next
     if (!visible) {
-      reopenSuppressedGeneration = sourceGeneration
+      reopenHiddenGeneration = sourceGeneration
       if (pollTimer !== null) clearTimeout(pollTimer)
       pollTimer = null
       return
     }
+    reopenHiddenGeneration = -1
     void refreshTopics(true)
     void loadModels()
     const schedulePoll = () => {

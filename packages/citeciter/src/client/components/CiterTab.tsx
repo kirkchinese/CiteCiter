@@ -12,11 +12,8 @@ import css from './CiterTab.module.css'
 export function CiterTab(props: CitePanelProps & { readonly useTabInfo: UseSidebarRightTabInfo }) {
   const { useTabInfo, bus, ...panel } = props
   const visible = useTabInfo().tab.visible
-  useEffect(() => {
-    if (!visible) return
-    bus.setPanelOpen(true)
-    return () => bus.setPanelOpen(false)
-  }, [visible, bus])
+  // Split panes and floating copies can show several Citer tabs; Citer is open while any is visible.
+  useEffect(() => visible ? bus.holdTabVisible() : undefined, [visible, bus])
   return <CitePanel {...panel} bus={bus} host="tab" tabVisible={visible} />
 }
 

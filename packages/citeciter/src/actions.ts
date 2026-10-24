@@ -59,14 +59,23 @@ function englishLearningQuestion(stage: 'Underlying logic' | 'Quantitative analy
   return `[Learning stage: ${stage}]\n${instructions[stage]}${question.trim() === '' ? '' : `\n\nMy question: ${question.trim()}`}`
 }
 
-/** Resolve built-in defaults without changing any user-edited action or persisted settings. */
+/** The English counterpart of one unchanged built-in Chinese action, wherever it now sits; else undefined. */
+function englishDefault(slot: CiteAction): CiteAction | undefined {
+  const index = DEFAULT_WHEEL_SLOTS.findIndex(original => original !== null && slot.label === original.label
+    && slot.prompt === original.prompt && slot.ask === original.ask && slot.presentation === original.presentation)
+  const english = index < 0 ? undefined : ENGLISH_WHEEL_SLOTS[index]
+  return english == null ? undefined : { ...english, ...(slot.target === undefined ? {} : { target: slot.target }) }
+}
+
+/**
+ * Resolve the actions for the current UI language without changing persisted settings. Saving
+ * actions stores the whole list, so each slot is judged on its own: a built-in action the user
+ * left unchanged (even if moved) follows the language; an edited or added action stays as written.
+ */
 export function localizedWheelSlots(slots: readonly (CiteAction | null)[] | undefined, chinese: boolean): readonly (CiteAction | null)[] {
   if (chinese) return slots ?? DEFAULT_WHEEL_SLOTS
-  if (slots === undefined || (slots.length === DEFAULT_WHEEL_SLOTS.length && slots.every((slot, index) => {
-    const original = DEFAULT_WHEEL_SLOTS[index]
-    return slot === null ? original === null : original != null && slot.label === original.label && slot.prompt === original.prompt && slot.ask === original.ask && slot.presentation === original.presentation && (slot.target === undefined || slot.target === 'current')
-  }))) return ENGLISH_WHEEL_SLOTS
-  return slots
+  if (slots === undefined) return ENGLISH_WHEEL_SLOTS
+  return slots.map(slot => slot === null ? null : englishDefault(slot) ?? slot)
 }
 
 /**

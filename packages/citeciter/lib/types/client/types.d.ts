@@ -59,6 +59,13 @@ export declare class CiteBus {
     subscribe: (listener: () => void) => (() => void);
     /** Open or close the independent companion dock. */
     setPanelOpen(panelOpen: boolean): void;
+    private visibleTabs;
+    /**
+     * Count one Citer sidebar tab on screen. Several can be (split panes, a floating copy); Citer
+     * stays open until the last of them is hidden or closed.
+     * @returns release, idempotent.
+     */
+    holdTabVisible(): () => void;
     /** Move the workspace between Citer's overlay and DSH's right sidebar; the overlay closes when the sidebar takes over. */
     setHost(host: CiteOverlaySnapshot['host']): void;
     /** Change only the current workspace presentation, keeping its Topic and drafts. */

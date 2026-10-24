@@ -12,7 +12,7 @@ export declare const zh: {
     readonly 'settings.topic.followups': "首个回答附带追问建议";
     readonly 'settings.topic.followupsDesc': "在第一个回答末尾给出三个可以接着问的问题。";
     readonly 'settings.topic.autoRead': "自动附上来源摘录";
-    readonly 'settings.topic.autoReadDesc': "来源附件发送后，每轮开头附上来源对话最近的新内容。关闭时由 Citer 按需调用工具读取。";
+    readonly 'settings.topic.autoReadDesc': "每轮开头附上来源对话最近的新内容。关闭时由 Citer 按需调用工具读取。";
     readonly 'settings.topic.changes': "代码库变化感知";
     readonly 'settings.topic.changesDesc': "每轮开头告诉 Citer 上一轮以来 git 工作区改了哪些文件。“附带 diff”会直接附上逐行改动；“仅清单”只列文件，Citer 需要时再用工具读取。";
     readonly 'settings.topic.off': "关闭";

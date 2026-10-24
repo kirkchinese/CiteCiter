@@ -131,13 +131,14 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-.composerActions > button[aria-label^="权限"] {
+/* Matched by a data attribute: aria labels change with the interface language. */
+.composerActions > button[data-citeciter-permission] {
   flex: none;
   max-width: 140px;
   white-space: nowrap;
 }
 
 @container (max-width: 430px) {
-  .composerActions > button[aria-label^="权限"] > span { display: none; }
-  .composerActions > button[aria-label^="权限"] { padding: 6px; }
+  .composerActions > button[data-citeciter-permission] > span { display: none; }
+  .composerActions > button[data-citeciter-permission] { padding: 6px; }
 }

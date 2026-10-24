@@ -12,6 +12,7 @@ import mascotUrl from '../assets/citeciter-mascot.png'
 import { t, useLocale } from '../i18n.ts'
 import css from './Settings.module.css'
 import { ActionSettings } from './ActionSettings.tsx'
+import type { CiteOverlaySnapshot } from '../types.ts'
 import { parseAccelerator } from '../hotkeys.ts'
 
 /** What the settings page needs; the host's settings and plugin pages each add their own owner props. */
@@ -22,6 +23,8 @@ export interface CiteCiterSettingsProps extends Partial<SettingsSectionOwnerProp
   readonly companion: CompanionActions
   readonly settingsDocument: SettingsDocumentActions
   readonly updateController: UpdateActions
+  /** Where the workspace lives; the width setting applies only to Citer's own overlay. */
+  readonly useOverlay?: SnapshotSelectorHook<CiteOverlaySnapshot> | undefined
 }
 
 /** One host-style settings row: title and description on the left, the control on the right. */
@@ -43,8 +46,9 @@ export function CiterPluginConfig(props: CiteCiterSettingsProps & { readonly vie
 }
 
 /** Native DSH settings page for Citer preferences. */
-export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
+export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, useOverlay, companion, settingsDocument, updateController }: CiteCiterSettingsProps) {
   useLocale()
+  const host = useOverlay?.(value => value.host) ?? 'overlay'
   const snapshot = useCompanion(value => value)
   const documentSnapshot = useDocument(value => value)
   const updateSnapshot = useUpdate(value => value)
@@ -89,7 +93,10 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
       </header>
       {snapshot.settingsSaveMessage !== null && (
         <p className={css.status} data-status={snapshot.settingsSaveStatus === 'error' ? 'error' : undefined}
-          role={snapshot.settingsSaveStatus === 'error' ? 'alert' : 'status'}>{snapshot.settingsSaveMessage}</p>
+          role={snapshot.settingsSaveStatus === 'error' ? 'alert' : 'status'}>
+          {/* Translated at render time, so a language switch also updates a message already shown. */}
+          {snapshot.settingsSaveStatus === 'saved' ? t('panel.settings.saved') : snapshot.settingsSaveStatus === 'saving' ? t('panel.settings.saving') : snapshot.settingsSaveMessage}
+        </p>
       )}
 
       <ActionSettings snapshot={snapshot} companion={companion} />
@@ -123,14 +130,15 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, compan
 
       <section className={css.group}>
         <h3>{t('settings.panel.title')}</h3>
-        <Row title={t('settings.panel.width')} desc={t('settings.panel.widthDesc')}>
+        {/* In DSH's right sidebar the sidebar owns Citer's width. */}
+        {host !== 'tab' && <Row title={t('settings.panel.width')} desc={t('settings.panel.widthDesc')}>
           <input className={css.range} type="range" min={28} max={55} step={1} value={widthDraft} aria-label={t('settings.panel.widthAria')}
             onChange={(event) => setWidthDraft(Number(event.currentTarget.value))}
             onPointerUp={(event) => commitWidth(Number(event.currentTarget.value))}
             onBlur={(event) => commitWidth(Number(event.currentTarget.value))}
             onKeyUp={(event) => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) commitWidth(Number(event.currentTarget.value)) }} />
           <output className={css.value}>{widthDraft}%</output>
-        </Row>
+        </Row>}
         <Row title={t('settings.panel.shortcut')} desc={t('settings.panel.shortcutDesc')}>
           <div className={css.field}>
             <input className={css.text} type="text" value={shortcutDraft} maxLength={40} placeholder="Control+Shift+C" aria-label={t('settings.panel.shortcut')}

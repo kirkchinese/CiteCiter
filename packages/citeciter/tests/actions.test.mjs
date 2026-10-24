@@ -20,15 +20,20 @@ test('default actions are valid, start with a question and carry no per-slot tar
   assert.equal(DEFAULT_WHEEL_SLOTS.some(slot => slot !== null && 'target' in slot), false)
 })
 
-test('English defaults replace only the complete built-in Chinese action list', () => {
+test('each unchanged built-in action follows the language; edited and added actions stay as written', () => {
   assert.deepEqual(wheelSlotsSchema.parse(ENGLISH_WHEEL_SLOTS), ENGLISH_WHEEL_SLOTS)
   assert.equal(localizedWheelSlots(undefined, false), ENGLISH_WHEEL_SLOTS)
-  assert.equal(localizedWheelSlots(DEFAULT_WHEEL_SLOTS, false), ENGLISH_WHEEL_SLOTS)
-  assert.equal(localizedWheelSlots(DEFAULT_WHEEL_SLOTS.map(slot => slot && { ...slot, target: 'current' }), false), ENGLISH_WHEEL_SLOTS)
+  assert.deepEqual(localizedWheelSlots(DEFAULT_WHEEL_SLOTS, false), ENGLISH_WHEEL_SLOTS)
+  assert.deepEqual(localizedWheelSlots(DEFAULT_WHEEL_SLOTS.map(slot => slot && { ...slot, target: 'current' }), false), ENGLISH_WHEEL_SLOTS.map(slot => slot && { ...slot, target: 'current' }))
   assert.equal(localizedWheelSlots(DEFAULT_WHEEL_SLOTS, true), DEFAULT_WHEEL_SLOTS)
-  const custom = DEFAULT_WHEEL_SLOTS.map(slot => slot && { ...slot })
-  custom[1].label = 'My explanation'
-  assert.equal(localizedWheelSlots(custom, false), custom)
+  // Saving stores the whole list: one edited action and one added action must not pin the others to Chinese.
+  const saved = DEFAULT_WHEEL_SLOTS.map(slot => slot && { ...slot })
+  saved[1].label = '我的解释'
+  saved[6] = { label: '自定义保留', prompt: '请保留这条中文自定义提示词。', ask: false, presentation: 'side' }
+  ;[saved[2], saved[3]] = [saved[3], saved[2]]
+  const english = localizedWheelSlots(saved, false)
+  assert.deepEqual(english.map(slot => slot?.label ?? null), ['Ask', '我的解释', 'Translate', 'Find errors', 'Blackboard', 'Study cards', '自定义保留', null])
+  assert.equal(english[1], saved[1])
   assert.equal(ENGLISH_WHEEL_SLOTS[3].prompt.includes('into English'), true)
   assert.equal(ENGLISH_WHEEL_SLOTS[5].prompt.startsWith('[Learning stage: '), true)
   assert.equal(ENGLISH_WHEEL_SLOTS[5].prompt.endsWith('\n\nMy question: Organize the content around this quote.'), true)
