@@ -4,7 +4,13 @@ import { actionQuestion, type ActionModel, type CiteAction } from '../actions.ts
 import type { CiteSelection } from './types.ts'
 
 /** Immutable capture from a conversation, imported document, native file preview or a Topic's own transcript. */
-export type ActionSource = { readonly kind: 'conversation', readonly selection: CiteSelection } | {
+export type ActionSource = { readonly kind: 'conversation', readonly selection: CiteSelection, readonly quoteText?: string } | {
+  /** An ordinary user message: excerpt only, not a host-verified citation claim. */
+  readonly kind: 'quote'
+  readonly sourceSessionId: SessionId
+  readonly anchorKey: string
+  readonly displayText: string
+} | {
   readonly kind: 'document'
   readonly sourceSessionId: SessionId
   readonly displayText: string

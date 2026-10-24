@@ -17,7 +17,7 @@ import { TYPERT_REMOTE } from '../typert.remote-client.ts'
 import { createCompanionController, INITIAL_COMPANION_SNAPSHOT } from './companion-controller.ts'
 import { BlackboardWorkspace } from './components/BlackboardWorkspace.tsx'
 import { CitePanel } from './components/CitePanel.tsx'
-import { CiteCiterSettings as CiteCiterSettingsView } from './components/CiteCiterSettings.tsx'
+import { CiteCiterSettings as CiteCiterSettingsView, CiterPluginConfig } from './components/CiteCiterSettings.tsx'
 import { DocumentReader } from './components/DocumentReader.tsx'
 import { DEFAULT_WHEEL_SLOTS } from '../actions.ts'
 import { createActionExecutor } from './action-executor.ts'
@@ -30,7 +30,8 @@ import { NativeLearningDocument } from './components/NativeLearningDocument.tsx'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { CiteLauncher } from './components/CiteLauncher.tsx'
 import { UpdateNotice } from './components/UpdateNotice.tsx'
-import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry } from './entries.ts'
+import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry, readUserMessageQuote } from './entries.ts'
+import { appendMainQuote } from './main-quote.ts'
 import { installDynamicAccelerator } from './hotkeys.ts'
 import { createReaderController } from './reader-controller.ts'
 import { createSettingsDocumentController } from './settings-document.ts'
@@ -45,6 +46,14 @@ import { createDraftController } from './draft-controller.ts'
 import { hostSettings, hostInteractions } from './host-ui-adapter.ts'
 import { createSourceChatReader } from './host-source-chat.ts'
 import { createFileOpener } from './native-file-link.ts'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
+import { CiterIcon, CiterTab } from './components/CiterTab.tsx'
+import { installLocale } from './i18n.ts'
+
+/** Registry id and kind of Citer's right-sidebar tab type. */
+const CITER_TAB_ID = '@kirkchinese/dsh-citeciter'
+const CITER_TAB_KIND = 'citeciter'
 
 export const name = '@kirkchinese/dsh-citeciter'
 export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remote', 'remote.settings', 'remote.session', 'remote.commands', 'remote.userQuestions', 'conversation']
@@ -53,6 +62,7 @@ export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'remo
 export async function apply(ctx: Context): Promise<void> {
   const unmountRemote = await ctx.remote.$mount(TYPERT_REMOTE)
   ctx.effect(() => unmountRemote, 'citeciter: Remote contribution')
+  installLocale(ctx)
 
   ctx.inject(['remote.citeciter'], (remoteCtx) => {
     const readChat = createSourceChatReader(remoteCtx)
@@ -123,8 +133,11 @@ export async function apply(ctx: Context): Promise<void> {
     remoteCtx.effect(() => () => capture.dispose(), 'citeciter: background board capture')
     const submissionPreference = bindSubmissionPreference(remoteCtx)
     const bus = new CiteBus((error) => remoteCtx.logger.warn('CiteCiter browser listener failed', error))
+    // Set while DSH's right sidebar hosts Citer as a tab; otherwise Citer's own overlay opens.
+    let openTab: ((presentation: import('../actions.ts').PanelPresentation) => void) | undefined
     const openPanel = () => {
-      bus.setPanelOpen(true)
+      if (openTab !== undefined) openTab(bus.getSnapshot().presentation)
+      else bus.setPanelOpen(true)
     }
     const closePanel = () => {
       bus.setPanelOpen(false)
@@ -146,10 +159,11 @@ export async function apply(ctx: Context): Promise<void> {
       companion,
     )
     const surfaces = createSelectionSurfaces()
-    const actions = createActionController(createActionExecutor(companion, reader, presentation => {
+    const execute = createActionExecutor(companion, reader, presentation => {
       bus.setPresentation(presentation)
       openPanel()
-    }), () => companion.getSnapshot().settings.defaultCiterModel ?? undefined)
+    })
+    const actions = createActionController(execute, () => companion.getSnapshot().settings.defaultCiterModel ?? undefined)
     const openActions = (source: import('./action-controller.ts').ActionSource, x: number, y: number) => actions.open(source, x, y, companion.getSnapshot().settings.wheelSlots ?? DEFAULT_WHEEL_SLOTS, false)
     const reportedParseErrors = new Set<string>()
     const reportParseError = (messageId: string) => {
@@ -177,8 +191,10 @@ export async function apply(ctx: Context): Promise<void> {
       if (owned !== null) return owned
       const sourceSessionId = readSource()
       if (sourceSessionId === null) return null
+      const userQuote = readUserMessageQuote(event, { readChat, sourceSessionId })
+      if (userQuote !== null) return userQuote
       const claim = entries.claim(event, { readChat, sourceSessionId })
-      return claim === null ? null : { kind: 'conversation', selection: claim.selection }
+      return claim === null ? null : { kind: 'conversation', selection: claim.selection, quoteText: window.getSelection()?.toString().trim().slice(0, 32_000) || claim.selection.displayText }
     }
     const toolbar = installSelectionToolbar(
       { range: readSelectionSource, surface: event => surfaces.read(event.target) },
@@ -231,7 +247,10 @@ export async function apply(ctx: Context): Promise<void> {
     }, ActionWheel))
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay', id: 'citeciter.selection-toolbar',
-      inject: () => ({ toolbar: { dismiss: toolbar.dismiss, run: actions.run }, hooks: { toolbar, companion } }),
+      inject: () => ({ toolbar: { dismiss: toolbar.dismiss, run: actions.run, quote: async (source: import('./action-controller.ts').ActionSource) => {
+        if (source.kind === 'conversation' || source.kind === 'quote') await appendMainQuote(remoteCtx, source.kind === 'conversation' ? source.selection.sourceSessionId : source.sourceSessionId, source.kind === 'conversation' ? source.quoteText ?? source.selection.displayText : source.displayText)
+        else await execute.quote(source)
+      } }, hooks: { toolbar, companion } }),
     }, SelectionToolbar))
     remoteCtx.inject(['documentPreviews'], previewCtx => {
       const id = '@kirkchinese/dsh-citeciter/learning-document'
@@ -249,11 +268,41 @@ export async function apply(ctx: Context): Promise<void> {
       id: 'citeciter.launcher',
       inject: () => ({ openPanel, companion: companionActions, hooks: { companion, overlay: bus } }),
     }, CiteLauncher))
+    const panelInject = () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions } })
+    // Citer's own dock, for hosts without DSH's right sidebar; it renders nothing while a tab hosts Citer.
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.panel',
-      inject: () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, openReader: () => reader.setOpen(true), reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions } }),
+      inject: panelInject,
     }, CitePanel))
+    // Citer as a DSH right-sidebar tab, beside files, terminals and other plugins' tabs.
+    remoteCtx.inject(['sidebarRight', 'sidebarRightTabs'], (sideCtx) => {
+      sideCtx.effect(() => sideCtx.sidebarRightTabs.register({
+        id: CITER_TAB_ID,
+        kind: CITER_TAB_KIND,
+        title: () => 'Citer',
+        guide: [{ id: 'citeciter', order: 25, title: () => 'Citer', description: () => '在独立 Topic 里追问选中的内容', icon: CiterIcon }],
+      }), 'citeciter: sidebar tab type')
+      sideCtx.slots.inject('sidebar.right.pane.tab', () => sideCtx.slots.register({
+        name: 'sidebar.right.pane.tab',
+        key: CITER_TAB_ID,
+        inject: panelInject,
+      }, CiterTab))
+      openTab = presentation => {
+        try {
+          // A floating action opens beside the current tab instead of taking its place.
+          sideCtx.sidebarRight.openTab(CITER_TAB_KIND, presentation === 'floating' ? { preferNewPane: true } : {})
+        } catch (error) {
+          // No Session is on screen to host the tab, such as while a global page fills the main column.
+          remoteCtx.logger.warn('Citer could not open its sidebar tab', error)
+        }
+      }
+      bus.setHost('tab')
+      sideCtx.effect(() => () => {
+        openTab = undefined
+        bus.setHost('overlay')
+      }, 'citeciter: sidebar host')
+    })
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.reader',
@@ -271,13 +320,20 @@ export async function apply(ctx: Context): Promise<void> {
       label: '小黑板',
       inject: () => ({ companion: companionActions, bus: busActions, openPanel, hooks: { companion } }),
     }, BlackboardWorkspace))
+    const settingsInject = () => ({ companion: companionActions, settingsDocument: documentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController } })
     remoteCtx.slots.inject('settings.section', () => remoteCtx.slots.register({
       name: 'settings.section',
       id: 'citeciter',
       order: 45,
       label: 'Citer',
-      inject: () => ({ companion: companionActions, settingsDocument: documentActions, updateController: updateActions, hooks: { companion, document: settingsDocument, update: updateController } }),
+      inject: settingsInject,
     }, CiteCiterSettingsView))
+    // The same settings on Citer's own page in DSH's plugin manager.
+    remoteCtx.slots.inject('plugins.bundle.config', () => remoteCtx.slots.register({
+      name: 'plugins.bundle.config',
+      key: name,
+      inject: settingsInject,
+    }, CiterPluginConfig))
 
     remoteCtx.effect(() => async () => {
       unsubscribeSessions()

@@ -7,6 +7,7 @@ import type { SelectionToolbarSnapshot } from '../selection-toolbar.ts';
 export interface SelectionToolbarActions {
     readonly dismiss: () => void;
     readonly run: (source: ActionSource, action: CiteAction, x: number, y: number, newTopic?: boolean) => void;
+    readonly quote: (source: ActionSource) => Promise<void>;
 }
 /**
  * Actions for the current selection: the first configured actions inline, the rest and

@@ -1,5 +1,5 @@
 /** Pure projections of one Topic Session log: transcript rows, board state, title and source cursor. */
-import { assembleAssistantStream, type ContentBlock } from '@deepseek-ai/dsh-llm'
+import { assembleAssistantStream, lastAssistantStreamChunk, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { SessionEvent, SessionHeader, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import { foldSessionTitle } from '@deepseek-ai/dsh-session-title'
 import { applyBoardOps, boardBatchSchema, EMPTY_BOARD_STATE, type BoardSnapshot } from './board.ts'
@@ -12,7 +12,7 @@ import { contextMessage } from './message-projection.ts'
 import { readQuestionReply, questionReplyText } from './question-reply.ts'
 import { projectRejectedToolApprovals } from './tool-approval-projection.ts'
 import { toolCallRecord, toolResultRecord } from './tool-events.ts'
-import type { TopicMessage, TopicMetadata } from './topic.ts'
+import type { TopicMessage, TopicMetadata, TopicUsage } from './topic.ts'
 
 /** Session header and events used to project one Topic. */
 export interface TopicLog {
@@ -35,6 +35,55 @@ function contentAttachments(content: readonly ContentBlock[], imageName: string,
   return content.flatMap(block => block.type === 'image' || block.type === 'file'
     ? [{ kind: block.type, id: String(block.attachment.attachmentId), name: block.attachment.name ?? (block.type === 'image' ? imageName : fileName) }]
     : [])
+}
+
+/** Fold Topic-owned assistant usage, including retried attempts, without inherited source events. */
+export function projectTopicUsage(log: TopicLog): TopicUsage | undefined {
+  const count = (value: number | undefined): value is number => value !== undefined && Number.isSafeInteger(value) && value >= 0
+  let inputTokens = 0
+  let outputTokens = 0
+  let cachedInputTokens = 0
+  let lastContextTokens: number | undefined
+  let contextWindow: number | undefined
+  let previous: { turn: number, step: number, input: number, output: number, cached: number } | undefined
+  let reported = false
+  for (const event of log.events.slice(log.inheritedEventCount)) {
+    if (event.type === 'request/context') {
+      const window = event.data.contextWindow
+      contextWindow = count(window) && window > 0 ? window : undefined
+      continue
+    }
+    if ((event.type as string) === 'llm/retry-started') {
+      const retry = event.data as { turn?: unknown, step?: unknown }
+      if (previous !== undefined && retry.turn === previous.turn && retry.step === previous.step) previous = undefined
+      continue
+    }
+    if (event.type !== 'assistant/message' && event.type !== 'assistant/attempt') continue
+    const sample = (event.type === 'assistant/message' ? event.data.usage : undefined)
+      ?? lastAssistantStreamChunk(event.data.stream, 'usage')?.usage
+    if (sample === undefined || !count(sample.inputTokens) || !count(sample.outputTokens)
+      || (sample.cacheReadTokens !== undefined && !count(sample.cacheReadTokens))
+      || (sample.cacheWriteTokens !== undefined && !count(sample.cacheWriteTokens))) continue
+    const input = sample.inputTokens + (sample.cacheReadTokens ?? 0) + (sample.cacheWriteTokens ?? 0)
+    if (!count(input)) continue
+    const cached = sample.cacheReadTokens ?? 0
+    const replacing = previous?.turn === event.data.turn && previous.step === event.data.step ? previous : undefined
+    const nextInput = inputTokens - (replacing?.input ?? 0) + input
+    const nextOutput = outputTokens - (replacing?.output ?? 0) + sample.outputTokens
+    const nextCached = cachedInputTokens - (replacing?.cached ?? 0) + cached
+    if (!count(nextInput) || !count(nextOutput) || !count(nextCached)) continue
+    inputTokens = nextInput
+    outputTokens = nextOutput
+    cachedInputTokens = nextCached
+    lastContextTokens = input
+    previous = { turn: event.data.turn, step: event.data.step, input, output: sample.outputTokens, cached }
+    reported = true
+  }
+  return reported ? {
+    inputTokens, outputTokens, cachedInputTokens,
+    ...(lastContextTokens === undefined ? {} : { lastContextTokens }),
+    ...(contextWindow === undefined ? {} : { contextWindow }),
+  } : undefined
 }
 
 /** Last read scan cursor from this Topic log; it may move backward and never limits future reads. */

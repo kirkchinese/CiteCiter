@@ -16,7 +16,7 @@ export const SOURCE_READ_PROMPT = `This Topic observes its fixed source Session.
 
 ${READING_GUIDANCE}
 
-A source address must have been manually sent as an attachment before the tool can read it. Unsent or removed draft attachments grant no access. If access is denied, ask the user to attach the source; do not repeatedly retry or bypass the attachment check.`
+The fixed source Session is readable without a source attachment, including for free Topics. This tool cannot read any other Session. Never write to source Sessions.`
 
 /**
  * Build the source-read contract independently of Session ownership and UI.

@@ -20,7 +20,7 @@ export function selectionReferences(source: ActionSource, documentId?: string): 
     quoteAddress = `dsh://document/${encodeURIComponent(documentId)}`
     references.push({ id: quoteAddress, kind: 'source', label: '来源文档', content: source.title, address: quoteAddress })
   }
-  const anchor = source.kind === 'conversation' ? source.selection.anchorKey : documentId
+  const anchor = source.kind === 'conversation' ? source.selection.anchorKey : source.kind === 'quote' ? source.anchorKey : documentId
   references.push({ id: JSON.stringify(['selection', quoteAddress, anchor, quote]), kind: 'excerpt', label: '引用文段', content: source.kind === 'document' ? `文档：${source.title}\n\n${quote}` : quote })
   return references
 }

@@ -125,6 +125,13 @@ export declare const TYPERT: {
         name: string;
         create: () => import("zod").ZodObject<{
             captureId: import("zod").ZodOptional<import("zod").ZodString>;
+            usage: import("zod").ZodOptional<import("zod").ZodObject<{
+                inputTokens: import("zod").ZodNumber;
+                outputTokens: import("zod").ZodNumber;
+                cachedInputTokens: import("zod").ZodNumber;
+                lastContextTokens: import("zod").ZodOptional<import("zod").ZodNumber>;
+                contextWindow: import("zod").ZodOptional<import("zod").ZodNumber>;
+            }, import("zod/v4/core").$strict>>;
             documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
             topic: import("zod").ZodObject<{
                 modelSelectionRequired: import("zod").ZodOptional<import("zod").ZodBoolean>;
@@ -998,6 +1005,13 @@ export declare const TYPERT: {
             kind: import("zod").ZodLiteral<"topic">;
             topic: import("zod").ZodObject<{
                 captureId: import("zod").ZodOptional<import("zod").ZodString>;
+                usage: import("zod").ZodOptional<import("zod").ZodObject<{
+                    inputTokens: import("zod").ZodNumber;
+                    outputTokens: import("zod").ZodNumber;
+                    cachedInputTokens: import("zod").ZodNumber;
+                    lastContextTokens: import("zod").ZodOptional<import("zod").ZodNumber>;
+                    contextWindow: import("zod").ZodOptional<import("zod").ZodNumber>;
+                }, import("zod/v4/core").$strict>>;
                 documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
                 topic: import("zod").ZodObject<{
                     modelSelectionRequired: import("zod").ZodOptional<import("zod").ZodBoolean>;
@@ -2048,6 +2062,13 @@ export declare const TYPERT: {
                 kind: import("zod").ZodLiteral<"topic">;
                 topic: import("zod").ZodObject<{
                     captureId: import("zod").ZodOptional<import("zod").ZodString>;
+                    usage: import("zod").ZodOptional<import("zod").ZodObject<{
+                        inputTokens: import("zod").ZodNumber;
+                        outputTokens: import("zod").ZodNumber;
+                        cachedInputTokens: import("zod").ZodNumber;
+                        lastContextTokens: import("zod").ZodOptional<import("zod").ZodNumber>;
+                        contextWindow: import("zod").ZodOptional<import("zod").ZodNumber>;
+                    }, import("zod/v4/core").$strict>>;
                     documentTitle: import("zod").ZodOptional<import("zod").ZodString>;
                     topic: import("zod").ZodObject<{
                         modelSelectionRequired: import("zod").ZodOptional<import("zod").ZodBoolean>;

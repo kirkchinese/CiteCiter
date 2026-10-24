@@ -37,7 +37,10 @@ export interface BoardCitationRequest {
     readonly prompt: string;
 }
 export interface CiteOverlaySnapshot {
+    /** Visible: the docked overlay is open, or the right-sidebar tab is on screen. */
     readonly panelOpen: boolean;
+    /** Where the workspace lives: DSH's right sidebar when the host offers it, else Citer's own overlay. */
+    readonly host: 'overlay' | 'tab';
     /** Explicit navigation request, including reopening a temporarily covered panel. */
     readonly activation: number;
     readonly presentation: PanelPresentation;
@@ -56,6 +59,8 @@ export declare class CiteBus {
     subscribe: (listener: () => void) => (() => void);
     /** Open or close the independent companion dock. */
     setPanelOpen(panelOpen: boolean): void;
+    /** Move the workspace between Citer's overlay and DSH's right sidebar; the overlay closes when the sidebar takes over. */
+    setHost(host: CiteOverlaySnapshot['host']): void;
     /** Change only the current workspace presentation, keeping its Topic and drafts. */
     setPresentation(presentation: PanelPresentation): void;
     /**

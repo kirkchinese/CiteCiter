@@ -44,6 +44,16 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
+.toolbar button:disabled { opacity: .55; cursor: default; }
+
+.error {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-danger, var(--dsw-alias-label-primary));
+}
+
 .toolbar button:focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary);
   outline-offset: -2px;

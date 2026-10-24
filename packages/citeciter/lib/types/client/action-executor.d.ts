@@ -7,4 +7,6 @@ export interface ActionRunOptions {
     readonly newTopic?: boolean;
 }
 /** Bind explicit Topic and document services. No UI, global listeners or Cordis discovery. */
-export declare function createActionExecutor(companion: CompanionFace, reader: ReaderFace, open: (presentation: PanelPresentation) => void): (source: ActionSource, action: CiteAction, question: string, modelRoute?: ActionModel, options?: ActionRunOptions) => Promise<void>;
+export declare function createActionExecutor(companion: CompanionFace, reader: ReaderFace, open: (presentation: PanelPresentation) => void): ((source: ActionSource, action: CiteAction, question: string, modelRoute?: ActionModel, options?: ActionRunOptions) => Promise<void>) & {
+    quote: (source: ActionSource) => Promise<void>;
+};

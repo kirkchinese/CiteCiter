@@ -67,9 +67,9 @@ export declare class TopicRuntime {
     private setupAgent;
     /** Keep storage and submitted-reference authorization outside the shared document tool contract. */
     private registerDocumentTools;
-    /** Read the source only after the user has sent its address as an attachment. */
+    /** Read only this Topic's fixed source Session, without depending on draft attachments. */
     private registerSourceTool;
-    /** Read a source the caller has already authorized, recording its availability. */
+    /** Read this Topic's fixed source, recording its availability. */
     private readAuthorizedSource;
     /** Per-turn source excerpt and workspace notice, plus the workspace tool when the Topic has a working directory. */
     private registerTopicContext;

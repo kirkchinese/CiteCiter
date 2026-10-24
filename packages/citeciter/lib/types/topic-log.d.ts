@@ -3,7 +3,7 @@ import { foldSessionTitle } from '@deepseek-ai/dsh-session-title';
 import { type BoardSnapshot } from './board.ts';
 /** Name of the model tool that records a board animation timeline. */
 export declare const BOARD_ANIMATE_TOOL = "blackboard_animate";
-import type { TopicMessage, TopicMetadata } from './topic.ts';
+import type { TopicMessage, TopicMetadata, TopicUsage } from './topic.ts';
 /** Session header and events used to project one Topic. */
 export interface TopicLog {
     readonly header: SessionHeader;
@@ -12,6 +12,8 @@ export interface TopicLog {
     readonly liveMessage?: TopicMessage | undefined;
     readonly renderKeys?: ReadonlyMap<number, string> | undefined;
 }
+/** Fold Topic-owned assistant usage, including retried attempts, without inherited source events. */
+export declare function projectTopicUsage(log: TopicLog): TopicUsage | undefined;
 /** Last read scan cursor from this Topic log; it may move backward and never limits future reads. */
 export declare function latestObservedSeq(events: readonly SessionEvent[]): number | null;
 /**

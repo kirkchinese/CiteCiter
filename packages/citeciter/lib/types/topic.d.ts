@@ -545,8 +545,24 @@ export declare const pendingQuestionSchema: z.ZodObject<{
     blocking: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strict>;
 export type PendingQuestion = z.infer<typeof pendingQuestionSchema>;
+/** Topic-owned usage totals; context occupancy refers to the latest reported request. */
+export declare const topicUsageSchema: z.ZodObject<{
+    inputTokens: z.ZodNumber;
+    outputTokens: z.ZodNumber;
+    cachedInputTokens: z.ZodNumber;
+    lastContextTokens: z.ZodOptional<z.ZodNumber>;
+    contextWindow: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strict>;
+export type TopicUsage = z.infer<typeof topicUsageSchema>;
 export declare const topicSnapshotSchema: z.ZodObject<{
     captureId: z.ZodOptional<z.ZodString>;
+    usage: z.ZodOptional<z.ZodObject<{
+        inputTokens: z.ZodNumber;
+        outputTokens: z.ZodNumber;
+        cachedInputTokens: z.ZodNumber;
+        lastContextTokens: z.ZodOptional<z.ZodNumber>;
+        contextWindow: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strict>>;
     documentTitle: z.ZodOptional<z.ZodString>;
     topic: z.ZodObject<{
         modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;
@@ -1498,6 +1514,13 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
     kind: z.ZodLiteral<"topic">;
     topic: z.ZodObject<{
         captureId: z.ZodOptional<z.ZodString>;
+        usage: z.ZodOptional<z.ZodObject<{
+            inputTokens: z.ZodNumber;
+            outputTokens: z.ZodNumber;
+            cachedInputTokens: z.ZodNumber;
+            lastContextTokens: z.ZodOptional<z.ZodNumber>;
+            contextWindow: z.ZodOptional<z.ZodNumber>;
+        }, z.core.$strict>>;
         documentTitle: z.ZodOptional<z.ZodString>;
         topic: z.ZodObject<{
             modelSelectionRequired: z.ZodOptional<z.ZodBoolean>;

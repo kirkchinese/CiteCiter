@@ -17,6 +17,7 @@ const NEW_TOPIC_ACTION: CiteAction = { label: '新 Topic', prompt: '', ask: true
 export interface SelectionToolbarActions {
   readonly dismiss: () => void
   readonly run: (source: ActionSource, action: CiteAction, x: number, y: number, newTopic?: boolean) => void
+  readonly quote: (source: ActionSource) => Promise<void>
 }
 
 function place(anchor: SelectionAnchor, width: number, height: number): { left: number, top: number } {
@@ -40,7 +41,9 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ left: number, top: number } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-  useEffect(() => { setMenuOpen(false) }, [current])
+  const [quoteError, setQuoteError] = useState<string | null>(null)
+  const [quoting, setQuoting] = useState(false)
+  useEffect(() => { setMenuOpen(false); setQuoteError(null) }, [current])
   useLayoutEffect(() => {
     const element = ref.current
     if (current === null || element === null) { setPosition(null); return }
@@ -55,6 +58,18 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
     toolbar.dismiss()
     if (current.source.kind !== 'document') window.getSelection()?.removeAllRanges()
   }
+  const quote = async () => {
+    if (quoting) return
+    setQuoting(true)
+    setQuoteError(null)
+    try {
+      await toolbar.quote(current.source)
+      toolbar.dismiss()
+      if (current.source.kind !== 'document') window.getSelection()?.removeAllRanges()
+    } catch (error) {
+      setQuoteError(error instanceof Error ? error.message : String(error))
+    } finally { setQuoting(false) }
+  }
   // A passage of a Topic's own transcript continues that Topic.
   const inTopic = current.source.kind === 'topic'
   const style = (position === null ? { visibility: 'hidden', left: 0, top: 0 } : position) as CSSProperties
@@ -62,6 +77,8 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
     <div ref={ref} className={css.toolbar} style={style} role="toolbar" aria-label="Citer 选文动作" data-citeciter-toolbar
       onMouseDown={event => event.preventDefault()} onPointerDown={event => event.preventDefault()}>
       <img className={css.mark} src={mascotUrl} alt="" aria-hidden="true" />
+      <button type="button" disabled={quoting} title={inTopic ? '引用到当前 Topic 草稿' : current.source.kind === 'document' ? '引用到 Citer Topic 草稿' : '引用到主对话草稿'} onClick={() => { void quote() }}>引用</button>
+      {quoteError !== null && <span className={css.error} role="alert" title={quoteError}>{quoteError}</span>}
       {inline.map((action, index) => <button key={index} type="button" title={action.ask ? '在 Citer 中写下问题' : action.prompt} onClick={() => choose(action)}>{action.label}</button>)}
       {(more.length > 0 || !inTopic) && <button type="button" className={css.more} aria-label="更多动作" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h.01M10 10h.01M15 10h.01" /></svg>

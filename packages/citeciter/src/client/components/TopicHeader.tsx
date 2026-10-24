@@ -5,14 +5,15 @@ import css from './TopicHeader.module.css'
 
 /**
  * Layout-only header. The Citer mark identifies the panel; dragging the header floats it.
- * Navigation, title and closing are supplied by their own controllers.
+ * Navigation, title and closing are supplied by their own controllers. In DSH's right sidebar
+ * the tab chip owns closing and moving, so `onClose` and `onDrag` are omitted there.
  * @param status - shown only while something is happening or needs attention.
  */
 export function TopicHeader({ compact, onBack, onClose, onDrag, title, status, children }: {
   readonly compact: boolean
   readonly onBack: () => void
-  readonly onClose: () => void
-  readonly onDrag: PointerEventHandler<HTMLElement>
+  readonly onClose?: (() => void) | undefined
+  readonly onDrag?: PointerEventHandler<HTMLElement> | undefined
   readonly title: ReactNode
   readonly status: string | null
   readonly children: ReactNode
@@ -21,7 +22,7 @@ export function TopicHeader({ compact, onBack, onClose, onDrag, title, status, c
     {compact ? <CompactBackButton onBack={onBack} /> : <img className={css.mark} src={mascotUrl} alt="" aria-hidden="true" draggable={false} />}
     <div className={css.heading}>{title}{status !== null && <span className={css.status} role="status">{status}</span>}</div>
     {children}
-    {!compact && <button type="button" className={css.close} onClick={onClose} aria-label="收起 Citer" title="收起">
+    {!compact && onClose !== undefined && <button type="button" className={css.close} onClick={onClose} aria-label="收起 Citer" title="收起">
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5" /></svg>
     </button>}
   </header>

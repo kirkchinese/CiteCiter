@@ -10,6 +10,8 @@ export interface DshAssistantAnchor {
     readonly element: HTMLElement;
     readonly anchorKey: string;
 }
+/** A committed ordinary user message in the native DSH chat. */
+export declare function dshUserAnchorForTarget(target: EventTarget | null): DshAssistantAnchor | null;
 /** Best-effort Read Frog selection classification. */
 export type ReadFrogSelection = {
     readonly kind: 'none';

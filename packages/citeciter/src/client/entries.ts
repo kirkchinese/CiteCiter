@@ -6,7 +6,8 @@
  */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
-import { dshAssistantAnchorForTarget } from './conversation-dom.ts'
+import { dshAssistantAnchorForTarget, dshUserAnchorForTarget } from './conversation-dom.ts'
+import type { ActionSource } from './action-controller.ts'
 import { ASSISTANT_ENTRY_ID, TOOL_ENTRY_ID } from './entry-ids.ts'
 import { projectToolEvidence, toolExcerptMatches, type ToolEvidenceProjection } from '../evidence-text.ts'
 import { readAssistantAnswer } from './answer.ts'
@@ -87,6 +88,15 @@ export function createAssistantEntry(): CiteCiterEntry {
       return claimSelectionContextMenu(event, sourceSessionId, answer?.text)
     },
   }
+}
+
+/** Capture a committed user-message excerpt without inventing a host-verified citation claim. */
+export function readUserMessageQuote(event: MouseEvent, context: CiteCiterEntryContext): ActionSource | null {
+  const anchor = dshUserAnchorForTarget(event.target)
+  if (anchor === null || context.readChat(context.sourceSessionId)?.nodes.get(anchor.anchorKey)?.kind !== 'user') return null
+  const text = selectedTextWithin(anchor.element)
+  if (text === null) return null
+  return { kind: 'quote', sourceSessionId: context.sourceSessionId, anchorKey: anchor.anchorKey, displayText: text }
 }
 
 /** Tool-result node fields the tool entry reads from a `tool-call` chat node. */

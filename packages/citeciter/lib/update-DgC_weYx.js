@@ -1717,8 +1717,17 @@ const pendingQuestionSchema = z.object({
 	timed: z.boolean().optional(),
 	blocking: z.boolean().optional()
 }).strict();
+/** Topic-owned usage totals; context occupancy refers to the latest reported request. */
+const topicUsageSchema = z.object({
+	inputTokens: z.number().int().nonnegative(),
+	outputTokens: z.number().int().nonnegative(),
+	cachedInputTokens: z.number().int().nonnegative(),
+	lastContextTokens: z.number().int().nonnegative().optional(),
+	contextWindow: z.number().int().positive().optional()
+}).strict();
 const topicSnapshotSchema = z.object({
 	captureId: z.string().optional(),
+	usage: topicUsageSchema.optional(),
 	documentTitle: z.string().optional(),
 	topic: topicSummarySchema,
 	messages: z.array(topicMessageSchema),

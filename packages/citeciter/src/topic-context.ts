@@ -132,8 +132,6 @@ export interface TopicContextOptions {
   readonly autoReadSource: () => boolean
   readonly workspaceMode: () => WorkspaceChangeMode
   readonly includeReasoning: () => boolean
-  /** Whether the user has sent the source address, in the log or in this step's pending messages; reads are refused otherwise. */
-  readonly sourceSent: (pending: readonly UserMessage[]) => boolean
   readonly readSource: (signal: AbortSignal) => Promise<ObserverSourceSnapshot>
   readonly anchorSeq: number | null
   /** Null when the Topic has no working directory. */
@@ -167,7 +165,7 @@ export function attachTopicContext(agentCtx: Context, options: TopicContextOptio
     // The loop's step counter can continue across queued turns, so the log decides whether this is the turn's first step.
     if (decision.kind === 'reject' || signal.aborted || agent !== options.agent || !isFirstStepOfTurn(agent.session.snapshotEvents(), turn)) return decision
     const added: UserMessage[] = []
-    if (options.autoReadSource() && options.sourceSent(decision.messages)) {
+    if (options.autoReadSource()) {
       try {
         const source = await options.readSource(signal)
         const message = composeSourceWindow(source, {

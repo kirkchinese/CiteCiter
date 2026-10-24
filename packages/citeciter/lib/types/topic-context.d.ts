@@ -62,8 +62,6 @@ export interface TopicContextOptions {
     readonly autoReadSource: () => boolean;
     readonly workspaceMode: () => WorkspaceChangeMode;
     readonly includeReasoning: () => boolean;
-    /** Whether the user has sent the source address, in the log or in this step's pending messages; reads are refused otherwise. */
-    readonly sourceSent: (pending: readonly UserMessage[]) => boolean;
     readonly readSource: (signal: AbortSignal) => Promise<ObserverSourceSnapshot>;
     readonly anchorSeq: number | null;
     /** Null when the Topic has no working directory. */

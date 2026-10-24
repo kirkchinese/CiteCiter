@@ -27,10 +27,17 @@ export interface CitePanelProps {
     readonly registerSurface?: SelectionSurfaces['register'];
     /** Opens a source-workspace file in DSH's right sidebar. */
     readonly openFile?: FileOpener;
+    /**
+     * `tab` renders inside a DSH right-sidebar tab, which owns placement, size, splitting,
+     * floating and closing; `overlay` is Citer's own dock for hosts without that sidebar.
+     */
+    readonly host?: 'overlay' | 'tab';
+    /** In a sidebar tab: whether the tab is on screen. */
+    readonly tabVisible?: boolean;
 }
 /**
  * Render the independent Topic workspace on the right edge of the shell.
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile }: CitePanelProps): import("react").JSX.Element | null;
+export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, openReader, reportParseError, registerSurface, openFile, host, tabVisible }: CitePanelProps): import("react").JSX.Element | null;

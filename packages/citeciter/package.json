@@ -1,7 +1,8 @@
 {
   "name": "@kirkchinese/dsh-citeciter",
   "version": "0.9.0-beta.3",
-  "description": "Source-aware native DSH Topics with manual drafts, permissions, visual boards and learning cards",
+  "description": "Explore source conversations in private Topics with citations, drafts, visual boards, and learning cards.",
+  "icon": "assets/citeciter-mascot.png",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -58,6 +59,8 @@
       "default": "./lib/typert.remote-client.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./assets/locale/*.json",
+    "./icon": "./assets/citeciter-mascot.png",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -84,6 +87,8 @@
     "lib/*.js",
     "lib/types/**/*.d.ts",
     "cordis.patch.yml",
+    "assets/citeciter-mascot.png",
+    "assets/locale/*.json",
     "README.zh.md"
   ],
   "scripts": {
@@ -120,6 +125,9 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/cordis-plugin-group": "1.0.5",
+    "@deepseek-ai/cordis-plugin-include": "1.0.10",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.6",
     "@deepseek-ai/dsh-agent": "0.2.1-rc.3",
     "@deepseek-ai/dsh-agent-loop": "0.2.1-rc.3",
     "@deepseek-ai/dsh-agent-preset-registry": "0.2.1-rc.3",
@@ -133,11 +141,13 @@
     "@deepseek-ai/dsh-client-ui-chat": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-conversation": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-layout": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-primitives": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-renderer": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-session": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-settings": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.3",
     "@deepseek-ai/dsh-client-ui-user-questions": "0.2.1-rc.3",
     "@deepseek-ai/dsh-commands": "0.2.1-rc.3",
@@ -171,10 +181,7 @@
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.2",
     "typescript": "^6.0.3",
-    "zod": "4.4.3",
-    "@deepseek-ai/cordis-plugin-loader": "1.0.6",
-    "@deepseek-ai/cordis-plugin-include": "1.0.10",
-    "@deepseek-ai/cordis-plugin-group": "1.0.5"
+    "zod": "4.4.3"
   },
   "dependencies": {
     "html-to-image": "1.11.13",

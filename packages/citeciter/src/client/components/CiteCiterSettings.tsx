@@ -13,7 +13,8 @@ import css from './Settings.module.css'
 import { ActionSettings } from './ActionSettings.tsx'
 import { parseAccelerator } from '../hotkeys.ts'
 
-export interface CiteCiterSettingsProps extends SettingsSectionOwnerProps {
+/** What the settings page needs; the host's settings and plugin pages each add their own owner props. */
+export interface CiteCiterSettingsProps extends Partial<SettingsSectionOwnerProps> {
   readonly useCompanion: SnapshotSelectorHook<CompanionSnapshot>
   readonly useDocument: SnapshotSelectorHook<SettingsDocumentSnapshot>
   readonly useUpdate: SnapshotSelectorHook<UpdateNoticeSnapshot>
@@ -28,6 +29,15 @@ function Row({ title, desc, children }: { readonly title: string, readonly desc?
     <div className={css.rowText}><span className={css.title}>{title}</span>{desc !== undefined && <span className={css.desc}>{desc}</span>}</div>
     <div className={css.control}>{children}</div>
   </div>
+}
+
+/**
+ * Citer's entry on DSH's plugin page: a one-line summary in the list, the full settings on its page.
+ * @param view - `summary` for the bundle row, `page` for the bundle's own page.
+ */
+export function CiterPluginConfig(props: CiteCiterSettingsProps & { readonly view: 'summary' | 'page' }) {
+  if (props.view === 'summary') return <>选文工具条、预设动作、新 Topic 的模型与权限</>
+  return <CiteCiterSettings {...props} />
 }
 
 /** Native DSH settings page for Citer preferences. */

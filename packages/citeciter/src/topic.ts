@@ -449,8 +449,20 @@ export const pendingQuestionSchema = z.object({
 
 export type PendingQuestion = z.infer<typeof pendingQuestionSchema>
 
+/** Topic-owned usage totals; context occupancy refers to the latest reported request. */
+export const topicUsageSchema = z.object({
+  inputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  cachedInputTokens: z.number().int().nonnegative(),
+  lastContextTokens: z.number().int().nonnegative().optional(),
+  contextWindow: z.number().int().positive().optional(),
+}).strict()
+
+export type TopicUsage = z.infer<typeof topicUsageSchema>
+
 export const topicSnapshotSchema = z.object({
   captureId: z.string().optional(),
+  usage: topicUsageSchema.optional(),
   documentTitle: z.string().optional(),
   topic: topicSummarySchema,
   messages: z.array(topicMessageSchema),
