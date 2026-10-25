@@ -8,6 +8,8 @@
 
 CiteCiter is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) plugin that helps you learn from your agent's real work. Select part of a conversation, a tool result or a document, ask about it in a separate Topic that keeps its source, use a blackboard to see how the pieces relate, then return to your work. The main conversation is never modified.
 
+<p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/docs/media/citer-demo.gif" alt="Select a sentence in DSH and Citer explains it in the right sidebar" /></p>
+
 [![CiteCiter demo](https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.6/assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
 [Watch the demo on Bilibili](https://www.bilibili.com/video/BV1tqeA65EJ8/) (recorded with an earlier version; the interface has changed slightly).
