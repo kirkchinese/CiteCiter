@@ -8,6 +8,8 @@
 
 CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 的插件，帮助你从 Agent 的真实工作中学习。选中对话、工具结果或文档中的一段内容，在保留来源的独立 Topic 里追问，用小黑板理解关键关系，再回到原来的工作。主对话不会被改动。
 
+<p align="center"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/main/docs/media/citer-demo.gif" alt="在 DSH 中选中一句话，Citer 在右侧栏解释" /></p>
+
 [![CiteCiter 演示](assets/docs/video-cover.png)](https://www.bilibili.com/video/BV1tqeA65EJ8/)
 
 [在 B 站观看演示](https://www.bilibili.com/video/BV1tqeA65EJ8/)（早期版本录制，界面与当前版本略有不同）。
