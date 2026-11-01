@@ -35,11 +35,18 @@ jobs:
       - name: Use DSH ${{ steps.dsh.outputs.version }} as the main SDK
         id: sdk
         run: node packages/citeciter/scripts/use-sdk.mjs "${{ steps.dsh.outputs.version }}"
-      - run: pnpm sync:git-entry
-      - run: pnpm install --no-frozen-lockfile
+      # pnpm verifies the lockfile before running any script, so the changed SDK is installed
+      # first and the Git entry is synchronized with node directly.
+      - name: Install the probe SDK
+        id: install
+        # Outside engines.dsh a failure is an early warning, not a broken release.
+        continue-on-error: ${{ steps.sdk.outputs.declared != 'true' }}
+        run: |
+          node packages/citeciter/scripts/sync-git-entry.mjs
+          pnpm install --no-frozen-lockfile
       - name: Checks
         id: checks
-        # Outside engines.dsh a failure is an early warning, not a broken release.
+        if: steps.install.outcome == 'success'
         continue-on-error: ${{ steps.sdk.outputs.declared != 'true' }}
         run: |
           pnpm typecheck
@@ -47,7 +54,7 @@ jobs:
           pnpm build
       - name: Summary
         if: always()
-        run: echo "DSH ${{ steps.dsh.outputs.version }} (${{ matrix.tag }}), inside engines.dsh = ${{ steps.sdk.outputs.declared }}, checks = ${{ steps.checks.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "DSH ${{ steps.dsh.outputs.version }} (${{ matrix.tag }}), inside engines.dsh = ${{ steps.sdk.outputs.declared }}, install = ${{ steps.install.outcome }}, checks = ${{ steps.checks.outcome }}" >> "$GITHUB_STEP_SUMMARY"
       - name: Report a broken supported release
         if: failure() && steps.sdk.outputs.declared == 'true'
         env:
