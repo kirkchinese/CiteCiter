@@ -2,7 +2,9 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
-## Unreleased
+## 0.9.0-beta.7 — 2026-11-01
+
+Targets DSH `>=0.2.0-rc.2 <0.2.2-0`: the official Desktop `0.2.0-rc.2` and every `0.2.1` alpha, release candidate and final release.
 
 ### Host support
 
