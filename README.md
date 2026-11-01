@@ -16,11 +16,11 @@ CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 
 ## 安装
 
-CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主版本，请按 DSH 版本选择对应的 CiteCiter：
+CiteCiter 需要 DSH 和一个可用的模型。插件声明了一个 DSH 版本范围，同一条版本线上的后续发布不需要等 CiteCiter 更新；超出范围时 DSH 会拒绝加载，请按 DSH 版本选择对应的 CiteCiter：
 
 | DSH 版本 | CiteCiter 版本 |
 | --- | --- |
-| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2`、`0.2.1-rc.3` | `0.9.0-beta.6` |
+| `0.2.0-rc.2` 及以上、`0.2.2` 之前（含官方桌面版，以及 `0.2.1` 的各个 alpha、rc 和正式版） | `0.9.0-beta.7` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -30,13 +30,13 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主�
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.6
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.7
 ```
 
 也可以从仓库安装某个发布标签，仓库内已包含构建好的插件，安装时无需构建：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.6"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.7"
 ```
 
 安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件。同一个 DSH 主目录不要同时运行两个宿主进程。

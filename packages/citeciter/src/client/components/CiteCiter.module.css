@@ -164,6 +164,15 @@
   color: var(--dsw-alias-label-primary);
   font-family: var(--dsw-font-family, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif);
   background: var(--dsw-alias-bg-base, #fff);
+  container: citer-tab / size;
+}
+/* A short tab (a small float or split pane) keeps the transcript and composer; the summary bars give way. */
+@container citer-tab (max-height: 440px) {
+  .contextBar,
+  .contextSource,
+  .usageBar {
+    display: none;
+  }
 }
 .dockBody {
   display: grid;
