@@ -10,6 +10,10 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 - Declare DSH support as one range, `>=0.2.0-rc.2 <0.2.2-0`, instead of a list of exact versions. DSH refused Citer on every new release until a new Citer listed it; later release candidates and the final release of `0.2.1` now load without a Citer update. The `0.2.2` prereleases change APIs Citer uses and stay excluded.
 - A daily check builds and tests Citer against DSH's newest `latest`, `next` and `alpha` releases and opens an issue when a supported version breaks.
 
+### Fixes
+
+- A short Citer tab, such as the window it gets when dragged out of the sidebar, hides the quote and usage bars so the composer and its send button stay inside.
+
 ## 0.9.0-beta.6 — 2026-10-25
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` and `0.2.1-rc.3`.
