@@ -16,7 +16,7 @@ CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 
 ## 安装
 
-CiteCiter 需要 DSH 和一个可用的模型。插件声明了精确的宿主版本，请按 DSH 版本选择对应的 CiteCiter：
+CiteCiter 需要 DSH 和一个可用的模型。插件声明了一个 DSH 版本范围，同一条版本线上的后续发布不需要等 CiteCiter 更新；超出范围时 DSH 会拒绝加载，请按 DSH 版本选择对应的 CiteCiter：
 
 | DSH 版本 | CiteCiter 版本 |
 | --- | --- |

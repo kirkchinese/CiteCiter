@@ -16,7 +16,7 @@ CiteCiter is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-
 
 ## Installation
 
-CiteCiter needs DSH and a working model. The plugin declares exact host versions, so choose the CiteCiter release that matches your DSH:
+CiteCiter needs DSH and a working model. The plugin declares a range of DSH versions, so later releases on the same DSH line load without waiting for a CiteCiter update; outside the range DSH refuses to load it. Choose the CiteCiter release that matches your DSH:
 
 | DSH version | CiteCiter version |
 | --- | --- |

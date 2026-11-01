@@ -32,9 +32,15 @@ CI runs the same commands on Ubuntu and Windows. `pnpm --dir packages/citeciter 
 
 ## Two SDK baselines
 
-The package's `devDependencies` pin the main SDK (currently DSH `0.2.1-rc.2`); `peerDependencies` list every DSH version the plugin supports. `citeciter-compat-desktop` pins the official Desktop SDK (`0.2.0-rc.2`), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
+The package's `devDependencies` pin the main SDK (currently DSH `0.2.1-rc.5`). `citeciter-compat-desktop` pins the oldest supported SDK (`0.2.0-rc.2`, the first official Desktop), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
 
-To support a new DSH release: update the DSH versions in `devDependencies` (or in the compat package for a Desktop release), add the version to every DSH peer range, run `pnpm sync:git-entry` and `pnpm install`, then run all checks. `@deepseek-ai/cordis`, `@deepseek-ai/schemastery` and the `cordis-plugin-*` packages have their own version lines: read the new release's versions with `npm view @deepseek-ai/dsh@<version> dependencies` and extend those peers and pins too. Remove a peer only when nothing in `src/` imports it.
+## Declared DSH support
+
+DSH refuses to load a plugin whose declared requirements do not include the running version. From `0.2.1-alpha.4` it reads `engines.dsh` alone; earlier hosts read every `@deepseek-ai/dsh*` peer. Both are evaluated as semver ranges with prereleases included. The manifest therefore declares one range, currently `>=0.2.0-rc.2 <0.2.2-0`, in `engines.dsh` and in every DSH peer: the release lines Citer is verified against, so a new release candidate on a supported line keeps working without a Citer release. The upper bound stops before the next line's prereleases, which change the APIs Citer uses (`0.2.2-alpha` moved the tool event types and the user-question events).
+
+The scheduled workflow `DSH compatibility` builds and tests against DSH's `latest`, `next` and `alpha` tags every day (`scripts/use-sdk.mjs` swaps the SDK for the probe). A failure on a version inside the range opens an issue, because users of that version already load Citer; a failure outside it is an early warning for the next extension.
+
+To extend support to a new line: run `node packages/citeciter/scripts/use-sdk.mjs <version>`, `pnpm sync:git-entry` and an unfrozen `pnpm install`, fix the breaks, keep the change as the new main SDK, raise the upper bound in `engines.dsh` and the DSH peers, then run all checks and verify in a real host. `@deepseek-ai/cordis`, `@deepseek-ai/schemastery` and the `cordis-plugin-*` packages have their own version lines; extend those peers and pins when a release moves them. Remove a peer only when nothing in `src/` imports it.
 
 ## Committed build output and Git installs
 

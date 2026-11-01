@@ -1,0 +1,61 @@
+name: DSH compatibility
+
+# Every day, build and test Citer against the newest DSH releases, so a breaking DSH release is
+# noticed before users meet it. A failure on a release inside engines.dsh means Citer is broken for
+# users now; a failure outside it means the next range extension needs work first.
+on:
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    name: DSH ${{ matrix.tag }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: [latest, next, alpha]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+      - name: Resolve the DSH version
+        id: dsh
+        run: echo "version=$(npm view @deepseek-ai/dsh@${{ matrix.tag }} version)" >> "$GITHUB_OUTPUT"
+      - run: pnpm install --frozen-lockfile
+      - name: Use DSH ${{ steps.dsh.outputs.version }} as the main SDK
+        id: sdk
+        run: node packages/citeciter/scripts/use-sdk.mjs "${{ steps.dsh.outputs.version }}"
+      - run: pnpm sync:git-entry
+      - run: pnpm install --no-frozen-lockfile
+      - name: Checks
+        id: checks
+        # Outside engines.dsh a failure is an early warning, not a broken release.
+        continue-on-error: ${{ steps.sdk.outputs.declared != 'true' }}
+        run: |
+          pnpm typecheck
+          pnpm test
+          pnpm build
+      - name: Summary
+        if: always()
+        run: echo "DSH ${{ steps.dsh.outputs.version }} (${{ matrix.tag }}), inside engines.dsh = ${{ steps.sdk.outputs.declared }}, checks = ${{ steps.checks.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Report a broken supported release
+        if: failure() && steps.sdk.outputs.declared == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.dsh.outputs.version }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="DSH $VERSION is inside engines.dsh but Citer does not build against it"
+          if [ -z "$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json number --jq '.[].number')" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The scheduled compatibility check failed: $RUN. Users on DSH $VERSION can load this Citer release. Fix it, or narrow engines.dsh, and release."
+          fi
