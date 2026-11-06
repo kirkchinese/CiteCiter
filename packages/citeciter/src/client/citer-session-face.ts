@@ -112,7 +112,12 @@ export class CiterSessionFace implements SessionFace {
     return { ok: true as const, value: { attachment: result.value.attachment, data: Uint8Array.from(atob(result.value.data), char => char.charCodeAt(0)) } }
   }
 
-  readAttachment: SessionFace['readAttachment'] = async attachmentId => {
+  readAttachment: SessionFace['readAttachment'] = async attachment => {
+    // DSH 0.2.1 passes the attachment id; 0.2.2 passes the image attachment reference.
+    const reference: unknown = attachment
+    const attachmentId = typeof reference === 'string' ? reference
+      : typeof reference === 'object' && reference !== null && 'attachmentId' in reference ? String(reference.attachmentId) : ''
+    if (attachmentId === '') throw new Error(t('panel.error.attachmentGone'))
     const result = await this.readCiterAttachment(attachmentId)
     if (!result.ok) return result
     if (!('mediaType' in result.value.attachment)) throw new Error(t('panel.error.downloadFile'))

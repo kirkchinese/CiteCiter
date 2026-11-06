@@ -409,9 +409,27 @@ export const topicMessageSchema = z.discriminatedUnion('role', [
     role: z.literal('error'),
     turn: z.number().int().nonnegative().optional(),
     text: z.string(),
+    /** DSH's structured failure code, such as TRANSPORT or AUTH. */
+    code: z.string().optional(),
     bodyRetained: z.boolean(),
     attempt: z.number().int().positive(),
     status: z.enum(['failed', 'stopped']),
+  }).strict(),
+  z.object({
+    ...topicMessageIdentitySchema,
+    /** One model-request retry chain, as DSH's own transcript shows it. */
+    role: z.literal('retry'),
+    turn: z.number().int().nonnegative(),
+    step: z.number().int().nonnegative(),
+    /** The newest retry number, counted from 1. */
+    retry: z.number().int().positive(),
+    /** The policy's retry limit; absent when the policy retries without limit. */
+    maxRetries: z.number().int().positive().optional(),
+    delayMs: z.number().nonnegative(),
+    /** `scheduled` while waiting to retry, `started` once that retry ran, `cancelled` when the turn ended first. */
+    state: z.enum(['scheduled', 'started', 'cancelled']),
+    failure: z.string(),
+    code: z.string().optional(),
   }).strict(),
 ])
 

@@ -1,4 +1,4 @@
-import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-DTzkFNQy.js";
+import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-D2ZIR1ZH.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -167,14 +167,36 @@ function openQuestion(key, questions, wait, callId) {
 	};
 }
 /**
+* Read the Host's `userQuestions` projection state for one Agent, field by field.
+* DSH 0.2.2 moved the projection's type declarations to another package while the Host state kept
+* its `questions.active` shape, so Citer reads the shape rather than a version-specific type map.
+* @returns the answerable questions in ask order, or none when the projection is absent or unreadable.
+*/
+function projectedQuestions(agent) {
+	const state = agent.ctx.get("sessionProjections")?.stateOf(agent.session, "userQuestions");
+	if (typeof state !== "object" || state === null || !("questions" in state)) return [];
+	const { questions } = state;
+	if (typeof questions !== "object" || questions === null || !("active" in questions)) return [];
+	const { active } = questions;
+	if (!Array.isArray(active)) return [];
+	return active.flatMap((entry) => {
+		if (typeof entry !== "object" || entry === null) return [];
+		const { callId, state: questionState, questions: items } = entry;
+		return typeof callId === "string" && typeof questionState === "string" && Array.isArray(items) ? [{
+			callId,
+			state: questionState,
+			questions: items
+		}] : [];
+	});
+}
+/**
 * Read the Host's durable question projection for this exact owned Agent.
 * Replies already in its native Inbox are excluded until admitted/discarded.
 * No Session is registered in the Host list and no log format is rewritten.
 */
 function continuedQuestions(agent) {
-	const state = agent.ctx.get("sessionProjections")?.stateOf(agent.session, "userQuestions");
 	const queued = [...agent.inbox.nextTurn, ...agent.inbox.nextStep];
-	return (state?.questions.active ?? []).filter((question) => question.state === "continued" && !queued.some((message) => message.source.kind === "user-question-reply" && message.source.callId === question.callId)).map((question) => ({
+	return projectedQuestions(agent).filter((question) => question.state === "continued" && !queued.some((message) => message.source.kind === "user-question-reply" && message.source.callId === question.callId)).map((question) => ({
 		key: questionKey(String(agent.session.header.id), String(question.callId)),
 		callId: String(question.callId),
 		state: "continued",
@@ -222,6 +244,58 @@ function questionToolOutcomeCode(error) {
 	if (!("name" in error) || error.name !== "UserQuestionError" || !("code" in error)) return void 0;
 	return error.code === "ASK_CANCELLED" || error.code === "ASK_ABORTED" ? error.code : void 0;
 }
+function eventData(event, type) {
+	const { type: actual, data } = event;
+	return actual === type && typeof data === "object" && data !== null ? data : void 0;
+}
+function stringField(data, field) {
+	const value = data[field];
+	return typeof value === "string" ? value : void 0;
+}
+function errorRecord(value) {
+	if (typeof value !== "object" || value === null) return void 0;
+	const { name, code } = value;
+	return {
+		...typeof name === "string" ? { name } : {},
+		...typeof code === "string" ? { code } : {}
+	};
+}
+/** @returns the PTC child start an event records, or undefined for any other or malformed event. */
+function ptcStartRecord(event) {
+	const data = eventData(event, "tool/ptc-dispatch-start");
+	if (data === void 0) return void 0;
+	const subCallId = stringField(data, "subCallId");
+	const parentCallId = stringField(data, "parentCallId");
+	const rootCallId = stringField(data, "rootCallId");
+	const name = stringField(data, "name");
+	if (subCallId === void 0 || parentCallId === void 0 || rootCallId === void 0 || name === void 0) return void 0;
+	return {
+		subCallId,
+		parentCallId,
+		rootCallId,
+		name,
+		arguments: data.arguments
+	};
+}
+/** @returns the settled PTC child an event records, or undefined for any other or malformed event. */
+function ptcDispatchRecord(event) {
+	const data = eventData(event, "tool/ptc-dispatch");
+	const subCallId = data === void 0 ? void 0 : stringField(data, "subCallId");
+	if (data === void 0 || subCallId === void 0 || !Array.isArray(data.content)) return void 0;
+	const error = errorRecord(data.error);
+	return {
+		subCallId,
+		content: data.content,
+		isError: data.isError === true,
+		..."meta" in data && data.meta !== void 0 ? { meta: data.meta } : {},
+		...error === void 0 ? {} : { error }
+	};
+}
+/** @returns the structured error of a settled native or PTC tool call, if it recorded one. */
+function toolErrorOf(event) {
+	if (event.type === "tool/result") return errorRecord(event.data.error);
+	return ptcDispatchRecord(event)?.error;
+}
 /** Normalize native and PTC starts using the actual child call identity. No synthetic model messages. */
 function toolCallRecord(event) {
 	if (event.type === "tool/call") return {
@@ -229,11 +303,12 @@ function toolCallRecord(event) {
 		name: event.data.name,
 		arguments: event.data.arguments
 	};
-	if (event.type === "tool/ptc-dispatch-start") return {
-		callId: event.data.subCallId,
-		name: event.data.name,
-		arguments: JSON.stringify(event.data.arguments),
-		parentCallId: event.data.parentCallId
+	const start = ptcStartRecord(event);
+	return start === void 0 ? void 0 : {
+		callId: start.subCallId,
+		name: start.name,
+		arguments: JSON.stringify(start.arguments),
+		parentCallId: start.parentCallId
 	};
 }
 /** Normalize settled results for transcript, board, source and attachment readers. */
@@ -251,18 +326,16 @@ function toolResultRecord(event) {
 			...event.data.meta === void 0 ? {} : { meta: event.data.meta }
 		};
 	}
-	if (event.type === "tool/ptc-dispatch") {
-		const error = "error" in event.data ? event.data.error : void 0;
-		const errorCode = questionToolOutcomeCode(error);
-		const meta = "meta" in event.data ? event.data.meta : void 0;
-		return {
-			callId: event.data.subCallId,
-			content: event.data.content,
-			isError: event.data.isError || error !== void 0,
-			...errorCode === void 0 ? {} : { errorCode },
-			...meta === void 0 ? {} : { meta }
-		};
-	}
+	const dispatch = ptcDispatchRecord(event);
+	if (dispatch === void 0) return void 0;
+	const errorCode = questionToolOutcomeCode(dispatch.error);
+	return {
+		callId: dispatch.subCallId,
+		content: dispatch.content,
+		isError: dispatch.isError || dispatch.error !== void 0,
+		...errorCode === void 0 ? {} : { errorCode },
+		...dispatch.meta === void 0 ? {} : { meta: dispatch.meta }
+	};
 }
 //#endregion
 //#region lib/types/question-draft-lifecycle.js
@@ -277,9 +350,8 @@ function pending(content) {
 	}
 }
 function unresolvedError(event) {
-	if (event.type !== "tool/result" && event.type !== "tool/ptc-dispatch") return false;
-	const error = "error" in event.data ? event.data.error : void 0;
-	return typeof error === "object" && error !== null && "code" in error && (error.code === "TOOL_OUTCOME_UNKNOWN" || error.code === "ASK_TIMED_OUT");
+	const code = toolErrorOf(event)?.code;
+	return code === "TOOL_OUTCOME_UNKNOWN" || code === "ASK_TIMED_OUT";
 }
 /**
 * Inspect exact owned post-seed calls only. Missing projections, queued replies,
@@ -320,7 +392,6 @@ function questionDraftLogStatus(sessionId, key, events, inheritedEventCount, blo
 /** Candidate key for a committed result/reply; callers still verify its original ask call. */
 function questionDraftReceiptKey(sessionId, event) {
 	if (event.type === "user/message" && event.data.source.kind === "user-question-reply") return questionKey(sessionId, event.data.source.callId);
-	if (event.type !== "tool/result" && event.type !== "tool/ptc-dispatch") return void 0;
 	const result = toolResultRecord(event);
 	return result === void 0 ? void 0 : questionKey(sessionId, result.callId);
 }
@@ -343,10 +414,14 @@ const argumentsSchema = z.object({ questions: z.array(z.object({
 * @param events - only the owning Topic's post-seed events, in append order.
 */
 function hasInterruptedPtcParent(callId, events) {
-	const starts = events.flatMap((event, index) => event.type === "tool/ptc-dispatch-start" && event.data.subCallId === callId ? [{
-		event,
-		index
-	}] : []);
+	const startsOf = (subCallId) => events.flatMap((event, index) => {
+		const start = ptcStartRecord(event);
+		return start?.subCallId === subCallId ? [{
+			start,
+			index
+		}] : [];
+	});
+	const starts = startsOf(callId);
 	if (starts.length !== 1) return false;
 	const child = starts[0];
 	const turnStart = events.slice(0, child.index).findLast((event) => event.type === "turn/start");
@@ -355,7 +430,7 @@ function hasInterruptedPtcParent(callId, events) {
 	const turnEnd = events.findIndex((event, index) => index > child.index && event.type === "turn/end" && event.data.turn === turn);
 	const ended = events[turnEnd];
 	if (ended?.type !== "turn/end" || ended.data.reason.kind !== "interrupted") return false;
-	const rootId = child.event.data.rootCallId;
+	const rootId = child.start.rootCallId;
 	const rootCalls = events.flatMap((event, index) => event.type === "tool/call" && event.data.callId === rootId ? [{
 		event,
 		index
@@ -364,20 +439,17 @@ function hasInterruptedPtcParent(callId, events) {
 	const root = rootCalls[0];
 	if (root.event.data.name !== "run_code" || root.event.data.turn !== turn || root.index >= child.index) return false;
 	const ancestors = /* @__PURE__ */ new Set();
-	let parentId = String(child.event.data.parentCallId);
+	let parentId = child.start.parentCallId;
 	let before = child.index;
 	while (parentId !== rootId) {
 		if (parentId === callId || ancestors.has(parentId)) return false;
 		ancestors.add(parentId);
-		const parents = events.flatMap((event, index) => event.type === "tool/ptc-dispatch-start" && event.data.subCallId === parentId ? [{
-			event,
-			index
-		}] : []);
+		const parents = startsOf(parentId);
 		if (parents.length !== 1) return false;
 		const parent = parents[0];
-		if (parent.index <= root.index || parent.index >= before || parent.event.data.rootCallId !== rootId || parent.event.data.name !== "run_code") return false;
+		if (parent.index <= root.index || parent.index >= before || parent.start.rootCallId !== rootId || parent.start.name !== "run_code") return false;
 		before = parent.index;
-		parentId = String(parent.event.data.parentCallId);
+		parentId = parent.start.parentCallId;
 	}
 	ancestors.add(rootId);
 	let repaired = false;
@@ -401,7 +473,7 @@ function interrupted(callId, events) {
 		if (event.type === "turn/start") turn = event.data.turn;
 		if (toolCallRecord(event)?.callId === callId) callTurn = turn;
 		if (toolResultRecord(event)?.callId === callId) {
-			const error = event.type === "tool/result" || event.type === "tool/ptc-dispatch" ? event.data.error : void 0;
+			const error = toolErrorOf(event);
 			if (error?.code === "TOOL_OUTCOME_UNKNOWN") return true;
 			if (error?.code === "ASK_ABORTED") aborted = true;
 		}
@@ -596,6 +668,38 @@ function contentAttachments(content, imageName, fileName) {
 		name: block.attachment.name ?? (block.type === "image" ? imageName : fileName)
 	}] : []);
 }
+/** @returns the structured code of a DSH failure, when it carries one. */
+function failureCode(error) {
+	if (typeof error !== "object" || error === null || !("code" in error)) return void 0;
+	const { code } = error;
+	return typeof code === "string" && code !== "" ? code : void 0;
+}
+function retryRecord(event) {
+	const type = event.type;
+	if (type !== "llm/retry" && type !== "llm/retry-started") return void 0;
+	const data = event.data;
+	if (typeof data !== "object" || data === null || typeof data["retryId"] !== "string") return void 0;
+	const retryId = data["retryId"];
+	if (type === "llm/retry-started") return {
+		kind: "started",
+		retryId
+	};
+	const { turn, step, retry, maxRetries, delayMs, failure } = data;
+	if (!Number.isSafeInteger(turn) || !Number.isSafeInteger(step) || !Number.isSafeInteger(retry) || retry < 1) return void 0;
+	const message = typeof failure === "object" && failure !== null && "message" in failure && typeof failure.message === "string" ? failure.message : "";
+	const code = failureCode(failure);
+	return {
+		kind: "scheduled",
+		retryId,
+		turn,
+		step,
+		retry,
+		...Number.isSafeInteger(maxRetries) && maxRetries > 0 ? { maxRetries } : {},
+		delayMs: typeof delayMs === "number" && Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 0,
+		failure: message,
+		...code === void 0 ? {} : { code }
+	};
+}
 /** Fold Topic-owned assistant usage, including retried attempts, without inherited source events. */
 function projectTopicUsage(log) {
 	const count = (value) => value !== void 0 && Number.isSafeInteger(value) && value >= 0;
@@ -687,6 +791,7 @@ function topicMessages(log) {
 	let error = null;
 	const attemptByTurn = /* @__PURE__ */ new Map();
 	const bodyByTurn = /* @__PURE__ */ new Set();
+	const retryIndexes = /* @__PURE__ */ new Map();
 	let openTurnCalls = [];
 	const settleOpenTurn = () => {
 		for (const callId of openTurnCalls) {
@@ -814,10 +919,46 @@ function topicMessages(log) {
 			};
 			continue;
 		}
+		const retry = retryRecord(event);
+		if (retry !== void 0) {
+			const index = retryIndexes.get(retry.retryId);
+			const previous = index === void 0 ? void 0 : messages[index];
+			if (retry.kind === "scheduled") {
+				const row = {
+					id: `retry:${retry.retryId}`,
+					seq: event.seq,
+					role: "retry",
+					turn: retry.turn,
+					step: retry.step,
+					retry: retry.retry,
+					...retry.maxRetries === void 0 ? {} : { maxRetries: retry.maxRetries },
+					delayMs: retry.delayMs,
+					state: "scheduled",
+					failure: retry.failure,
+					...retry.code === void 0 ? {} : { code: retry.code }
+				};
+				if (index === void 0) {
+					retryIndexes.set(retry.retryId, messages.length);
+					messages.push(row);
+				} else messages[index] = row;
+			} else if (index !== void 0 && previous?.role === "retry") messages[index] = {
+				...previous,
+				state: "started"
+			};
+			continue;
+		}
+		if (event.type === "turn/end") for (const index of retryIndexes.values()) {
+			const row = messages[index];
+			if (row?.role === "retry" && row.turn === event.data.turn && row.state === "scheduled") messages[index] = {
+				...row,
+				state: "cancelled"
+			};
+		}
 		if (event.type === "turn/end" && (event.data.reason.kind === "error" || event.data.reason.kind === "aborted" && event.data.reason.reason.kind === "user")) {
 			const reason = event.data.reason;
 			const stopped = reason.kind === "aborted";
 			const text = reason.kind === "error" ? reason.error.message : "已停止，可继续。";
+			const code = reason.kind === "error" ? failureCode(reason.error) : void 0;
 			error = stopped ? null : text;
 			settleOpenTurn();
 			messages.push({
@@ -826,6 +967,7 @@ function topicMessages(log) {
 				role: "error",
 				turn: event.data.turn,
 				text,
+				...code === void 0 ? {} : { code },
 				bodyRetained: bodyByTurn.has(event.data.turn),
 				attempt: Math.max(1, attemptByTurn.get(event.data.turn) ?? 1),
 				status: stopped ? "stopped" : "failed"
@@ -2420,7 +2562,15 @@ var CiterSessionWorld = class {
 						apply: async (services) => {
 							const scope = modules.createScope(services, {});
 							services.effect(() => () => scope.dispose(), "citeciter: factory registration scope");
-							await scope.ctx.extend({ sessions: services.sessions }).plugin(modules.AgentLoop, { agents: [] });
+							const store = Reflect.get(services.sessions, Symbol.for("cordis.original")) ?? services.sessions;
+							const loopCtx = scope.ctx.extend({});
+							Object.defineProperty(loopCtx, "sessions", {
+								configurable: true,
+								get() {
+									return this.reflect.trace(store);
+								}
+							});
+							await loopCtx.plugin(modules.AgentLoop, { agents: [] });
 							ready.resolve(services);
 						}
 					});
@@ -18453,7 +18603,7 @@ function renderEvent(event, context) {
 	}
 	const call = toolCallRecord(event);
 	if (call !== void 0) {
-		const via = event.type === "tool/ptc-dispatch-start" ? ` · via ${context.names.get(event.data.parentCallId) ?? "run_code"}` : "";
+		const via = call.parentCallId === void 0 ? "" : ` · via ${context.names.get(call.parentCallId) ?? "run_code"}`;
 		const args = renderArguments(call.arguments, context.payloadLimit);
 		return {
 			text: [`## Tool call · ${call.name} · seq ${event.seq}${via}`, args.text].filter((part) => part !== "").join("\n"),
@@ -18568,7 +18718,7 @@ function formatSourceTranscript(source, options) {
 	if (truncated) footer.push(`Page budget reached after seq ${capturedThroughSeq ?? fromSeq}.`);
 	footer.push(nextFromSeq === null ? `End of the source as of this read (latest seq ${sourceMaxSeq ?? "none"}); the live source can still grow.` : `More source after seq ${capturedThroughSeq ?? fromSeq - 1}: call read_source_session with fromSeq: ${nextFromSeq}.`);
 	if (shortened) footer.push("Some payloads were shortened. To see one in full, read only its seq (fromSeq and throughSeq set to it) with detail: \"full\".");
-	const body = blocks.length === 0 ? "(no conversation records in this range)" : blocks.join(SEPARATOR);
+	const body = blocks.length > 0 ? blocks.join(SEPARATOR) : sourceMaxSeq === null ? `(The source Session ${source.session.id} is bound to this Topic and readable, but it has no recorded events yet: it may be a new conversation whose first message is still being saved. Say that the source is empty so far, and read it again later.)` : "(no conversation records in this range)";
 	return {
 		sourceSessionId: source.session.id,
 		sourceMaxSeq,
@@ -19395,13 +19545,19 @@ async function workspaceNotice(options, mode, signal) {
 		summary: `${advance.files.length} 个文件有改动`
 	});
 }
+/** Message source kind of DSH's skill catalog reminder. */
+const SKILL_CATALOG_SOURCE = "skill-catalog";
 /**
 * Append Citer's per-turn context to one Topic Agent. The listener delegates first, adds messages
 * only when the step is entered, and never fails the turn because a context source is unavailable.
 */
 function attachTopicContext(agentCtx, options) {
 	agentCtx.on("agent/pre-step", async ({ agent, turn, signal }, next) => {
-		const decision = await next();
+		const entered = await next();
+		const decision = entered.kind === "reject" || agent !== options.agent ? entered : {
+			...entered,
+			messages: entered.messages.filter((message) => message.source.kind !== SKILL_CATALOG_SOURCE)
+		};
 		if (decision.kind === "reject" || signal.aborted || agent !== options.agent || !isFirstStepOfTurn(agent.session.snapshotEvents(), turn)) return decision;
 		const added = [];
 		if (options.autoReadSource()) try {
@@ -19427,6 +19583,16 @@ function attachTopicContext(agentCtx, options) {
 			messages: [...decision.messages, ...added]
 		};
 	}, { prepend: true });
+}
+/**
+* Keep the Host's optional runtime facts (file and approval policy, DSH checkout, Web URL, delegation) out of
+* a Topic: they do not serve a learning conversation and only spend its context. DSH keeps the required
+* working directory, which it sends once and again only when it changes.
+* @param agentCtx - the Topic Agent's scoped context; the suppression is released with it.
+*/
+function quietRuntimeContext(agentCtx) {
+	const prompt = agentCtx.systemPrompt;
+	if (typeof prompt.suppressRuntimeContext === "function") prompt.suppressRuntimeContext();
 }
 /**
 * The `workspace_changes` tool: line-level diffs since the previous turn began, against the live tree.
@@ -20140,8 +20306,7 @@ var TopicRuntime = class {
 					closed: true,
 					conflict: request.action === "question-draft-save"
 				};
-				const projection = handle.agent.ctx.get("sessionProjections")?.stateOf(handle.agent.session, "userQuestions");
-				const questions = live?.key === request.key ? live.questions : projection?.questions.active.find((question) => questionKey(metadata.sessionId, question.callId) === request.key)?.questions ?? recoverBlockingQuestion(metadata.sessionId, current, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount)?.questions;
+				const questions = live?.key === request.key ? live.questions : projectedQuestions(handle.agent).find((question) => questionKey(metadata.sessionId, question.callId) === request.key)?.questions ?? recoverBlockingQuestion(metadata.sessionId, current, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount)?.questions;
 				if (request.action === "question-draft-save") {
 					if (questions === void 0) throw new Error("尚不能确认此问题仍可回答，已保留草稿，请重新打开后重试");
 					this.validateQuestionDraft(request.state.content, questions);
@@ -20589,6 +20754,7 @@ var TopicRuntime = class {
 			order: 20.5,
 			text: composeSourceIdentityPrompt(metadata.sourceSessionId, sourceTitle, metadata.sourceCwd)
 		});
+		quietRuntimeContext(agentCtx);
 		this.registerSourceTool(agentCtx, metadata);
 		this.registerTopicContext(agentCtx, metadata, agent);
 		this.registerDocumentTools(agentCtx);

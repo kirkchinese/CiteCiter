@@ -74,6 +74,13 @@ export interface TopicContextOptions {
  */
 export declare function attachTopicContext(agentCtx: Context, options: TopicContextOptions): void;
 /**
+ * Keep the Host's optional runtime facts (file and approval policy, DSH checkout, Web URL, delegation) out of
+ * a Topic: they do not serve a learning conversation and only spend its context. DSH keeps the required
+ * working directory, which it sends once and again only when it changes.
+ * @param agentCtx - the Topic Agent's scoped context; the suppression is released with it.
+ */
+export declare function quietRuntimeContext(agentCtx: Context): void;
+/**
  * The `workspace_changes` tool: line-level diffs since the previous turn began, against the live tree.
  * @param workspace - this Topic's snapshot store.
  */

@@ -1,6 +1,7 @@
 import { t, useLocale } from '../i18n.ts'
 import { ToolRow } from './ToolMessage.tsx'
 import { ContextRow } from './ContextRow.tsx'
+import { RetryRow, TurnErrorRow } from './TurnStatusRows.tsx'
 import { TopicUsage } from './TopicUsage.tsx'
 import { useCompactNavigation } from '../compact-navigation.ts'
 import { useTranscriptPosition } from '../transcript-position.ts'
@@ -105,23 +106,6 @@ function friendlyFailure(text: string): string {
   return key === undefined ? text.replaceAll(/https?:\/\/[^\s)]+/gu, t('panel.error.modelAddress')) : t(key)
 }
 
-function ErrorTurn({ message }: { readonly message: Extract<TopicMessage, { role: 'error' }> }) {
-  useLocale()
-  const summary = friendlyFailure(message.text)
-  const stopped = message.status === 'stopped'
-  return (
-    <article
-      className={css.errorTurn}
-      data-citeciter-message={message.id}
-      data-status={message.status}
-      role={stopped ? undefined : 'alert'}
-    >
-      <p><strong>{stopped ? t('panel.phase.stopped') : t('panel.error.requestFailed')}</strong>{stopped ? '' : `${t('panel.error.separator')}${summary}`}</p>
-      {message.bodyRetained && <p className={css.errorNote}>{t('panel.error.retained')}</p>}
-      {!stopped && summary !== message.text && <details><summary>{t('panel.error.details')}</summary><pre>{message.text}</pre></details>}
-    </article>
-  )
-}
 
 function AssistantTurn({
   message,
@@ -244,8 +228,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const [listRequest, setListRequest] = useState<ListRequest | undefined>(undefined)
   const documentInput = useRef<HTMLInputElement>(null)
   const [renameRequest, setRenameRequest] = useState(0)
-  // Like DSH's chat, ordinary context stays out of the transcript unless the reader asks for it.
-  const [allContext, setAllContext] = useState(false)
+  // Every logged context row is listed by default; the Topic menu can narrow the list to notices.
+  const [allContext, setAllContext] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<{ readonly sessionId: string, readonly title: string } | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -531,7 +515,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                 <UserMessageBody text={message.text} questionReply={message.questionReply} sourceTitle={sourceTitle} stageClassName={learningCss.questionDetails} />
               </article>
             )
-            if (message.role === 'error') return <ErrorTurn key={message.id} message={message} />
+            if (message.role === 'error') return <TurnErrorRow key={message.id} message={message} friendly={friendlyFailure} />
+            if (message.role === 'retry') return <RetryRow key={message.id} message={message} friendly={friendlyFailure} />
             if (message.role === 'context') return <ContextRow key={message.id} message={message} />
             return (
               <AssistantTurn

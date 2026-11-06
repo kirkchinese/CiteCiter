@@ -40,7 +40,7 @@ import { QuestionDraftStore } from './question-draft-store.ts'
 import { createSourceReadTool, SOURCE_READ_PROMPT, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
 import { readSourceSession, selectedSourceModel } from './source-session.ts'
 import { SourceStorage } from './source-storage.ts'
-import { attachTopicContext, createWorkspaceChangesTool, refusedMessageSources, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
+import { attachTopicContext, createWorkspaceChangesTool, quietRuntimeContext, refusedMessageSources, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
 import { WorkspaceSnapshots } from './workspace-changes.ts'
 import { toolCallRecord } from './tool-events.ts'
 import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
@@ -48,7 +48,7 @@ import { TopicIndex, type TopicDeletionMarker, unlinkIfPresent, rmdirIfEmpty } f
 import { foldTopicTitle, latestObservedSeq, projectBoardFromLog, projectTopicUsage, titleSourceKind, topicMessages, type TopicLog } from './topic-log.ts'
 import { composeHostedTopicPrompt, composeSourceIdentityPrompt, SOURCE_IDENTITY_SECTION_NAME } from './topic-prompts.ts'
 import { bindTopicQuestionBridge } from './topic-question-bridge.ts'
-import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies, validateQuestionAnswer } from './topic-questions.ts'
+import { continuedQuestions, openQuestion, projectedQuestions, questionKey, TopicQuestionReplies, validateQuestionAnswer } from './topic-questions.ts'
 import { TopicStreamProjection } from './topic-stream.ts'
 import {
   CITATION_SCHEMA_VERSION,
@@ -230,9 +230,8 @@ export class TopicRuntime {
             const closed = await drafts.close(request.key)
             return { kind: 'question-draft', state: closed.state, closed: true, conflict: request.action === 'question-draft-save' }
           }
-          const projection = handle.agent.ctx.get('sessionProjections')?.stateOf(handle.agent.session, 'userQuestions')
           const questions = live?.key === request.key ? live.questions
-            : projection?.questions.active.find(question => questionKey(metadata.sessionId, question.callId) === request.key)?.questions
+            : projectedQuestions(handle.agent).find(question => questionKey(metadata.sessionId, question.callId) === request.key)?.questions
               ?? recoverBlockingQuestion(metadata.sessionId, current, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount)?.questions
           if (request.action === 'question-draft-save') {
             if (questions === undefined) throw new Error('尚不能确认此问题仍可回答，已保留草稿，请重新打开后重试')
@@ -676,6 +675,7 @@ export class TopicRuntime {
       order: 20.5,
       text: composeSourceIdentityPrompt(metadata.sourceSessionId, sourceTitle, metadata.sourceCwd),
     })
+    quietRuntimeContext(agentCtx)
     this.registerSourceTool(agentCtx, metadata)
     this.registerTopicContext(agentCtx, metadata, agent)
     this.registerDocumentTools(agentCtx)

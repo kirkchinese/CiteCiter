@@ -491,12 +491,29 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     role: z.ZodLiteral<"error">;
     turn: z.ZodOptional<z.ZodNumber>;
     text: z.ZodString;
+    code: z.ZodOptional<z.ZodString>;
     bodyRetained: z.ZodBoolean;
     attempt: z.ZodNumber;
     status: z.ZodEnum<{
         failed: "failed";
         stopped: "stopped";
     }>;
+    id: z.ZodString;
+    seq: z.ZodNumber;
+}, z.core.$strict>, z.ZodObject<{
+    role: z.ZodLiteral<"retry">;
+    turn: z.ZodNumber;
+    step: z.ZodNumber;
+    retry: z.ZodNumber;
+    maxRetries: z.ZodOptional<z.ZodNumber>;
+    delayMs: z.ZodNumber;
+    state: z.ZodEnum<{
+        scheduled: "scheduled";
+        started: "started";
+        cancelled: "cancelled";
+    }>;
+    failure: z.ZodString;
+    code: z.ZodOptional<z.ZodString>;
     id: z.ZodString;
     seq: z.ZodNumber;
 }, z.core.$strict>], "role">;
@@ -719,12 +736,29 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         role: z.ZodLiteral<"error">;
         turn: z.ZodOptional<z.ZodNumber>;
         text: z.ZodString;
+        code: z.ZodOptional<z.ZodString>;
         bodyRetained: z.ZodBoolean;
         attempt: z.ZodNumber;
         status: z.ZodEnum<{
             failed: "failed";
             stopped: "stopped";
         }>;
+        id: z.ZodString;
+        seq: z.ZodNumber;
+    }, z.core.$strict>, z.ZodObject<{
+        role: z.ZodLiteral<"retry">;
+        turn: z.ZodNumber;
+        step: z.ZodNumber;
+        retry: z.ZodNumber;
+        maxRetries: z.ZodOptional<z.ZodNumber>;
+        delayMs: z.ZodNumber;
+        state: z.ZodEnum<{
+            scheduled: "scheduled";
+            started: "started";
+            cancelled: "cancelled";
+        }>;
+        failure: z.ZodString;
+        code: z.ZodOptional<z.ZodString>;
         id: z.ZodString;
         seq: z.ZodNumber;
     }, z.core.$strict>], "role">>;
@@ -1689,12 +1723,29 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             role: z.ZodLiteral<"error">;
             turn: z.ZodOptional<z.ZodNumber>;
             text: z.ZodString;
+            code: z.ZodOptional<z.ZodString>;
             bodyRetained: z.ZodBoolean;
             attempt: z.ZodNumber;
             status: z.ZodEnum<{
                 failed: "failed";
                 stopped: "stopped";
             }>;
+            id: z.ZodString;
+            seq: z.ZodNumber;
+        }, z.core.$strict>, z.ZodObject<{
+            role: z.ZodLiteral<"retry">;
+            turn: z.ZodNumber;
+            step: z.ZodNumber;
+            retry: z.ZodNumber;
+            maxRetries: z.ZodOptional<z.ZodNumber>;
+            delayMs: z.ZodNumber;
+            state: z.ZodEnum<{
+                scheduled: "scheduled";
+                started: "started";
+                cancelled: "cancelled";
+            }>;
+            failure: z.ZodString;
+            code: z.ZodOptional<z.ZodString>;
             id: z.ZodString;
             seq: z.ZodNumber;
         }, z.core.$strict>], "role">>;

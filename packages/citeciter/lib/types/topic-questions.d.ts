@@ -31,6 +31,19 @@ export declare function questionKey(sessionId: string, callId: string): string;
 export declare function questionPresentation(questions: readonly AskUserQuestionItem[]): PendingQuestion['questions'];
 /** Project a live private waterfall without assuming that every question blocks indefinitely. */
 export declare function openQuestion(key: string, questions: readonly AskUserQuestionItem[], wait: AskUserQuestionRequest['wait'], callId?: string): PendingQuestion;
+/** One answerable timed question in the Host's `userQuestions` projection. */
+export interface ProjectedQuestion {
+    readonly callId: ToolCallId;
+    readonly state: string;
+    readonly questions: readonly AskUserQuestionItem[];
+}
+/**
+ * Read the Host's `userQuestions` projection state for one Agent, field by field.
+ * DSH 0.2.2 moved the projection's type declarations to another package while the Host state kept
+ * its `questions.active` shape, so Citer reads the shape rather than a version-specific type map.
+ * @returns the answerable questions in ask order, or none when the projection is absent or unreadable.
+ */
+export declare function projectedQuestions(agent: Agent): readonly ProjectedQuestion[];
 /**
  * Read the Host's durable question projection for this exact owned Agent.
  * Replies already in its native Inbox are excluded until admitted/discarded.

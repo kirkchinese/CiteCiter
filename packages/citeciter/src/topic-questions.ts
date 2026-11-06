@@ -113,15 +113,43 @@ export function openQuestion(
     ...(wait === undefined ? { blocking: true, ...(callId === undefined ? {} : { callId }) } : { callId: String(wait.callId), timed: wait.timed === true }) }
 }
 
+/** One answerable timed question in the Host's `userQuestions` projection. */
+export interface ProjectedQuestion {
+  readonly callId: ToolCallId
+  readonly state: string
+  readonly questions: readonly AskUserQuestionItem[]
+}
+
+/**
+ * Read the Host's `userQuestions` projection state for one Agent, field by field.
+ * DSH 0.2.2 moved the projection's type declarations to another package while the Host state kept
+ * its `questions.active` shape, so Citer reads the shape rather than a version-specific type map.
+ * @returns the answerable questions in ask order, or none when the projection is absent or unreadable.
+ */
+export function projectedQuestions(agent: Agent): readonly ProjectedQuestion[] {
+  const state: unknown = agent.ctx.get('sessionProjections')?.stateOf(agent.session, 'userQuestions')
+  if (typeof state !== 'object' || state === null || !('questions' in state)) return []
+  const { questions } = state as { questions: unknown }
+  if (typeof questions !== 'object' || questions === null || !('active' in questions)) return []
+  const { active } = questions as { active: unknown }
+  if (!Array.isArray(active)) return []
+  return active.flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null) return []
+    const { callId, state: questionState, questions: items } = entry as { callId?: unknown, state?: unknown, questions?: unknown }
+    return typeof callId === 'string' && typeof questionState === 'string' && Array.isArray(items)
+      ? [{ callId: callId as ToolCallId, state: questionState, questions: items as AskUserQuestionItem[] }]
+      : []
+  })
+}
+
 /**
  * Read the Host's durable question projection for this exact owned Agent.
  * Replies already in its native Inbox are excluded until admitted/discarded.
  * No Session is registered in the Host list and no log format is rewritten.
  */
 export function continuedQuestions(agent: Agent): PendingQuestion[] {
-  const state = agent.ctx.get('sessionProjections')?.stateOf(agent.session, 'userQuestions')
   const queued = [...agent.inbox.nextTurn, ...agent.inbox.nextStep]
-  return (state?.questions.active ?? [])
+  return projectedQuestions(agent)
     .filter(question => question.state === 'continued' && !queued.some(message =>
       message.source.kind === 'user-question-reply' && message.source.callId === question.callId))
     .map(question => ({ key: questionKey(String(agent.session.header.id), String(question.callId)),

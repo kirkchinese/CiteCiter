@@ -103,7 +103,19 @@ export class CiterSessionWorld {
               // The native Agent creates a child scope with no inject map. Carry
               // the explicitly injected owned store in that context view so its
               // publication boundary cannot fall back to a root Session API.
-              await scope.ctx.extend({ sessions: services.sessions }).plugin(modules.AgentLoop, { agents: [] })
+              // The store is traced to whichever context reads it, as a Host service
+              // lookup would be: an Agent entering its Session then tags that Session's
+              // events with the Agent's own scope, so DSH's Agent-scoped listeners
+              // (such as the runtime-context "only when changed" dedupe) receive them.
+              // A value traced once to this factory context would route them to
+              // unscoped listeners only.
+              const store: unknown = Reflect.get(services.sessions, Symbol.for('cordis.original')) ?? services.sessions
+              const loopCtx = scope.ctx.extend({})
+              Object.defineProperty(loopCtx, 'sessions', {
+                configurable: true,
+                get(this: Context) { return this.reflect.trace(store) },
+              })
+              await loopCtx.plugin(modules.AgentLoop, { agents: [] })
               ready.resolve(services)
             },
           })

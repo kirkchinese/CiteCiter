@@ -348,6 +348,17 @@ export declare const zh: {
     'transcript.copy.noResults': "无结果";
     'transcript.copy.collapseResults': "收起结果";
     'transcript.copy.expandResults': "展开其余 {hidden} 行结果";
+    'transcript.retry.active': "正在重试模型请求";
+    'transcript.retry.started': "已重试模型请求";
+    'transcript.retry.cancelled': "模型请求重试已取消";
+    'transcript.retry.status': "{label}（{retry}/{maximum}） · {seconds}s";
+    'transcript.retry.delay': "重试延迟：";
+    'transcript.retry.failure': "失败原因：";
+    'transcript.retry.milliseconds': "{milliseconds}毫秒";
+    'transcript.turnError': "本轮运行失败";
+    'transcript.failure.auth': "模型服务拒绝了凭据，请检查 DSH 的模型设置";
+    'transcript.failure.quota': "模型服务的额度已用完";
+    'transcript.failure.interrupted': "本轮被中断";
     'panel.placeholder': "继续提问";
     'panel.phase.creating': "正在准备…";
     'panel.phase.running': "正在回答…";

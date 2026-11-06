@@ -139,3 +139,37 @@ test('the board replays only successful, valid blackboard batches after the inhe
   assert.equal(board.invalid, 1)
   assert.deepEqual(board.elements.map(element => [element.id, element.content]), [['a', 'A'], ['b', 'b']])
 })
+
+test('a retry chain is one row that follows its attempts, and a failed turn keeps its code', () => {
+  seq = 0
+  const failure = { message: 'DeepSeek Messages transport failed', code: 'TRANSPORT' }
+  const retry = (n, delayMs) => event('llm/retry', { retryId: 'r1', turn: 1, step: 1, provider: 'p', mode: 'normal', policyKey: 'k', retry: n, maxRetries: 5, delayMs, failure })
+  const events = [
+    turnStart(1),
+    retry(1, 500),
+    event('llm/retry-started', { retryId: 'r1', turn: 1, step: 1, retry: 1 }),
+    retry(2, 900),
+    turnEnd(1, { kind: 'error', error: failure }),
+  ]
+  const { messages, error } = topicMessages(log(events))
+  const rows = messages.filter(message => message.role === 'retry')
+  assert.equal(rows.length, 1)
+  assert.deepEqual([rows[0].retry, rows[0].maxRetries, rows[0].delayMs, rows[0].state, rows[0].code], [2, 5, 900, 'cancelled', 'TRANSPORT'])
+  const failed = messages.find(message => message.role === 'error')
+  assert.deepEqual([failed.code, failed.status, error], ['TRANSPORT', 'failed', 'DeepSeek Messages transport failed'])
+})
+
+test('a retry that ran stays as a retried row after the answer arrives', () => {
+  seq = 0
+  const failure = { message: 'timeout', code: 'TIMEOUT' }
+  const events = [
+    turnStart(1),
+    event('llm/retry', { retryId: 'r2', turn: 1, step: 1, provider: 'p', mode: 'always', policyKey: 'k', retry: 1, delayMs: 300, failure }),
+    event('llm/retry-started', { retryId: 'r2', turn: 1, step: 1, retry: 1 }),
+    assistant('a1', 1, [text('done')]),
+    turnEnd(1),
+  ]
+  const [row] = topicMessages(log(events)).messages.filter(message => message.role === 'retry')
+  assert.equal(row.state, 'started')
+  assert.equal(row.maxRetries, undefined)
+})

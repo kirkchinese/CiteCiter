@@ -1,6 +1,6 @@
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { toolCallRecord, toolResultRecord } from './tool-events.ts'
+import { toolCallRecord, toolErrorOf, toolResultRecord } from './tool-events.ts'
 import { questionKey } from './topic-questions.ts'
 
 function pending(content: readonly ContentBlock[]): boolean {
@@ -16,10 +16,8 @@ function pending(content: readonly ContentBlock[]): boolean {
 }
 
 function unresolvedError(event: SessionEvent): boolean {
-  if (event.type !== 'tool/result' && event.type !== 'tool/ptc-dispatch') return false
-  const error: unknown = 'error' in event.data ? event.data.error : undefined
-  return typeof error === 'object' && error !== null && 'code' in error
-    && (error.code === 'TOOL_OUTCOME_UNKNOWN' || error.code === 'ASK_TIMED_OUT')
+  const code = toolErrorOf(event)?.code
+  return code === 'TOOL_OUTCOME_UNKNOWN' || code === 'ASK_TIMED_OUT'
 }
 
 /**
@@ -73,7 +71,6 @@ export function questionDraftLogStatus(
 /** Candidate key for a committed result/reply; callers still verify its original ask call. */
 export function questionDraftReceiptKey(sessionId: string, event: SessionEvent): string | undefined {
   if (event.type === 'user/message' && event.data.source.kind === 'user-question-reply') return questionKey(sessionId, event.data.source.callId)
-  if (event.type !== 'tool/result' && event.type !== 'tool/ptc-dispatch') return undefined
   const result = toolResultRecord(event)
   return result === undefined ? undefined : questionKey(sessionId, result.callId)
 }

@@ -185,7 +185,7 @@ function renderEvent(event: SessionEvent, context: RenderContext): Rendered | nu
   }
   const call = toolCallRecord(event)
   if (call !== undefined) {
-    const via = event.type === 'tool/ptc-dispatch-start' ? ` · via ${context.names.get(event.data.parentCallId) ?? 'run_code'}` : ''
+    const via = call.parentCallId === undefined ? '' : ` · via ${context.names.get(call.parentCallId) ?? 'run_code'}`
     const args = renderArguments(call.arguments, context.payloadLimit)
     return { text: [`## Tool call · ${call.name} · seq ${event.seq}${via}`, args.text].filter(part => part !== '').join('\n'), shortened: args.shortened }
   }
@@ -295,7 +295,10 @@ export function formatSourceTranscript(source: ObserverSourceSnapshot, options: 
     ? `End of the source as of this read (latest seq ${sourceMaxSeq ?? 'none'}); the live source can still grow.`
     : `More source after seq ${capturedThroughSeq ?? fromSeq - 1}: call read_source_session with fromSeq: ${nextFromSeq}.`)
   if (shortened) footer.push('Some payloads were shortened. To see one in full, read only its seq (fromSeq and throughSeq set to it) with detail: "full".')
-  const body = blocks.length === 0 ? '(no conversation records in this range)' : blocks.join(SEPARATOR)
+  // An empty snapshot is still this Topic's bound source: say so, so the model does not report it as unselected or unreadable.
+  const body = blocks.length > 0 ? blocks.join(SEPARATOR)
+    : sourceMaxSeq === null ? `(The source Session ${source.session.id} is bound to this Topic and readable, but it has no recorded events yet: it may be a new conversation whose first message is still being saved. Say that the source is empty so far, and read it again later.)`
+    : '(no conversation records in this range)'
   return {
     sourceSessionId: source.session.id,
     sourceMaxSeq,

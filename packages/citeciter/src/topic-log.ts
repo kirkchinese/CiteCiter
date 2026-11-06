@@ -37,6 +37,37 @@ function contentAttachments(content: readonly ContentBlock[], imageName: string,
     : [])
 }
 
+/** One model-request retry event, read field by field: DSH 0.2.0 logged no retries and declares them elsewhere. */
+type RetryRecord =
+  | { readonly kind: 'scheduled', readonly retryId: string, readonly turn: number, readonly step: number, readonly retry: number, readonly maxRetries?: number, readonly delayMs: number, readonly failure: string, readonly code?: string }
+  | { readonly kind: 'started', readonly retryId: string }
+
+/** @returns the structured code of a DSH failure, when it carries one. */
+function failureCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return undefined
+  const { code } = error as { code: unknown }
+  return typeof code === 'string' && code !== '' ? code : undefined
+}
+
+function retryRecord(event: SessionEvent): RetryRecord | undefined {
+  const type = event.type as string
+  if (type !== 'llm/retry' && type !== 'llm/retry-started') return undefined
+  const data = event.data as unknown as Record<string, unknown> | null
+  if (typeof data !== 'object' || data === null || typeof data['retryId'] !== 'string') return undefined
+  const retryId = data['retryId']
+  if (type === 'llm/retry-started') return { kind: 'started', retryId }
+  const { turn, step, retry, maxRetries, delayMs, failure } = data
+  if (!Number.isSafeInteger(turn) || !Number.isSafeInteger(step) || !Number.isSafeInteger(retry) || (retry as number) < 1) return undefined
+  const message = typeof failure === 'object' && failure !== null && 'message' in failure && typeof failure.message === 'string' ? failure.message : ''
+  const code = failureCode(failure)
+  return {
+    kind: 'scheduled', retryId, turn: turn as number, step: step as number, retry: retry as number,
+    ...(Number.isSafeInteger(maxRetries) && (maxRetries as number) > 0 ? { maxRetries: maxRetries as number } : {}),
+    delayMs: typeof delayMs === 'number' && Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 0,
+    failure: message, ...(code === undefined ? {} : { code }),
+  }
+}
+
 /** Fold Topic-owned assistant usage, including retried attempts, without inherited source events. */
 export function projectTopicUsage(log: TopicLog): TopicUsage | undefined {
   const count = (value: number | undefined): value is number => value !== undefined && Number.isSafeInteger(value) && value >= 0
@@ -124,6 +155,7 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
   let error: string | null = null
   const attemptByTurn = new Map<number, number>()
   const bodyByTurn = new Set<number>()
+  const retryIndexes = new Map<string, number>()
   // Calls started in the open turn; any still without a result when the turn ends were interrupted.
   let openTurnCalls: string[] = []
   const settleOpenTurn = () => {
@@ -240,12 +272,36 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
       }
       continue
     }
+    const retry = retryRecord(event)
+    if (retry !== undefined) {
+      const index = retryIndexes.get(retry.retryId)
+      const previous = index === undefined ? undefined : messages[index]
+      if (retry.kind === 'scheduled') {
+        const row: TopicMessage = {
+          id: `retry:${retry.retryId}`, seq: event.seq, role: 'retry', turn: retry.turn, step: retry.step,
+          retry: retry.retry, ...(retry.maxRetries === undefined ? {} : { maxRetries: retry.maxRetries }),
+          delayMs: retry.delayMs, state: 'scheduled', failure: retry.failure, ...(retry.code === undefined ? {} : { code: retry.code }),
+        }
+        // One row per retry chain, updated in place like DSH's own transcript.
+        if (index === undefined) { retryIndexes.set(retry.retryId, messages.length); messages.push(row) }
+        else messages[index] = row
+      } else if (index !== undefined && previous?.role === 'retry') messages[index] = { ...previous, state: 'started' }
+      continue
+    }
+    if (event.type === 'turn/end') {
+      // A retry still waiting when its turn ended never ran.
+      for (const index of retryIndexes.values()) {
+        const row = messages[index]
+        if (row?.role === 'retry' && row.turn === event.data.turn && row.state === 'scheduled') messages[index] = { ...row, state: 'cancelled' }
+      }
+    }
     if (event.type === 'turn/end' && (event.data.reason.kind === 'error' || (
       event.data.reason.kind === 'aborted' && event.data.reason.reason.kind === 'user'
     ))) {
       const reason = event.data.reason
       const stopped = reason.kind === 'aborted'
       const text = reason.kind === 'error' ? reason.error.message : '已停止，可继续。'
+      const code = reason.kind === 'error' ? failureCode(reason.error) : undefined
       error = stopped ? null : text
       settleOpenTurn()
       messages.push({
@@ -254,6 +310,7 @@ export function topicMessages(log: TopicLog): { messages: TopicMessage[], error:
         role: 'error',
         turn: event.data.turn,
         text,
+        ...(code === undefined ? {} : { code }),
         bodyRetained: bodyByTurn.has(event.data.turn),
         attempt: Math.max(1, attemptByTurn.get(event.data.turn) ?? 1),
         status: stopped ? 'stopped' : 'failed',

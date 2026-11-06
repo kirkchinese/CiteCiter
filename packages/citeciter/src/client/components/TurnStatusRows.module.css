@@ -1,0 +1,87 @@
+/* Retry and terminal turn rows, matching DSH's own transcript rows. */
+.retryRow {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(20px + var(--dsh-content-font-delta-secondary, 0px));
+}
+
+.retrySummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 0;
+  color: inherit;
+  list-style: none;
+  border-radius: var(--dsw-radius-sm, 6px);
+  cursor: pointer;
+  user-select: none;
+}
+
+.retrySummary::-webkit-details-marker { display: none; }
+
+.retrySummary::after {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-right: 2px;
+  content: "";
+  border-right: 1.5px solid;
+  border-bottom: 1.5px solid;
+  transform: rotate(-45deg);
+  transition: transform .12s;
+}
+
+.retrySummary:hover { color: var(--dsw-alias-label-secondary); }
+.retrySummary:focus-visible { outline: 1.5px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
+.retryText { min-width: 0; overflow-wrap: anywhere; }
+.retryRow[open] .retrySummary::after { transform: rotate(45deg); }
+
+.retryDetails {
+  display: grid;
+  gap: 2px;
+  margin-top: 3px;
+  padding-left: 14px;
+  overflow-wrap: anywhere;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(18px + var(--dsh-content-font-delta-secondary, 0px));
+}
+
+.retryDetailLabel { color: var(--dsw-alias-label-secondary); }
+
+.turnErrorRow {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(20px + var(--dsh-content-font-delta-secondary, 0px));
+}
+
+.turnErrorDot { margin-top: 5px; }
+.turnErrorCopy { min-width: 0; overflow-wrap: anywhere; }
+.turnErrorTitle { margin-right: 6px; color: var(--dsw-alias-state-error-primary); font-weight: 600; }
+.turnStoppedTitle { margin-right: 6px; color: var(--dsw-alias-label-tertiary); }
+.turnErrorMessage { color: var(--dsw-alias-label-secondary); }
+.turnErrorCode { color: var(--dsw-alias-label-tertiary); font: var(--dsw-font-markdown-code-block-small, 12px/18px ui-monospace, monospace); }
+
+.turnErrorNote {
+  display: block;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.turnErrorDetails {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+}
+
+.turnErrorDetails summary { cursor: pointer; }
+
+.turnErrorDetails pre {
+  max-height: 160px;
+  margin: 4px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+}
