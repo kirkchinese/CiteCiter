@@ -44609,6 +44609,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			}
 			const anchor = source.kind === "conversation" ? source.selection.anchorKey : source.kind === "quote" ? source.anchorKey : documentId;
 			const documentHeading = source.kind === "document" ? `文档：${source.title}${source.line === void 0 ? "" : `（第 ${source.line} 行）`}` : "";
+			const content = source.kind === "document" ? `${documentHeading}\n\n${quote}` : source.kind === "quote" && source.from === "tool-call" ? `工具调用${source.toolName === void 0 ? "" : `（${source.toolName}）`}的输入：\n\n${quote}` : quote;
 			references.push({
 				id: JSON.stringify([
 					"selection",
@@ -44618,7 +44619,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				]),
 				kind: "excerpt",
 				label: "引用文段",
-				content: source.kind === "document" ? `${documentHeading}\n\n${quote}` : quote
+				content
 			});
 			return references;
 		}
@@ -46371,6 +46372,49 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (!element.contains(range.commonAncestorContainer)) return null;
 			const text = selection.toString().trim();
 			return text === "" ? null : text.slice(0, 32e3);
+		}
+		/** The call identity and name of the tool card holding a pointer event, from DSH's own card attributes. */
+		function toolCardAt(event, context) {
+			const target = event.target;
+			if (target === null || typeof target !== "object" || typeof target.closest !== "function") return null;
+			const closest = target.closest.bind(target);
+			const callRow = closest("[data-chat-call-id]");
+			const flowElement = closest("[data-chat-flow-kind]");
+			if (callRow === null || flowElement === null || flowElement.dataset.chatFlowKind !== "tool-call") return null;
+			const anchorKey = flowElement.dataset.chatAnchorKey;
+			const callId = callRow.dataset.chatCallId;
+			if (anchorKey === void 0 || anchorKey === "" || callId === void 0 || callId === "") return null;
+			const node = context.readChat(context.sourceSessionId)?.nodes.get(anchorKey);
+			if (node === void 0 || node.kind !== "tool-call") return null;
+			const call = findToolCall(node.data.root, callId);
+			return call === null ? null : {
+				anchorKey,
+				callRow,
+				call
+			};
+		}
+		/**
+		* Text selected in a tool card that is not part of its result, such as the command a terminal card shows
+		* or a call's arguments: an excerpt of what the Agent ran, while it runs or after it settles.
+		* @returns a quote source, or null when the event is not on a tool card or nothing there is selected.
+		*/
+		function readToolInputQuote(event, context) {
+			const card = toolCardAt(event, context);
+			if (card === null) return null;
+			const selected = selectedTextWithin(card.callRow);
+			if (selected === null) return null;
+			if (card.call.kind === "tool-result") {
+				const text = projectToolEvidence(toolProjectionForTarget(event.target), card.call.content ?? [], card.call.meta);
+				if (text !== null && toolExcerptMatches(text, selected)) return null;
+			}
+			return {
+				kind: "quote",
+				sourceSessionId: context.sourceSessionId,
+				anchorKey: card.anchorKey,
+				displayText: selected,
+				from: "tool-call",
+				...typeof card.call.name === "string" && card.call.name !== "" ? { toolName: card.call.name } : {}
+			};
 		}
 		/** Classify the projection a tool-card pointer event asks for. */
 		function toolProjectionForTarget(target) {
@@ -49358,6 +49402,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						sourceSessionId
 					});
 					if (userQuote !== null) return userQuote;
+					const toolInput = readToolInputQuote(event, {
+						readChat,
+						sourceSessionId
+					});
+					if (toolInput !== null) return toolInput;
 					const claim = entries.claim(event, {
 						readChat,
 						sourceSessionId
@@ -49443,7 +49492,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 									text: source.quoteText ?? source.selection.displayText
 								});
 								else if (source.kind === "quote") insertMainQuote(remoteCtx, source.sourceSessionId, {
-									from: "user",
+									from: source.from === "tool-call" ? "tool" : "user",
 									text: source.displayText
 								});
 								else await execute.quote(source);

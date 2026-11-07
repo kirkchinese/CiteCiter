@@ -32,7 +32,7 @@ import { NativeLearningDocument } from './components/NativeLearningDocument.tsx'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { CiteLauncher } from './components/CiteLauncher.tsx'
 import { UpdateNotice } from './components/UpdateNotice.tsx'
-import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry, readUserMessageQuote } from './entries.ts'
+import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry, readToolInputQuote, readUserMessageQuote } from './entries.ts'
 import { insertMainQuote, installQuoteSource } from './main-quote.ts'
 import { installQuoteRendering } from './user-text-quote.ts'
 import { installDynamicAccelerator } from './hotkeys.ts'
@@ -215,6 +215,9 @@ export async function apply(ctx: Context): Promise<void> {
       if (sourceSessionId === null) return null
       const userQuote = readUserMessageQuote(event, { readChat, sourceSessionId })
       if (userQuote !== null) return userQuote
+      // A command or argument selected on a tool card, which the result citation does not cover.
+      const toolInput = readToolInputQuote(event, { readChat, sourceSessionId })
+      if (toolInput !== null) return toolInput
       const claim = entries.claim(event, { readChat, sourceSessionId })
       return claim === null ? null : { kind: 'conversation', selection: claim.selection, quoteText: window.getSelection()?.toString().trim().slice(0, 32_000) || claim.selection.displayText }
     }
@@ -279,7 +282,7 @@ export async function apply(ctx: Context): Promise<void> {
           from: source.selection.kind === 'tool-result' ? 'tool' : 'assistant',
           text: source.quoteText ?? source.selection.displayText,
         })
-        else if (source.kind === 'quote') insertMainQuote(remoteCtx, source.sourceSessionId, { from: 'user', text: source.displayText })
+        else if (source.kind === 'quote') insertMainQuote(remoteCtx, source.sourceSessionId, { from: source.from === 'tool-call' ? 'tool' : 'user', text: source.displayText })
         else await execute.quote(source)
       } }, hooks: { toolbar, companion } }),
     }, SelectionToolbar))

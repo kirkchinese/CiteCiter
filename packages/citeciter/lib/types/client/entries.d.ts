@@ -55,6 +55,12 @@ export declare function createAssistantEntry(): CiteCiterEntry;
 /** Capture a committed user-message excerpt without inventing a host-verified citation claim. */
 export declare function readUserMessageQuote(event: MouseEvent, context: CiteCiterEntryContext): ActionSource | null;
 /**
+ * Text selected in a tool card that is not part of its result, such as the command a terminal card shows
+ * or a call's arguments: an excerpt of what the Agent ran, while it runs or after it settles.
+ * @returns a quote source, or null when the event is not on a tool card or nothing there is selected.
+ */
+export declare function readToolInputQuote(event: MouseEvent, context: CiteCiterEntryContext): ActionSource | null;
+/**
  * Built-in tool evidence entry: claims a whole-card tool result from its
  * `call:<callId>` row and the enclosing `tool-call` chat flow. Terminal and
  * diff cards select their dedicated projections; everything else is

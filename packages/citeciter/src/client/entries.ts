@@ -130,6 +130,45 @@ function selectedTextWithin(element: HTMLElement): string | null {
   return text === '' ? null : text.slice(0, 32_000)
 }
 
+/** The call identity and name of the tool card holding a pointer event, from DSH's own card attributes. */
+function toolCardAt(event: MouseEvent, context: CiteCiterEntryContext): { readonly anchorKey: string, readonly callRow: HTMLElement, readonly call: SettledToolChatRoot & { readonly name?: unknown } } | null {
+  const target = event.target as unknown
+  if (target === null || typeof target !== 'object' || typeof (target as { closest?: unknown }).closest !== 'function') return null
+  const closest = (target as { closest(selector: string): HTMLElement | null }).closest.bind(target)
+  const callRow = closest('[data-chat-call-id]')
+  const flowElement = closest('[data-chat-flow-kind]')
+  if (callRow === null || flowElement === null || flowElement.dataset.chatFlowKind !== 'tool-call') return null
+  const anchorKey = flowElement.dataset.chatAnchorKey
+  const callId = callRow.dataset.chatCallId
+  if (anchorKey === undefined || anchorKey === '' || callId === undefined || callId === '') return null
+  const node = context.readChat(context.sourceSessionId)?.nodes.get(anchorKey)
+  if (node === undefined || node.kind !== 'tool-call') return null
+  const call = findToolCall((node.data as { readonly root?: unknown }).root, callId)
+  return call === null ? null : { anchorKey, callRow, call }
+}
+
+/**
+ * Text selected in a tool card that is not part of its result, such as the command a terminal card shows
+ * or a call's arguments: an excerpt of what the Agent ran, while it runs or after it settles.
+ * @returns a quote source, or null when the event is not on a tool card or nothing there is selected.
+ */
+export function readToolInputQuote(event: MouseEvent, context: CiteCiterEntryContext): ActionSource | null {
+  const card = toolCardAt(event, context)
+  if (card === null) return null
+  const selected = selectedTextWithin(card.callRow)
+  if (selected === null) return null
+  if (card.call.kind === 'tool-result') {
+    // Result text is a verifiable citation; the tool entry claims it.
+    const projection = toolProjectionForTarget(event.target as unknown as { closest(selector: string): HTMLElement | null })
+    const text = projectToolEvidence(projection, card.call.content ?? [], card.call.meta)
+    if (text !== null && toolExcerptMatches(text, selected)) return null
+  }
+  return {
+    kind: 'quote', sourceSessionId: context.sourceSessionId, anchorKey: card.anchorKey, displayText: selected, from: 'tool-call',
+    ...(typeof card.call.name === 'string' && card.call.name !== '' ? { toolName: card.call.name } : {}),
+  }
+}
+
 /** Classify the projection a tool-card pointer event asks for. */
 function toolProjectionForTarget(target: { closest(selector: string): HTMLElement | null }): ToolEvidenceProjection {
   if (target.closest('[data-terminal]') !== null) return 'terminal'
