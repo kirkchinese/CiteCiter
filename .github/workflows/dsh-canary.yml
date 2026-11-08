@@ -1,8 +1,8 @@
 name: DSH compatibility
 
-# Every day, build and test Citer against the newest DSH releases, so a breaking DSH release is
-# noticed before users meet it. A failure on a release inside engines.dsh means Citer is broken for
-# users now; a failure outside it means the next range extension needs work first.
+# Every day, build and test Citer against the newest DSH releases. engines.dsh has no upper bound,
+# so DSH never refuses a newer host and every probed release is one users can already run Citer on:
+# a failure there means a DSH change broke Citer and needs a fix release.
 on:
   schedule:
     - cron: '17 1 * * *'
@@ -64,5 +64,5 @@ jobs:
         run: |
           title="DSH $VERSION is inside engines.dsh but Citer does not build against it"
           if [ -z "$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json number --jq '.[].number')" ]; then
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The scheduled compatibility check failed: $RUN. Users on DSH $VERSION can load this Citer release. Fix it, or narrow engines.dsh, and release."
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The scheduled compatibility check failed: $RUN. Users on DSH $VERSION can load this Citer release. Adapt Citer to it and release."
           fi

@@ -1,14 +1,14 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/hero/citeciter-hero.png" alt="CiteCiter" width="100%" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/hero/citeciter-hero.png" alt="CiteCiter" width="100%" />
 
 # CiteCiter
 
 **Your agent finished the job. Now understand how it did it.**
 
-[![npm](https://img.shields.io/npm/v/%40kirkchinese%2Fdsh-citeciter?label=npm&color=2f6feb)](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) [![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2%20%E2%80%93%200.2.x-0b2a5b)](#install) [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/LICENSE)
+[![npm](https://img.shields.io/npm/v/%40kirkchinese%2Fdsh-citeciter?label=npm&color=2f6feb)](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) [![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2%2B-0b2a5b)](#install) [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/LICENSE)
 
-[中文](README.zh.md) · **English** · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
+[中文](README.zh.md) · **English** · [Changelog](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/CHANGELOG.md) · [Issues](https://github.com/kirkchinese/CiteCiter/issues)
 
 </div>
 
@@ -18,8 +18,8 @@ CiteCiter is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-
 
 <table>
 <tr>
-<td width="50%"><a href="https://www.bilibili.com/video/BV1Epno6jESr/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/video.en.webp" alt="English demo video: Your agent finished. Did you follow?" /></a></td>
-<td width="50%"><a href="https://www.bilibili.com/video/BV1H7no6SEjE/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/video.zh.webp" alt="Chinese demo video" /></a></td>
+<td width="50%"><a href="https://www.bilibili.com/video/BV1Epno6jESr/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/video.en.webp" alt="English demo video: Your agent finished. Did you follow?" /></a></td>
+<td width="50%"><a href="https://www.bilibili.com/video/BV1H7no6SEjE/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/video.zh.webp" alt="Chinese demo video" /></a></td>
 </tr>
 <tr>
 <td align="center"><b>English</b> · 58 s · <a href="https://www.bilibili.com/video/BV1Epno6jESr/">Watch on Bilibili</a></td>
@@ -33,19 +33,19 @@ CiteCiter is a [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-
 
 Select text in an answer, your own message, a tool result, a command card or a document and the Citer toolbar appears. Explain, Find errors and Translate send at once; Ask Citer lets you write your own question first; Quote drops the passage into the main composer as a quote chip, so you can discuss or dispute it with the main agent.
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/select.en.webp" alt="Selecting a sentence in the main conversation shows the Citer toolbar" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/select.en.webp" alt="Selecting a sentence in the main conversation shows the Citer toolbar" />
 
 ### ② Understand it in a Topic
 
 Citer opens a Topic in the right sidebar. It knows which conversation the passage came from and reads it when needed, draws diagrams, derivations and animations on the blackboard, and takes as many follow-ups as you like. Topics are read-only by default and never write to the main conversation.
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/topic.en.webp" alt="Citer answers in the right sidebar while the blackboard animates a timeline of two save requests" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/topic.en.webp" alt="Citer answers in the right sidebar while the blackboard animates a timeline of two save requests" />
 
 ### ③ Teacher mode nudges you
 
 When on, Citer has a cheap model of your choice look at each completed turn of the main conversation. If there is a point worth stopping for, a note appears beside the desktop pet: Explain opens a Topic that teaches it, Dismiss puts it away. Off by default.
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/teacher.en.webp" alt="Teacher mode offers a point worth noticing beside the desktop pet" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/teacher.en.webp" alt="Teacher mode offers a point worth noticing beside the desktop pet" />
 
 > Explanations and boards can still be wrong. They help you understand and check; they do not replace evidence.
 
@@ -63,11 +63,11 @@ When on, Citer has a cheap model of your choice look at each completed turn of t
 
 ## Install
 
-CiteCiter needs DSH and a working model. It declares a range of DSH versions, so later releases on a supported line load without waiting for a CiteCiter update; outside the range DSH refuses to load it. Pick the release for your DSH:
+CiteCiter needs DSH and a working model. It declares only the oldest DSH it supports, so DSH updates never refuse to load it; if an update changes an API Citer uses, the affected feature may fail until a fix ships. Citer is checked against the newest DSH every day. Pick the release for your DSH:
 
 | DSH version | CiteCiter version |
 | --- | --- |
-| `0.2.0-rc.2` and later, before `0.2.3` (the official Desktop and every `0.2.1` and `0.2.2` alpha, release candidate and final release) | `0.9.0-beta.8` |
+| `0.2.0-rc.2` and every later release (the official Desktop and every later alpha, release candidate and final release) | `0.9.0-beta.9` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -77,13 +77,13 @@ CiteCiter needs DSH and a working model. It declares a range of DSH versions, so
 **CLI and Web.**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.8
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.9
 ```
 
 You can also install a release tag straight from the repository, which ships the built plugin, so nothing is built at install time:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.8"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.9"
 ```
 
 Restart DSH and reload the page after installing or upgrading. Do not use `dsh plugin allow-version` to force a plugin that does not match your host version, and do not run two host processes on the same DSH home.
@@ -228,6 +228,6 @@ CiteCiter turns real AI work into material you can cite, question and check. Sta
 
 Bring a task where "the agent finished, but I still can't explain it" to the [issue tracker](https://github.com/kirkchinese/CiteCiter/issues), in English or Chinese. Include your DSH and plugin versions and whether you got stuck installing, citing and asking, or understanding the answer. Remove keys and private content before pasting material.
 
-See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
+See [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/CONTRIBUTING.md) for development and [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/docs/product.zh.md) (Chinese) for the product rules. [Claude2DSH](https://github.com/kirkchinese/claude2dsh), by the same author, migrates sessions and assets between Claude Code and DSH.
 
 MIT License.

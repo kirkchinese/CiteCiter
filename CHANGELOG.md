@@ -2,6 +2,13 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## 0.9.0-beta.9 — 2026-11-08
+
+Targets DSH `>=0.2.0-rc.2`: the official Desktop `0.2.0-rc.2` and every later release.
+
+- The declared DSH range has no upper bound, so new DSH releases no longer refuse to load Citer. A daily compatibility check against DSH's newest releases catches API changes that need a fix.
+- The README is redesigned: Chinese with English glosses, the two current demo videos, and new screenshots of the toolbar, a Topic with its blackboard, and teacher mode in each language. The npm page shows the English edition.
+
 ## 0.9.0-beta.8 — 2026-11-08
 
 Targets DSH `>=0.2.0-rc.2 <0.2.3-0`: the official Desktop `0.2.0-rc.2` and every `0.2.1` and `0.2.2` alpha, release candidate and final release.

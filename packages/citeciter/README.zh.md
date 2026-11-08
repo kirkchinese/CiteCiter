@@ -1,14 +1,14 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/hero/citeciter-hero.png" alt="CiteCiter" width="100%" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/hero/citeciter-hero.png" alt="CiteCiter" width="100%" />
 
 # CiteCiter
 
 **AI 已经完成了任务，我还想弄明白它是怎么做的。**<br /><sub><i>Your agent finished the job. Now understand how it did it.</i></sub>
 
-[![npm](https://img.shields.io/npm/v/%40kirkchinese%2Fdsh-citeciter?label=npm&color=2f6feb)](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) [![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2%20%E2%80%93%200.2.x-0b2a5b)](#安装-install) [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/LICENSE)
+[![npm](https://img.shields.io/npm/v/%40kirkchinese%2Fdsh-citeciter?label=npm&color=2f6feb)](https://www.npmjs.com/package/@kirkchinese/dsh-citeciter) [![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2%2B-0b2a5b)](#安装-install) [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/LICENSE)
 
-**中文** · [English](README.md) · [更新记录 <sub>Changelog</sub>](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/CHANGELOG.md) · [问题反馈 <sub>Issues</sub>](https://github.com/kirkchinese/CiteCiter/issues)
+**中文** · [English](README.md) · [更新记录 <sub>Changelog</sub>](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/CHANGELOG.md) · [问题反馈 <sub>Issues</sub>](https://github.com/kirkchinese/CiteCiter/issues)
 
 </div>
 
@@ -20,8 +20,8 @@ CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 
 <table>
 <tr>
-<td width="50%"><a href="https://www.bilibili.com/video/BV1H7no6SEjE/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/video.zh.webp" alt="中文演示视频：AI 干完活，你看懂了吗？" /></a></td>
-<td width="50%"><a href="https://www.bilibili.com/video/BV1Epno6jESr/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/video.en.webp" alt="English demo video: Your agent finished. Did you follow?" /></a></td>
+<td width="50%"><a href="https://www.bilibili.com/video/BV1H7no6SEjE/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/video.zh.webp" alt="中文演示视频：AI 干完活，你看懂了吗？" /></a></td>
+<td width="50%"><a href="https://www.bilibili.com/video/BV1Epno6jESr/"><img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/video.en.webp" alt="English demo video: Your agent finished. Did you follow?" /></a></td>
 </tr>
 <tr>
 <td align="center"><b>中文版</b> · 56 秒 · <a href="https://www.bilibili.com/video/BV1H7no6SEjE/">在 B 站观看</a></td>
@@ -37,7 +37,7 @@ CiteCiter 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 
 <sub>Select text in an answer, your own message, a tool result, a command card or a document and the Citer toolbar appears. Explain, Find errors and Translate send at once; Ask Citer lets you write your own question; Quote drops the passage into the main composer as a quote chip, so you can discuss or dispute it with the main agent.</sub>
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/select.zh.webp" alt="在主对话中选中一句话，旁边出现 Citer 工具条" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/select.zh.webp" alt="在主对话中选中一句话，旁边出现 Citer 工具条" />
 
 ### ② 在 Topic 里弄懂 <sub>Understand it in a Topic</sub>
 
@@ -45,7 +45,7 @@ Citer 在右侧栏打开一个 Topic。它知道这段话出自哪个主对话�
 
 <sub>Citer opens a Topic in the right sidebar. It knows which conversation the passage came from and reads it when needed, draws diagrams, derivations and animations on the blackboard, and takes as many follow-ups as you like. Topics are read-only by default and never write to the main conversation.</sub>
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/topic.zh.webp" alt="Citer 在右侧栏作答，小黑板上是两次保存请求的时间线动画" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/topic.zh.webp" alt="Citer 在右侧栏作答，小黑板上是两次保存请求的时间线动画" />
 
 ### ③ 教师模式提醒你 <sub>Teacher mode nudges you</sub>
 
@@ -53,7 +53,7 @@ Citer 在右侧栏打开一个 Topic。它知道这段话出自哪个主对话�
 
 <sub>When on, Citer has a cheap model of your choice look at each completed turn of the main conversation. If there is a point worth stopping for, a note appears beside the desktop pet: Explain opens a Topic that teaches it, Dismiss puts it away. Off by default.</sub>
 
-<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.8/assets/docs/teacher.zh.webp" alt="教师模式在桌宠旁提醒一个值得注意的知识点" />
+<img src="https://raw.githubusercontent.com/kirkchinese/CiteCiter/v0.9.0-beta.9/assets/docs/teacher.zh.webp" alt="教师模式在桌宠旁提醒一个值得注意的知识点" />
 
 > 解释和板书仍可能出错。它们帮助你理解和检查，不代替事实证据。<br /><sub>Explanations and boards can still be wrong; they help you understand and check, not replace evidence.</sub>
 
@@ -71,13 +71,13 @@ Citer 在右侧栏打开一个 Topic。它知道这段话出自哪个主对话�
 
 ## 安装 <sub>Install</sub>
 
-CiteCiter 需要 DSH 和一个可用的模型。插件声明了一个 DSH 版本范围，同一条版本线上的后续发布不必等 CiteCiter 更新；超出范围时 DSH 会拒绝加载。请按 DSH 版本选择：
+CiteCiter 需要 DSH 和一个可用的模型。插件只声明最低支持的 DSH 版本，DSH 以后的更新都不会再拒绝加载它；如果某次更新改了 Citer 用到的接口，受影响的功能可能出错，CiteCiter 每天都会对 DSH 的最新版本做兼容检查，并尽快发布修复。请按 DSH 版本选择：
 
-<sub>CiteCiter needs DSH and a working model. It declares a range of DSH versions, so later releases on a supported line load without a CiteCiter update; outside the range DSH refuses to load it. Pick the release for your DSH:</sub>
+<sub>CiteCiter needs DSH and a working model. It declares only the oldest DSH it supports, so DSH updates never refuse to load it; if an update changes an API Citer uses, the affected feature may fail until a fix ships. Citer is checked against the newest DSH every day. Pick the release for your DSH:</sub>
 
 | DSH 版本 <sub>DSH version</sub> | 插件版本 <sub>Plugin</sub> |
 | --- | --- |
-| `0.2.0-rc.2` 及以上、`0.2.3` 之前（含官方桌面版，以及 `0.2.1`、`0.2.2` 的各个 alpha、rc 和正式版）<br /><sub>`0.2.0-rc.2` up to `0.2.3`, including the official Desktop</sub> | `0.9.0-beta.8` |
+| `0.2.0-rc.2` 及以上（含官方桌面版，以及之后的各个 alpha、rc 和正式版）<br /><sub>`0.2.0-rc.2` and every later release, including the official Desktop</sub> | `0.9.0-beta.9` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -87,13 +87,13 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了一个 DSH 版本
 **命令行与 Web** <sub>CLI and Web</sub>
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.8
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.9
 ```
 
 也可以从仓库安装发布标签；仓库已包含构建好的插件，安装时无需构建。<br /><sub>Or install a release tag from the repository, which ships the built plugin:</sub>
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.8"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.9"
 ```
 
 安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件；同一个 DSH 主目录不要同时运行两个宿主进程。<br /><sub>Restart DSH and reload the page after installing or upgrading. Do not force a mismatched plugin with `allow-version`, and do not run two hosts on one DSH home.</sub>
@@ -242,8 +242,8 @@ CiteCiter 尝试把真实的 AI 工作过程变成可引用、可追问、可检
 
 欢迎带着“Agent 已经完成了，但我还讲不清”的任务来[反馈](https://github.com/kirkchinese/CiteCiter/issues)。请写明 DSH 和插件版本，以及卡在安装、引用追问还是理解回答。贴材料前请移除密钥和私人内容。
 
-开发说明见 [CONTRIBUTING.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/CONTRIBUTING.zh.md)，产品规则见 [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/docs/product.zh.md)。同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于在 Claude Code 与 DSH 之间迁移会话和资产。
+开发说明见 [CONTRIBUTING.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/CONTRIBUTING.zh.md)，产品规则见 [docs/product.zh.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/docs/product.zh.md)。同作者的 [Claude2DSH](https://github.com/kirkchinese/claude2dsh) 用于在 Claude Code 与 DSH 之间迁移会话和资产。
 
-<sub>Issues and ideas are welcome in English or Chinese. Developer notes: [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.8/CONTRIBUTING.md).</sub>
+<sub>Issues and ideas are welcome in English or Chinese. Developer notes: [CONTRIBUTING.md](https://github.com/kirkchinese/CiteCiter/blob/v0.9.0-beta.9/CONTRIBUTING.md).</sub>
 
 MIT License.
