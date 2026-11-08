@@ -16,9 +16,14 @@ export function decodeNativeText(content: DocumentPreviewProps['content']): stri
   return text
 }
 
-/** Capture the file address's own Session and immutable text, never the later active tab. */
-export function nativeDocumentSource(address: string, content: string, selection: DocumentSelection): ActionSource {
+/**
+ * Capture the file's Session and immutable text. A file read through a Session belongs to that Session;
+ * a file opened by its absolute path belongs to no Session, so it is asked about in the conversation on screen.
+ * @param onScreen - the main conversation on screen, or null when none is.
+ */
+export function nativeDocumentSource(address: string, content: string, selection: DocumentSelection, onScreen: SessionId | null): ActionSource {
   const file = parseFileAddress(address)
-  if (file?.scope !== 'session') throw new Error(t('settings.error.nativeNoSource'))
-  return { kind: 'document', sourceSessionId: SessionId(file.sessionId), title: file.path, content, ...selection }
+  const session = file?.scope === 'session' ? SessionId(file.sessionId) : file?.scope === 'absolute' ? onScreen : null
+  if (file === undefined || session === null) throw new Error(t('settings.error.nativeNoSource'))
+  return { kind: 'document', sourceSessionId: session, title: file.path, content, ...selection }
 }

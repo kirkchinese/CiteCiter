@@ -269,6 +269,9 @@ export declare const citeCiterRequestDescriptor: {
             }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                 action: import("zod").ZodLiteral<"document-delete">;
                 documentId: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                action: import("zod").ZodLiteral<"teacher-check">;
+                sourceSessionId: import("zod").ZodString;
             }, import("zod/v4/core").$strict>], "action">]>;
         };
     }];
@@ -756,12 +759,29 @@ export declare const citeCiterRequestDescriptor: {
                     role: import("zod").ZodLiteral<"error">;
                     turn: import("zod").ZodOptional<import("zod").ZodNumber>;
                     text: import("zod").ZodString;
+                    code: import("zod").ZodOptional<import("zod").ZodString>;
                     bodyRetained: import("zod").ZodBoolean;
                     attempt: import("zod").ZodNumber;
                     status: import("zod").ZodEnum<{
                         failed: "failed";
                         stopped: "stopped";
                     }>;
+                    id: import("zod").ZodString;
+                    seq: import("zod").ZodNumber;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    role: import("zod").ZodLiteral<"retry">;
+                    turn: import("zod").ZodNumber;
+                    step: import("zod").ZodNumber;
+                    retry: import("zod").ZodNumber;
+                    maxRetries: import("zod").ZodOptional<import("zod").ZodNumber>;
+                    delayMs: import("zod").ZodNumber;
+                    state: import("zod").ZodEnum<{
+                        scheduled: "scheduled";
+                        started: "started";
+                        cancelled: "cancelled";
+                    }>;
+                    failure: import("zod").ZodString;
+                    code: import("zod").ZodOptional<import("zod").ZodString>;
                     id: import("zod").ZodString;
                     seq: import("zod").ZodNumber;
                 }, import("zod/v4/core").$strict>], "role">>;
@@ -1035,6 +1055,14 @@ export declare const citeCiterRequestDescriptor: {
                 page: import("zod").ZodDefault<import("zod").ZodNumber>;
                 pageCount: import("zod").ZodDefault<import("zod").ZodNumber>;
             }, import("zod/v4/core").$strict>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"teacher">;
+            suggestion: import("zod").ZodNullable<import("zod").ZodObject<{
+                sourceSessionId: import("zod").ZodString;
+                turn: import("zod").ZodNumber;
+                title: import("zod").ZodString;
+                point: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
         }, import("zod/v4/core").$strict>], "kind">;
     };
     readonly sourceLocation: {

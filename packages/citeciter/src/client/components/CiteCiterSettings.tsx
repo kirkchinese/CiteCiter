@@ -12,6 +12,7 @@ import mascotUrl from '../assets/citeciter-mascot.png'
 import { t, useLocale } from '../i18n.ts'
 import css from './Settings.module.css'
 import { ActionSettings } from './ActionSettings.tsx'
+import { ModelChoice } from './ModelChoice.tsx'
 import type { CiteOverlaySnapshot } from '../types.ts'
 import { parseAccelerator } from '../hotkeys.ts'
 
@@ -81,7 +82,7 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, useOve
     if (value === (settings.shortcutOpenPanel ?? '')) return
     void companion.setSetting('shortcutOpenPanel', value === '' ? undefined : value)
   }
-  const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations' | 'autoReadSource' | 'standalonePanel'>(key: Key, label: string, fallback: boolean) =>
+  const toggle = <Key extends 'reopenLastTopic' | 'includeSourceReasoning' | 'followupQuestions' | 'activeRecall' | 'boardAnimations' | 'autoReadSource' | 'standalonePanel' | 'teacherMode'>(key: Key, label: string, fallback: boolean) =>
     <Switch label={label} checked={settings[key] ?? fallback} disabled={saving} onChange={value => { void companion.setSetting(key, value) }} />
   return (
     <div className={css.page}>
@@ -120,6 +121,11 @@ export function CiteCiterSettings({ useCompanion, useDocument, useUpdate, useOve
 
       <section className={css.group}>
         <h3>{t('settings.learning.title')}</h3>
+        <Row title={t('settings.learning.teacher')} desc={t('settings.learning.teacherDesc')}>{toggle('teacherMode', t('settings.learning.teacher'), false)}</Row>
+        {settings.teacherMode === true && <Row title={t('settings.learning.teacherModel')} desc={t('settings.learning.teacherModelDesc')}>
+          <ModelChoice className={css.select} label={t('settings.learning.teacherModel')} providers={snapshot.providers} value={settings.teacherModel ?? undefined} disabled={saving}
+            onChange={value => { void companion.setSetting('teacherModel', value ?? null) }} />
+        </Row>}
         <Row title={t('settings.learning.recall')} desc={t('settings.learning.recallDesc')}>{toggle('activeRecall', t('settings.learning.recall'), false)}</Row>
         <Row title={t('settings.learning.animations')} desc={t('settings.learning.animationsDesc')}>{toggle('boardAnimations', t('settings.learning.animations'), true)}</Row>
         <div className={css.row} data-stack>

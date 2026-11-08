@@ -32,11 +32,13 @@ CI runs the same commands on Ubuntu and Windows. `pnpm --dir packages/citeciter 
 
 ## Two SDK baselines
 
-The package's `devDependencies` pin the main SDK (currently DSH `0.2.1-rc.5`). `citeciter-compat-desktop` pins the oldest supported SDK (`0.2.0-rc.2`, the first official Desktop), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
+The package's `devDependencies` pin the main SDK (currently DSH `0.2.2-rc.1`). `citeciter-compat-desktop` pins the oldest supported SDK (`0.2.0-rc.2`, the first official Desktop), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
 
 ## Declared DSH support
 
-DSH refuses to load a plugin whose declared requirements do not include the running version. From `0.2.1-alpha.4` it reads `engines.dsh` alone; earlier hosts read every `@deepseek-ai/dsh*` peer. Both are evaluated as semver ranges with prereleases included. The manifest therefore declares one range, currently `>=0.2.0-rc.2 <0.2.2-0`, in `engines.dsh` and in every DSH peer: the release lines Citer is verified against, so a new release candidate on a supported line keeps working without a Citer release. The upper bound stops before the next line's prereleases, which change the APIs Citer uses (`0.2.2-alpha` moved the tool event types and the user-question events).
+DSH refuses to load a plugin whose declared requirements do not include the running version. From `0.2.1-alpha.4` it reads `engines.dsh` alone; earlier hosts read every `@deepseek-ai/dsh*` peer. Both are evaluated as semver ranges with prereleases included. The manifest therefore declares one range, currently `>=0.2.0-rc.2 <0.2.3-0`, in `engines.dsh` and in every DSH peer: the release lines Citer is verified against, so a new release candidate on a supported line keeps working without a Citer release. The upper bound stops before the next line's prereleases, which may change the APIs Citer uses.
+
+Where releases in the range declare the same logged data in different packages (`0.2.2` moved the `run_code` dispatch events to `dsh-tool-executor-ptc` and the user-question projection types to `dsh-session-projection`), Citer reads the logged shape field by field (`tool-events.ts`, `projectedQuestions` in `topic-questions.ts`) instead of importing a type map that only one release has. Client signatures that changed (`readAttachment`, `createDrafts`) accept both forms at the call site.
 
 The scheduled workflow `DSH compatibility` builds and tests against DSH's `latest`, `next` and `alpha` tags every day (`scripts/use-sdk.mjs` swaps the SDK for the probe). A failure on a version inside the range opens an issue, because users of that version already load Citer; a failure outside it is an early warning for the next extension.
 

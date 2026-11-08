@@ -55,7 +55,12 @@ export interface CompanionFace {
      * @param delivery - `draft` fills the new Topic's composer; `send` sends the question with its references at once.
      */
     create(selection: CiteSelection, question: string, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>;
-    createFree(question: string): Promise<boolean>;
+    /**
+     * Create a Topic that cites nothing.
+     * @param sourceSessionId - the source conversation; defaults to the one on screen.
+     * @param delivery - `draft` fills the new Topic's composer; `send` sends the question at once.
+     */
+    createFree(question: string, sourceSessionId?: SessionId, delivery?: ActionDelivery): Promise<boolean>;
     /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
     createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>;
     openTopic(sessionId: string): Promise<void>;

@@ -23,7 +23,8 @@ import { DraftStore } from './draft-store.ts'
 import { HostSessionAdapter } from './host-session-adapter.ts'
 import { createLearningCardsTool } from './learning-cards-tool.ts'
 import { migrateLegacyTopics } from './legacy-migration.ts'
-import { requireSelectedModel, selectInitialModel } from './model-admission.ts'
+import { isRouteUnavailable, requireSelectedModel, selectInitialModel } from './model-admission.ts'
+import { callTeacherModel, TeacherMode } from './teacher.ts'
 import { readNativeAttachment } from './native-attachment-read.ts'
 import { readNativeState } from './native-session-read.ts'
 import {
@@ -40,7 +41,7 @@ import { QuestionDraftStore } from './question-draft-store.ts'
 import { createSourceReadTool, SOURCE_READ_PROMPT, SOURCE_READ_SECTION_NAME } from './source-read-tool.ts'
 import { readSourceSession, selectedSourceModel } from './source-session.ts'
 import { SourceStorage } from './source-storage.ts'
-import { attachTopicContext, createWorkspaceChangesTool, refusedMessageSources, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
+import { attachTopicContext, createWorkspaceChangesTool, quietRuntimeContext, refusedMessageSources, WORKSPACE_PROMPT, WORKSPACE_SECTION_NAME } from './topic-context.ts'
 import { WorkspaceSnapshots } from './workspace-changes.ts'
 import { toolCallRecord } from './tool-events.ts'
 import { latestTopicSubmission, topicSubmissionTime } from './topic-archive.ts'
@@ -48,7 +49,7 @@ import { TopicIndex, type TopicDeletionMarker, unlinkIfPresent, rmdirIfEmpty } f
 import { foldTopicTitle, latestObservedSeq, projectBoardFromLog, projectTopicUsage, titleSourceKind, topicMessages, type TopicLog } from './topic-log.ts'
 import { composeHostedTopicPrompt, composeSourceIdentityPrompt, SOURCE_IDENTITY_SECTION_NAME } from './topic-prompts.ts'
 import { bindTopicQuestionBridge } from './topic-question-bridge.ts'
-import { continuedQuestions, openQuestion, questionKey, TopicQuestionReplies, validateQuestionAnswer } from './topic-questions.ts'
+import { continuedQuestions, openQuestion, projectedQuestions, questionKey, TopicQuestionReplies, validateQuestionAnswer } from './topic-questions.ts'
 import { TopicStreamProjection } from './topic-stream.ts'
 import {
   CITATION_SCHEMA_VERSION,
@@ -156,6 +157,7 @@ export class TopicRuntime {
   private readonly topicListeners = new Set<TopicChangeListener>()
   private readonly streams = new Map<string, TopicStreamProjection>()
   private readonly boardCapture = new BoardCaptureBroker()
+  private readonly teacher: TeacherMode
   private disposal: Promise<void> | undefined
   private releasing: Promise<void> | undefined
   private closed = false
@@ -166,6 +168,20 @@ export class TopicRuntime {
     private readonly settings: () => CiteCiterSettings = () => DEFAULT_CITECITER_SETTINGS,
   ) {
     this.sourceStorage = new SourceStorage(host)
+    this.teacher = new TeacherMode({
+      enabled: () => this.settings().teacherMode === true,
+      readSource: async (sessionId, signal) => {
+        const source = await readSourceSession(this.host, sessionId)
+        signal.throwIfAborted()
+        return source
+      },
+      // Its own model first, then the Citer model, then the model the source conversation uses.
+      route: source => {
+        const settings = this.settings()
+        return settings.teacherModel ?? settings.defaultCiterModel ?? selectedSourceModel(source.events) ?? modelConfigFromLatest(source)
+      },
+      call: (route, system, input, signal) => callTeacherModel(this.host.llm, route, system, input, signal),
+    })
     this.native = new HostSessionAdapter(host, settings, (scope, agent, metadata) => this.setupAgent(scope, agent, metadata), metadata => resolve(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId), 'sessions'))
     this.ready = this.start()
     void this.ready.catch(() => undefined)
@@ -230,9 +246,8 @@ export class TopicRuntime {
             const closed = await drafts.close(request.key)
             return { kind: 'question-draft', state: closed.state, closed: true, conflict: request.action === 'question-draft-save' }
           }
-          const projection = handle.agent.ctx.get('sessionProjections')?.stateOf(handle.agent.session, 'userQuestions')
           const questions = live?.key === request.key ? live.questions
-            : projection?.questions.active.find(question => questionKey(metadata.sessionId, question.callId) === request.key)?.questions
+            : projectedQuestions(handle.agent).find(question => questionKey(metadata.sessionId, question.callId) === request.key)?.questions
               ?? recoverBlockingQuestion(metadata.sessionId, current, handle.agent.session.snapshotEvents(), handle.agent.session.inheritedEventCount)?.questions
           if (request.action === 'question-draft-save') {
             if (questions === undefined) throw new Error('尚不能确认此问题仍可回答，已保留草稿，请重新打开后重试')
@@ -362,6 +377,8 @@ export class TopicRuntime {
       case 'document-delete':
         await this.documents.delete(request.documentId)
         return { kind: 'documents', documents: await this.documents.list() }
+      case 'teacher-check':
+        return { kind: 'teacher', suggestion: await this.teacher.check(request.sourceSessionId, signal ?? new AbortController().signal) }
       default:
         return request satisfies never
     }
@@ -485,13 +502,15 @@ export class TopicRuntime {
     const route: LlmCallConfig = request.modelRoute ?? selected ?? (evidence === undefined || documentClaim !== undefined
       ? modelConfigFromLatest(source)
       : modelConfigFromSource(source, evidence.anchorSeq))
-    // An unavailable explicit or inherited route still creates a Topic awaiting model selection.
+    // An unavailable explicit or inherited route still creates a Topic awaiting model selection. A provider
+    // that cannot be reached right now (network, timeout) keeps the route: the first send retries it.
     let routeUnavailable = false
     try {
       await this.host.llm.resolveModelInfo(route.provider, route.model, signal)
     } catch (error) {
       if (signal?.aborted === true) throw error
-      routeUnavailable = true
+      if (isRouteUnavailable(error)) routeUnavailable = true
+      else this.host.logger.warn(`CiteCiter could not check model ${route.provider}/${route.model}; keeping it`, error)
     }
     const sourceRoot = await this.sourceStorage.root(sourceSessionId, true)
     if (sourceRoot === undefined) throw new Error('Citer 来源存储不可用')
@@ -626,9 +645,23 @@ export class TopicRuntime {
     const handle = await this.native.create(metadata, signal)
     this.handles.set(metadata.sessionId, handle)
     // An already unavailable route stays recorded for the user to replace; selecting it would only fail.
-    if (metadata.modelSelectionRequired === true) return handle
+    // Earlier versions also recorded routes a network failure only hid: offer those again once they resolve.
+    if (metadata.modelSelectionRequired === true && !await this.routeRecovered(metadata, signal)) return handle
     await selectInitialModel(metadata, () => this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: metadata.modelConfig.provider, model: metadata.modelConfig.model, ...(metadata.modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: metadata.modelConfig.reasoningEffort }) }))
     return handle
+  }
+
+  /** Clear a Topic's "choose another model" mark when its recorded route resolves again. */
+  private async routeRecovered(metadata: TopicMetadata, signal?: AbortSignal): Promise<boolean> {
+    try {
+      await this.host.llm.resolveModelInfo(metadata.modelConfig.provider, metadata.modelConfig.model, signal)
+    } catch (error) {
+      if (signal?.aborted === true) throw error
+      return false
+    }
+    metadata.modelSelectionRequired = false
+    await this.index.save({ ...metadata, updatedAt: Date.now() })
+    return true
   }
 
   /** Contribute Citer prompts, tools and observers to one native Topic Agent. */
@@ -676,6 +709,7 @@ export class TopicRuntime {
       order: 20.5,
       text: composeSourceIdentityPrompt(metadata.sourceSessionId, sourceTitle, metadata.sourceCwd),
     })
+    quietRuntimeContext(agentCtx)
     this.registerSourceTool(agentCtx, metadata)
     this.registerTopicContext(agentCtx, metadata, agent)
     this.registerDocumentTools(agentCtx)

@@ -30,7 +30,7 @@ export function ContextRow({ message }: { readonly message: Extract<TopicMessage
     : message.summary === '代码库有改动' ? t('transcript.context.changed') : message.summary
   const text = message.text.length > MAX_CHARS ? `${message.text.slice(0, MAX_CHARS)}\n${t('transcript.context.truncated', { count: message.text.length })}` : message.text
   return (
-    <div className={css.root} data-citeciter-message={message.id} data-open={open ? '' : undefined}>
+    <div className={css.root} data-citeciter-message={message.id} data-row="process" data-open={open ? '' : undefined}>
       <DisclosureRow
         icon={recall ? <ReferenceIconRegular kind="session" /> : <IconContextInjectionOutlineRegular size={14} />}
         title={title}

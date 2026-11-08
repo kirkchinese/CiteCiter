@@ -5,7 +5,7 @@ import { lineAtOffset } from '../../document-pages.ts'
 import { literalSelection, markdownBlocks, pieceAt, textLines } from '../document-layout.ts'
 import type { ActionSource } from '../action-controller.ts'
 import type { SelectionSurfaces } from '../wheel-gesture.ts'
-import { markdownLabels } from '../copy.ts'
+import { useMarkdownLabels } from '../copy.ts'
 import { t, useLocale } from '../i18n.ts'
 import css from './DocumentView.module.css'
 
@@ -74,6 +74,7 @@ function blockAt(blocks: HTMLElement, node: Node, offset: number, edge: 'start' 
  */
 export function DocumentView({ format, content, focus, wrap = true, note, registerSurface, toSource, scrollRef }: DocumentViewProps) {
   useLocale()
+  const markdownLabels = useMarkdownLabels()
   const pieces = useMemo(() => format === 'markdown' ? markdownBlocks(content) : textLines(content), [format, content])
   const batch = format === 'markdown' ? BLOCK_BATCH : LINE_BATCH
   const [limit, setLimit] = useState(batch)
@@ -138,10 +139,20 @@ export function DocumentView({ format, content, focus, wrap = true, note, regist
       if (literal === null) return null
       return toSource({ displayText: literal.displayText, prefixText: literal.prefixText, suffixText: literal.suffixText, line: lineAtOffset(content, literal.start) })
     }
-    const first = blockAt(root, range.startContainer, range.startOffset, 'start')
-    const last = blockAt(root, range.endContainer, range.endOffset, 'end')
+    // A boundary inside rendered math, a table or a code block's chrome may sit outside any block's
+    // text; the blocks the range touches still name the selected source.
+    const touched = [...root.querySelectorAll<HTMLElement>(':scope > [data-source-start]')].filter(block => range.intersectsNode(block))
+    const first = blockAt(root, range.startContainer, range.startOffset, 'start') ?? touched[0] ?? null
+    const last = blockAt(root, range.endContainer, range.endOffset, 'end') ?? touched.at(-1) ?? null
+    if (first === null || last === null) return null
+    // Rendered math carries its MathML, TeX annotation and visual glyphs as text, and images carry none.
+    // A selection touching them quotes the source of the blocks it covers, literally.
+    if ([...root.querySelectorAll('.katex, img')].some(node => range.intersectsNode(node)) || range.toString().trim() === '') {
+      const literal = literalSelection(content, Number(first.dataset.sourceStart), Number(last.dataset.sourceEnd))
+      if (literal === null) return null
+      return toSource({ displayText: literal.displayText, prefixText: literal.prefixText, suffixText: literal.suffixText, line: lineAtOffset(content, literal.start) })
+    }
     const displayText = range.toString().trim()
-    if (first === null || last === null || displayText === '') return null
     const sourceRange = { start: Number(first.dataset.sourceStart), end: Number(last.dataset.sourceEnd) }
     if (!(sourceRange.start < sourceRange.end)) return null
     // The quote's first words, found in its blocks' source, give its line; else the block's.

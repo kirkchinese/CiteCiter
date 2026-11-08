@@ -7,7 +7,7 @@ import type { CiteOverlaySnapshot } from '../types.ts';
 import type { SelectionSurfaces } from '../wheel-gesture.ts';
 import type { FileOpener } from '../native-file-link.ts';
 import type { CompanionSnapshot } from '../companion-controller.ts';
-import type { CompanionActions, DocumentActions, OverlayActions } from '../view-actions.ts';
+import type { CompanionActions, DocumentActions, OverlayActions, TeacherActions } from '../view-actions.ts';
 import type { DocumentLibrarySnapshot } from '../document-library.ts';
 export interface CitePanelProps {
     readonly drafts: Omit<DraftController, 'getSnapshot' | 'subscribe' | 'dispose'>;
@@ -22,6 +22,8 @@ export interface CitePanelProps {
     readonly closePanel: () => void;
     /** Citer's documents: the library list and opening documents in the sidebar or this panel. */
     readonly documents: DocumentActions;
+    /** Teacher mode's offer, shown at the top while Citer is open. */
+    readonly teacher: TeacherActions;
     readonly useLibrary: SnapshotSelectorHook<DocumentLibrarySnapshot>;
     readonly reportParseError: (messageId: string) => void;
     /** Host standard prop: the session list, used to show source titles on reference chips. */
@@ -43,4 +45,4 @@ export interface CitePanelProps {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, useLibrary, reportParseError, registerSurface, openFile, host, tabVisible }: CitePanelProps): import("react").JSX.Element | null;
+export declare function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, teacher, useLibrary, reportParseError, registerSurface, openFile, host, tabVisible }: CitePanelProps): import("react").JSX.Element | null;

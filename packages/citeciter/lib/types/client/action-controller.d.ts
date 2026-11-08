@@ -7,11 +7,14 @@ export type ActionSource = {
     readonly selection: CiteSelection;
     readonly quoteText?: string;
 } | {
-    /** An ordinary user message: excerpt only, not a host-verified citation claim. */
+    /** An ordinary user message, or a tool call's input such as a command: excerpt only, not a host-verified citation claim. */
     readonly kind: 'quote';
     readonly sourceSessionId: SessionId;
     readonly anchorKey: string;
     readonly displayText: string;
+    /** `tool-call` for text from a tool call's input; absent for a user message. */
+    readonly from?: 'tool-call';
+    readonly toolName?: string;
 } | {
     readonly kind: 'document';
     readonly sourceSessionId: SessionId;

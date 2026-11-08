@@ -3,7 +3,7 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { QuestionDraftRecord } from './question-draft-contract.ts'
 import type { PendingQuestion } from './topic.ts'
 import { questionKey } from './topic-questions.ts'
-import { toolCallRecord, toolResultRecord } from './tool-events.ts'
+import { ptcStartRecord, toolCallRecord, toolErrorOf, toolResultRecord } from './tool-events.ts'
 import { questionDraftLogStatus } from './question-draft-lifecycle.ts'
 
 const argumentsSchema = z.object({ questions: z.array(z.object({
@@ -19,7 +19,11 @@ const argumentsSchema = z.object({ questions: z.array(z.object({
  * @param events - only the owning Topic's post-seed events, in append order.
  */
 export function hasInterruptedPtcParent(callId: string, events: readonly SessionEvent[]): boolean {
-  const starts = events.flatMap((event, index) => event.type === 'tool/ptc-dispatch-start' && event.data.subCallId === callId ? [{ event, index }] : [])
+  const startsOf = (subCallId: string) => events.flatMap((event, index) => {
+    const start = ptcStartRecord(event)
+    return start?.subCallId === subCallId ? [{ start, index }] : []
+  })
+  const starts = startsOf(callId)
   if (starts.length !== 1) return false
   const child = starts[0]!
   const turnStart = events.slice(0, child.index).findLast(event => event.type === 'turn/start')
@@ -28,23 +32,23 @@ export function hasInterruptedPtcParent(callId: string, events: readonly Session
   const turnEnd = events.findIndex((event, index) => index > child.index && event.type === 'turn/end' && event.data.turn === turn)
   const ended = events[turnEnd]
   if (ended?.type !== 'turn/end' || ended.data.reason.kind !== 'interrupted') return false
-  const rootId = child.event.data.rootCallId
+  const rootId = child.start.rootCallId
   const rootCalls = events.flatMap((event, index) => event.type === 'tool/call' && event.data.callId === rootId ? [{ event, index }] : [])
   if (rootCalls.length !== 1) return false
   const root = rootCalls[0]!
   if (root.event.data.name !== 'run_code' || root.event.data.turn !== turn || root.index >= child.index) return false
   const ancestors = new Set<string>()
-  let parentId = String(child.event.data.parentCallId)
+  let parentId = child.start.parentCallId
   let before = child.index
   while (parentId !== rootId) {
     if (parentId === callId || ancestors.has(parentId)) return false
     ancestors.add(parentId)
-    const parents = events.flatMap((event, index) => event.type === 'tool/ptc-dispatch-start' && event.data.subCallId === parentId ? [{ event, index }] : [])
+    const parents = startsOf(parentId)
     if (parents.length !== 1) return false
     const parent = parents[0]!
-    if (parent.index <= root.index || parent.index >= before || parent.event.data.rootCallId !== rootId || parent.event.data.name !== 'run_code') return false
+    if (parent.index <= root.index || parent.index >= before || parent.start.rootCallId !== rootId || parent.start.name !== 'run_code') return false
     before = parent.index
-    parentId = String(parent.event.data.parentCallId)
+    parentId = parent.start.parentCallId
   }
   ancestors.add(rootId)
   let repaired = false
@@ -70,7 +74,7 @@ function interrupted(callId: string, events: readonly SessionEvent[]): boolean {
     if (event.type === 'turn/start') turn = event.data.turn
     if (toolCallRecord(event)?.callId === callId) callTurn = turn
     if (toolResultRecord(event)?.callId === callId) {
-      const error = event.type === 'tool/result' || event.type === 'tool/ptc-dispatch' ? event.data.error : undefined
+      const error = toolErrorOf(event)
       if (error?.code === 'TOOL_OUTCOME_UNKNOWN') return true
       if (error?.code === 'ASK_ABORTED') aborted = true
     }

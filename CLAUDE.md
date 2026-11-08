@@ -7,7 +7,7 @@ CiteCiter is an external DSH plugin (npm `@kirkchinese/dsh-citeciter`), not the 
 - Behavior lives in plugin contributions and documented DSH services. Never patch the Agent Loop. The three host adaptations (`citer-session-access.ts`, `host-agent-modules.ts`, `client/host-dock.ts`) stay isolated in their modules.
 - Registrations are effects (`ctx.effect()`, `ctx.on()`) released with their owner; disposal waits for Agents and requests to settle. Waterfall listeners call `next()` unless they deliberately claim the request.
 - Model-visible input must be reconstructable from the Topic log. Never write to source Sessions.
-- The model runs only on an explicit user action: a manual send, or a chosen preset action (users can switch presets to draft-only). Creating a Topic, the question action, follow-up suggestions and board citations only prepare drafts. New Topics are read-only by default.
+- The model runs only on an explicit user action: a manual send, or a chosen preset action (users can switch presets to draft-only). Creating a Topic, the question action, follow-up suggestions and board citations only prepare drafts. New Topics are read-only by default. The one exception is opt-in teacher mode: a bounded, read-only check per completed main-conversation turn whose result is only an offer.
 - Citer owns `<source session>/citeciter/`. Never modify source logs, other Topics or migration backups. Keep Topic metadata readable by earlier versions unless a migration is deliberately designed.
 - Validate at file, wire and configuration boundaries; trust typed same-process calls. Read persisted settings field by field.
 - Host and Client compile separately. React components receive snapshots and callbacks and never look up Cordis services.

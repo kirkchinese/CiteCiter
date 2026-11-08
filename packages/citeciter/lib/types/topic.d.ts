@@ -63,6 +63,11 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
         summary: "summary";
         diff: "diff";
     }>>;
+    teacherMode: z.ZodOptional<z.ZodBoolean>;
+    teacherModel: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        provider: z.ZodString;
+        model: z.ZodString;
+    }, z.core.$strict>>>;
 }, z.core.$strict>;
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>;
 /** Settings used before an optional DSH settings provider becomes available. */
@@ -491,12 +496,29 @@ export declare const topicMessageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     role: z.ZodLiteral<"error">;
     turn: z.ZodOptional<z.ZodNumber>;
     text: z.ZodString;
+    code: z.ZodOptional<z.ZodString>;
     bodyRetained: z.ZodBoolean;
     attempt: z.ZodNumber;
     status: z.ZodEnum<{
         failed: "failed";
         stopped: "stopped";
     }>;
+    id: z.ZodString;
+    seq: z.ZodNumber;
+}, z.core.$strict>, z.ZodObject<{
+    role: z.ZodLiteral<"retry">;
+    turn: z.ZodNumber;
+    step: z.ZodNumber;
+    retry: z.ZodNumber;
+    maxRetries: z.ZodOptional<z.ZodNumber>;
+    delayMs: z.ZodNumber;
+    state: z.ZodEnum<{
+        scheduled: "scheduled";
+        started: "started";
+        cancelled: "cancelled";
+    }>;
+    failure: z.ZodString;
+    code: z.ZodOptional<z.ZodString>;
     id: z.ZodString;
     seq: z.ZodNumber;
 }, z.core.$strict>], "role">;
@@ -719,12 +741,29 @@ export declare const topicSnapshotSchema: z.ZodObject<{
         role: z.ZodLiteral<"error">;
         turn: z.ZodOptional<z.ZodNumber>;
         text: z.ZodString;
+        code: z.ZodOptional<z.ZodString>;
         bodyRetained: z.ZodBoolean;
         attempt: z.ZodNumber;
         status: z.ZodEnum<{
             failed: "failed";
             stopped: "stopped";
         }>;
+        id: z.ZodString;
+        seq: z.ZodNumber;
+    }, z.core.$strict>, z.ZodObject<{
+        role: z.ZodLiteral<"retry">;
+        turn: z.ZodNumber;
+        step: z.ZodNumber;
+        retry: z.ZodNumber;
+        maxRetries: z.ZodOptional<z.ZodNumber>;
+        delayMs: z.ZodNumber;
+        state: z.ZodEnum<{
+            scheduled: "scheduled";
+            started: "started";
+            cancelled: "cancelled";
+        }>;
+        failure: z.ZodString;
+        code: z.ZodOptional<z.ZodString>;
         id: z.ZodString;
         seq: z.ZodNumber;
     }, z.core.$strict>], "role">>;
@@ -1208,8 +1247,19 @@ export declare const citeCiterRequestSchema: z.ZodUnion<readonly [z.ZodUnion<rea
 }, z.core.$strict>, z.ZodObject<{
     action: z.ZodLiteral<"document-delete">;
     documentId: z.ZodString;
+}, z.core.$strict>, z.ZodObject<{
+    action: z.ZodLiteral<"teacher-check">;
+    sourceSessionId: z.ZodString;
 }, z.core.$strict>], "action">]>;
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>;
+/** One point worth learning that teacher mode found in a completed main-conversation turn. */
+export declare const teacherSuggestionSchema: z.ZodObject<{
+    sourceSessionId: z.ZodString;
+    turn: z.ZodNumber;
+    title: z.ZodString;
+    point: z.ZodString;
+}, z.core.$strict>;
+export type TeacherSuggestion = z.infer<typeof teacherSuggestionSchema>;
 /** Strict response union returned by the single Remote command endpoint. */
 export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     kind: z.ZodLiteral<"question-draft">;
@@ -1689,12 +1739,29 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
             role: z.ZodLiteral<"error">;
             turn: z.ZodOptional<z.ZodNumber>;
             text: z.ZodString;
+            code: z.ZodOptional<z.ZodString>;
             bodyRetained: z.ZodBoolean;
             attempt: z.ZodNumber;
             status: z.ZodEnum<{
                 failed: "failed";
                 stopped: "stopped";
             }>;
+            id: z.ZodString;
+            seq: z.ZodNumber;
+        }, z.core.$strict>, z.ZodObject<{
+            role: z.ZodLiteral<"retry">;
+            turn: z.ZodNumber;
+            step: z.ZodNumber;
+            retry: z.ZodNumber;
+            maxRetries: z.ZodOptional<z.ZodNumber>;
+            delayMs: z.ZodNumber;
+            state: z.ZodEnum<{
+                scheduled: "scheduled";
+                started: "started";
+                cancelled: "cancelled";
+            }>;
+            failure: z.ZodString;
+            code: z.ZodOptional<z.ZodString>;
             id: z.ZodString;
             seq: z.ZodNumber;
         }, z.core.$strict>], "role">>;
@@ -1968,6 +2035,14 @@ export declare const citeCiterResponseSchema: z.ZodDiscriminatedUnion<[z.ZodObje
         page: z.ZodDefault<z.ZodNumber>;
         pageCount: z.ZodDefault<z.ZodNumber>;
     }, z.core.$strict>;
+}, z.core.$strict>, z.ZodObject<{
+    kind: z.ZodLiteral<"teacher">;
+    suggestion: z.ZodNullable<z.ZodObject<{
+        sourceSessionId: z.ZodString;
+        turn: z.ZodNumber;
+        title: z.ZodString;
+        point: z.ZodString;
+    }, z.core.$strict>>;
 }, z.core.$strict>], "kind">;
 export type CiteCiterResponse = z.infer<typeof citeCiterResponseSchema>;
 /** Fields whose canonical serialization defines evidence identity. */

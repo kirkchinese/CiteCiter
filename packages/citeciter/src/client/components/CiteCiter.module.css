@@ -292,10 +292,36 @@
 }
 
 .contextBar summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.contextBar summary::-webkit-details-marker { display: none; }
+
+/* The disclosure chevron a flex summary no longer draws. */
+.contextBar summary::before {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin: 0 1px 0 2px;
+  content: "";
+  border-right: 1.5px solid;
+  border-bottom: 1.5px solid;
+  transform: rotate(-45deg);
+  transition: transform .12s;
+}
+
+.contextBar[open] summary::before { transform: rotate(45deg); }
+
+.contextQuote {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  cursor: pointer;
 }
 
 .contextBar blockquote {
@@ -389,15 +415,12 @@
 /* Where a document-based Topic's citation comes from, and the way back to it. */
 .contextSource {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 4px 16px 6px;
+  max-width: 55%;
   color: var(--dsw-alias-label-tertiary);
-  font-size: var(--dsh-content-font-size-secondary, 13px);
-  line-height: calc(20px + var(--dsh-content-font-delta-secondary, 0px));
-  border-bottom: .5px solid var(--dsw-alias-border-l3, #e4e7ec);
 }
 
 .contextSource > span {
@@ -431,6 +454,11 @@
   overflow-x: hidden;
   overflow-y: auto;
   overflow-anchor: none;
+}
+
+/* Consecutive process rows (context, thinking, tools, retries, failures) sit together like DSH's turn process. */
+.transcript > [data-row="process"] + [data-row="process"] {
+  margin-top: -12px;
 }
 
 .assistantTurn,

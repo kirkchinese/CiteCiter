@@ -3,6 +3,7 @@ import type { CompanionFace } from './companion-controller.ts'
 import type { DocumentLibraryFace } from './document-library.ts'
 import type { SettingsDocumentController } from './settings-document.ts'
 import type { CiteBus } from './types.ts'
+import type { TeacherSuggestion } from '../topic.ts'
 import type { UpdateController } from './update-controller.ts'
 
 /** Callbacks the Topic view may invoke. */
@@ -15,6 +16,12 @@ export type SettingsDocumentActions = Omit<SettingsDocumentController, 'getSnaps
 export type UpdateActions = Omit<UpdateController, 'getSnapshot' | 'subscribe' | 'dispose'>
 /** Overlay events used by rendered components. */
 export type OverlayActions = Pick<CiteBus, 'setPanelOpen' | 'holdTabVisible' | 'setPresentation' | 'requestBoardCitation' | 'clearBoardCitation' | 'closeDocument'>
+
+/** Answers to a teacher-mode point: explain it in a new Topic, or let it go. */
+export interface TeacherActions {
+  readonly explain: (suggestion: TeacherSuggestion) => void
+  readonly dismiss: () => void
+}
 
 /** What the panel can do with Citer's documents; opening goes to the sidebar or the panel itself. */
 export interface DocumentActions extends Pick<LibraryActions, 'load' | 'remove' | 'refresh'> {

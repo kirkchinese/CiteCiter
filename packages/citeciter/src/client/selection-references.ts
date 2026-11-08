@@ -24,6 +24,10 @@ export function selectionReferences(source: ActionSource, documentId?: string): 
   const anchor = source.kind === 'conversation' ? source.selection.anchorKey : source.kind === 'quote' ? source.anchorKey : documentId
   // A document excerpt names its document and, when known, the line it starts on.
   const documentHeading = source.kind === 'document' ? `文档：${source.title}${source.line === undefined ? '' : `（第 ${source.line} 行）`}` : ''
-  references.push({ id: JSON.stringify(['selection', quoteAddress, anchor, quote]), kind: 'excerpt', label: '引用文段', content: source.kind === 'document' ? `${documentHeading}\n\n${quote}` : quote })
+  // A passage of a tool call's input (a command, a path, arguments) says so, so the model reads it as what the Agent ran.
+  const content = source.kind === 'document' ? `${documentHeading}\n\n${quote}`
+    : source.kind === 'quote' && source.from === 'tool-call' ? `工具调用${source.toolName === undefined ? '' : `（${source.toolName}）`}的输入：\n\n${quote}`
+    : quote
+  references.push({ id: JSON.stringify(['selection', quoteAddress, anchor, quote]), kind: 'excerpt', label: '引用文段', content })
   return references
 }

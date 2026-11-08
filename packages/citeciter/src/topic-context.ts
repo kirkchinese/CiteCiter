@@ -155,13 +155,20 @@ async function workspaceNotice(options: TopicContextOptions, mode: WorkspaceChan
   return contextMessage('workspace-changes', text, { form: 'notice', summary: `${advance.files.length} 个文件有改动` })
 }
 
+/** Message source kind of DSH's skill catalog reminder. */
+const SKILL_CATALOG_SOURCE = 'skill-catalog'
+
 /**
  * Append Citer's per-turn context to one Topic Agent. The listener delegates first, adds messages
  * only when the step is entered, and never fails the turn because a context source is unavailable.
  */
 export function attachTopicContext(agentCtx: Context, options: TopicContextOptions): void {
   agentCtx.on('agent/pre-step', async ({ agent, turn, signal }, next) => {
-    const decision = await next()
+    const entered = await next()
+    // The Host's skill catalog lists every installed skill (often thousands of tokens) for tasks a learning
+    // Topic does not run; keep it out of this Topic's context.
+    const decision = entered.kind === 'reject' || agent !== options.agent ? entered
+      : { ...entered, messages: entered.messages.filter(message => (message.source.kind as string) !== SKILL_CATALOG_SOURCE) }
     // The loop's step counter can continue across queued turns, so the log decides whether this is the turn's first step.
     if (decision.kind === 'reject' || signal.aborted || agent !== options.agent || !isFirstStepOfTurn(agent.session.snapshotEvents(), turn)) return decision
     const added: UserMessage[] = []
@@ -188,6 +195,18 @@ export function attachTopicContext(agentCtx: Context, options: TopicContextOptio
     }
     return added.length === 0 ? decision : { ...decision, messages: [...decision.messages, ...added] }
   }, { prepend: true })
+}
+
+/**
+ * Keep the Host's optional runtime facts (file and approval policy, DSH checkout, Web URL, delegation) out of
+ * a Topic: they do not serve a learning conversation and only spend its context. DSH keeps the required
+ * working directory, which it sends once and again only when it changes.
+ * @param agentCtx - the Topic Agent's scoped context; the suppression is released with it.
+ */
+export function quietRuntimeContext(agentCtx: Context): void {
+  // DSH 0.2.1 added the switch; earlier hosts keep their full snapshot.
+  const prompt = agentCtx.systemPrompt as typeof agentCtx.systemPrompt & { suppressRuntimeContext?: () => () => void }
+  if (typeof prompt.suppressRuntimeContext === 'function') prompt.suppressRuntimeContext()
 }
 
 /**

@@ -176,7 +176,9 @@ export function createNativeComposer(ctx: Context): NativeComposer {
       await binding(id)
       if (disposed) throw new Error(t('panel.response.closedBeforeAttachment'))
       if (retired.has(id)) throw new Error(t('panel.response.deletedBeforeAttachment'))
-      const drafts = conversation.createDrafts(id as SessionId, files)
+      // DSH 0.2.2 asks whether image drafts upload; Topics keep sending image bytes with the prompt, as 0.2.1 always did.
+      const createDrafts = conversation.createDrafts.bind(conversation) as (sessionId: SessionId, files: readonly File[], uploadImages?: boolean) => ReturnType<typeof conversation.createDrafts>
+      const drafts = createDrafts(id as SessionId, files, false)
       for (const draft of drafts) owned.add(draft.id)
       return drafts
     },

@@ -123,6 +123,17 @@ export const zh = {
   'transcript.copy.noResults': '无结果',
   'transcript.copy.collapseResults': '收起结果',
   'transcript.copy.expandResults': '展开其余 {hidden} 行结果',
+  'transcript.retry.active': '正在重试模型请求',
+  'transcript.retry.started': '已重试模型请求',
+  'transcript.retry.cancelled': '模型请求重试已取消',
+  'transcript.retry.status': '{label}（{retry}/{maximum}） · {seconds}s',
+  'transcript.retry.delay': '重试延迟：',
+  'transcript.retry.failure': '失败原因：',
+  'transcript.retry.milliseconds': '{milliseconds}毫秒',
+  'transcript.turnError': '本轮运行失败',
+  'transcript.failure.auth': '模型服务拒绝了凭据，请检查 DSH 的模型设置',
+  'transcript.failure.quota': '模型服务的额度已用完',
+  'transcript.failure.interrupted': '本轮被中断',
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
@@ -249,4 +260,15 @@ export const en: Record<keyof typeof zh, string> = {
   'transcript.copy.noResults': 'No results',
   'transcript.copy.collapseResults': 'Collapse results',
   'transcript.copy.expandResults': 'Expand remaining {hidden} result lines',
+  'transcript.retry.active': 'Retrying model request',
+  'transcript.retry.started': 'Retried model request',
+  'transcript.retry.cancelled': 'Model request retry cancelled',
+  'transcript.retry.status': '{label} ({retry}/{maximum}) · {seconds}s',
+  'transcript.retry.delay': 'Retry delay: ',
+  'transcript.retry.failure': 'Failure reason: ',
+  'transcript.retry.milliseconds': '{milliseconds}ms',
+  'transcript.turnError': 'This turn failed',
+  'transcript.failure.auth': 'The model service rejected the credentials. Check DSH’s model settings',
+  'transcript.failure.quota': 'The model service quota is used up',
+  'transcript.failure.interrupted': 'This turn was interrupted',
 }

@@ -13,7 +13,7 @@ import {
 } from '../../board.ts'
 import { isSafeSvg, isolatedHtmlDocument, neutralizeMarkdownImages } from '../rich-content.ts'
 import css from './BoardView.module.css'
-import { markdownLabels } from '../copy.ts'
+import { useMarkdownLabels } from '../copy.ts'
 import { t, useLocale } from '../i18n.ts'
 
 function inlineStyle(style: BoardStyle): CSSProperties {
@@ -38,6 +38,7 @@ function MathElement({ content }: { readonly content: string }) {
 
 function ElementBody({ kind, content }: { readonly kind: BoardElementKind, readonly content: string }) {
   useLocale()
+  const markdownLabels = useMarkdownLabels()
   if (kind === 'math') return <MathElement content={content} />
   if (kind === 'markdown' || kind === 'table') {
     return <MarkdownText text={neutralizeMarkdownImages(content)} streaming={false} labels={markdownLabels} />

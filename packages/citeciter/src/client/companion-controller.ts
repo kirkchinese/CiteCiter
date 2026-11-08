@@ -86,7 +86,12 @@ export interface CompanionFace {
    * @param delivery - `draft` fills the new Topic's composer; `send` sends the question with its references at once.
    */
   create(selection: CiteSelection, question: string, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>
-  createFree(question: string): Promise<boolean>
+  /**
+   * Create a Topic that cites nothing.
+   * @param sourceSessionId - the source conversation; defaults to the one on screen.
+   * @param delivery - `draft` fills the new Topic's composer; `send` sends the question at once.
+   */
+  createFree(question: string, sourceSessionId?: SessionId, delivery?: ActionDelivery): Promise<boolean>
   /** Create a Reading Topic; rejects on failure so the Reader retains the unsent question. */
   createFromDocument(claim: DocumentClaimIntent, question: string, sourceSessionId?: SessionId, modelRoute?: ActionModel, delivery?: ActionDelivery): Promise<void>
   openTopic(sessionId: string): Promise<void>
@@ -744,9 +749,9 @@ export function createCompanionController(
     return operation
   }
 
-  const createFree = async (rawQuestion: string): Promise<boolean> => {
+  const createFree = async (rawQuestion: string, sourceOverride?: SessionId, delivery: ActionDelivery = 'draft'): Promise<boolean> => {
     if (disposed) return false
-    const sourceSessionId = store.getSnapshot().sourceSessionId
+    const sourceSessionId = sourceOverride ?? store.getSnapshot().sourceSessionId
     if (sourceSessionId === null) return false
     const question = rawQuestion.trim()
     // Settings → 新 Topic 的模型 applies to every new Topic, not only to those an action creates.
@@ -773,7 +778,7 @@ export function createCompanionController(
         if (response.kind !== 'topic') throw new Error(t('panel.response.createMismatch'))
         completeRequestIntent(intent)
         acceptTopic(response.topic, operationGeneration)
-        if (operationGeneration === activeGeneration) update(draft => { draft.composeSeeds = [...draft.composeSeeds, { sessionId: response.topic.topic.sessionId, question, id: intent.requestId, references: topicDraftReferences(response.topic.topic, response.topic.documentTitle) }] })
+        await startTopic(response.topic, question, intent.requestId, delivery, operationGeneration)
         await refreshTopics()
         return operationGeneration === activeGeneration
       } catch (error) {
@@ -1181,7 +1186,7 @@ export function createCompanionController(
       while (topicsRefresh !== null && !disposed) await topicsRefresh.catch(() => undefined)
     },
     create: (...args) => admit(undefined, () => create(...args)),
-    createFree: question => admit(false, () => createFree(question)),
+    createFree: (question, sourceSessionId, delivery) => admit(false, () => createFree(question, sourceSessionId, delivery)),
     createFromDocument: (...args) => admit(undefined, () => createFromDocument(...args)),
     openTopic: (sessionId) => admit(undefined, () => openTopic(sessionId, ++activeGeneration)),
     resolveDraftTopic: sourceSessionId => admit(null, () => resolveDraftTopic(sourceSessionId)),

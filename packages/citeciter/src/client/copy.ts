@@ -1,6 +1,19 @@
 /** Presentation copy for shared UI primitives. */
+import { useMemo } from 'react'
 import type { CodeToolbarLabels, DiffBlockLabels, JsonTreeLabels, MarkdownLabels, ReadBlockLabels, SearchBlockLabels, TerminalBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives'
-import { t } from './i18n.ts'
+import { t, useLocale } from './i18n.ts'
+
+/**
+ * Markdown labels as a new object for each language: DSH's Markdown renderer is memoized on its props,
+ * so one shared object with getters would keep the language it first rendered in.
+ */
+export function useMarkdownLabels(): MarkdownLabels {
+  const revision = useLocale()
+  return useMemo(() => ({
+    code: { copyLabel: t('transcript.copy.code'), copiedLabel: t('transcript.copy.copied') },
+    footnotes: t('transcript.copy.footnotes'),
+  }), [revision])
+}
 
 /** Live getters keep consumers outside the transcript slice localized without changing their API. */
 export const markdownLabels: MarkdownLabels = {

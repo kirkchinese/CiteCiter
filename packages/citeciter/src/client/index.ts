@@ -32,7 +32,7 @@ import { NativeLearningDocument } from './components/NativeLearningDocument.tsx'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 import { CiteLauncher } from './components/CiteLauncher.tsx'
 import { UpdateNotice } from './components/UpdateNotice.tsx'
-import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry, readUserMessageQuote } from './entries.ts'
+import { createAssistantEntry, createCiteCiterEntryRegistry, createToolEvidenceEntry, readToolInputQuote, readUserMessageQuote } from './entries.ts'
 import { insertMainQuote, installQuoteSource } from './main-quote.ts'
 import { installQuoteRendering } from './user-text-quote.ts'
 import { installDynamicAccelerator } from './hotkeys.ts'
@@ -40,7 +40,8 @@ import { createSettingsDocumentController } from './settings-document.ts'
 import { CiteBus } from './types.ts'
 import { createNativeComposer } from './native-composer.ts'
 import { bindSubmissionPreference } from './submission-preference.ts'
-import { viewActions } from './view-actions.ts'
+import { viewActions, type TeacherActions } from './view-actions.ts'
+import { teacherQuestion, watchTeacherTurns, type RunningStatus } from './teacher-watch.ts'
 import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from './update-controller.ts'
 import { createBoardCaptureController } from './board-capture-controller.ts'
 import { BoardCaptureWorker } from './components/BoardCaptureWorker.tsx'
@@ -52,6 +53,17 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { CiterIcon, CiterTab } from './components/CiterTab.tsx'
 import { installLocale, isChinese, t } from './i18n.ts'
+
+/** Text files the Citer Reading view offers to read: prose, data and the common programming languages. */
+const LEARNING_EXTENSIONS = [
+  'txt', 'md', 'markdown', 'mdx', 'rst', 'adoc', 'tex', 'log', 'csv', 'tsv',
+  'json', 'jsonc', 'json5', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'env', 'xml', 'svg', 'html', 'htm', 'css', 'scss', 'less',
+  'ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs', 'vue', 'svelte',
+  'py', 'pyi', 'ipynb', 'rs', 'go', 'c', 'h', 'cc', 'cpp', 'cxx', 'hpp', 'cs', 'java', 'kt', 'kts', 'scala', 'swift', 'm', 'mm',
+  'rb', 'php', 'pl', 'lua', 'r', 'jl', 'dart', 'ex', 'exs', 'erl', 'hs', 'clj', 'zig', 'nim', 'sql', 'graphql', 'proto',
+  'sh', 'bash', 'zsh', 'fish', 'ps1', 'bat', 'cmd', 'mk', 'cmake', 'gradle', 'dockerfile', 'tf',
+  'urdf', 'xacro', 'launch', 'sdf', 'world', 'msg', 'srv', 'action', 'cu', 'glsl', 'hlsl',
+]
 
 /** Registry id and kind of Citer's right-sidebar tab type. */
 const CITER_TAB_ID = '@kirkchinese/dsh-citeciter'
@@ -215,6 +227,9 @@ export async function apply(ctx: Context): Promise<void> {
       if (sourceSessionId === null) return null
       const userQuote = readUserMessageQuote(event, { readChat, sourceSessionId })
       if (userQuote !== null) return userQuote
+      // A command or argument selected on a tool card, which the result citation does not cover.
+      const toolInput = readToolInputQuote(event, { readChat, sourceSessionId })
+      if (toolInput !== null) return toolInput
       const claim = entries.claim(event, { readChat, sourceSessionId })
       return claim === null ? null : { kind: 'conversation', selection: claim.selection, quoteText: window.getSelection()?.toString().trim().slice(0, 32_000) || claim.selection.displayText }
     }
@@ -229,11 +244,36 @@ export async function apply(ctx: Context): Promise<void> {
       if (companion.getSnapshot().sourceSessionId !== source) {
         actions.cancel()
         toolbar.dismiss()
+        // A teacher-mode point belongs to the conversation it was found in.
+        if (bus.getSnapshot().teacher?.sourceSessionId !== source) bus.dismissTeacher()
       }
       companion.setSource(source)
     }
     syncSource()
     const unsubscribeSessions = currentSession.subscribe(syncSource)
+
+    // Teacher mode watches the conversation on screen; DSH hosts without per-Session status have no trigger.
+    const sessionStatus = (remoteCtx.uiSession as unknown as { sessionStatus?: import('@deepseek-ai/dsh-client-store').ObservableSnapshot<RunningStatus> }).sessionStatus
+    const stopTeacher = sessionStatus === undefined ? () => {} : watchTeacherTurns({
+      status: sessionStatus,
+      current: readSource,
+      enabled: () => companion.getSnapshot().settings.teacherMode === true,
+      check: async sessionId => {
+        const result = await remoteCtx.remote.citeciter.request({ action: 'teacher-check', sourceSessionId: sessionId }, new AbortController().signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value.kind === 'teacher' ? result.value.suggestion : null
+      },
+      offer: suggestion => bus.offerTeacher(suggestion),
+      warn: (message, error) => remoteCtx.logger.warn(message, error),
+    })
+    const teacherActions: TeacherActions = {
+      explain: suggestion => {
+        bus.dismissTeacher()
+        openPanel()
+        void companion.createFree(teacherQuestion(suggestion), SessionId(suggestion.sourceSessionId), 'send')
+      },
+      dismiss: () => bus.dismissTeacher(),
+    }
 
     remoteCtx.effect(() => {
       const disposeAssistantEntry = remoteCtx.effect(
@@ -279,27 +319,27 @@ export async function apply(ctx: Context): Promise<void> {
           from: source.selection.kind === 'tool-result' ? 'tool' : 'assistant',
           text: source.quoteText ?? source.selection.displayText,
         })
-        else if (source.kind === 'quote') insertMainQuote(remoteCtx, source.sourceSessionId, { from: 'user', text: source.displayText })
+        else if (source.kind === 'quote') insertMainQuote(remoteCtx, source.sourceSessionId, { from: source.from === 'tool-call' ? 'tool' : 'user', text: source.displayText })
         else await execute.quote(source)
       } }, hooks: { toolbar, companion } }),
     }, SelectionToolbar))
     remoteCtx.inject(['documentPreviews'], previewCtx => {
       const id = '@kirkchinese/dsh-citeciter/learning-document'
       previewCtx.effect(() => previewCtx.documentPreviews.register({
-        id, extensions: ['txt', 'md', 'markdown', 'ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs', 'json', 'py', 'rs', 'go', 'c', 'cpp', 'h', 'css', 'yaml', 'yml', 'toml', 'sh', 'ps1'],
+        id, extensions: LEARNING_EXTENSIONS,
         priority: 'builtin', title: () => t('settings.native.title'), loading: 'bytes-complete', wrap: true,
       }), 'citeciter: native learning metadata')
       previewCtx.slots.inject('sidebar.right.tab.document', () => previewCtx.slots.register({
         name: 'sidebar.right.tab.document', key: id,
-        inject: () => ({ registerSurface: surfaces.register, openActions }),
+        inject: () => ({ registerSurface: surfaces.register, openActions, sourceSessionId: () => companion.getSnapshot().sourceSessionId }),
       }, NativeLearningDocument))
     })
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.launcher',
-      inject: () => ({ openPanel, companion: companionActions, hooks: { companion, overlay: bus } }),
+      inject: () => ({ openPanel, companion: companionActions, teacher: teacherActions, hooks: { companion, overlay: bus } }),
     }, CiteLauncher))
-    const panelInject = () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, documents: documentActions, reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions, library } })
+    const panelInject = () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, documents: documentActions, teacher: teacherActions, reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions, library } })
     // Citer's own dock, for hosts without DSH's right sidebar; it renders nothing while a tab hosts Citer.
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
@@ -400,6 +440,7 @@ export async function apply(ctx: Context): Promise<void> {
 
     remoteCtx.effect(() => async () => {
       unsubscribeSessions()
+      stopTeacher()
       disposeHotkey()
       closePanel()
       await Promise.all([actions.dispose(), companion.dispose(), library.dispose(), settingsDocument.dispose(), updateController.dispose()])

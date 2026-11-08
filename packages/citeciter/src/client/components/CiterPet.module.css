@@ -80,7 +80,18 @@
 .pet[data-side='left'] .dot { right: 6px; }
 .pet[data-expanded] .dot { top: 8px; }
 
+.bubble {
+  position: fixed;
+  z-index: 200;
+  pointer-events: auto;
+}
+
+.bubble[data-side='right'] { right: 62px; }
+.bubble[data-side='left'] { left: 62px; }
+
 :global(body:has([role='dialog'][aria-modal='true'])) .pet,
+:global(body:has([role='dialog'][aria-modal='true'])) .bubble,
+:global([data-rightbar-fullscreen]) .bubble,
 :global([data-rightbar-fullscreen]) .pet {
   visibility: hidden;
   pointer-events: none;

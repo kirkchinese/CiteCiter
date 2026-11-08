@@ -127,7 +127,7 @@ export function ToolRow({ message, childCalls, sessionId, load, openFile }: {
   const card = deriveToolCard(message)
   const reply = deriveQuestionReply(message)
   const file = openFile === undefined ? null : cardFile(message, card)
-  return <div data-citeciter-message={message.id}>
+  return <div data-citeciter-message={message.id} data-row="process">
     <FlowDisclosure icon={<ToolIcon name={message.name} />} title={view.title} summary={view.summary} running={view.running}>
       <div className={css.toolBody}>
         {file !== null && <button type="button" className={css.fileLink} title={t('transcript.tool.openSidebar')} onClick={() => openFile?.(file.path, file.line)}>{file.path}</button>}

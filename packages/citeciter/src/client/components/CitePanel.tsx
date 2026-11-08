@@ -1,6 +1,7 @@
 import { t, useLocale } from '../i18n.ts'
 import { ToolRow } from './ToolMessage.tsx'
 import { ContextRow } from './ContextRow.tsx'
+import { RetryRow, TurnErrorRow } from './TurnStatusRows.tsx'
 import { TopicUsage } from './TopicUsage.tsx'
 import { useCompactNavigation } from '../compact-navigation.ts'
 import { useTranscriptPosition } from '../transcript-position.ts'
@@ -22,7 +23,8 @@ import type { CiteOverlaySnapshot } from '../types.ts'
 import type { SelectionSurfaces } from '../wheel-gesture.ts'
 import type { FileOpener } from '../native-file-link.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
-import type { CompanionActions, DocumentActions, OverlayActions } from '../view-actions.ts'
+import type { CompanionActions, DocumentActions, OverlayActions, TeacherActions } from '../view-actions.ts'
+import { TeacherNotice } from './TeacherNotice.tsx'
 import type { DocumentLibrarySnapshot } from '../document-library.ts'
 import { LibraryDocument } from './LibraryDocument.tsx'
 import type { ListRequest } from './TopicNavigation.tsx'
@@ -105,23 +107,6 @@ function friendlyFailure(text: string): string {
   return key === undefined ? text.replaceAll(/https?:\/\/[^\s)]+/gu, t('panel.error.modelAddress')) : t(key)
 }
 
-function ErrorTurn({ message }: { readonly message: Extract<TopicMessage, { role: 'error' }> }) {
-  useLocale()
-  const summary = friendlyFailure(message.text)
-  const stopped = message.status === 'stopped'
-  return (
-    <article
-      className={css.errorTurn}
-      data-citeciter-message={message.id}
-      data-status={message.status}
-      role={stopped ? undefined : 'alert'}
-    >
-      <p><strong>{stopped ? t('panel.phase.stopped') : t('panel.error.requestFailed')}</strong>{stopped ? '' : `${t('panel.error.separator')}${summary}`}</p>
-      {message.bodyRetained && <p className={css.errorNote}>{t('panel.error.retained')}</p>}
-      {!stopped && summary !== message.text && <details><summary>{t('panel.error.details')}</summary><pre>{message.text}</pre></details>}
-    </article>
-  )
-}
 
 function AssistantTurn({
   message,
@@ -143,7 +128,7 @@ function AssistantTurn({
     if (!message.streaming && parsed.invalid) reportParseError(message.id)
   }, [message.id, message.streaming, parsed.invalid, reportParseError])
   return (
-    <article className={css.assistantTurn} data-citeciter-message={message.renderKey ?? message.id}>
+    <article className={css.assistantTurn} data-citeciter-message={message.renderKey ?? message.id} data-row={parsed.text === '' ? 'process' : undefined}>
       {message.reasoning !== null && message.reasoning.trim() !== '' && (
         <ReasoningDisclosure text={message.reasoning} active={message.streaming && message.text === ''} />
       )}
@@ -180,6 +165,8 @@ export interface CitePanelProps {
   readonly closePanel: () => void
   /** Citer's documents: the library list and opening documents in the sidebar or this panel. */
   readonly documents: DocumentActions
+  /** Teacher mode's offer, shown at the top while Citer is open. */
+  readonly teacher: TeacherActions
   readonly useLibrary: SnapshotSelectorHook<DocumentLibrarySnapshot>
   readonly reportParseError: (messageId: string) => void
   /** Host standard prop: the session list, used to show source titles on reference chips. */
@@ -211,7 +198,7 @@ function transcriptSelection(transcript: HTMLElement): string | null {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, useLibrary, reportParseError, registerSurface, openFile, host = 'overlay', tabVisible = true }: CitePanelProps) {
+export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, teacher, useLibrary, reportParseError, registerSurface, openFile, host = 'overlay', tabVisible = true }: CitePanelProps) {
   useLocale()
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
@@ -244,8 +231,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
   const [listRequest, setListRequest] = useState<ListRequest | undefined>(undefined)
   const documentInput = useRef<HTMLInputElement>(null)
   const [renameRequest, setRenameRequest] = useState(0)
-  // Like DSH's chat, ordinary context stays out of the transcript unless the reader asks for it.
-  const [allContext, setAllContext] = useState(false)
+  // Every logged context row is listed by default; the Topic menu can narrow the list to notices.
+  const [allContext, setAllContext] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<{ readonly sessionId: string, readonly title: string } | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -473,6 +460,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     <>
     {snapshot.topicsStatus === 'error' && <p className={css.panelError} role="alert">{t('panel.error.topics')}{snapshot.topicsError === null ? null : friendlyFailure(snapshot.topicsError)}</p>}
     {snapshot.notice !== null && <div className={css.panelNotice} role="status">{localizedNotice(snapshot.notice)}</div>}
+    {overlay.teacher !== null && <TeacherNotice suggestion={overlay.teacher} actions={teacher} variant="bar" />}
 
     <input ref={documentInput} type="file" hidden accept=".md,.markdown,.txt,text/plain,text/markdown" onChange={(event) => {
       const input = event.currentTarget
@@ -494,14 +482,17 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
       </div>
     ) : (
       <>
+        {/* One line: what the Topic cites, and for a document where it comes from. */}
         {(active?.topic.citation != null || snapshot.draftQuote !== null) && <details className={css.contextBar}>
-          <summary>{t('panel.quote')}{compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? '', 70)}</summary>
+          <summary>
+            <span className={css.contextQuote}>{t('panel.quote')}{compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? '', 70)}</span>
+            {citedDocument !== null && <span className={css.contextSource}>
+              <span>{citedDocument.line === undefined ? citedDocument.title : t('settings.reader.citedAt', { title: citedDocument.title, line: citedDocument.line })}</span>
+              <button type="button" onClick={(event) => { event.preventDefault(); documents.open(citedDocument.documentId, citedDocument.offset) }}>{t('settings.reader.open')}</button>
+            </span>}
+          </summary>
           <blockquote>{active?.topic.citation?.displayText ?? snapshot.draftQuote}</blockquote>
         </details>}
-        {citedDocument !== null && <div className={css.contextSource}>
-          <span>{citedDocument.line === undefined ? citedDocument.title : t('settings.reader.citedAt', { title: citedDocument.title, line: citedDocument.line })}</span>
-          <button type="button" onClick={() => documents.open(citedDocument.documentId, citedDocument.offset)}>{t('settings.reader.open')}</button>
-        </div>}
         {active !== null && !active.topic.sourceAvailable && <p className={css.panelNotice} role="status">{t('panel.sourceUnavailable')}</p>}
 
         <LearningRoute enabled={snapshot.settings.learningRoute ?? false} messages={active?.messages ?? []} />
@@ -531,7 +522,8 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
                 <UserMessageBody text={message.text} questionReply={message.questionReply} sourceTitle={sourceTitle} stageClassName={learningCss.questionDetails} />
               </article>
             )
-            if (message.role === 'error') return <ErrorTurn key={message.id} message={message} />
+            if (message.role === 'error') return <TurnErrorRow key={message.id} message={message} friendly={friendlyFailure} />
+            if (message.role === 'retry') return <RetryRow key={message.id} message={message} friendly={friendlyFailure} />
             if (message.role === 'context') return <ContextRow key={message.id} message={message} />
             return (
               <AssistantTurn
