@@ -41,7 +41,7 @@ export function RetryRow({ message, friendly }: { readonly message: Extract<Topi
   const status = t('transcript.retry.status', {
     label, retry: message.retry, maximum: message.maxRetries ?? '∞', seconds: active ? remaining : retrySeconds(message.delayMs),
   })
-  return <details className={css.retryRow} data-active={active || undefined} data-citeciter-message={message.id}>
+  return <details className={css.retryRow} data-active={active || undefined} data-citeciter-message={message.id} data-row="process">
     <summary className={css.retrySummary}>
       <span className={css.retryText} role="status"><TextShimmer active={active}>{status}</TextShimmer></span>
     </summary>
@@ -57,7 +57,7 @@ export function TurnErrorRow({ message, friendly }: { readonly message: Extract<
   useLocale()
   const stopped = message.status === 'stopped'
   const detail = stopped ? undefined : failureText(message.text, message.code, friendly)
-  return <div className={css.turnErrorRow} data-citeciter-message={message.id} data-status={message.status} role={stopped ? 'status' : 'alert'}>
+  return <div className={css.turnErrorRow} data-citeciter-message={message.id} data-row="process" data-status={message.status} role={stopped ? 'status' : 'alert'}>
     <StateDot state={stopped ? 'idle' : 'error'} className={css.turnErrorDot} />
     <div className={css.turnErrorCopy}>
       <span className={stopped ? css.turnStoppedTitle : css.turnErrorTitle}>{stopped ? t('panel.phase.stopped') : t('transcript.turnError')}</span>

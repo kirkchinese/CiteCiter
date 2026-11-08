@@ -127,7 +127,7 @@ function AssistantTurn({
     if (!message.streaming && parsed.invalid) reportParseError(message.id)
   }, [message.id, message.streaming, parsed.invalid, reportParseError])
   return (
-    <article className={css.assistantTurn} data-citeciter-message={message.renderKey ?? message.id}>
+    <article className={css.assistantTurn} data-citeciter-message={message.renderKey ?? message.id} data-row={parsed.text === '' ? 'process' : undefined}>
       {message.reasoning !== null && message.reasoning.trim() !== '' && (
         <ReasoningDisclosure text={message.reasoning} active={message.streaming && message.text === ''} />
       )}
@@ -478,14 +478,17 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
       </div>
     ) : (
       <>
+        {/* One line: what the Topic cites, and for a document where it comes from. */}
         {(active?.topic.citation != null || snapshot.draftQuote !== null) && <details className={css.contextBar}>
-          <summary>{t('panel.quote')}{compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? '', 70)}</summary>
+          <summary>
+            <span className={css.contextQuote}>{t('panel.quote')}{compactPreview(active?.topic.citation?.displayText ?? snapshot.draftQuote ?? '', 70)}</span>
+            {citedDocument !== null && <span className={css.contextSource}>
+              <span>{citedDocument.line === undefined ? citedDocument.title : t('settings.reader.citedAt', { title: citedDocument.title, line: citedDocument.line })}</span>
+              <button type="button" onClick={(event) => { event.preventDefault(); documents.open(citedDocument.documentId, citedDocument.offset) }}>{t('settings.reader.open')}</button>
+            </span>}
+          </summary>
           <blockquote>{active?.topic.citation?.displayText ?? snapshot.draftQuote}</blockquote>
         </details>}
-        {citedDocument !== null && <div className={css.contextSource}>
-          <span>{citedDocument.line === undefined ? citedDocument.title : t('settings.reader.citedAt', { title: citedDocument.title, line: citedDocument.line })}</span>
-          <button type="button" onClick={() => documents.open(citedDocument.documentId, citedDocument.offset)}>{t('settings.reader.open')}</button>
-        </div>}
         {active !== null && !active.topic.sourceAvailable && <p className={css.panelNotice} role="status">{t('panel.sourceUnavailable')}</p>}
 
         <LearningRoute enabled={snapshot.settings.learningRoute ?? false} messages={active?.messages ?? []} />
