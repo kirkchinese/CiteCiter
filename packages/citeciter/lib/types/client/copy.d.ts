@@ -1,5 +1,9 @@
-/** Presentation copy for shared UI primitives. */
 import type { CodeToolbarLabels, DiffBlockLabels, JsonTreeLabels, MarkdownLabels, ReadBlockLabels, SearchBlockLabels, TerminalBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives';
+/**
+ * Markdown labels as a new object for each language: DSH's Markdown renderer is memoized on its props,
+ * so one shared object with getters would keep the language it first rendered in.
+ */
+export declare function useMarkdownLabels(): MarkdownLabels;
 /** Live getters keep consumers outside the transcript slice localized without changing their API. */
 export declare const markdownLabels: MarkdownLabels;
 /** Localized labels supplied to the Cordis-free JSON inspector. */

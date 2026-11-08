@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import { splitRichContent } from '../rich-content.ts'
 import css from './CiteCiter.module.css'
-import { markdownLabels } from '../copy.ts'
+import { useMarkdownLabels } from '../copy.ts'
 import { t, useLocale } from '../i18n.ts'
 
 /** Assistant response text and its current stream state. */
@@ -18,6 +18,7 @@ export interface RichAnswerProps {
  */
 export function RichAnswer({ text, streaming }: RichAnswerProps) {
   useLocale()
+  const markdownLabels = useMarkdownLabels()
   const segments = useMemo(() => splitRichContent(text), [text])
   return (
     <div className={css.richAnswer} data-citeciter-answer>

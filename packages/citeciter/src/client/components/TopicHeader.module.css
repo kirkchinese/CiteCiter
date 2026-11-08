@@ -4,6 +4,7 @@
   flex: none;
   align-items: center;
   gap: 8px;
+  box-sizing: border-box;
   min-height: 44px;
   padding: 6px 10px 6px 14px;
   border-bottom: .5px solid var(--dsw-alias-border-l3, #e4e7ec);
