@@ -31,13 +31,13 @@ CiteCiter 需要 DSH 和一个可用的模型。插件声明了一个 DSH 版本
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.7
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.8
 ```
 
 也可以从仓库安装某个发布标签，仓库内已包含构建好的插件，安装时无需构建：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.7"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.8"
 ```
 
 安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件。同一个 DSH 主目录不要同时运行两个宿主进程。

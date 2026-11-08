@@ -31,13 +31,13 @@ CiteCiter needs DSH and a working model. The plugin declares a range of DSH vers
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.7
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.8
 ```
 
 You can also install a release tag straight from the repository, which contains the built plugin, so nothing is built at install time:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.7"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.8"
 ```
 
 Restart DSH and refresh the page after installing or upgrading. Do not use `dsh plugin allow-version` to force a plugin that does not match your host version. Do not run two host processes on the same DSH home.
