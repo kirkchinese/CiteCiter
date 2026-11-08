@@ -2,6 +2,30 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## Unreleased
+
+### Host support
+
+- Support the DSH `0.2.2` line (`0.2.2-alpha` and `0.2.2-rc.1`); the declared range is `>=0.2.0-rc.2 <0.2.3-0`. Event and projection data that `0.2.2` declares in other packages is read field by field, so one release runs on `0.2.0`, `0.2.1` and `0.2.2`.
+
+### Topics
+
+- Topics no longer receive DSH's runtime-context snapshot on every step. Topic Agents now receive their own Session events, so DSH sends the snapshot only when it changes, and Topics keep only its working directory. DSH's skill catalog is not sent to Topics. Both cut the tokens and context each turn spends.
+- All context rows are listed by default; the Topic menu can narrow them to context notices.
+- Model retries show as DSH's own retry rows, with the attempt, limit, countdown and failure reason, and a failed turn shows DSH's failure row with its code.
+- A new Topic whose source has no events yet tells the model the source is empty so far, instead of a bare "none".
+- A model that cannot be reached for now (network, timeout) no longer marks a Topic as needing another model; Topics marked that way by earlier versions recover once their model resolves.
+- The header is shorter, a document citation's source shares the quote line, and consecutive process rows sit together like DSH's.
+
+### Selection and reading
+
+- Text selected in a command card's command or a tool call's arguments offers the toolbar; Topics receive it as the tool call's input, and Quote marks it as tool text.
+- The Citer Reading view covers files opened by an absolute path, many more text formats (web, data, configuration, more languages and ROS files), and Markdown selections whose ends fall in rendered math, tables or code blocks.
+
+### Teacher mode
+
+- New, off by default. After each completed turn of the main conversation on screen, a check with its own model (or the Citer model, then the source's) looks for one point worth learning. A found point appears beside the pet or at the top of Citer; Explain opens a Topic that teaches it from that turn with the blackboard. Each turn is checked once.
+
 ## 0.9.0-beta.7 — 2026-11-01
 
 Targets DSH `>=0.2.0-rc.2 <0.2.2-0`: the official Desktop `0.2.0-rc.2` and every `0.2.1` alpha, release candidate and final release.
