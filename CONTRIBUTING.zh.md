@@ -42,7 +42,7 @@ CI 在 Ubuntu 和 Windows 上运行同样的命令。`pnpm --dir packages/citeci
 
 pnpm 的 Git 安装读取仓库根目录，并且不认 `publishConfig.directory`，所以根目录的 `package.json` 镜像包 manifest，路径指向 `packages/citeciter/`。只修改 `packages/citeciter/package.json`，然后运行 `pnpm sync:git-entry`。根目录脚本使用 `pnpm --dir packages/citeciter`；两个 manifest 同名，不要用 `--filter` 按包名选择。
 
-只修改仓库根目录的 README。`pnpm sync:readme` 生成 `packages/citeciter/README.md`（英文，显示在 npm 上）和 `README.zh.md`，并把相对链接改写到发布标签。
+只修改仓库根目录的 README。`pnpm sync:readme` 生成 `packages/citeciter/README.md`（英文，显示在 npm 上）和 `README.zh.md`，并把 Markdown 与 HTML 标签中的相对链接和图片改写到发布标签。README 的图片放在 `assets/`：在真实 DSH 中以 2 倍缩放拍摄的 WebP 截图，中英文各一张（`*.zh.webp`、`*.en.webp`）。
 
 ## 架构
 

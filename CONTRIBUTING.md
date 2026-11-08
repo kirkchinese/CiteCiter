@@ -36,11 +36,11 @@ The package's `devDependencies` pin the main SDK (currently DSH `0.2.2-rc.1`). `
 
 ## Declared DSH support
 
-DSH refuses to load a plugin whose declared requirements do not include the running version. From `0.2.1-alpha.4` it reads `engines.dsh` alone; earlier hosts read every `@deepseek-ai/dsh*` peer. Both are evaluated as semver ranges with prereleases included. The manifest therefore declares one range, currently `>=0.2.0-rc.2 <0.2.3-0`, in `engines.dsh` and in every DSH peer: the release lines Citer is verified against, so a new release candidate on a supported line keeps working without a Citer release. The upper bound stops before the next line's prereleases, which may change the APIs Citer uses.
+DSH refuses to load a plugin whose declared requirements do not include the running version. From `0.2.1-alpha.4` it reads `engines.dsh` alone; earlier hosts read every `@deepseek-ai/dsh*` peer. Both are evaluated as semver ranges with prereleases included. The manifest therefore declares one range, `>=0.2.0-rc.2`, in `engines.dsh` and in every DSH peer. It has no upper bound on purpose: DSH releases often, and a bounded range made every new line refuse Citer until a Citer release followed, even when nothing Citer uses had changed. The lower bound stays at the oldest host Citer is built against. The cost is that a DSH release which does change an API Citer uses now loads Citer and breaks the affected feature instead of refusing it, so the daily compatibility check below keeps the range honest, and Citer reads host data defensively.
 
 Where releases in the range declare the same logged data in different packages (`0.2.2` moved the `run_code` dispatch events to `dsh-tool-executor-ptc` and the user-question projection types to `dsh-session-projection`), Citer reads the logged shape field by field (`tool-events.ts`, `projectedQuestions` in `topic-questions.ts`) instead of importing a type map that only one release has. Client signatures that changed (`readAttachment`, `createDrafts`) accept both forms at the call site.
 
-The scheduled workflow `DSH compatibility` builds and tests against DSH's `latest`, `next` and `alpha` tags every day (`scripts/use-sdk.mjs` swaps the SDK for the probe). A failure on a version inside the range opens an issue, because users of that version already load Citer; a failure outside it is an early warning for the next extension.
+The scheduled workflow `DSH compatibility` builds and tests against DSH's `latest`, `next` and `alpha` tags every day (`scripts/use-sdk.mjs` swaps the SDK for the probe). Every probed version is inside the range, so a failure opens an issue: users of that version already load Citer, and the fix is an adapted release, not a narrower range.
 
 To extend support to a new line: run `node packages/citeciter/scripts/use-sdk.mjs <version>`, `pnpm sync:git-entry` and an unfrozen `pnpm install`, fix the breaks, keep the change as the new main SDK, raise the upper bound in `engines.dsh` and the DSH peers, then run all checks and verify in a real host. `@deepseek-ai/cordis`, `@deepseek-ai/schemastery` and the `cordis-plugin-*` packages have their own version lines; extend those peers and pins when a release moves them. Remove a peer only when nothing in `src/` imports it.
 
@@ -50,7 +50,7 @@ To extend support to a new line: run `node packages/citeciter/scripts/use-sdk.mj
 
 pnpm's Git fetcher reads the repository root and ignores `publishConfig.directory`, so the root `package.json` mirrors the package manifest with paths into `packages/citeciter/`. Edit only `packages/citeciter/package.json` and run `pnpm sync:git-entry`. Root scripts use `pnpm --dir packages/citeciter`; both manifests share one name, so do not select the package with `--filter`.
 
-Edit only the repository READMEs. `pnpm sync:readme` generates `packages/citeciter/README.md` (English, shown on npm) and `README.zh.md`, rewriting relative links to the release tag.
+Edit only the repository READMEs. `pnpm sync:readme` generates `packages/citeciter/README.md` (English, shown on npm) and `README.zh.md`, rewriting relative links and images, in Markdown and in HTML tags, to the release tag. README images live in `assets/`: WebP screenshots taken from a real DSH at device scale 2, one per language (`*.zh.webp`, `*.en.webp`).
 
 ## Architecture
 

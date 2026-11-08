@@ -66,7 +66,7 @@
     "packages/citeciter/README.zh.md"
   ],
   "name": "@kirkchinese/dsh-citeciter",
-  "version": "0.9.0-beta.8",
+  "version": "0.9.0-beta.9",
   "description": "Explore source conversations in private Topics with citations, drafts, visual boards, and learning cards.",
   "keywords": [
     "deepseek-harness",
@@ -98,7 +98,7 @@
   "type": "module",
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": ">=0.2.0-rc.2 <0.2.3-0"
+    "dsh": ">=0.2.0-rc.2"
   },
   "dependencies": {
     "html-to-image": "1.11.13",
@@ -168,22 +168,22 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.4 || 4.0.5-alpha.1 || 4.0.5-alpha.2",
-    "@deepseek-ai/dsh-agent": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-agent-loop": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-attachment": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-home-paths": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-sandbox-policy": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-scope": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-session": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-session-persistence-jsonl": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-session-query": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-session-title": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-session-title-first-prompt-llm": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-settings": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.2 <0.2.3-0",
-    "@deepseek-ai/dsh-user-questions": ">=0.2.0-rc.2 <0.2.3-0",
+    "@deepseek-ai/dsh-agent": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-agent-loop": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-attachment": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-home-paths": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-sandbox-policy": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-scope": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-session": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-session-persistence-jsonl": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-session-query": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-session-title": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-session-title-first-prompt-llm": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-settings": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-user-questions": ">=0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4 || 3.18.5-alpha.1 || 3.18.5-alpha.2",
     "zod": "^4.1.12"
   },

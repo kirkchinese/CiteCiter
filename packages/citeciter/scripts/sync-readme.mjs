@@ -21,14 +21,20 @@ const pages = [
 
 const relative = target => !/^(?:[a-z][a-z0-9+.-]*:|#)/iu.test(target)
 
+/** A link target on npm: the other language's package README, or the file at the release tag. */
+function linkTarget(target, languageSwitch) {
+  const [path, hash] = target.split('#', 2)
+  if (Object.hasOwn(languageSwitch, path)) return `${languageSwitch[path]}${hash === undefined ? '' : `#${hash}`}`
+  return `${repository}/blob/${ref}/${target}`
+}
+
 function rewrite(markdown, languageSwitch) {
-  const images = markdown.replace(/(!\[[^\]]*\]\()([^)\s]+)\)/gu, (match, head, target) =>
-    relative(target) ? `${head}${raw}/${ref}/${target})` : match)
-  return images.replace(/(\]\()([^)\s]+)\)/gu, (match, head, target) => {
-    if (!relative(target)) return match
-    if (Object.hasOwn(languageSwitch, target)) return `${head}${languageSwitch[target]})`
-    return `${head}${repository}/blob/${ref}/${target})`
-  })
+  const images = markdown
+    .replace(/(!\[[^\]]*\]\()([^)\s]+)\)/gu, (match, head, target) => relative(target) ? `${head}${raw}/${ref}/${target})` : match)
+    .replace(/(<(?:img|source)\b[^>]*?\s(?:src|srcset)=")([^"]+)"/gu, (match, head, target) => relative(target) ? `${head}${raw}/${ref}/${target}"` : match)
+  return images
+    .replace(/(\]\()([^)\s]+)\)/gu, (match, head, target) => relative(target) ? `${head}${linkTarget(target, languageSwitch)})` : match)
+    .replace(/(<a\b[^>]*?\shref=")([^"]+)"/gu, (match, head, target) => relative(target) ? `${head}${linkTarget(target, languageSwitch)}"` : match)
 }
 
 let stale = false
