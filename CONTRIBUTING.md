@@ -50,7 +50,7 @@ To extend support to a new line: run `node packages/citeciter/scripts/use-sdk.mj
 
 pnpm's Git fetcher reads the repository root and ignores `publishConfig.directory`, so the root `package.json` mirrors the package manifest with paths into `packages/citeciter/`. Edit only `packages/citeciter/package.json` and run `pnpm sync:git-entry`. Root scripts use `pnpm --dir packages/citeciter`; both manifests share one name, so do not select the package with `--filter`.
 
-Edit only the repository READMEs. `pnpm sync:readme` generates `packages/citeciter/README.md` (English, shown on npm) and `README.zh.md`, rewriting relative links to the release tag.
+Edit only the repository READMEs. `pnpm sync:readme` generates `packages/citeciter/README.md` (English, shown on npm) and `README.zh.md`, rewriting relative links and images, in Markdown and in HTML tags, to the release tag. README images live in `assets/`: WebP screenshots taken from a real DSH at device scale 2, one per language (`*.zh.webp`, `*.en.webp`).
 
 ## Architecture
 
