@@ -1367,7 +1367,11 @@ const citeCiterSettingsSchema = z.object({
 		"off",
 		"summary",
 		"diff"
-	]).optional()
+	]).optional(),
+	/** After each main-conversation turn, check it for a point worth learning and offer to explain it. */
+	teacherMode: z.boolean().optional(),
+	/** The model that runs teacher-mode checks; absent uses the Citer model, then the source's. */
+	teacherModel: actionModelSchema.nullable().optional()
 }).strict();
 /** Settings used before an optional DSH settings provider becomes available. */
 const DEFAULT_CITECITER_SETTINGS = Object.freeze({
@@ -1385,7 +1389,8 @@ const DEFAULT_CITECITER_SETTINGS = Object.freeze({
 	updateNotifications: true,
 	selectionToolbar: true,
 	actionDelivery: "send",
-	wheelEnabled: false
+	wheelEnabled: false,
+	teacherMode: false
 });
 /**
 * Read persisted settings field by field. Keys written by other versions are
@@ -1994,8 +1999,22 @@ const citeCiterRequestSchema = z.union([createRequestSchema, z.discriminatedUnio
 	z.object({
 		action: z.literal("document-delete"),
 		documentId: z.string().min(1)
+	}).strict(),
+	z.object({
+		action: z.literal("teacher-check"),
+		sourceSessionId: z.string().min(1)
 	}).strict()
 ])]);
+/** One point worth learning that teacher mode found in a completed main-conversation turn. */
+const teacherSuggestionSchema = z.object({
+	sourceSessionId: z.string().min(1),
+	/** The source turn it was found in; one suggestion per turn. */
+	turn: z.number().int().nonnegative(),
+	/** A short name for the point, in the learner's language. */
+	title: z.string().min(1).max(80),
+	/** Why it is worth noticing, in one or two sentences. */
+	point: z.string().min(1).max(600)
+}).strict();
 /** Strict response union returned by the single Remote command endpoint. */
 const citeCiterResponseSchema = z.discriminatedUnion("kind", [
 	z.object({
@@ -2058,6 +2077,10 @@ const citeCiterResponseSchema = z.discriminatedUnion("kind", [
 	z.object({
 		kind: z.literal("document-content"),
 		document: documentContentSchema
+	}).strict(),
+	z.object({
+		kind: z.literal("teacher"),
+		suggestion: teacherSuggestionSchema.nullable()
 	}).strict()
 ]);
 /** Serialize the identity-bearing fields. Legacy drafts without an entry keep their v3 identity. */

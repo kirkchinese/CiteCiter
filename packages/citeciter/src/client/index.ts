@@ -40,7 +40,8 @@ import { createSettingsDocumentController } from './settings-document.ts'
 import { CiteBus } from './types.ts'
 import { createNativeComposer } from './native-composer.ts'
 import { bindSubmissionPreference } from './submission-preference.ts'
-import { viewActions } from './view-actions.ts'
+import { viewActions, type TeacherActions } from './view-actions.ts'
+import { teacherQuestion, watchTeacherTurns, type RunningStatus } from './teacher-watch.ts'
 import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from './update-controller.ts'
 import { createBoardCaptureController } from './board-capture-controller.ts'
 import { BoardCaptureWorker } from './components/BoardCaptureWorker.tsx'
@@ -243,11 +244,36 @@ export async function apply(ctx: Context): Promise<void> {
       if (companion.getSnapshot().sourceSessionId !== source) {
         actions.cancel()
         toolbar.dismiss()
+        // A teacher-mode point belongs to the conversation it was found in.
+        if (bus.getSnapshot().teacher?.sourceSessionId !== source) bus.dismissTeacher()
       }
       companion.setSource(source)
     }
     syncSource()
     const unsubscribeSessions = currentSession.subscribe(syncSource)
+
+    // Teacher mode watches the conversation on screen; DSH hosts without per-Session status have no trigger.
+    const sessionStatus = (remoteCtx.uiSession as unknown as { sessionStatus?: import('@deepseek-ai/dsh-client-store').ObservableSnapshot<RunningStatus> }).sessionStatus
+    const stopTeacher = sessionStatus === undefined ? () => {} : watchTeacherTurns({
+      status: sessionStatus,
+      current: readSource,
+      enabled: () => companion.getSnapshot().settings.teacherMode === true,
+      check: async sessionId => {
+        const result = await remoteCtx.remote.citeciter.request({ action: 'teacher-check', sourceSessionId: sessionId }, new AbortController().signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value.kind === 'teacher' ? result.value.suggestion : null
+      },
+      offer: suggestion => bus.offerTeacher(suggestion),
+      warn: (message, error) => remoteCtx.logger.warn(message, error),
+    })
+    const teacherActions: TeacherActions = {
+      explain: suggestion => {
+        bus.dismissTeacher()
+        openPanel()
+        void companion.createFree(teacherQuestion(suggestion), SessionId(suggestion.sourceSessionId), 'send')
+      },
+      dismiss: () => bus.dismissTeacher(),
+    }
 
     remoteCtx.effect(() => {
       const disposeAssistantEntry = remoteCtx.effect(
@@ -311,9 +337,9 @@ export async function apply(ctx: Context): Promise<void> {
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
       id: 'citeciter.launcher',
-      inject: () => ({ openPanel, companion: companionActions, hooks: { companion, overlay: bus } }),
+      inject: () => ({ openPanel, companion: companionActions, teacher: teacherActions, hooks: { companion, overlay: bus } }),
     }, CiteLauncher))
-    const panelInject = () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, documents: documentActions, reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions, library } })
+    const panelInject = () => ({ nativeComposer, drafts: viewActions(drafts), bus: busActions, companion: companionActions, closePanel, documents: documentActions, teacher: teacherActions, reportParseError, registerSurface: surfaces.register, openFile, hooks: { drafts, companion, overlay: bus, submission: submissionPreference, interactions, library } })
     // Citer's own dock, for hosts without DSH's right sidebar; it renders nothing while a tab hosts Citer.
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({
       name: 'shell.overlay',
@@ -414,6 +440,7 @@ export async function apply(ctx: Context): Promise<void> {
 
     remoteCtx.effect(() => async () => {
       unsubscribeSessions()
+      stopTeacher()
       disposeHotkey()
       closePanel()
       await Promise.all([actions.dispose(), companion.dispose(), library.dispose(), settingsDocument.dispose(), updateController.dispose()])

@@ -1,0 +1,70 @@
+/* Teacher mode's offer, as a menu-like card beside the pet or a quiet row at the top of Citer. */
+.notice {
+  display: grid;
+  gap: 10px;
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13, 13px/20px system-ui, sans-serif);
+}
+
+.notice[data-variant='bubble'] {
+  width: min(300px, calc(100vw - 96px));
+  padding: 12px 14px;
+  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-1, #fff));
+  backdrop-filter: var(--dsw-menu-backdrop-filter);
+  border-radius: var(--dsw-radius-lg, 12px);
+  box-shadow: var(--dsw-elevation-panel, 0 0 0 .5px #0000001f, 0 3px 8px #00000014);
+  animation: rise 160ms ease-out;
+}
+
+.notice[data-variant='bar'] {
+  flex: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 8px 12px 8px 16px;
+  border-bottom: .5px solid var(--dsw-alias-border-l3, #e4e7ec);
+}
+
+.text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--dsw-alias-state-business-primary);
+  font: var(--dsw-font-xxs-12, 12px/18px system-ui, sans-serif);
+  font-weight: 500;
+}
+
+.title {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
+.point {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.notice[data-variant='bar'] .point {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice[data-variant='bubble'] { animation: none; }
+}

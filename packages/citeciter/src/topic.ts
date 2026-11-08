@@ -49,6 +49,10 @@ export const citeCiterSettingsSchema = z.object({
   learningRoute: z.boolean().optional(),
   autoReadSource: z.boolean().optional(),
   workspaceChanges: z.enum(['off', 'summary', 'diff']).optional(),
+  /** After each main-conversation turn, check it for a point worth learning and offer to explain it. */
+  teacherMode: z.boolean().optional(),
+  /** The model that runs teacher-mode checks; absent uses the Citer model, then the source's. */
+  teacherModel: actionModelSchema.nullable().optional(),
 }).strict()
 
 export type CiteCiterSettings = z.infer<typeof citeCiterSettingsSchema>
@@ -70,6 +74,7 @@ export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   selectionToolbar: true,
   actionDelivery: 'send',
   wheelEnabled: false,
+  teacherMode: false,
 })
 
 /**
@@ -671,9 +676,24 @@ export const citeCiterRequestSchema = z.union([createRequestSchema, z.discrimina
   z.object({ action: z.literal('documents') }).strict(),
   z.object({ action: z.literal('document-get'), documentId: z.string().min(1), page: z.number().int().nonnegative().optional() }).strict(),
   z.object({ action: z.literal('document-delete'), documentId: z.string().min(1) }).strict(),
+  /** Teacher mode: look at the source's latest completed turn for one point worth learning. */
+  z.object({ action: z.literal('teacher-check'), sourceSessionId: z.string().min(1) }).strict(),
 ])])
 
 export type CiteCiterRequest = z.infer<typeof citeCiterRequestSchema>
+
+/** One point worth learning that teacher mode found in a completed main-conversation turn. */
+export const teacherSuggestionSchema = z.object({
+  sourceSessionId: z.string().min(1),
+  /** The source turn it was found in; one suggestion per turn. */
+  turn: z.number().int().nonnegative(),
+  /** A short name for the point, in the learner's language. */
+  title: z.string().min(1).max(80),
+  /** Why it is worth noticing, in one or two sentences. */
+  point: z.string().min(1).max(600),
+}).strict()
+
+export type TeacherSuggestion = z.infer<typeof teacherSuggestionSchema>
 
 /** Strict response union returned by the single Remote command endpoint. */
 export const citeCiterResponseSchema = z.discriminatedUnion('kind', [
@@ -698,6 +718,7 @@ export const citeCiterResponseSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('document'), document: documentSummarySchema }).strict(),
   z.object({ kind: z.literal('documents'), documents: z.array(documentSummarySchema) }).strict(),
   z.object({ kind: z.literal('document-content'), document: documentContentSchema }).strict(),
+  z.object({ kind: z.literal('teacher'), suggestion: teacherSuggestionSchema.nullable() }).strict(),
 ])
 
 export type CiteCiterResponse = z.infer<typeof citeCiterResponseSchema>

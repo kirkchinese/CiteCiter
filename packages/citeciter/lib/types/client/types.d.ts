@@ -1,6 +1,7 @@
 import type { SessionId } from '@deepseek-ai/dsh-session/types';
 import type { ToolEvidenceProjection } from '../evidence-text.ts';
 import type { PanelPresentation } from '../actions.ts';
+import type { TeacherSuggestion } from '../topic.ts';
 /** One right-click selection inside a rendered assistant model call. */
 export interface AssistantCiteSelection {
     readonly entryId: 'citeciter.entry.assistant';
@@ -49,6 +50,8 @@ export interface CiteOverlaySnapshot {
     readonly boardCitation: BoardCitationRequest | null;
     /** The library document Citer's own panel shows, when documents cannot open in the sidebar. */
     readonly document: PanelDocument | null;
+    /** Teacher mode's latest unanswered point worth learning. */
+    readonly teacher: TeacherSuggestion | null;
 }
 /** A document shown in Citer's own panel; `revision` changes on every request to show it. */
 export interface PanelDocument {
@@ -67,6 +70,10 @@ export declare class CiteBus {
     getSnapshot: () => CiteOverlaySnapshot;
     /** @param listener - observer. @returns disposer. */
     subscribe: (listener: () => void) => (() => void);
+    /** Offer one point worth learning; a newer one replaces an unanswered older one. */
+    offerTeacher(suggestion: TeacherSuggestion): void;
+    /** Withdraw the offered point, after it was explained or dismissed. */
+    dismissTeacher(): void;
     /** Open or close the independent companion dock. */
     setPanelOpen(panelOpen: boolean): void;
     private visibleTabs;

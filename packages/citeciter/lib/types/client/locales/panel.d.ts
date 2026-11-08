@@ -149,6 +149,9 @@ export declare const zh: {
     readonly 'panel.back': "返回主对话";
     readonly 'panel.pet.attention': "打开 Citer，有新的回答";
     readonly 'panel.pet.open': "打开 Citer";
+    readonly 'panel.teacher.label': "值得注意";
+    readonly 'panel.teacher.explain': "讲讲";
+    readonly 'panel.teacher.dismiss': "忽略";
     readonly 'panel.pet.drag': "打开 Citer · 可以拖动";
     readonly 'panel.notice.deletedElsewhere': "此 Topic 已在另一窗口删除。";
     readonly 'panel.notice.deleted': "Topic 已永久删除。";

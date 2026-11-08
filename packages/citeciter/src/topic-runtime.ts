@@ -24,6 +24,7 @@ import { HostSessionAdapter } from './host-session-adapter.ts'
 import { createLearningCardsTool } from './learning-cards-tool.ts'
 import { migrateLegacyTopics } from './legacy-migration.ts'
 import { isRouteUnavailable, requireSelectedModel, selectInitialModel } from './model-admission.ts'
+import { callTeacherModel, TeacherMode } from './teacher.ts'
 import { readNativeAttachment } from './native-attachment-read.ts'
 import { readNativeState } from './native-session-read.ts'
 import {
@@ -156,6 +157,7 @@ export class TopicRuntime {
   private readonly topicListeners = new Set<TopicChangeListener>()
   private readonly streams = new Map<string, TopicStreamProjection>()
   private readonly boardCapture = new BoardCaptureBroker()
+  private readonly teacher: TeacherMode
   private disposal: Promise<void> | undefined
   private releasing: Promise<void> | undefined
   private closed = false
@@ -166,6 +168,20 @@ export class TopicRuntime {
     private readonly settings: () => CiteCiterSettings = () => DEFAULT_CITECITER_SETTINGS,
   ) {
     this.sourceStorage = new SourceStorage(host)
+    this.teacher = new TeacherMode({
+      enabled: () => this.settings().teacherMode === true,
+      readSource: async (sessionId, signal) => {
+        const source = await readSourceSession(this.host, sessionId)
+        signal.throwIfAborted()
+        return source
+      },
+      // Its own model first, then the Citer model, then the model the source conversation uses.
+      route: source => {
+        const settings = this.settings()
+        return settings.teacherModel ?? settings.defaultCiterModel ?? selectedSourceModel(source.events) ?? modelConfigFromLatest(source)
+      },
+      call: (route, system, input, signal) => callTeacherModel(this.host.llm, route, system, input, signal),
+    })
     this.native = new HostSessionAdapter(host, settings, (scope, agent, metadata) => this.setupAgent(scope, agent, metadata), metadata => resolve(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId), 'sessions'))
     this.ready = this.start()
     void this.ready.catch(() => undefined)
@@ -361,6 +377,8 @@ export class TopicRuntime {
       case 'document-delete':
         await this.documents.delete(request.documentId)
         return { kind: 'documents', documents: await this.documents.list() }
+      case 'teacher-check':
+        return { kind: 'teacher', suggestion: await this.teacher.check(request.sourceSessionId, signal ?? new AbortController().signal) }
       default:
         return request satisfies never
     }

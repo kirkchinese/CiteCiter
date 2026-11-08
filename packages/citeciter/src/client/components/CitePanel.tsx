@@ -23,7 +23,8 @@ import type { CiteOverlaySnapshot } from '../types.ts'
 import type { SelectionSurfaces } from '../wheel-gesture.ts'
 import type { FileOpener } from '../native-file-link.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
-import type { CompanionActions, DocumentActions, OverlayActions } from '../view-actions.ts'
+import type { CompanionActions, DocumentActions, OverlayActions, TeacherActions } from '../view-actions.ts'
+import { TeacherNotice } from './TeacherNotice.tsx'
 import type { DocumentLibrarySnapshot } from '../document-library.ts'
 import { LibraryDocument } from './LibraryDocument.tsx'
 import type { ListRequest } from './TopicNavigation.tsx'
@@ -164,6 +165,8 @@ export interface CitePanelProps {
   readonly closePanel: () => void
   /** Citer's documents: the library list and opening documents in the sidebar or this panel. */
   readonly documents: DocumentActions
+  /** Teacher mode's offer, shown at the top while Citer is open. */
+  readonly teacher: TeacherActions
   readonly useLibrary: SnapshotSelectorHook<DocumentLibrarySnapshot>
   readonly reportParseError: (messageId: string) => void
   /** Host standard prop: the session list, used to show source titles on reference chips. */
@@ -195,7 +198,7 @@ function transcriptSelection(transcript: HTMLElement): string | null {
  * @param props - shared panel bus, Topic controller, and host callbacks.
  * @returns the responsive Topic dock and its dialogs, or null while closed.
  */
-export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, useLibrary, reportParseError, registerSurface, openFile, host = 'overlay', tabVisible = true }: CitePanelProps) {
+export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, useOverlay, useInteractions, useSubmission, useSessions, bus, companion, closePanel, documents, teacher, useLibrary, reportParseError, registerSurface, openFile, host = 'overlay', tabVisible = true }: CitePanelProps) {
   useLocale()
   const overlay = useOverlay(value => value)
   const snapshot = useCompanion(value => value)
@@ -457,6 +460,7 @@ export function CitePanel({ nativeComposer, drafts, useDrafts, useCompanion, use
     <>
     {snapshot.topicsStatus === 'error' && <p className={css.panelError} role="alert">{t('panel.error.topics')}{snapshot.topicsError === null ? null : friendlyFailure(snapshot.topicsError)}</p>}
     {snapshot.notice !== null && <div className={css.panelNotice} role="status">{localizedNotice(snapshot.notice)}</div>}
+    {overlay.teacher !== null && <TeacherNotice suggestion={overlay.teacher} actions={teacher} variant="bar" />}
 
     <input ref={documentInput} type="file" hidden accept=".md,.markdown,.txt,text/plain,text/markdown" onChange={(event) => {
       const input = event.currentTarget

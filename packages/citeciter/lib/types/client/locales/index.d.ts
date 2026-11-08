@@ -67,6 +67,10 @@ export declare const zh: {
     'settings.learning.title': "学习";
     'settings.learning.recall': "主动回忆";
     'settings.learning.recallDesc': "学习卡先显示自测问题，点开才看到结论和答案。";
+    'settings.learning.teacher': "教师模式";
+    'settings.learning.teacherDesc': "主对话每完成一轮，Citer 用下面的模型看一眼这一轮；有值得注意的知识点时，桌宠会提醒你，点「讲讲」才会新建 Topic 用板书讲解。每轮会多一次小的模型请求。";
+    'settings.learning.teacherModel': "教师模式判断用的模型";
+    'settings.learning.teacherModelDesc': "只用于判断有没有知识点，可以选便宜快速的模型。跟随时依次使用 Citer 的模型和主对话的模型；讲解仍用 Topic 的模型。";
     'settings.learning.animations': "板书动画";
     'settings.learning.animationsDesc': "关闭后板书直接显示最终状态。";
     'settings.learning.tutor': "导师提示词";
@@ -508,6 +512,9 @@ export declare const zh: {
     'panel.back': "返回主对话";
     'panel.pet.attention': "打开 Citer，有新的回答";
     'panel.pet.open': "打开 Citer";
+    'panel.teacher.label': "值得注意";
+    'panel.teacher.explain': "讲讲";
+    'panel.teacher.dismiss': "忽略";
     'panel.pet.drag': "打开 Citer · 可以拖动";
     'panel.notice.deletedElsewhere': "此 Topic 已在另一窗口删除。";
     'panel.notice.deleted': "Topic 已永久删除。";

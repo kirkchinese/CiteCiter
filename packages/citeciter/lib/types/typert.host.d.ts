@@ -711,6 +711,9 @@ export declare const TYPERT: {
         }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
             action: import("zod").ZodLiteral<"document-delete">;
             documentId: import("zod").ZodString;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            action: import("zod").ZodLiteral<"teacher-check">;
+            sourceSessionId: import("zod").ZodString;
         }, import("zod/v4/core").$strict>], "action">]>;
     }, {
         name: string;
@@ -1488,6 +1491,14 @@ export declare const TYPERT: {
                 page: import("zod").ZodDefault<import("zod").ZodNumber>;
                 pageCount: import("zod").ZodDefault<import("zod").ZodNumber>;
             }, import("zod/v4/core").$strict>;
+        }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+            kind: import("zod").ZodLiteral<"teacher">;
+            suggestion: import("zod").ZodNullable<import("zod").ZodObject<{
+                sourceSessionId: import("zod").ZodString;
+                turn: import("zod").ZodNumber;
+                title: import("zod").ZodString;
+                point: import("zod").ZodString;
+            }, import("zod/v4/core").$strict>>;
         }, import("zod/v4/core").$strict>], "kind">;
     }, {
         name: string;
@@ -1787,6 +1798,9 @@ export declare const TYPERT: {
                 }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
                     action: import("zod").ZodLiteral<"document-delete">;
                     documentId: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                    action: import("zod").ZodLiteral<"teacher-check">;
+                    sourceSessionId: import("zod").ZodString;
                 }, import("zod/v4/core").$strict>], "action">]>;
             };
         }];
@@ -2570,6 +2584,14 @@ export declare const TYPERT: {
                     page: import("zod").ZodDefault<import("zod").ZodNumber>;
                     pageCount: import("zod").ZodDefault<import("zod").ZodNumber>;
                 }, import("zod/v4/core").$strict>;
+            }, import("zod/v4/core").$strict>, import("zod").ZodObject<{
+                kind: import("zod").ZodLiteral<"teacher">;
+                suggestion: import("zod").ZodNullable<import("zod").ZodObject<{
+                    sourceSessionId: import("zod").ZodString;
+                    turn: import("zod").ZodNumber;
+                    title: import("zod").ZodString;
+                    point: import("zod").ZodString;
+                }, import("zod/v4/core").$strict>>;
             }, import("zod/v4/core").$strict>], "kind">;
         };
         readonly sourceLocation: {

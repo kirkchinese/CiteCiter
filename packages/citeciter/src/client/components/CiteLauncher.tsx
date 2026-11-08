@@ -2,20 +2,23 @@ import { useEffect, useRef, useState } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { CiteOverlaySnapshot } from '../types.ts'
 import type { CompanionSnapshot } from '../companion-controller.ts'
-import type { CompanionActions } from '../view-actions.ts'
+import type { CompanionActions, TeacherActions } from '../view-actions.ts'
 import { CiterPet } from './CiterPet.tsx'
+import { TeacherNotice } from './TeacherNotice.tsx'
 
 /**
  * Entry back to Citer while its panel is closed. While an answer is still running it keeps
  * the Topic refreshing, so the pet can mark the finished answer; opening Citer clears the mark.
+ * Teacher mode's offer speaks from the pet.
  */
-export function CiteLauncher({ useCompanion, useOverlay, companion, openPanel }: {
-  useCompanion: SnapshotSelectorHook<CompanionSnapshot>, useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>, companion: CompanionActions, openPanel: () => void
+export function CiteLauncher({ useCompanion, useOverlay, companion, openPanel, teacher }: {
+  useCompanion: SnapshotSelectorHook<CompanionSnapshot>, useOverlay: SnapshotSelectorHook<CiteOverlaySnapshot>, companion: CompanionActions, openPanel: () => void, teacher: TeacherActions
 }) {
   const sourceSessionId = useCompanion(value => value.sourceSessionId)
   const running = useCompanion(value => value.active?.topic.running === true)
   const waiting = useCompanion(value => (value.active?.pendingQuestions?.length ?? (value.active?.pendingQuestion == null ? 0 : 1)) > 0)
   const open = useOverlay(value => value.panelOpen)
+  const suggestion = useOverlay(value => value.teacher)
   const [finished, setFinished] = useState(false)
   const wasRunning = useRef(running)
   useEffect(() => !open && running ? companion.retainVisible() : undefined, [companion, open, running])
@@ -25,5 +28,6 @@ export function CiteLauncher({ useCompanion, useOverlay, companion, openPanel }:
   }, [running, open])
   useEffect(() => { if (open) setFinished(false) }, [open])
   if (sourceSessionId === null || open) return null
-  return <CiterPet attention={finished || waiting} onOpen={openPanel} />
+  return <CiterPet attention={finished || waiting || suggestion !== null} onOpen={openPanel}
+    {...(suggestion === null ? {} : { bubble: <TeacherNotice suggestion={suggestion} actions={teacher} variant="bubble" /> })} />
 }

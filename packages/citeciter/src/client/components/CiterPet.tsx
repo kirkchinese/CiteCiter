@@ -1,5 +1,5 @@
 import { t, useLocale } from '../i18n.ts'
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import peekUrl from '../assets/citer-pet-peek.png'
 import proudUrl from '../assets/citer-pet-proud.png'
 import { OverlayPortal } from './OverlayPortal.tsx'
@@ -53,7 +53,7 @@ function restTop(y: number): number {
  * either side; the side and height are remembered in this browser.
  * @param attention - show a dot because an answer finished or a question waits while Citer is closed.
  */
-export function CiterPet({ attention, onOpen }: { readonly attention: boolean, readonly onOpen: () => void }) {
+export function CiterPet({ attention, onOpen, bubble }: { readonly attention: boolean, readonly onOpen: () => void, readonly bubble?: ReactNode }) {
   useLocale()
   const [place, setPlace] = useState(readPlace)
   const [expanded, setExpanded] = useState(false)
@@ -136,5 +136,7 @@ export function CiterPet({ attention, onOpen }: { readonly attention: boolean, r
       <img className={css.proud} src={proudUrl} alt="" draggable={false} />
       {attention && <span className={css.dot} aria-hidden="true" />}
     </button>
+    {/* She speaks from beside the edge she peeks over; dragging her hides it until she lands. */}
+    {bubble !== undefined && drag === null && <div className={css.bubble} data-side={place.side} style={{ top: Math.max(8, restTop(place.y) - 40) }}>{bubble}</div>}
   </OverlayPortal>
 }

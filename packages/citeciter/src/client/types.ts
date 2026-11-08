@@ -1,6 +1,7 @@
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ToolEvidenceProjection } from '../evidence-text.ts'
 import type { PanelPresentation } from '../actions.ts'
+import type { TeacherSuggestion } from '../topic.ts'
 
 /** One right-click selection inside a rendered assistant model call. */
 export interface AssistantCiteSelection {
@@ -54,6 +55,8 @@ export interface CiteOverlaySnapshot {
   readonly boardCitation: BoardCitationRequest | null
   /** The library document Citer's own panel shows, when documents cannot open in the sidebar. */
   readonly document: PanelDocument | null
+  /** Teacher mode's latest unanswered point worth learning. */
+  readonly teacher: TeacherSuggestion | null
 }
 
 /** A document shown in Citer's own panel; `revision` changes on every request to show it. */
@@ -65,7 +68,7 @@ export interface PanelDocument {
 
 /** Observable panel presentation and board-citation requests; gestures have their own controller. */
 export class CiteBus {
-  private snapshot: CiteOverlaySnapshot = { panelOpen: false, host: 'overlay', sidebarAvailable: false, activation: 0, presentation: 'side', boardCitation: null, document: null }
+  private snapshot: CiteOverlaySnapshot = { panelOpen: false, host: 'overlay', sidebarAvailable: false, activation: 0, presentation: 'side', boardCitation: null, document: null, teacher: null }
   private readonly listeners = new Set<() => void>()
 
   /** @param reportListenerError - contains one failed browser subscriber. */
@@ -80,6 +83,19 @@ export class CiteBus {
     return () => {
       this.listeners.delete(listener)
     }
+  }
+
+  /** Offer one point worth learning; a newer one replaces an unanswered older one. */
+  offerTeacher(suggestion: TeacherSuggestion): void {
+    this.snapshot = { ...this.snapshot, teacher: suggestion }
+    this.notify()
+  }
+
+  /** Withdraw the offered point, after it was explained or dismissed. */
+  dismissTeacher(): void {
+    if (this.snapshot.teacher === null) return
+    this.snapshot = { ...this.snapshot, teacher: null }
+    this.notify()
   }
 
   /** Open or close the independent companion dock. */

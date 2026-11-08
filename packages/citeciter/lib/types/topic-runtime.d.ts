@@ -31,6 +31,7 @@ export declare class TopicRuntime {
     private readonly topicListeners;
     private readonly streams;
     private readonly boardCapture;
+    private readonly teacher;
     private disposal;
     private releasing;
     private closed;

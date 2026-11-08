@@ -48,6 +48,8 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
   wheelEnabled: z.boolean().default(DEFAULT_CITECITER_SETTINGS.wheelEnabled ?? false),
   wheelTrigger: z.union(['right-button', 'Alt', 'Control', 'Shift', 'Meta']).default('right-button'),
   defaultCiterModel: z.union([z.const(null), z.object({ provider: z.string().min(1).max(200), model: z.string().min(1).max(200) })]).default(null),
+  teacherMode: z.boolean().default(DEFAULT_CITECITER_SETTINGS.teacherMode ?? false),
+  teacherModel: z.union([z.const(null), z.object({ provider: z.string().min(1).max(200), model: z.string().min(1).max(200) })]).default(null),
   wheelSlots: z.array(z.union([z.const(null), z.object({
     label: z.string().min(1).max(20),
     prompt: z.string().max(4000),
