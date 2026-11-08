@@ -23,7 +23,7 @@ import { DraftStore } from './draft-store.ts'
 import { HostSessionAdapter } from './host-session-adapter.ts'
 import { createLearningCardsTool } from './learning-cards-tool.ts'
 import { migrateLegacyTopics } from './legacy-migration.ts'
-import { requireSelectedModel, selectInitialModel } from './model-admission.ts'
+import { isRouteUnavailable, requireSelectedModel, selectInitialModel } from './model-admission.ts'
 import { readNativeAttachment } from './native-attachment-read.ts'
 import { readNativeState } from './native-session-read.ts'
 import {
@@ -484,13 +484,15 @@ export class TopicRuntime {
     const route: LlmCallConfig = request.modelRoute ?? selected ?? (evidence === undefined || documentClaim !== undefined
       ? modelConfigFromLatest(source)
       : modelConfigFromSource(source, evidence.anchorSeq))
-    // An unavailable explicit or inherited route still creates a Topic awaiting model selection.
+    // An unavailable explicit or inherited route still creates a Topic awaiting model selection. A provider
+    // that cannot be reached right now (network, timeout) keeps the route: the first send retries it.
     let routeUnavailable = false
     try {
       await this.host.llm.resolveModelInfo(route.provider, route.model, signal)
     } catch (error) {
       if (signal?.aborted === true) throw error
-      routeUnavailable = true
+      if (isRouteUnavailable(error)) routeUnavailable = true
+      else this.host.logger.warn(`CiteCiter could not check model ${route.provider}/${route.model}; keeping it`, error)
     }
     const sourceRoot = await this.sourceStorage.root(sourceSessionId, true)
     if (sourceRoot === undefined) throw new Error('Citer 来源存储不可用')
@@ -625,9 +627,23 @@ export class TopicRuntime {
     const handle = await this.native.create(metadata, signal)
     this.handles.set(metadata.sessionId, handle)
     // An already unavailable route stays recorded for the user to replace; selecting it would only fail.
-    if (metadata.modelSelectionRequired === true) return handle
+    // Earlier versions also recorded routes a network failure only hid: offer those again once they resolve.
+    if (metadata.modelSelectionRequired === true && !await this.routeRecovered(metadata, signal)) return handle
     await selectInitialModel(metadata, () => this.host.sessionController.selectModel({ sessionId: SessionId(metadata.sessionId), provider: metadata.modelConfig.provider, model: metadata.modelConfig.model, ...(metadata.modelConfig.reasoningEffort === undefined ? {} : { reasoningEffort: metadata.modelConfig.reasoningEffort }) }))
     return handle
+  }
+
+  /** Clear a Topic's "choose another model" mark when its recorded route resolves again. */
+  private async routeRecovered(metadata: TopicMetadata, signal?: AbortSignal): Promise<boolean> {
+    try {
+      await this.host.llm.resolveModelInfo(metadata.modelConfig.provider, metadata.modelConfig.model, signal)
+    } catch (error) {
+      if (signal?.aborted === true) throw error
+      return false
+    }
+    metadata.modelSelectionRequired = false
+    await this.index.save({ ...metadata, updatedAt: Date.now() })
+    return true
   }
 
   /** Contribute Citer prompts, tools and observers to one native Topic Agent. */

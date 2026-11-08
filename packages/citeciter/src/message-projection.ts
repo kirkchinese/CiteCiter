@@ -14,6 +14,7 @@ const PRODUCER_LABELS: Readonly<Record<string, string>> = {
   'time-context': '时间',
   'instructions': '项目说明',
   'skills': '技能目录',
+  'skill-catalog': '技能目录',
 }
 
 interface ContextSource { kind: string; plugin?: string; form?: unknown; citer?: unknown; summary?: unknown; [field: string]: unknown }

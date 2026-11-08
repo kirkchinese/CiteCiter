@@ -63,6 +63,8 @@ export declare class TopicRuntime {
     /** A retried request returns the Topic its first attempt committed. */
     private resumeOrCreate;
     private createHandle;
+    /** Clear a Topic's "choose another model" mark when its recorded route resolves again. */
+    private routeRecovered;
     /** Contribute Citer prompts, tools and observers to one native Topic Agent. */
     private setupAgent;
     /** Keep storage and submitted-reference authorization outside the shared document tool contract. */

@@ -532,7 +532,8 @@ const PRODUCER_LABELS = {
 	"runtime-context": "运行环境",
 	"time-context": "时间",
 	"instructions": "项目说明",
-	"skills": "技能目录"
+	"skills": "技能目录",
+	"skill-catalog": "技能目录"
 };
 /** Citer's own form of a message it appended: the `citer` field, or the legacy `form` of earlier versions. */
 function citerMessageForm(source) {
@@ -2987,6 +2988,15 @@ async function migrateLegacyTopics(host, index, sources, native) {
 //#region lib/types/model-admission.js
 /** Keep an unavailable inherited route visible until the user explicitly replaces it. */
 const MODEL_SELECTION_REQUIRED = "这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。";
+/**
+* Whether a model lookup failed because the route is gone (no provider adapter, a retired model) rather than
+* because the provider could not be reached right now. A network or timeout failure says nothing about the
+* route, so it must not mark a Topic as needing another model.
+*/
+function isRouteUnavailable(error) {
+	if (typeof error !== "object" || error === null || !("code" in error)) return false;
+	return error.code === "NO_ADAPTER" || error.code === "UNKNOWN_MODEL" || error.code === "session/model-unavailable";
+}
 /** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
 async function selectInitialModel(metadata, select) {
 	try {
@@ -20580,7 +20590,8 @@ var TopicRuntime = class {
 			await this.host.llm.resolveModelInfo(route.provider, route.model, signal);
 		} catch (error) {
 			if (signal?.aborted === true) throw error;
-			routeUnavailable = true;
+			if (isRouteUnavailable(error)) routeUnavailable = true;
+			else this.host.logger.warn(`CiteCiter could not check model ${route.provider}/${route.model}; keeping it`, error);
 		}
 		const sourceRoot = await this.sourceStorage.root(sourceSessionId, true);
 		if (sourceRoot === void 0) throw new Error("Citer 来源存储不可用");
@@ -20705,7 +20716,7 @@ var TopicRuntime = class {
 		this.assertOpen(signal);
 		const handle = await this.native.create(metadata, signal);
 		this.handles.set(metadata.sessionId, handle);
-		if (metadata.modelSelectionRequired === true) return handle;
+		if (metadata.modelSelectionRequired === true && !await this.routeRecovered(metadata, signal)) return handle;
 		await selectInitialModel(metadata, () => this.host.sessionController.selectModel({
 			sessionId: SessionId(metadata.sessionId),
 			provider: metadata.modelConfig.provider,
@@ -20713,6 +20724,21 @@ var TopicRuntime = class {
 			...metadata.modelConfig.reasoningEffort === void 0 ? {} : { reasoningEffort: metadata.modelConfig.reasoningEffort }
 		}));
 		return handle;
+	}
+	/** Clear a Topic's "choose another model" mark when its recorded route resolves again. */
+	async routeRecovered(metadata, signal) {
+		try {
+			await this.host.llm.resolveModelInfo(metadata.modelConfig.provider, metadata.modelConfig.model, signal);
+		} catch (error) {
+			if (signal?.aborted === true) throw error;
+			return false;
+		}
+		metadata.modelSelectionRequired = false;
+		await this.index.save({
+			...metadata,
+			updatedAt: Date.now()
+		});
+		return true;
 	}
 	/** Contribute Citer prompts, tools and observers to one native Topic Agent. */
 	async setupAgent(agentCtx, agent, metadata) {

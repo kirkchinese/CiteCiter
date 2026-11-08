@@ -53,6 +53,17 @@ import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { CiterIcon, CiterTab } from './components/CiterTab.tsx'
 import { installLocale, isChinese, t } from './i18n.ts'
 
+/** Text files the Citer Reading view offers to read: prose, data and the common programming languages. */
+const LEARNING_EXTENSIONS = [
+  'txt', 'md', 'markdown', 'mdx', 'rst', 'adoc', 'tex', 'log', 'csv', 'tsv',
+  'json', 'jsonc', 'json5', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'env', 'xml', 'svg', 'html', 'htm', 'css', 'scss', 'less',
+  'ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs', 'vue', 'svelte',
+  'py', 'pyi', 'ipynb', 'rs', 'go', 'c', 'h', 'cc', 'cpp', 'cxx', 'hpp', 'cs', 'java', 'kt', 'kts', 'scala', 'swift', 'm', 'mm',
+  'rb', 'php', 'pl', 'lua', 'r', 'jl', 'dart', 'ex', 'exs', 'erl', 'hs', 'clj', 'zig', 'nim', 'sql', 'graphql', 'proto',
+  'sh', 'bash', 'zsh', 'fish', 'ps1', 'bat', 'cmd', 'mk', 'cmake', 'gradle', 'dockerfile', 'tf',
+  'urdf', 'xacro', 'launch', 'sdf', 'world', 'msg', 'srv', 'action', 'cu', 'glsl', 'hlsl',
+]
+
 /** Registry id and kind of Citer's right-sidebar tab type. */
 const CITER_TAB_ID = '@kirkchinese/dsh-citeciter'
 const CITER_TAB_KIND = 'citeciter'
@@ -289,12 +300,12 @@ export async function apply(ctx: Context): Promise<void> {
     remoteCtx.inject(['documentPreviews'], previewCtx => {
       const id = '@kirkchinese/dsh-citeciter/learning-document'
       previewCtx.effect(() => previewCtx.documentPreviews.register({
-        id, extensions: ['txt', 'md', 'markdown', 'ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs', 'json', 'py', 'rs', 'go', 'c', 'cpp', 'h', 'css', 'yaml', 'yml', 'toml', 'sh', 'ps1'],
+        id, extensions: LEARNING_EXTENSIONS,
         priority: 'builtin', title: () => t('settings.native.title'), loading: 'bytes-complete', wrap: true,
       }), 'citeciter: native learning metadata')
       previewCtx.slots.inject('sidebar.right.tab.document', () => previewCtx.slots.register({
         name: 'sidebar.right.tab.document', key: id,
-        inject: () => ({ registerSurface: surfaces.register, openActions }),
+        inject: () => ({ registerSurface: surfaces.register, openActions, sourceSessionId: () => companion.getSnapshot().sourceSessionId }),
       }, NativeLearningDocument))
     })
     remoteCtx.slots.inject('shell.overlay', () => remoteCtx.slots.register({

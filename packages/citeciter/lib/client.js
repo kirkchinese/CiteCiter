@@ -40967,10 +40967,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						line: lineAtOffset(content, literal.start)
 					});
 				}
-				const first = blockAt(root, range.startContainer, range.startOffset, "start");
-				const last = blockAt(root, range.endContainer, range.endOffset, "end");
-				const displayText = range.toString().trim();
-				if (first === null || last === null || displayText === "") return null;
+				const touched = [...root.querySelectorAll(":scope > [data-source-start]")].filter((block) => range.intersectsNode(block));
+				const first = blockAt(root, range.startContainer, range.startOffset, "start") ?? touched[0] ?? null;
+				const last = blockAt(root, range.endContainer, range.endOffset, "end") ?? touched.at(-1) ?? null;
+				if (first === null || last === null) return null;
+				const displayText = range.toString().trim() || content.slice(Number(first.dataset.sourceStart), Number(last.dataset.sourceEnd)).trim();
+				if (displayText === "") return null;
 				const sourceRange = {
 					start: Number(first.dataset.sourceStart),
 					end: Number(last.dataset.sourceEnd)
@@ -45394,13 +45396,18 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (text.length > 2e6) throw new Error(t("settings.error.nativeTooLong"));
 			return text;
 		}
-		/** Capture the file address's own Session and immutable text, never the later active tab. */
-		function nativeDocumentSource(address, content, selection) {
+		/**
+		* Capture the file's Session and immutable text. A file read through a Session belongs to that Session;
+		* a file opened by its absolute path belongs to no Session, so it is asked about in the conversation on screen.
+		* @param onScreen - the main conversation on screen, or null when none is.
+		*/
+		function nativeDocumentSource(address, content, selection, onScreen) {
 			const file = parseFileAddress(address);
-			if (file?.scope !== "session") throw new Error(t("settings.error.nativeNoSource"));
+			const session = file?.scope === "session" ? SessionId(file.sessionId) : file?.scope === "absolute" ? onScreen : null;
+			if (file === void 0 || session === null) throw new Error(t("settings.error.nativeNoSource"));
 			return {
 				kind: "document",
-				sourceSessionId: SessionId(file.sessionId),
+				sourceSessionId: session,
 				title: file.path,
 				content,
 				...selection
@@ -45412,7 +45419,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		* Citer's reading view of a workspace file, offered by DSH's file preview next to its own views.
 		* DSH owns loading, reload and file navigation; Citer renders the text like a library document.
 		*/
-		function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface }) {
+		function NativeLearningDocument({ content, resourceAddress, wrap, scrollportRef, registerSurface, sourceSessionId }) {
 			const localeRevision = useLocale();
 			const decoded = (0, react.useMemo)(() => {
 				try {
@@ -45442,7 +45449,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				registerSurface,
 				toSource: (selection) => {
 					try {
-						return nativeDocumentSource(resourceAddress, decoded.text, selection);
+						return nativeDocumentSource(resourceAddress, decoded.text, selection, sourceSessionId());
 					} catch {
 						return null;
 					}
@@ -49251,6 +49258,105 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region lib/types/client/index.js
+		/** Text files the Citer Reading view offers to read: prose, data and the common programming languages. */
+		const LEARNING_EXTENSIONS = [
+			"txt",
+			"md",
+			"markdown",
+			"mdx",
+			"rst",
+			"adoc",
+			"tex",
+			"log",
+			"csv",
+			"tsv",
+			"json",
+			"jsonc",
+			"json5",
+			"yaml",
+			"yml",
+			"toml",
+			"ini",
+			"cfg",
+			"conf",
+			"env",
+			"xml",
+			"svg",
+			"html",
+			"htm",
+			"css",
+			"scss",
+			"less",
+			"ts",
+			"tsx",
+			"mts",
+			"cts",
+			"js",
+			"jsx",
+			"mjs",
+			"cjs",
+			"vue",
+			"svelte",
+			"py",
+			"pyi",
+			"ipynb",
+			"rs",
+			"go",
+			"c",
+			"h",
+			"cc",
+			"cpp",
+			"cxx",
+			"hpp",
+			"cs",
+			"java",
+			"kt",
+			"kts",
+			"scala",
+			"swift",
+			"m",
+			"mm",
+			"rb",
+			"php",
+			"pl",
+			"lua",
+			"r",
+			"jl",
+			"dart",
+			"ex",
+			"exs",
+			"erl",
+			"hs",
+			"clj",
+			"zig",
+			"nim",
+			"sql",
+			"graphql",
+			"proto",
+			"sh",
+			"bash",
+			"zsh",
+			"fish",
+			"ps1",
+			"bat",
+			"cmd",
+			"mk",
+			"cmake",
+			"gradle",
+			"dockerfile",
+			"tf",
+			"urdf",
+			"xacro",
+			"launch",
+			"sdf",
+			"world",
+			"msg",
+			"srv",
+			"action",
+			"cu",
+			"glsl",
+			"hlsl"
+		];
 		/** Registry id and kind of Citer's right-sidebar tab type. */
 		const CITER_TAB_ID = "@kirkchinese/dsh-citeciter";
 		const CITER_TAB_KIND = "citeciter";
@@ -49508,32 +49614,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					const id = "@kirkchinese/dsh-citeciter/learning-document";
 					previewCtx.effect(() => previewCtx.documentPreviews.register({
 						id,
-						extensions: [
-							"txt",
-							"md",
-							"markdown",
-							"ts",
-							"tsx",
-							"mts",
-							"cts",
-							"js",
-							"jsx",
-							"mjs",
-							"cjs",
-							"json",
-							"py",
-							"rs",
-							"go",
-							"c",
-							"cpp",
-							"h",
-							"css",
-							"yaml",
-							"yml",
-							"toml",
-							"sh",
-							"ps1"
-						],
+						extensions: LEARNING_EXTENSIONS,
 						priority: "builtin",
 						title: () => t("settings.native.title"),
 						loading: "bytes-complete",
@@ -49544,7 +49625,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						key: id,
 						inject: () => ({
 							registerSurface: surfaces.register,
-							openActions
+							openActions,
+							sourceSessionId: () => companion.getSnapshot().sourceSessionId
 						})
 					}, NativeLearningDocument));
 				});

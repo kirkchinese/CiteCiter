@@ -3,6 +3,16 @@ import type { TopicMetadata } from './topic.ts'
 /** Keep an unavailable inherited route visible until the user explicitly replaces it. */
 export const MODEL_SELECTION_REQUIRED = '这个 Topic 的模型在当前 DSH 中不可用。草稿已保留，请在模型菜单中选择可用模型后发送。'
 
+/**
+ * Whether a model lookup failed because the route is gone (no provider adapter, a retired model) rather than
+ * because the provider could not be reached right now. A network or timeout failure says nothing about the
+ * route, so it must not mark a Topic as needing another model.
+ */
+export function isRouteUnavailable(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return false
+  return error.code === 'NO_ADAPTER' || error.code === 'UNKNOWN_MODEL' || error.code === 'session/model-unavailable'
+}
+
 /** A retired catalog entry must not discard a newly created, still empty Topic. Other failures propagate. */
 export async function selectInitialModel(metadata: TopicMetadata, select: () => Promise<unknown>): Promise<void> {
   try {
