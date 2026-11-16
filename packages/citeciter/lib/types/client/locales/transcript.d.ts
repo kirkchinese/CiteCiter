@@ -29,6 +29,7 @@ export declare const zh: {
     readonly 'transcript.reference.excerpt': "引用文段";
     readonly 'transcript.reference.board': "板书引用";
     readonly 'transcript.reference.boardTitle': "板书：{text}";
+    readonly 'transcript.reference.chip': "{kind}：{title}";
     readonly 'transcript.file.reading': "正在读取";
     readonly 'transcript.file.download': "下载";
     readonly 'transcript.file.retry': "重试下载";

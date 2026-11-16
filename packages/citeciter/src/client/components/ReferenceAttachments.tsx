@@ -22,7 +22,7 @@ export function ReferenceAttachments({ references, onRemove, sourceTitle }: {
       const title = draftReferenceTitle(reference, sourceTitle)
       const kind = draftReferenceLabel(reference)
       return <div className={css.chip} key={reference.id} data-kind={reference.kind}>
-        <button type="button" title={reference.kind === 'source' ? title : kind} aria-label={`${kind}：${title}`} aria-expanded={expanded === reference.id} onClick={() => setExpanded(expanded === reference.id ? null : reference.id)}>
+        <button type="button" title={reference.kind === 'source' ? title : kind} aria-label={t('transcript.reference.chip', { kind, title })} aria-expanded={expanded === reference.id} onClick={() => setExpanded(expanded === reference.id ? null : reference.id)}>
           <span aria-hidden="true">{reference.kind === 'source' ? '↳' : reference.kind === 'board' ? '▧' : '❝'}</span>{title}
         </button>
         {onRemove !== undefined && <button type="button" className={css.remove} title={t('transcript.reference.remove')} aria-label={t('transcript.reference.removeKind', { kind })} onClick={() => onRemove(reference.id)}><IconCloseOutlineRegular /></button>}

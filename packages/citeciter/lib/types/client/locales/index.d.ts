@@ -258,6 +258,7 @@ export declare const zh: {
     'transcript.reference.excerpt': "引用文段";
     'transcript.reference.board': "板书引用";
     'transcript.reference.boardTitle': "板书：{text}";
+    'transcript.reference.chip': "{kind}：{title}";
     'transcript.file.reading': "正在读取";
     'transcript.file.download': "下载";
     'transcript.file.retry': "重试下载";

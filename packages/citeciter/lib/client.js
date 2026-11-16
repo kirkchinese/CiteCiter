@@ -7867,6 +7867,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"transcript.reference.excerpt": "引用文段",
 			"transcript.reference.board": "板书引用",
 			"transcript.reference.boardTitle": "板书：{text}",
+			"transcript.reference.chip": "{kind}：{title}",
 			"transcript.file.reading": "正在读取",
 			"transcript.file.download": "下载",
 			"transcript.file.retry": "重试下载",
@@ -8003,6 +8004,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"transcript.reference.excerpt": "Quoted passage",
 			"transcript.reference.board": "Board reference",
 			"transcript.reference.boardTitle": "Board: {text}",
+			"transcript.reference.chip": "{kind}: {title}",
 			"transcript.file.reading": "Reading",
 			"transcript.file.download": "Download",
 			"transcript.file.retry": "Retry download",
@@ -9730,6 +9732,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (!result.ok) throw new Error(result.error.message);
 			return result.value;
 		}
+		/** How long a panel notice stays before it fades. */
+		const NOTICE_MS = 8e3;
 		function lastTopicKey(sourceSessionId) {
 			return "citeciter:last-topic:" + sourceSessionId;
 		}
@@ -9805,8 +9809,17 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				if (disposed) return Promise.resolve(fallback);
 				return track(operations, Promise.resolve().then(() => disposed ? fallback : operation()));
 			};
+			let noticeTimer;
 			const update = (mutator) => {
-				if (!disposed) store.update(mutator);
+				if (disposed) return;
+				const before = store.getSnapshot().notice;
+				store.update(mutator);
+				const notice = store.getSnapshot().notice;
+				if (notice === before) return;
+				clearTimeout(noticeTimer);
+				if (notice !== null) noticeTimer = setTimeout(() => update((draft) => {
+					if (draft.notice === notice) draft.notice = null;
+				}), NOTICE_MS);
 			};
 			const fail = (error, operationGeneration = activeGeneration, sticky = true) => {
 				if (disposed || operationGeneration !== activeGeneration) return;
@@ -10791,6 +10804,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					if (pollTimer !== null) clearTimeout(pollTimer);
 					pollTimer = null;
 					unsubscribeSettings();
+					clearTimeout(noticeTimer);
 					releaseRetired();
 					lifecycle.abort(new DOMException("CiteCiter is shutting down", "AbortError"));
 					while (operations.size > 0 || remoteOperations.size > 0 || topicsRefresh !== null) await Promise.allSettled([
@@ -39688,7 +39702,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 							children: [(0, react_jsx_runtime.jsxs)("button", {
 								type: "button",
 								title: reference.kind === "source" ? title : kind,
-								"aria-label": `${kind}：${title}`,
+								"aria-label": t("transcript.reference.chip", {
+									kind,
+									title
+								}),
 								"aria-expanded": expanded === reference.id,
 								onClick: () => setExpanded(expanded === reference.id ? null : reference.id),
 								children: [(0, react_jsx_runtime.jsx)("span", {
@@ -45341,12 +45358,21 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		//#region lib/types/client/components/SelectionToolbar.js
 		const INLINE_ACTIONS = 4;
 		const GAP = 8;
-		function place(anchor, width, height) {
-			const left = Math.max(GAP, Math.min(anchor.x - width / 2, window.innerWidth - width - GAP));
-			const below = anchor.bottom + GAP;
+		/**
+		* Place the toolbar below the selection, or above it near the bottom edge. The anchor comes from
+		* getBoundingClientRect, in viewport pixels; a fixed element inside a CSS-zoomed container has its
+		* offsets scaled by that zoom, so they are converted into the container's own units first.
+		*/
+		function place(anchor, width, height, container) {
+			const zoom = container?.currentCSSZoom ?? 1;
+			const viewportWidth = window.innerWidth / zoom;
+			const viewportHeight = window.innerHeight / zoom;
+			const x = anchor.x / zoom;
+			const left = Math.max(GAP, Math.min(x - width / 2, viewportWidth - width - GAP));
+			const below = anchor.bottom / zoom + GAP;
 			return {
 				left,
-				top: below + height <= window.innerHeight - GAP ? below : Math.max(GAP, anchor.top - height - GAP)
+				top: below + height <= viewportHeight - GAP ? below : Math.max(GAP, anchor.top / zoom - height - GAP)
 			};
 		}
 		/**
@@ -45378,7 +45404,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					setPosition(null);
 					return;
 				}
-				setPosition(place(current.anchor, element.offsetWidth, element.offsetHeight));
+				setPosition(place(current.anchor, element.offsetWidth, element.offsetHeight, element.parentElement));
 			}, [current]);
 			if (current === null) return null;
 			const actions = slots.filter((slot) => slot !== null);
