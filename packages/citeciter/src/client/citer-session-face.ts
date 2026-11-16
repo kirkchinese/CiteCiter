@@ -16,6 +16,12 @@ export interface CiterSessionSnapshot extends SessionSnapshot {
   readonly queue: readonly (NativeState['queue'][number] & { id: MessageId; messageId: MessageId; rpcId?: SessionRequestId; content: import('@deepseek-ai/dsh-llm').ContentBlock[]; preview: string })[]
 }
 
+/**
+ * History fields DSH 0.2.2-rc.3 added to the session snapshot. Citer's transcript is always complete, so its
+ * native face never pages; spread rather than written inline so earlier snapshot types accept the literal.
+ */
+const COMPLETE_HISTORY = { historyWasPartial: false, historyLoadStatus: 'idle' as const }
+
 type Submission = Parameters<SessionFace['beginSubmission']>[0]
 type Retirement = Parameters<NonNullable<Submission['onRetire']>>[0]
 
@@ -39,6 +45,7 @@ export class CiterSessionFace implements SessionFace {
       sessionId, queue: [], pendingSubmissions: [], running: false, subagent: null, removed: false,
       openState: 'cold', openError: null, hasMore: false, loadingOlder: false, promptError: null,
       blank: true, lastAgentError: null, promptAttempted: false, awaitingFirstTurn: false,
+      ...COMPLETE_HISTORY,
     })
   }
 
@@ -147,6 +154,8 @@ export class CiterSessionFace implements SessionFace {
   // Topic reader. These native face verbs do not open the Host's history stage.
   loadOlder = async (): Promise<void> => {}
   loadThrough = async (): Promise<void> => {}
+  /** DSH 0.2.2-rc.3 publishes deferred history pages through this; Citer never prepares one. */
+  consumeOlder = (): boolean => false
 
   private schedule(delay = 350): void {
     clearTimeout(this.timer)

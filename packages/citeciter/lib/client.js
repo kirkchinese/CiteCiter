@@ -8206,6 +8206,14 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region lib/types/client/citer-session-face.js
+		/**
+		* History fields DSH 0.2.2-rc.3 added to the session snapshot. Citer's transcript is always complete, so its
+		* native face never pages; spread rather than written inline so earlier snapshot types accept the literal.
+		*/
+		const COMPLETE_HISTORY = {
+			historyWasPartial: false,
+			historyLoadStatus: "idle"
+		};
 		/** Own the published SessionFace contract for Citer navigation. Sending, uploads and inbox mutations remain native DSH operations. */
 		var CiterSessionFace = class {
 			ctx;
@@ -8243,7 +8251,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					blank: true,
 					lastAgentError: null,
 					promptAttempted: false,
-					awaitingFirstTurn: false
+					awaitingFirstTurn: false,
+					...COMPLETE_HISTORY
 				});
 			}
 			getSnapshot = () => this.store.getSnapshot();
@@ -8407,6 +8416,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			};
 			loadOlder = async () => {};
 			loadThrough = async () => {};
+			/** DSH 0.2.2-rc.3 publishes deferred history pages through this; Citer never prepares one. */
+			consumeOlder = () => false;
 			schedule(delay = 350) {
 				clearTimeout(this.timer);
 				this.timer = void 0;

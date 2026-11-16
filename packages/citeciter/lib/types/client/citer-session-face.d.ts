@@ -68,6 +68,8 @@ export declare class CiterSessionFace implements SessionFace {
     command: SessionFace['command'];
     loadOlder: () => Promise<void>;
     loadThrough: () => Promise<void>;
+    /** DSH 0.2.2-rc.3 publishes deferred history pages through this; Citer never prepares one. */
+    consumeOlder: () => boolean;
     private schedule;
     private refresh;
     /** Stop polling and settle each owned submission exactly once when its owner closes or confirms deletion. */
