@@ -70,7 +70,7 @@ Behavior lives in plugin contributions and documented DSH services; the host Age
 
 Three host adaptations are deliberate and isolated; do not spread them:
 
-- `citer-session-access.ts` wraps the host's `sessions.flush` for the plugin's lifetime so Citer-owned sessions are flushed to their own store, and checkpoints them before each model request through the public `llm/stream` event. The original `flush` is restored on teardown, and host `get`/`list` stay unchanged so Topics never reach the session list.
+- `citer-session-access.ts` wraps the host's `sessions.flush` for the plugin's lifetime so Citer-owned sessions are flushed to their own store, and checkpoints them before each model request through the public `llm/stream` event. It also wraps `sessions.get`: inside a Topic Agent's own `agent/request` waterfall (marked with `AsyncLocalStorage` by a prepended, Agent-scoped listener) the host store answers for that Topic, because plugins such as dsh-codex-connect check there that a live Agent's Session is the host store's. Everywhere else, including the model call itself, `get` and `list` answer as before, so Topics never reach the session list, the host title service or session-log upload. Both originals are restored on teardown.
 - `host-agent-modules.ts` loads the host's AgentLoop, SessionStore, title service, first-prompt title provider and scope factory through the profile resolver, so Desktop and symlinked CLIs share one module instance. Each Topic world mounts the title provider with the same policy `dsh-base` uses for host sessions.
 - `client/host-dock.ts` and its CSS reserve layout space for the panel and restore the host's styles on close.
 

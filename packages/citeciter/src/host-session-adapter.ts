@@ -82,7 +82,10 @@ export class HostSessionAdapter {
     const fiber = agent.ctx.plugin({
       name: 'citeciter-native-topic',
       inject: ['systemPrompt', 'tools', 'attachments'],
-      apply: (child: Context) => this.assemble(child, agent, metadata),
+      apply: (child: Context) => {
+        this.access.attach(child, agent)
+        return this.assemble(child, agent, metadata)
+      },
     })
     const ready = Promise.resolve(fiber).then(() => undefined)
     const dispose = async () => {
