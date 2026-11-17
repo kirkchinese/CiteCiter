@@ -2,7 +2,9 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
-## Unreleased
+## 0.9.0-beta.11 — 2026-11-17
+
+Targets DSH `>=0.2.0-rc.2`, verified with dsh-codex-connect `0.2.0-alpha.15` on `0.2.1-rc.5` and `0.2.2-rc.3`.
 
 - Topics work again alongside dsh-codex-connect `0.2.0-alpha.15` on DSH `0.2.2-rc.2` and later, where every Topic turn failed with `TASK_LIVE_ROOT_REQUIRED`. Codex Connect checks before each model request that a live Agent's Session is the one DSH's session store holds; while a Topic Agent prepares its request, DSH's store now answers for that Topic. Topics still stay out of DSH's session list, title service and session-log upload.
 
