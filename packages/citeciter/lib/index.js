@@ -15,9 +15,9 @@ import { chmod, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, rmd
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import { setTimeout as setTimeout$1 } from "node:timers/promises";
 import AgentRegistry from "@deepseek-ai/dsh-agent";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { isDeepStrictEqual } from "node:util";
 import { execFile } from "node:child_process";
-import { AsyncLocalStorage } from "node:async_hooks";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __exportAll = (all, no_symbols) => {
@@ -2600,15 +2600,25 @@ var CiterSessionWorld = class {
 };
 //#endregion
 //#region lib/types/citer-session-access.js
-/** Route durability checkpoints to owned stores without publishing Topic identities in the Host store. */
+/**
+* Route durability checkpoints to owned stores, and answer the Host store's id lookups for a Topic while its
+* Agent prepares a model request, without publishing Topic identities to the rest of the Host.
+*/
 var CiterSessionAccess = class {
 	owners = /* @__PURE__ */ new Map();
+	/** The Topic whose Agent is inside its `agent/request` waterfall in this asynchronous chain. */
+	requesting = new AsyncLocalStorage();
 	/** Install one reversible adapter for this plugin's lifetime. No Host files or Agent Loop methods change. */
 	constructor(ctx, drain) {
 		const host = ctx.sessions;
 		const flush = host.flush;
-		const flushDescriptor = Object.getOwnPropertyDescriptor(host, "flush");
+		const get = host.get;
+		const descriptors = {
+			flush: Object.getOwnPropertyDescriptor(host, "flush"),
+			get: Object.getOwnPropertyDescriptor(host, "get")
+		};
 		const owners = this.owners;
+		const requesting = this.requesting;
 		ctx.on("llm/stream", (options, next) => {
 			const owner = options.sessionId === void 0 ? void 0 : owners.get(options.sessionId);
 			if (owner === void 0) return next();
@@ -2621,15 +2631,23 @@ var CiterSessionAccess = class {
 			const owner = owners.get(session.id);
 			return owner?.session === session ? owner.store.flush(session) : flush.call(this, session);
 		};
+		const lookup = function(id) {
+			const own = get.call(this, id);
+			if (own !== void 0 || requesting.getStore() !== id) return own;
+			return owners.get(id)?.session;
+		};
 		ctx.effect(() => {
 			host.flush = checkpoint;
+			host.get = lookup;
 			return async () => {
 				try {
 					await drain();
 				} finally {
-					if (Object.getOwnPropertyDescriptor(host, "flush")?.value === checkpoint) {
-						if (flushDescriptor === void 0) Reflect.deleteProperty(host, "flush");
-						else Object.defineProperty(host, "flush", flushDescriptor);
+					for (const [name, installed] of [["flush", checkpoint], ["get", lookup]]) {
+						if (Object.getOwnPropertyDescriptor(host, name)?.value !== installed) continue;
+						const previous = descriptors[name];
+						if (previous === void 0) Reflect.deleteProperty(host, name);
+						else Object.defineProperty(host, name, previous);
 					}
 					owners.clear();
 				}
@@ -2647,6 +2665,14 @@ var CiterSessionAccess = class {
 		return () => {
 			if (this.owners.get(session.id) === owner) this.owners.delete(session.id);
 		};
+	}
+	/**
+	* Mark one Topic Agent's request waterfall. Registered on the Agent's own context after the Host plugins
+	* started, with `prepend`, so it runs before their listeners and they see the Topic while it is marked.
+	* @param agentCtx - the Topic Agent's contribution context; the listener leaves with it.
+	*/
+	attach(agentCtx, agent) {
+		agentCtx.on("agent/request", (_payload, next) => this.requesting.run(agent.id, next), { prepend: true });
 	}
 };
 //#endregion
@@ -2746,7 +2772,10 @@ var HostSessionAdapter = class {
 				"tools",
 				"attachments"
 			],
-			apply: (child) => this.assemble(child, agent, metadata)
+			apply: (child) => {
+				this.access.attach(child, agent);
+				return this.assemble(child, agent, metadata);
+			}
 		});
 		const ready = Promise.resolve(fiber).then(() => void 0);
 		const dispose = async () => {
