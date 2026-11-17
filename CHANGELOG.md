@@ -2,6 +2,15 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## 0.9.0-beta.10 — 2026-11-17
+
+Targets DSH `>=0.2.0-rc.2`, verified on `0.2.1-rc.5` and `0.2.2-rc.3`.
+
+- Builds against DSH `0.2.2-rc.2` and `0.2.2-rc.3`, which dropped two Agent registry methods and added paged history to the session face. Citer forwards registry methods by name and supplies the new face members, so one release still runs on `0.2.0` through `0.2.2-rc.3`.
+- Blackboards take fewer correction rounds: the model plans a board before drawing and stops after two fixes for readability or correctness, which cuts the tokens a board costs.
+- Panel notices such as "stop requested" and "Topic deleted" fade after a few seconds instead of staying over later Topics.
+- The selection toolbar stays next to the selection when the page is scaled with CSS zoom, and reference chips use the interface language's punctuation in their accessible names.
+
 ## 0.9.0-beta.9 — 2026-11-08
 
 Targets DSH `>=0.2.0-rc.2`: the official Desktop `0.2.0-rc.2` and every later release.

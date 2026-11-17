@@ -150,6 +150,9 @@ function remoteValue(result: RemoteResult<CiteCiterResponse>): CiteCiterResponse
   return result.value
 }
 
+/** How long a panel notice stays before it fades. */
+const NOTICE_MS = 8000
+
 function lastTopicKey(sourceSessionId: string): string {
   return 'citeciter:last-topic:' + sourceSessionId
 }
@@ -252,8 +255,17 @@ export function createCompanionController(
     return track(operations, Promise.resolve().then(() => disposed ? fallback : operation()))
   }
 
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined
   const update = (mutator: (draft: CompanionSnapshot) => void) => {
-    if (!disposed) store.update(mutator)
+    if (disposed) return
+    const before = store.getSnapshot().notice
+    store.update(mutator)
+    const notice = store.getSnapshot().notice
+    if (notice === before) return
+    // A notice reports what just happened (stop requested, Topic deleted); it fades instead of lingering
+    // over later work. Errors stay until they are dismissed.
+    clearTimeout(noticeTimer)
+    if (notice !== null) noticeTimer = setTimeout(() => update(draft => { if (draft.notice === notice) draft.notice = null }), NOTICE_MS)
   }
   const fail = (error: unknown, operationGeneration = activeGeneration, sticky = true) => {
     if (disposed || operationGeneration !== activeGeneration) return
@@ -1247,6 +1259,7 @@ export function createCompanionController(
       if (pollTimer !== null) clearTimeout(pollTimer)
       pollTimer = null
       unsubscribeSettings()
+      clearTimeout(noticeTimer)
       releaseRetired()
       lifecycle.abort(new DOMException('CiteCiter is shutting down', 'AbortError'))
       while (operations.size > 0 || remoteOperations.size > 0 || topicsRefresh !== null) {

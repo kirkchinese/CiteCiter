@@ -1,19 +1,27 @@
 import type { Context } from '@deepseek-ai/cordis'
-import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
+
+/**
+ * Methods whose state lives in DSH's own registry: live identities, ownership and initiators. Some exist only
+ * in some DSH releases (`roots` and `isOwnedBy` until 0.2.2-rc.2, `enter`'s owner argument likewise), so they
+ * are forwarded by name rather than declared, and a method the running DSH lacks stays absent here too.
+ */
+const FORWARDED = ['enter', 'announce', 'register', 'get', 'list', 'roots', 'isOwnedBy', 'currentInitiator', 'requireInitiator', 'withInitiator', 'withoutInitiator'] as const
 
 /** Own a separate factory while publishing live identities through DSH's public registry for its conversation, upload and queue APIs. */
 export class CiterAgentRegistry extends AgentRegistry {
-  constructor(ctx: Context, private readonly options: { readonly registry: AgentRegistry }) { super(ctx) }
-  override enter(agent: Agent, owner: Agent | undefined): () => void { return this.options.registry.enter(agent, owner) }
-  override announce(...args: Parameters<AgentRegistry['announce']>): ReturnType<AgentRegistry['announce']> { return this.options.registry.announce(...args) }
-  override register(agent: Agent): ReturnType<AgentRegistry['register']> { return this.options.registry.register(agent) }
-  override get(id: SessionId): Agent | undefined { return this.options.registry.get(id) }
-  override list(): Agent[] { return this.options.registry.list() }
-  override roots(): Agent[] { return this.options.registry.roots() }
-  override isOwnedBy(id: SessionId, owner: Agent): boolean { return this.options.registry.isOwnedBy(id, owner) }
-  override currentInitiator(): Agent | undefined { return this.options.registry.currentInitiator() }
-  override requireInitiator(): Agent { return this.options.registry.requireInitiator() }
-  override withInitiator<T>(agent: Agent, operation: () => T): T { return this.options.registry.withInitiator(agent, operation) }
-  override withoutInitiator<T>(operation: () => T): T { return this.options.registry.withoutInitiator(operation) }
+  constructor(ctx: Context, options: { readonly registry: AgentRegistry }) {
+    super(ctx)
+    const registry = options.registry as unknown as Readonly<Record<string, unknown>>
+    for (const name of FORWARDED) {
+      const method = registry[name]
+      if (typeof method !== 'function') continue
+      // An own property shadows the inherited method, which would act on this instance's empty store.
+      Object.defineProperty(this, name, {
+        configurable: true,
+        writable: true,
+        value: (...args: unknown[]): unknown => (method as (...args: unknown[]) => unknown).apply(options.registry, args),
+      })
+    }
+  }
 }

@@ -19,10 +19,19 @@ export interface SelectionToolbarActions {
   readonly quote: (source: ActionSource) => Promise<void>
 }
 
-function place(anchor: SelectionAnchor, width: number, height: number): { left: number, top: number } {
-  const left = Math.max(GAP, Math.min(anchor.x - width / 2, window.innerWidth - width - GAP))
-  const below = anchor.bottom + GAP
-  const top = below + height <= window.innerHeight - GAP ? below : Math.max(GAP, anchor.top - height - GAP)
+/**
+ * Place the toolbar below the selection, or above it near the bottom edge. The anchor comes from
+ * getBoundingClientRect, in viewport pixels; a fixed element inside a CSS-zoomed container has its
+ * offsets scaled by that zoom, so they are converted into the container's own units first.
+ */
+function place(anchor: SelectionAnchor, width: number, height: number, container: Element | null): { left: number, top: number } {
+  const zoom = (container as { currentCSSZoom?: number } | null)?.currentCSSZoom ?? 1
+  const viewportWidth = window.innerWidth / zoom
+  const viewportHeight = window.innerHeight / zoom
+  const x = anchor.x / zoom
+  const left = Math.max(GAP, Math.min(x - width / 2, viewportWidth - width - GAP))
+  const below = anchor.bottom / zoom + GAP
+  const top = below + height <= viewportHeight - GAP ? below : Math.max(GAP, anchor.top / zoom - height - GAP)
   return { left, top }
 }
 
@@ -49,7 +58,7 @@ export function SelectionToolbar({ useToolbar, useCompanion, toolbar }: {
   useLayoutEffect(() => {
     const element = ref.current
     if (current === null || element === null) { setPosition(null); return }
-    setPosition(place(current.anchor, element.offsetWidth, element.offsetHeight))
+    setPosition(place(current.anchor, element.offsetWidth, element.offsetHeight, element.parentElement))
   }, [current])
   if (current === null) return null
   const actions = slots.filter((slot): slot is CiteAction => slot !== null)
