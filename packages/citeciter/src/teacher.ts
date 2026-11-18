@@ -8,6 +8,7 @@ import { BlockAssembler, createUserMessage, type LlmCallConfig } from '@deepseek
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ObserverSourceSnapshot } from './observer.ts'
 import { formatSourceTranscript } from './source-transcript.ts'
+import { headOf, wellFormed } from './text-units.ts'
 import type { TeacherSuggestion } from './topic.ts'
 
 /** Transcript budget for one check; long turns are judged from their beginning. */
@@ -56,8 +57,9 @@ export function parseTeacherVerdict(text: string): { readonly title: string, rea
   if (typeof value !== 'object' || value === null) return null
   const { worth, title, point } = value as { worth?: unknown, title?: unknown, point?: unknown }
   if (worth !== true || typeof title !== 'string' || typeof point !== 'string') return null
-  const cleanTitle = title.replace(/\s+/gu, ' ').trim().slice(0, 80)
-  const cleanPoint = point.replace(/\s+/gu, ' ').trim().slice(0, 600)
+  // The point is sent to an explaining Topic later, so the cut must not split a character (see text-units.ts).
+  const cleanTitle = wellFormed(headOf(title.replace(/\s+/gu, ' ').trim(), 80))
+  const cleanPoint = wellFormed(headOf(point.replace(/\s+/gu, ' ').trim(), 600))
   return cleanTitle === '' || cleanPoint === '' ? null : { title: cleanTitle, point: cleanPoint }
 }
 

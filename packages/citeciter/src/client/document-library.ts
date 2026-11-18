@@ -3,6 +3,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { CiteCiterRequest, CiteCiterResponse, DocumentFormat, DocumentSummary } from '../topic.ts'
 import { t } from './i18n.ts'
+import { headOf } from '../text-units.ts'
 
 export type DocumentLibraryStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -103,7 +104,7 @@ export function createDocumentLibrary(request: RemoteRequest, store = createSnap
 
   const importText = async (title: string, content: string): Promise<DocumentSummary> => {
     const name = title.trim() === '' ? t('settings.error.untitled') : title.trim()
-    const response = await call({ action: 'document-import', title: name.slice(0, 200), format: formatFromName(name), content })
+    const response = await call({ action: 'document-import', title: headOf(name, 200), format: formatFromName(name), content })
     if (response.kind !== 'document') throw new Error(t('settings.error.readerImport'))
     titles.set(response.document.documentId, response.document.title)
     void refresh()

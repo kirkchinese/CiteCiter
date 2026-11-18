@@ -14,6 +14,7 @@ export declare const citeCiterSettingsSchema: z.ZodObject<{
     includeSourceReasoning: z.ZodBoolean;
     panelWidthPercent: z.ZodNumber;
     standalonePanel: z.ZodOptional<z.ZodBoolean>;
+    showPet: z.ZodOptional<z.ZodBoolean>;
     reopenLastTopic: z.ZodBoolean;
     tutorPrompt: z.ZodOptional<z.ZodString>;
     followupQuestions: z.ZodOptional<z.ZodBoolean>;

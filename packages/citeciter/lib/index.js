@@ -1,4 +1,4 @@
-import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-C7Nm1EBU.js";
+import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-JnlIM6HF.js";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
@@ -1696,6 +1696,35 @@ function resolveReadableDocument(session, requested) {
 	return id;
 }
 //#endregion
+//#region lib/types/text-units.js
+/**
+* Truncation that never splits a character. JavaScript strings count UTF-16 code units, and a character outside
+* the Basic Multilingual Plane (emoji such as 🔹, CJK extension B, math alphanumerics) takes two. Cutting between
+* them leaves a lone surrogate, which JSON serializes as an escape such as `"\udd39"` and strict JSON parsers,
+* including model APIs, reject: once such text is in a Topic's history, every later request fails.
+*/
+const isHighSurrogate = (unit) => unit >= 55296 && unit <= 56319;
+const isLowSurrogate = (unit) => unit >= 56320 && unit <= 57343;
+/** Move an end offset back so it does not fall inside a surrogate pair. */
+function snapEnd(text, end) {
+	return end > 0 && end < text.length && isHighSurrogate(text.charCodeAt(end - 1)) && isLowSurrogate(text.charCodeAt(end)) ? end - 1 : end;
+}
+/** Move a start offset forward so it does not fall inside a surrogate pair. */
+function snapStart(text, start) {
+	return start > 0 && start < text.length && isLowSurrogate(text.charCodeAt(start)) && isHighSurrogate(text.charCodeAt(start - 1)) ? start + 1 : start;
+}
+/** The first `limit` code units of `text`, one fewer when that would split a character. */
+function headOf(text, limit) {
+	return text.length <= limit ? text : text.slice(0, snapEnd(text, Math.max(0, limit)));
+}
+/**
+* Replace any lone surrogate with U+FFFD, keeping every offset. A last guard for text that reaches a model or
+* a log, whatever cut it upstream.
+*/
+function wellFormed(text) {
+	return text.replace(/\p{Cs}/gu, "�");
+}
+//#endregion
 //#region lib/types/document-tools.js
 const DOCUMENT_TOOL_MAX_BYTES = 51200;
 const DOCUMENT_SEARCH_MAX_MATCHES = 20;
@@ -1809,7 +1838,7 @@ function createDocumentReadTool(read) {
 				hasMore,
 				nextFromOffset: hasMore ? throughOffset : null,
 				bytesUsed,
-				text
+				text: wellFormed(text)
 			};
 		},
 		presentCall: (args) => ({
@@ -3230,16 +3259,19 @@ function fence(text, info = "") {
 	const marks = "`".repeat(Math.max(3, longest + 1));
 	return `${marks}${info}\n${text}\n${marks}`;
 }
-/** Keep the head and tail of a long payload with an explicit omission marker. */
+/**
+* Keep the head and tail of a long payload with an explicit omission marker. Both cuts stay on character
+* boundaries, so an emoji at a cut point is omitted whole instead of leaving half of it in model input.
+*/
 function clip(text, limit) {
 	if (text.length <= limit) return {
 		text,
 		shortened: false
 	};
-	const head = Math.floor(limit * .7);
-	const tail = limit - head;
+	const head = snapEnd(text, Math.floor(limit * .7));
+	const start = snapStart(text, text.length - (limit - Math.floor(limit * .7)));
 	return {
-		text: `${text.slice(0, head)}\n… [${text.length - limit} characters omitted] …\n${text.slice(text.length - tail)}`,
+		text: `${text.slice(0, head)}\n… [${start - head} characters omitted] …\n${text.slice(start)}`,
 		shortened: true
 	};
 }
@@ -3497,7 +3529,7 @@ function formatSourceTranscript(source, options) {
 		records: blocks.length,
 		shortened,
 		bytesUsed,
-		markdown: `${header}\n\n---\n\n${body}\n\n---\n\n${footer.join("\n")}`
+		markdown: wellFormed(`${header}\n\n---\n\n${body}\n\n---\n\n${footer.join("\n")}`)
 	};
 }
 /**
@@ -3586,8 +3618,8 @@ function parseTeacherVerdict(text) {
 	if (typeof value !== "object" || value === null) return null;
 	const { worth, title, point } = value;
 	if (worth !== true || typeof title !== "string" || typeof point !== "string") return null;
-	const cleanTitle = title.replace(/\s+/gu, " ").trim().slice(0, 80);
-	const cleanPoint = point.replace(/\s+/gu, " ").trim().slice(0, 600);
+	const cleanTitle = wellFormed(headOf(title.replace(/\s+/gu, " ").trim(), 80));
+	const cleanPoint = wellFormed(headOf(point.replace(/\s+/gu, " ").trim(), 600));
 	return cleanTitle === "" || cleanPoint === "" ? null : {
 		title: cleanTitle,
 		point: cleanPoint
@@ -20792,7 +20824,7 @@ var TopicRuntime = class {
 				...route.stop === void 0 ? {} : { stop: [...route.stop] }
 			},
 			forkThroughSeq: null,
-			temporaryTitle: (evidence?.displayText ?? (request.question || "新 Topic")).slice(0, 80),
+			temporaryTitle: wellFormed(headOf(evidence?.displayText ?? (request.question || "新 Topic"), 80)),
 			cachedTitle: null,
 			cachedTitleSource: null,
 			cachedTitleEventSeq: null,
@@ -21677,6 +21709,7 @@ const CITECITER_SETTINGS_SCHEMA = z$1.object({
 	includeSourceReasoning: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.includeSourceReasoning),
 	panelWidthPercent: z$1.number().step(1).min(28).max(55).default(DEFAULT_CITECITER_SETTINGS.panelWidthPercent),
 	standalonePanel: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.standalonePanel ?? false),
+	showPet: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.showPet ?? true),
 	reopenLastTopic: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.reopenLastTopic),
 	tutorPrompt: z$1.string().max(4e3).default(""),
 	followupQuestions: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.followupQuestions ?? true),

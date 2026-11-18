@@ -13,6 +13,7 @@ import type { InputTriggerSource } from '@deepseek-ai/dsh-client-ui-input-trigge
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { t } from './i18n.ts'
+import { headOf } from '../text-units.ts'
 
 /** Name of Citer's reference source; DSH routes chip serialization by it. */
 export const QUOTE_SOURCE = 'citeciter-quote'
@@ -71,7 +72,7 @@ export function findQuote(text: string, from: number): { readonly start: number,
 /** One line of the passage, short enough for a chip. */
 export function quotePreview(text: string): string {
   const line = text.replace(/\s+/gu, ' ').trim()
-  return line.length <= PREVIEW_LENGTH ? line : `${line.slice(0, PREVIEW_LENGTH - 1)}…`
+  return line.length <= PREVIEW_LENGTH ? line : `${headOf(line, PREVIEW_LENGTH - 1)}…`
 }
 
 /** Markdown blockquote, used when the chip is copied out of the composer. */

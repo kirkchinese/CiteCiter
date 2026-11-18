@@ -3,6 +3,7 @@ import { DisclosureRow, IconContextInjectionOutlineRegular, ReferenceIconRegular
 import type { TopicMessage } from '../../topic.ts'
 import { t, useLocale, type CiterKey } from '../i18n.ts'
 import css from './ContextRow.module.css'
+import { headOf } from '../../text-units.ts'
 
 /** Model-facing text stays bounded at the disclosure, as in DSH's own context rows. */
 const MAX_CHARS = 20_000
@@ -28,7 +29,7 @@ export function ContextRow({ message }: { readonly message: Extract<TopicMessage
   const changedFiles = message.summary === undefined ? null : /^(\d+) 个文件有改动$/u.exec(message.summary)
   const summary = changedFiles !== null ? t('transcript.context.changedFiles', { count: changedFiles[1] })
     : message.summary === '代码库有改动' ? t('transcript.context.changed') : message.summary
-  const text = message.text.length > MAX_CHARS ? `${message.text.slice(0, MAX_CHARS)}\n${t('transcript.context.truncated', { count: message.text.length })}` : message.text
+  const text = message.text.length > MAX_CHARS ? `${headOf(message.text, MAX_CHARS)}\n${t('transcript.context.truncated', { count: message.text.length })}` : message.text
   return (
     <div className={css.root} data-citeciter-message={message.id} data-row="process" data-open={open ? '' : undefined}>
       <DisclosureRow

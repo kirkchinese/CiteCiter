@@ -5,7 +5,7 @@ import type { CompanionActions, TeacherActions } from '../view-actions.ts';
 /**
  * Entry back to Citer while its panel is closed. While an answer is still running it keeps
  * the Topic refreshing, so the pet can mark the finished answer; opening Citer clears the mark.
- * Teacher mode's offer speaks from the pet.
+ * Teacher mode's offer speaks from the pet, or from her place when the user hid her.
  */
 export declare function CiteLauncher({ useCompanion, useOverlay, companion, openPanel, teacher }: {
     useCompanion: SnapshotSelectorHook<CompanionSnapshot>;

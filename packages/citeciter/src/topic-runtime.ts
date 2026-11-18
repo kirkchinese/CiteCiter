@@ -24,6 +24,7 @@ import { HostSessionAdapter } from './host-session-adapter.ts'
 import { createLearningCardsTool } from './learning-cards-tool.ts'
 import { migrateLegacyTopics } from './legacy-migration.ts'
 import { isRouteUnavailable, requireSelectedModel, selectInitialModel } from './model-admission.ts'
+import { headOf, wellFormed } from './text-units.ts'
 import { callTeacherModel, TeacherMode } from './teacher.ts'
 import { readNativeAttachment } from './native-attachment-read.ts'
 import { readNativeState } from './native-session-read.ts'
@@ -550,7 +551,7 @@ export class TopicRuntime {
         ...(route.stop === undefined ? {} : { stop: [...route.stop] }),
       },
       forkThroughSeq: null,
-      temporaryTitle: (evidence?.displayText ?? (request.question || '新 Topic')).slice(0, 80),
+      temporaryTitle: wellFormed(headOf(evidence?.displayText ?? (request.question || '新 Topic'), 80)),
       cachedTitle: null,
       cachedTitleSource: null,
       cachedTitleEventSeq: null,

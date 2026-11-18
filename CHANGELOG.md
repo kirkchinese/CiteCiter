@@ -2,6 +2,11 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
+## Unreleased
+
+- Reading a source that contains emoji or other characters outside the Basic Multilingual Plane no longer breaks a Topic. Compact source transcripts cut long payloads by UTF-16 code units, and a cut between the two halves of such a character left a lone surrogate that the model API rejected with `400 lone leading surrogate`, failing every later turn of that Topic. Cuts now fall on character boundaries everywhere Citer shortens text for the model or the interface, and transcript pages, document reads and teacher-mode notes replace any lone surrogate already in the source. A Topic that already failed this way keeps failing, because its history is replayed as logged; start a new Topic.
+- The desktop pet can be hidden: click the × above her head while she stands, or turn off "Show the desktop pet" in Settings → Citer → Panel. Teacher mode notes still appear in her place.
+
 ## 0.9.0-beta.11 — 2026-11-17
 
 Targets DSH `>=0.2.0-rc.2`, verified with dsh-codex-connect `0.2.0-alpha.15` on `0.2.1-rc.5` and `0.2.2-rc.3`.

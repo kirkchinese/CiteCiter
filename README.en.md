@@ -112,7 +112,7 @@ After you select text, the toolbar shows the first action (Ask Citer by default)
 
 Citer is a tab in DSH's right sidebar. Open it from the sidebar's guide page, the desktop pet or the toolbar; it sits beside files, terminals and other plugins' tabs, and can be split, floated or made fullscreen like them; closing the tab closes Citer. If you prefer a standalone panel, turn on "Don't use DSH's right sidebar" under Settings → Citer → Panel. The interface follows DSH's language (Chinese or English), and so do the names and prompts of the default actions; actions you changed stay as you wrote them. Each Topic shows its own usage under the composer: tokens, cache hit rate and context occupancy.
 
-While Citer is closed, its mascot peeks over the window edge; she stands up when the pointer comes near, and a click opens Citer. Drag her to either side at any height and the place is remembered. A small dot appears next to her when an answer finishes, a question waits for you or teacher mode has a point for you.
+While Citer is closed, its mascot peeks over the window edge; she stands up when the pointer comes near, and a click opens Citer. Drag her to either side at any height and the place is remembered. A small dot appears next to her when an answer finishes, a question waits for you or teacher mode has a point for you. To put her away, click the × above her head while she stands; turn on "Show the desktop pet" under Settings → Citer → Panel to bring her back. Teacher mode notes still appear in her place while she is hidden.
 
 </details>
 

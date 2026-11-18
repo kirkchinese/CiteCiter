@@ -4,13 +4,14 @@ import { IconThinkOutlineMedium } from '../host-icons.ts'
 import { useMarkdownLabels } from '../copy.ts'
 import { t, useLocale } from '../i18n.ts'
 import css from './ReasoningDisclosure.module.css'
+import { headOf } from '../../text-units.ts'
 
 /** Display only reasoning actually returned by the model. Expansion is local UI state; no model call or Session mutation occurs. */
 export function ReasoningDisclosure({ text, active }: { readonly text: string, readonly active: boolean }) {
   useLocale()
   const markdownLabels = useMarkdownLabels()
   const [open, setOpen] = useState(false)
-  const preview = useMemo(() => text.replaceAll(/\s+/gu, ' ').trim().slice(0, 180), [text])
+  const preview = useMemo(() => headOf(text.replaceAll(/\s+/gu, ' ').trim(), 180), [text])
   return (
     <DisclosureRow
       className={css.disclosure}

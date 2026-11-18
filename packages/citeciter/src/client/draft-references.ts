@@ -1,6 +1,7 @@
 import type { TopicSummary } from '../topic.ts'
 import type { DraftContent } from '../draft-contract.ts'
 import { t } from './i18n.ts'
+import { headOf } from '../text-units.ts'
 
 /** One unsent model-visible reference. Removing this value removes its serialized content. */
 export type DraftReference = DraftContent['references'][number]
@@ -43,7 +44,7 @@ export function draftReferenceName(reference: DraftReference): string {
 
 function preview(text: string, limit = 24): string {
   const compact = text.replaceAll(/\s+/gu, ' ').trim()
-  return compact.length > limit ? `${compact.slice(0, limit)}…` : compact
+  return compact.length > limit ? `${headOf(compact, limit)}…` : compact
 }
 
 /**

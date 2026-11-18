@@ -1,5 +1,6 @@
 import type { Session } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { wellFormed } from './text-units.ts'
 
 const DOCUMENT_TOOL_MAX_BYTES = 50 * 1024
 const DOCUMENT_SEARCH_MAX_MATCHES = 20
@@ -70,7 +71,8 @@ export function createDocumentReadTool(read: AuthorizedDocumentReader) {
         hasMore,
         nextFromOffset: hasMore ? throughOffset : null,
         bytesUsed,
-        text,
+        // An offset inside a surrogate pair would hand the model half a character; U+FFFD keeps every offset.
+        text: wellFormed(text),
       }
     },
     presentCall: (args) => ({ card: 'generic', title: `阅读文档 · ${args.fromOffset ?? 0}` }),

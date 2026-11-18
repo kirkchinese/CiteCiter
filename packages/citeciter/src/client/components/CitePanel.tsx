@@ -67,6 +67,7 @@ import { TopicComposer } from './TopicComposer.tsx'
 import { TopicNavigation } from './TopicNavigation.tsx'
 import { TopicTitle } from './TopicTitle.tsx'
 import learningCss from './LearningWorkspace.module.css'
+import { headOf } from '../../text-units.ts'
 
 const EMPTY_QUESTIONS: readonly PendingQuestion[] = []
 const NO_CHILD_CALLS: ReadonlyArray<Extract<TopicMessage, { role: 'tool' }>> = []
@@ -84,7 +85,7 @@ const phaseLabel = (): Record<CompanionPhase, string | null> => ({
 
 function compactPreview(text: string, limit = 120): string {
   const compact = text.replaceAll(/\s+/g, ' ').trim()
-  return compact.length > limit ? compact.slice(0, limit) + '…' : compact
+  return compact.length > limit ? headOf(compact, limit) + '…' : compact
 }
 
 function localizedNotice(text: string): string {
@@ -190,7 +191,7 @@ function transcriptSelection(transcript: HTMLElement): string | null {
   if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return null
   if (!transcript.contains(selection.getRangeAt(0).commonAncestorContainer)) return null
   const text = selection.toString().trim()
-  return text === '' ? null : text.slice(0, 32_000)
+  return text === '' ? null : headOf(text, 32_000)
 }
 
 /**
