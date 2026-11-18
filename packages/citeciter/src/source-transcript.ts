@@ -57,12 +57,24 @@ function fence(text: string, info = ''): string {
 
 interface Clip { readonly text: string; readonly shortened: boolean }
 
+/** Move an inclusive end cut back one code unit when it would leave a high surrogate behind. */
+function snapEnd(text: string, end: number): number {
+  const unit = text.charCodeAt(end - 1)
+  return unit >= 0xd800 && unit <= 0xdbff ? end - 1 : end
+}
+
+/** Move an exclusive start cut forward one code unit when it would begin with a low surrogate. */
+function snapStart(text: string, start: number): number {
+  const unit = text.charCodeAt(start)
+  return unit >= 0xdc00 && unit <= 0xdfff ? start + 1 : start
+}
+
 /** Keep the head and tail of a long payload with an explicit omission marker. */
 function clip(text: string, limit: number): Clip {
   if (text.length <= limit) return { text, shortened: false }
-  const head = Math.floor(limit * 0.7)
-  const tail = limit - head
-  return { text: `${text.slice(0, head)}\n… [${text.length - limit} characters omitted] …\n${text.slice(text.length - tail)}`, shortened: true }
+  const head = snapEnd(text, Math.floor(limit * 0.7))
+  const start = snapStart(text, text.length - (limit - Math.floor(limit * 0.7)))
+  return { text: `${text.slice(0, head)}\n… [${start - head} characters omitted] …\n${text.slice(start)}`, shortened: true }
 }
 
 interface RenderContext {
