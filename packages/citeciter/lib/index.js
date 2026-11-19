@@ -19110,8 +19110,6 @@ async function mapLimited(items, limit, work, signal) {
 var SourceStorage = class {
 	host;
 	pending = /* @__PURE__ */ new Map();
-	/** Historical source containers by Session id; `null` marks an id found in more than one project. */
-	historicalDirectories;
 	constructor(host) {
 		this.host = host;
 	}
@@ -19130,7 +19128,7 @@ var SourceStorage = class {
 		const backend = this.host.sessionPersistence;
 		if (typeof backend.resolveCurrentLog !== "function") throw new Error("当前 DSH 存储后端不支持定位来源 Session 目录");
 		const file = await backend.resolveCurrentLog(SessionId(sourceSessionId));
-		const sourceDirectory = file === void 0 ? (await (this.historicalDirectories ??= this.findHistoricalDirectories(backend.config?.root))).get(sourceSessionId) : dirname(await realpath(file));
+		const sourceDirectory = file === void 0 ? await this.findHistoricalDirectory(backend.config?.root, sourceSessionId) : dirname(await realpath(file));
 		if (sourceDirectory === null) throw new Error("多个来源目录使用相同的 Session 标识，Citer 未选择其中任何一个");
 		if (sourceDirectory === void 0) {
 			if (create) throw new Error("来源 Session 尚未保存，请先在主对话发送消息");
@@ -19174,19 +19172,25 @@ var SourceStorage = class {
 		if (ownerSchema.parse(JSON.parse(raw)).sourceSessionId !== sourceSessionId) throw new Error("Citer 来源目录标记与 Session 不匹配");
 		return realpath(directory);
 	}
-	/** Locate historical source containers only; DSH alone reads and migrates their logs. */
-	async findHistoricalDirectories(root) {
+	/**
+	* Locate one historical source container; DSH alone reads and migrates its log. One directory probe per project,
+	* never a listing of every Session.
+	* @returns the directory, `undefined` when none holds a log, or `null` when more than one project does.
+	*/
+	async findHistoricalDirectory(root, sourceSessionId) {
 		if (typeof root !== "string" || !isAbsolute(root)) throw new Error("当前 DSH 未提供可定位的 JSONL 存储根目录");
-		const result = /* @__PURE__ */ new Map();
-		for (const { project, sessions } of await this.sessionDirectories(root)) for (const name of sessions) {
-			const directory = resolve(project, name);
-			if (!(await readdir(directory, { withFileTypes: true }).catch((error) => {
+		if (!/^[\w.-]+$/u.test(sourceSessionId) || /^\.+$/u.test(sourceSessionId)) return void 0;
+		const directories = (await mapLimited((await readdir(root, { withFileTypes: true }).catch((error) => {
+			if (missing(error)) return [];
+			throw error;
+		})).filter((entry) => entry.isDirectory() && !entry.isSymbolicLink()), DISCOVERY_CONCURRENCY, async (entry) => {
+			const directory = resolve(root, entry.name, sourceSessionId);
+			return (await readdir(directory, { withFileTypes: true }).catch((error) => {
 				if (missing(error)) return [];
 				throw error;
-			})).some((file) => file.isFile() && SESSION_LOG.test(file.name))) continue;
-			result.set(name, result.has(name) ? null : directory);
-		}
-		return result;
+			})).some((file) => file.isFile() && SESSION_LOG.test(file.name)) ? directory : void 0;
+		})).filter((directory) => directory !== void 0);
+		return directories.length > 1 ? null : directories[0];
 	}
 	/**
 	* Every project directory under the JSONL root with its Session directory names. Links and files are skipped,

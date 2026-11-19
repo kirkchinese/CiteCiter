@@ -3,14 +3,16 @@ import type { Context } from '@deepseek-ai/cordis';
 export declare class SourceStorage {
     private readonly host;
     private readonly pending;
-    /** Historical source containers by Session id; `null` marks an id found in more than one project. */
-    private historicalDirectories;
     constructor(host: Context);
     /** @returns a canonical source/citeciter directory, optionally creating its ownership marker. */
     root(sourceSessionId: string, create?: boolean): Promise<string | undefined>;
     private resolveRoot;
-    /** Locate historical source containers only; DSH alone reads and migrates their logs. */
-    private findHistoricalDirectories;
+    /**
+     * Locate one historical source container; DSH alone reads and migrates its log. One directory probe per project,
+     * never a listing of every Session.
+     * @returns the directory, `undefined` when none holds a log, or `null` when more than one project does.
+     */
+    private findHistoricalDirectory;
     /**
      * Every project directory under the JSONL root with its Session directory names. Links and files are skipped,
      * and a project that cannot be listed is skipped with a warning instead of failing the whole scan.

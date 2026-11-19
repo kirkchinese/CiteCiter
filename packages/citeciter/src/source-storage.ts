@@ -31,8 +31,6 @@ async function mapLimited<Item, Result>(items: readonly Item[], limit: number, w
 /** Locate only source-owned Citer directories through the installed JSONL backend; persisted paths are never trusted. */
 export class SourceStorage {
   private readonly pending = new Map<string, Promise<string | undefined>>()
-  /** Historical source containers by Session id; `null` marks an id found in more than one project. */
-  private historicalDirectories: Promise<ReadonlyMap<string, string | null>> | undefined
   constructor(private readonly host: Context) {}
 
   /** @returns a canonical source/citeciter directory, optionally creating its ownership marker. */
@@ -53,7 +51,7 @@ export class SourceStorage {
     // Alpha reads older generations without publishing a successor until write
     // access. An existing Citer directory must stay discoverable in that state.
     const sourceDirectory = file === undefined
-      ? (await (this.historicalDirectories ??= this.findHistoricalDirectories(backend.config?.root))).get(sourceSessionId)
+      ? await this.findHistoricalDirectory(backend.config?.root, sourceSessionId)
       : dirname(await realpath(file))
     if (sourceDirectory === null) throw new Error('多个来源目录使用相同的 Session 标识，Citer 未选择其中任何一个')
     if (sourceDirectory === undefined) {
@@ -84,25 +82,31 @@ export class SourceStorage {
     return realpath(directory)
   }
 
-  /** Locate historical source containers only; DSH alone reads and migrates their logs. */
-  private async findHistoricalDirectories(root: unknown): Promise<ReadonlyMap<string, string | null>> {
+  /**
+   * Locate one historical source container; DSH alone reads and migrates its log. One directory probe per project,
+   * never a listing of every Session.
+   * @returns the directory, `undefined` when none holds a log, or `null` when more than one project does.
+   */
+  private async findHistoricalDirectory(root: unknown, sourceSessionId: string): Promise<string | null | undefined> {
     if (typeof root !== 'string' || !isAbsolute(root)) throw new Error('当前 DSH 未提供可定位的 JSONL 存储根目录')
-    const result = new Map<string, string | null>()
-    for (const { project, sessions } of await this.sessionDirectories(root)) {
-      for (const name of sessions) {
-        const directory = resolve(project, name)
-        const logs = await readdir(directory, { withFileTypes: true }).catch((error: unknown) => {
-          if (missing(error)) return []
-          throw error
-        })
-        if (!logs.some(file => file.isFile() && SESSION_LOG.test(file.name))) continue
-        // DSH refuses an id stored in two projects; so does Citer, for that id only.
-        result.set(name, result.has(name) ? null : directory)
-      }
-    }
-    return result
+    // Only a plain path segment can name a Session directory; anything else could leave the root.
+    if (!/^[\w.-]+$/u.test(sourceSessionId) || /^\.+$/u.test(sourceSessionId)) return undefined
+    const projects = await readdir(root, { withFileTypes: true }).catch((error: unknown) => {
+      if (missing(error)) return []
+      throw error
+    })
+    const found = await mapLimited(projects.filter(entry => entry.isDirectory() && !entry.isSymbolicLink()), DISCOVERY_CONCURRENCY, async (entry) => {
+      const directory = resolve(root, entry.name, sourceSessionId)
+      const logs = await readdir(directory, { withFileTypes: true }).catch((error: unknown) => {
+        if (missing(error)) return []
+        throw error
+      })
+      return logs.some(file => file.isFile() && SESSION_LOG.test(file.name)) ? directory : undefined
+    })
+    const directories = found.filter((directory): directory is string => directory !== undefined)
+    // DSH refuses an id stored in two projects; so does Citer.
+    return directories.length > 1 ? null : directories[0]
   }
-
   /**
    * Every project directory under the JSONL root with its Session directory names. Links and files are skipped,
    * and a project that cannot be listed is skipped with a warning instead of failing the whole scan.

@@ -107,3 +107,21 @@ test('a backend without a root directory is asked Session by Session, and a fail
   assert.equal(warnings.length, 2)
   assert.match(warnings[0], /unreadable/u)
 })
+
+test('an older-format source is found by one probe per project, never by listing every Session', async () => {
+  const { root, host, session, cleanup } = await fixture()
+  try {
+    const old = await session('--E-a--', 'legacy', { log: 'session.v3.jsonl.zstd', owner: 'legacy' })
+    for (let project = 0; project < 30; project++) await session(`--p${project}--`, `other-${project}`)
+    await session('--E-x--', 'twice', { log: 'session.v3.jsonl.zstd' })
+    await session('--E-y--', 'twice', { log: 'session.v3.jsonl.zstd' })
+    const storage = new SourceStorage(host)
+    assert.equal(await storage.root('legacy'), await realpath(join(old, 'citeciter')))
+    await assert.rejects(storage.root('twice'), /多个来源目录/u)
+    // An id that is not one plain path segment never names a directory.
+    assert.equal(await storage.root('..'), undefined)
+    assert.equal(await storage.root(`..${'\\'}--E-a--${'\\'}legacy`), undefined)
+    assert.equal(await storage.root('missing'), undefined)
+    assert.ok(root.length > 0)
+  } finally { await cleanup() }
+})
