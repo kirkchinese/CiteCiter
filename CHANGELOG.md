@@ -4,6 +4,7 @@ All notable changes to CiteCiter. Detailed notes for each published version are 
 
 ## Unreleased
 
+- Citer no longer holds up DSH startup. To find which conversations have Topics it asked DSH to locate every Session's log, and DSH searches every project directory for each one: with about 7,000 Sessions in 1,300 projects DSH sat at "Loading plugins" for over half an hour. Citer now lists the Session store once and checks only the conversations that carry Citer data (well under a second at that size), DSH no longer waits for Citer before opening its window, and a conversation whose Citer data cannot be read is skipped with a warning instead of stopping Citer.
 - Reading a source that contains emoji or other characters outside the Basic Multilingual Plane no longer breaks a Topic. Compact source transcripts cut long payloads by UTF-16 code units, and a cut between the two halves of such a character left a lone surrogate that the model API rejected with `400 lone leading surrogate`, failing every later turn of that Topic. Cuts now fall on character boundaries everywhere Citer shortens text for the model or the interface, and transcript pages, document reads and teacher-mode notes replace any lone surrogate already in the source. A Topic that already failed this way keeps failing, because its history is replayed as logged; start a new Topic.
 - The desktop pet can be hidden: click the × above her head while she stands, or turn off "Show the desktop pet" in Settings → Citer → Panel. Teacher mode notes still appear in her place.
 

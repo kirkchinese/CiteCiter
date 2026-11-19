@@ -185,12 +185,9 @@ export class TopicRuntime {
     })
     this.native = new HostSessionAdapter(host, settings, (scope, agent, metadata) => this.setupAgent(scope, agent, metadata), metadata => resolve(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId), 'sessions'))
     this.ready = this.start()
-    void this.ready.catch(() => undefined)
-  }
-
-  /** Wait until source roots are bound and interrupted deletions and migrations have finished. */
-  initialize(): Promise<void> {
-    return this.ready
+    // Source discovery, deletion recovery and migration. Every request waits for it; DSH startup does not, because
+    // it touches the disk once per Session directory. A failure reaches the log here and each Topic request after it.
+    void this.ready.catch((error: unknown) => { if (!this.closed) host.logger.warn('CiteCiter Topic runtime failed to start; Topic requests report this error', error) })
   }
 
   /** Execute one validated browser command against Topics. */
@@ -411,7 +408,7 @@ export class TopicRuntime {
 
   private async start(): Promise<void> {
     try {
-      for (const [id, root] of await this.sourceStorage.discover()) this.index.bindSource(id, root)
+      for (const [id, root] of await this.sourceStorage.discover(this.lifecycleAbort.signal)) this.index.bindSource(id, root)
       await this.recoverDeletions()
       await migrateLegacyTopics(this.host, this.index, this.sourceStorage, this.native)
       for (const metadata of await this.index.all()) this.native.remember(metadata)

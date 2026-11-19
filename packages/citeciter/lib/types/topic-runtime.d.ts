@@ -37,8 +37,6 @@ export declare class TopicRuntime {
     private closed;
     /** @param host - owning DSH context. @param settings - current user preferences. */
     constructor(host: Context, settings?: () => CiteCiterSettings);
-    /** Wait until source roots are bound and interrupted deletions and migrations have finished. */
-    initialize(): Promise<void>;
     /** Execute one validated browser command against Topics. */
     request(rawRequest: CiteCiterRequest, callerSignal: AbortSignal): Promise<CiteCiterResponse>;
     /**

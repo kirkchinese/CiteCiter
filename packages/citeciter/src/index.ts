@@ -1,5 +1,5 @@
 /** Host entry: native Topics, their settings and the browser Remote API. */
-import { Service, type Context } from '@deepseek-ai/cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import { bindHostSettings, settingsConfig, type SettingsReader } from './host-settings-adapter.ts'
 import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-session-query'
@@ -61,7 +61,11 @@ export const CITECITER_SETTINGS_SCHEMA: z<object> = z.object({
   })])).min(8).max(8).default(DEFAULT_WHEEL_SLOTS.map(slot => slot === null ? null : { ...slot, target: 'current' as const })),
 })
 
-/** Root-scoped Remote service owning Topic metadata and native Topic contributions. */
+/**
+ * Root-scoped Remote service owning Topic metadata and native Topic contributions. It has no init step: DSH waits
+ * for every plugin's init before it shows its window, and the Topic runtime reads the Session store as it starts.
+ * Each request waits for the runtime instead, so an early browser call only waits longer.
+ */
 export class CiteCiterHost extends TypertRemoteService {
   static inject = inject
   static Config = settingsConfig(CITECITER_SETTINGS_SCHEMA)
@@ -112,10 +116,6 @@ export class CiteCiterHost extends TypertRemoteService {
     ctx.effect(() => async () => this.topics.dispose(), 'citeciter: private Topic runtime')
   }
 
-  /** Do not publish the Remote service until its private runtime is ready. */
-  async [Service.init](): Promise<void> {
-    await this.topics.initialize()
-  }
 
   /** Resolve one create/ask command into a committed Topic snapshot. */
   private async topicSnapshot(
