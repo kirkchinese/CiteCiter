@@ -67,7 +67,7 @@ CiteCiter needs DSH and a working model. It declares only the oldest DSH it supp
 
 | DSH version | CiteCiter version |
 | --- | --- |
-| `0.2.0-rc.2` and every later release (the official Desktop and every later alpha, release candidate and final release) | `0.9.0-beta.11` |
+| `0.2.0-rc.2` and every later release (the official Desktop and every later alpha, release candidate and final release) | `0.9.0-beta.12` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -77,13 +77,13 @@ CiteCiter needs DSH and a working model. It declares only the oldest DSH it supp
 **CLI and Web.**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.11
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.12
 ```
 
 You can also install a release tag straight from the repository, which ships the built plugin, so nothing is built at install time:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.11"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.12"
 ```
 
 Restart DSH and reload the page after installing or upgrading. Do not use `dsh plugin allow-version` to force a plugin that does not match your host version, and do not run two host processes on the same DSH home.
