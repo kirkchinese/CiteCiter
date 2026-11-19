@@ -53,6 +53,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { CiterIcon, CiterTab } from './components/CiterTab.tsx'
 import { installLocale, isChinese, t } from './i18n.ts'
+import { headOf } from '../text-units.ts'
 
 /** Text files the Citer Reading view offers to read: prose, data and the common programming languages. */
 const LEARNING_EXTENSIONS = [
@@ -231,7 +232,7 @@ export async function apply(ctx: Context): Promise<void> {
       const toolInput = readToolInputQuote(event, { readChat, sourceSessionId })
       if (toolInput !== null) return toolInput
       const claim = entries.claim(event, { readChat, sourceSessionId })
-      return claim === null ? null : { kind: 'conversation', selection: claim.selection, quoteText: window.getSelection()?.toString().trim().slice(0, 32_000) || claim.selection.displayText }
+      return claim === null ? null : { kind: 'conversation', selection: claim.selection, quoteText: headOf(window.getSelection()?.toString().trim() ?? '', 32_000) || claim.selection.displayText }
     }
     const toolbar = installSelectionToolbar(
       { range: readSelectionSource, surface: event => surfaces.read(event.target) },

@@ -3,6 +3,7 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { projectToolResultText } from './evidence-text.ts'
 import { unifiedLineDiff } from './line-diff.ts'
 import type { ObserverSourceSnapshot } from './observer.ts'
+import { snapEnd, snapStart, wellFormed } from './text-units.ts'
 import { toolCallRecord, toolResultRecord } from './tool-events.ts'
 
 /** How much of each tool payload a page shows. */
@@ -57,12 +58,15 @@ function fence(text: string, info = ''): string {
 
 interface Clip { readonly text: string; readonly shortened: boolean }
 
-/** Keep the head and tail of a long payload with an explicit omission marker. */
-function clip(text: string, limit: number): Clip {
+/**
+ * Keep the head and tail of a long payload with an explicit omission marker. Both cuts stay on character
+ * boundaries, so an emoji at a cut point is omitted whole instead of leaving half of it in model input.
+ */
+export function clip(text: string, limit: number): Clip {
   if (text.length <= limit) return { text, shortened: false }
-  const head = Math.floor(limit * 0.7)
-  const tail = limit - head
-  return { text: `${text.slice(0, head)}\n… [${text.length - limit} characters omitted] …\n${text.slice(text.length - tail)}`, shortened: true }
+  const head = snapEnd(text, Math.floor(limit * 0.7))
+  const start = snapStart(text, text.length - (limit - Math.floor(limit * 0.7)))
+  return { text: `${text.slice(0, head)}\n… [${start - head} characters omitted] …\n${text.slice(start)}`, shortened: true }
 }
 
 interface RenderContext {
@@ -311,7 +315,8 @@ export function formatSourceTranscript(source: ObserverSourceSnapshot, options: 
     records: blocks.length,
     shortened,
     bytesUsed,
-    markdown: `${header}\n\n---\n\n${body}\n\n---\n\n${footer.join('\n')}`,
+    // Source text may itself carry a lone surrogate (another tool cut it); model input must not.
+    markdown: wellFormed(`${header}\n\n---\n\n${body}\n\n---\n\n${footer.join('\n')}`),
   }
 }
 

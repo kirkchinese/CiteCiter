@@ -5827,6 +5827,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			panelWidthPercent: number().int().min(28).max(55),
 			/** Use Citer's own panel instead of a tab in DSH's right sidebar. */
 			standalonePanel: boolean().optional(),
+			/** Show the desktop pet at the window edge while Citer is closed. */
+			showPet: boolean().optional(),
 			reopenLastTopic: boolean(),
 			tutorPrompt: string().max(4e3).optional(),
 			followupQuestions: boolean().optional(),
@@ -5862,6 +5864,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			includeSourceReasoning: true,
 			panelWidthPercent: 34,
 			standalonePanel: false,
+			showPet: true,
 			reopenLastTopic: true,
 			followupQuestions: true,
 			boardAnimations: true,
@@ -7183,6 +7186,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"panel.teacher.explain": "讲讲",
 			"panel.teacher.dismiss": "忽略",
 			"panel.pet.drag": "打开 Citer · 可以拖动",
+			"panel.pet.hide": "隐藏桌宠",
+			"panel.pet.hidden": "桌宠已隐藏。可以在 设置 → Citer → 面板 中重新显示。",
 			"panel.notice.deletedElsewhere": "此 Topic 已在另一窗口删除。",
 			"panel.notice.deleted": "Topic 已永久删除。",
 			"panel.notice.cleanup": "Topic 已删除；相关资源仍在后台清理。",
@@ -7399,6 +7404,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"panel.teacher.explain": "Explain",
 			"panel.teacher.dismiss": "Dismiss",
 			"panel.pet.drag": "Open Citer · Drag to move",
+			"panel.pet.hide": "Hide the desktop pet",
+			"panel.pet.hidden": "Desktop pet hidden. Show it again in Settings → Citer → Panel.",
 			"panel.notice.deletedElsewhere": "This Topic was deleted in another window.",
 			"panel.notice.deleted": "Topic permanently deleted.",
 			"panel.notice.cleanup": "Topic deleted; related resources are still being cleaned up in the background.",
@@ -7498,6 +7505,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"settings.panel.title": "面板",
 			"settings.panel.standalone": "不使用 DSH 右侧栏",
 			"settings.panel.standaloneDesc": "改用 Citer 自己的独立面板，与 0.9.0-beta.3 及更早的版本相同。",
+			"settings.panel.pet": "显示桌宠",
+			"settings.panel.petDesc": "Citer 收起时，桌宠在窗口边缘探头。关闭后仍可从右侧栏、选文工具条或快捷键打开 Citer；教师模式的提醒会单独显示在原来的位置。",
 			"settings.panel.width": "默认宽度",
 			"settings.panel.widthDesc": "也可以拖动面板左边缘调整。",
 			"settings.panel.widthAria": "面板默认宽度",
@@ -7683,6 +7692,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			"settings.panel.title": "Panel",
 			"settings.panel.standalone": "Don’t use DSH’s right sidebar",
 			"settings.panel.standaloneDesc": "Use Citer’s own panel, as in 0.9.0-beta.3 and earlier.",
+			"settings.panel.pet": "Show the desktop pet",
+			"settings.panel.petDesc": "While Citer is closed, the pet peeks over the window edge. Without it, open Citer from the right sidebar, the selection toolbar or the shortcut; teacher mode notes still appear in its place.",
 			"settings.panel.width": "Default width",
 			"settings.panel.widthDesc": "You can also drag the panel’s left edge.",
 			"settings.panel.widthAria": "Default panel width",
@@ -9585,6 +9596,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			return !hasActiveTopic && phaseIsIdle && reopenLastTopic && !showingArchived && !attempted && !suppressed;
 		}
 		//#endregion
+		//#region lib/types/text-units.js
+		/**
+		* Truncation that never splits a character. JavaScript strings count UTF-16 code units, and a character outside
+		* the Basic Multilingual Plane (emoji such as 🔹, CJK extension B, math alphanumerics) takes two. Cutting between
+		* them leaves a lone surrogate, which JSON serializes as an escape such as `"\udd39"` and strict JSON parsers,
+		* including model APIs, reject: once such text is in a Topic's history, every later request fails.
+		*/
+		const isHighSurrogate = (unit) => unit >= 55296 && unit <= 56319;
+		const isLowSurrogate = (unit) => unit >= 56320 && unit <= 57343;
+		/** Move an end offset back so it does not fall inside a surrogate pair. */
+		function snapEnd(text, end) {
+			return end > 0 && end < text.length && isHighSurrogate(text.charCodeAt(end - 1)) && isLowSurrogate(text.charCodeAt(end)) ? end - 1 : end;
+		}
+		/** The first `limit` code units of `text`, one fewer when that would split a character. */
+		function headOf(text, limit) {
+			return text.length <= limit ? text : text.slice(0, snapEnd(text, Math.max(0, limit)));
+		}
+		//#endregion
 		//#region lib/types/client/draft-references.js
 		/** Append real references once per unsent draft. A later explicit selection can restore a removed item. */
 		function mergeDraftReferences(current, incoming) {
@@ -9635,7 +9664,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		function preview(text, limit = 24) {
 			const compact = text.replaceAll(/\s+/gu, " ").trim();
-			return compact.length > limit ? `${compact.slice(0, limit)}…` : compact;
+			return compact.length > limit ? `${headOf(compact, limit)}…` : compact;
 		}
 		/**
 		* Chip text that shows what a reference contains instead of its kind. Serialized labels
@@ -38284,7 +38313,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		function compact(text, limit = 80) {
 			const single = text.replaceAll(/\s+/gu, " ").trim();
-			return single.length > limit ? `${single.slice(0, limit)}…` : single;
+			return single.length > limit ? `${headOf(single, limit)}…` : single;
 		}
 		function subject(args) {
 			for (const key of SUBJECT_KEYS) {
@@ -38988,7 +39017,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const producer = producerKey === void 0 ? message.producer : t(producerKey);
 			const changedFiles = message.summary === void 0 ? null : /^(\d+) 个文件有改动$/u.exec(message.summary);
 			const summary = changedFiles !== null ? t("transcript.context.changedFiles", { count: changedFiles[1] }) : message.summary === "代码库有改动" ? t("transcript.context.changed") : message.summary;
-			const text = message.text.length > MAX_CHARS ? `${message.text.slice(0, MAX_CHARS)}\n${t("transcript.context.truncated", { count: message.text.length })}` : message.text;
+			const text = message.text.length > MAX_CHARS ? `${headOf(message.text, MAX_CHARS)}\n${t("transcript.context.truncated", { count: message.text.length })}` : message.text;
 			return (0, react_jsx_runtime.jsx)("div", {
 				className: ContextRow_module_css_default.root,
 				"data-citeciter-message": message.id,
@@ -41332,7 +41361,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region \0dsh-css:src/client/components/CiterPet.module.css.mjs
-		const css$12 = ".dy3EAG_pet{z-index:200;cursor:pointer;touch-action:none;-webkit-app-region:no-drag;pointer-events:auto;background:0 0;border:0;width:54px;height:84px;margin:0;padding:0;transition:width .2s cubic-bezier(.2,.8,.2,1),height .2s cubic-bezier(.2,.8,.2,1),margin-top .2s cubic-bezier(.2,.8,.2,1);position:fixed}.dy3EAG_pet[data-side=right]{right:0}.dy3EAG_pet[data-side=left]{left:0}.dy3EAG_pet[data-expanded]{width:95px;height:112px;margin-top:-28px}.dy3EAG_pet[data-dragging]{cursor:grabbing;margin-top:0;transition:none}.dy3EAG_pet:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px;border-radius:var(--dsw-radius-md,8px)}.dy3EAG_pet img{pointer-events:none;user-select:none;transition:opacity .16s,transform .2s cubic-bezier(.2,.8,.2,1);position:absolute;bottom:0}.dy3EAG_peek{width:54px;height:84px}.dy3EAG_proud{opacity:0;width:95px;height:112px}.dy3EAG_pet[data-side=right] img{right:0}.dy3EAG_pet[data-side=left] img{left:0}.dy3EAG_pet[data-side=right] .dy3EAG_proud{transform:translate(20px)scale(.92)}.dy3EAG_pet[data-side=left] .dy3EAG_peek{transform:scaleX(-1)}.dy3EAG_pet[data-side=left] .dy3EAG_proud{transform:scaleX(-1)translate(20px)scale(.92)}.dy3EAG_pet[data-expanded] .dy3EAG_peek{opacity:0}.dy3EAG_pet[data-expanded][data-side=right] .dy3EAG_proud{opacity:1;transform:none}.dy3EAG_pet[data-expanded][data-side=left] .dy3EAG_proud{opacity:1;transform:scaleX(-1)}.dy3EAG_dot{background:var(--dsw-alias-state-business-primary,#3478f6);corner-shape:round;width:10px;height:10px;box-shadow:0 0 0 2px var(--dsw-alias-bg-base,#fff);border-radius:50%;position:absolute;top:10px}.dy3EAG_pet[data-side=right] .dy3EAG_dot{left:6px}.dy3EAG_pet[data-side=left] .dy3EAG_dot{right:6px}.dy3EAG_pet[data-expanded] .dy3EAG_dot{top:8px}.dy3EAG_bubble{z-index:200;pointer-events:auto;position:fixed}.dy3EAG_bubble[data-side=right]{right:62px}.dy3EAG_bubble[data-side=left]{left:62px}body:has([role=dialog][aria-modal=true]) .dy3EAG_pet,body:has([role=dialog][aria-modal=true]) .dy3EAG_bubble,[data-rightbar-fullscreen] .dy3EAG_bubble,[data-rightbar-fullscreen] .dy3EAG_pet{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.dy3EAG_pet,.dy3EAG_pet img{transition:none}}";
+		const css$12 = ".dy3EAG_pet{z-index:200;cursor:pointer;touch-action:none;-webkit-app-region:no-drag;pointer-events:auto;background:0 0;border:0;width:54px;height:84px;margin:0;padding:0;transition:width .2s cubic-bezier(.2,.8,.2,1),height .2s cubic-bezier(.2,.8,.2,1),margin-top .2s cubic-bezier(.2,.8,.2,1);position:fixed}.dy3EAG_pet[data-side=right]{right:0}.dy3EAG_pet[data-side=left]{left:0}.dy3EAG_pet[data-expanded]{width:95px;height:112px;margin-top:-28px}.dy3EAG_pet[data-dragging]{cursor:grabbing;margin-top:0;transition:none}.dy3EAG_pet:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px;border-radius:var(--dsw-radius-md,8px)}.dy3EAG_pet img{pointer-events:none;user-select:none;transition:opacity .16s,transform .2s cubic-bezier(.2,.8,.2,1);position:absolute;bottom:0}.dy3EAG_peek{width:54px;height:84px}.dy3EAG_proud{opacity:0;width:95px;height:112px}.dy3EAG_pet[data-side=right] img{right:0}.dy3EAG_pet[data-side=left] img{left:0}.dy3EAG_pet[data-side=right] .dy3EAG_proud{transform:translate(20px)scale(.92)}.dy3EAG_pet[data-side=left] .dy3EAG_peek{transform:scaleX(-1)}.dy3EAG_pet[data-side=left] .dy3EAG_proud{transform:scaleX(-1)translate(20px)scale(.92)}.dy3EAG_pet[data-expanded] .dy3EAG_peek{opacity:0}.dy3EAG_pet[data-expanded][data-side=right] .dy3EAG_proud{opacity:1;transform:none}.dy3EAG_pet[data-expanded][data-side=left] .dy3EAG_proud{opacity:1;transform:scaleX(-1)}.dy3EAG_dot{background:var(--dsw-alias-state-business-primary,#3478f6);corner-shape:round;width:10px;height:10px;box-shadow:0 0 0 2px var(--dsw-alias-bg-base,#fff);border-radius:50%;position:absolute;top:10px}.dy3EAG_pet[data-side=right] .dy3EAG_dot{left:6px}.dy3EAG_pet[data-side=left] .dy3EAG_dot{right:6px}.dy3EAG_pet[data-expanded] .dy3EAG_dot{top:8px}.dy3EAG_hide{z-index:201;width:22px;height:22px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1,#fff);corner-shape:round;box-shadow:var(--dsw-elevation-panel,0 0 0 .5px #0000001f, 0 2px 6px #00000014);cursor:pointer;pointer-events:auto;-webkit-app-region:no-drag;border:0;border-radius:50%;place-items:center;padding:0;display:grid;position:fixed}.dy3EAG_hide[data-side=right]{right:8px}.dy3EAG_hide[data-side=left]{left:8px}.dy3EAG_hide:hover{color:var(--dsw-alias-label-primary)}.dy3EAG_hide:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px}.dy3EAG_hide svg{fill:none;stroke:currentColor;stroke-width:1.6px;stroke-linecap:round;width:12px;height:12px}.dy3EAG_bubble[data-alone]{right:16px}.dy3EAG_bubble{z-index:200;pointer-events:auto;position:fixed}.dy3EAG_bubble[data-side=right]{right:62px}.dy3EAG_bubble[data-side=left]{left:62px}body:has([role=dialog][aria-modal=true]) .dy3EAG_pet,body:has([role=dialog][aria-modal=true]) .dy3EAG_bubble,body:has([role=dialog][aria-modal=true]) .dy3EAG_hide,[data-rightbar-fullscreen] .dy3EAG_hide,[data-rightbar-fullscreen] .dy3EAG_bubble,[data-rightbar-fullscreen] .dy3EAG_pet{visibility:hidden;pointer-events:none}@media (prefers-reduced-motion:reduce){.dy3EAG_pet,.dy3EAG_pet img{transition:none}}";
 		const tagId$12 = "@kirkchinese/dsh-citeciter/CiterPet.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$12) + "]") === null) {
 			const tag = document.createElement("style");
@@ -41344,6 +41373,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		var CiterPet_module_css_default = {
 			"bubble": "dy3EAG_bubble",
 			"dot": "dy3EAG_dot",
+			"hide": "dy3EAG_hide",
 			"peek": "dy3EAG_peek",
 			"pet": "dy3EAG_pet",
 			"proud": "dy3EAG_proud"
@@ -41371,6 +41401,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		const REVEAL_DELAY = 140;
 		const HIDE_DELAY = 600;
 		const DRAG_THRESHOLD = 6;
+		/** How far above her standing head the hide button sits. */
+		const HIDE_BUTTON_LIFT = 24;
 		function readPlace() {
 			try {
 				const value = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
@@ -41393,13 +41425,24 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const max = Math.max(TOP_CLEARANCE, window.innerHeight - BOTTOM_CLEARANCE - REST.height);
 			return Math.round(Math.min(max, Math.max(TOP_CLEARANCE, y * window.innerHeight)));
 		}
+		/** Content shown where the pet would rest, for when she is hidden: teacher mode's note, or a short hint. */
+		function PetSpot({ children }) {
+			const [place] = (0, react.useState)(readPlace);
+			return (0, react_jsx_runtime.jsx)(OverlayPortal, { children: (0, react_jsx_runtime.jsx)("div", {
+				className: CiterPet_module_css_default.bubble,
+				"data-side": place.side,
+				"data-alone": "",
+				style: { top: Math.max(8, restTop(place.y) - 40) },
+				children
+			}) });
+		}
 		/**
 		* The collapsed Citer entry: the mascot peeking over a window edge. It stands up when the
 		* pointer comes near or it receives focus, opens Citer on click, and can be dragged to
 		* either side; the side and height are remembered in this browser.
 		* @param attention - show a dot because an answer finished or a question waits while Citer is closed.
 		*/
-		function CiterPet({ attention, onOpen, bubble }) {
+		function CiterPet({ attention, onOpen, onHide, bubble }) {
 			useLocale();
 			const [place, setPlace] = (0, react.useState)(readPlace);
 			const [expanded, setExpanded] = (0, react.useState)(false);
@@ -41490,51 +41533,70 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				top: drag.top,
 				right: "auto"
 			} : { top: restTop(place.y) };
-			return (0, react_jsx_runtime.jsxs)(OverlayPortal, { children: [(0, react_jsx_runtime.jsxs)("button", {
-				ref: button,
-				type: "button",
-				className: CiterPet_module_css_default.pet,
-				style,
-				"data-side": place.side,
-				"data-expanded": shown || void 0,
-				"data-dragging": drag !== null || void 0,
-				"aria-label": attention ? t("panel.pet.attention") : t("panel.pet.open"),
-				title: t("panel.pet.drag"),
-				onPointerDown: down,
-				onPointerMove: move,
-				onPointerUp: up,
-				onPointerCancel: cancel,
-				onFocus: () => {
-					if (keyboardFocused()) setShown(true, 0);
-				},
-				onBlur: () => setShown(false, HIDE_DELAY),
-				onClick: (event) => {
-					if (event.detail === 0) onOpen();
-				},
-				children: [
-					(0, react_jsx_runtime.jsx)("img", {
-						className: CiterPet_module_css_default.peek,
-						src: citer_pet_peek_default,
-						alt: "",
-						draggable: false
-					}),
-					(0, react_jsx_runtime.jsx)("img", {
-						className: CiterPet_module_css_default.proud,
-						src: citer_pet_proud_default,
-						alt: "",
-						draggable: false
-					}),
-					attention && (0, react_jsx_runtime.jsx)("span", {
-						className: CiterPet_module_css_default.dot,
-						"aria-hidden": "true"
+			return (0, react_jsx_runtime.jsxs)(OverlayPortal, { children: [
+				(0, react_jsx_runtime.jsxs)("button", {
+					ref: button,
+					type: "button",
+					className: CiterPet_module_css_default.pet,
+					style,
+					"data-side": place.side,
+					"data-expanded": shown || void 0,
+					"data-dragging": drag !== null || void 0,
+					"aria-label": attention ? t("panel.pet.attention") : t("panel.pet.open"),
+					title: t("panel.pet.drag"),
+					onPointerDown: down,
+					onPointerMove: move,
+					onPointerUp: up,
+					onPointerCancel: cancel,
+					onFocus: () => {
+						if (keyboardFocused()) setShown(true, 0);
+					},
+					onBlur: () => setShown(false, HIDE_DELAY),
+					onClick: (event) => {
+						if (event.detail === 0) onOpen();
+					},
+					children: [
+						(0, react_jsx_runtime.jsx)("img", {
+							className: CiterPet_module_css_default.peek,
+							src: citer_pet_peek_default,
+							alt: "",
+							draggable: false
+						}),
+						(0, react_jsx_runtime.jsx)("img", {
+							className: CiterPet_module_css_default.proud,
+							src: citer_pet_proud_default,
+							alt: "",
+							draggable: false
+						}),
+						attention && (0, react_jsx_runtime.jsx)("span", {
+							className: CiterPet_module_css_default.dot,
+							"aria-hidden": "true"
+						})
+					]
+				}),
+				onHide !== void 0 && shown && drag === null && (0, react_jsx_runtime.jsx)("button", {
+					type: "button",
+					className: CiterPet_module_css_default.hide,
+					"data-side": place.side,
+					style: { top: restTop(place.y) - 28 - HIDE_BUTTON_LIFT },
+					"aria-label": t("panel.pet.hide"),
+					title: t("panel.pet.hide"),
+					onClick: onHide,
+					onFocus: () => setShown(true, 0),
+					onBlur: () => setShown(false, HIDE_DELAY),
+					children: (0, react_jsx_runtime.jsx)("svg", {
+						viewBox: "0 0 16 16",
+						"aria-hidden": "true",
+						children: (0, react_jsx_runtime.jsx)("path", { d: "m4.5 4.5 7 7m0-7-7 7" })
 					})
-				]
-			}), bubble !== void 0 && drag === null && (0, react_jsx_runtime.jsx)("div", {
-				className: CiterPet_module_css_default.bubble,
-				"data-side": place.side,
-				style: { top: Math.max(8, restTop(place.y) - 40) },
-				children: bubble
-			})] });
+				}),
+				bubble !== void 0 && drag === null && (0, react_jsx_runtime.jsx)("div", {
+					className: CiterPet_module_css_default.bubble,
+					"data-side": place.side,
+					style: { top: Math.max(8, restTop(place.y) - 40) },
+					children: bubble
+				})
+			] });
 		}
 		//#endregion
 		//#region lib/types/client/components/TopicQuestions.js
@@ -41621,7 +41683,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			useLocale();
 			const markdownLabels = useMarkdownLabels();
 			const [open, setOpen] = (0, react.useState)(false);
-			const preview = (0, react.useMemo)(() => text.replaceAll(/\s+/gu, " ").trim().slice(0, 180), [text]);
+			const preview = (0, react.useMemo)(() => headOf(text.replaceAll(/\s+/gu, " ").trim(), 180), [text]);
 			return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.DisclosureRow, {
 				className: ReasoningDisclosure_module_css_default.disclosure,
 				rowClassName: active ? ReasoningDisclosure_module_css_default.activeRow : ReasoningDisclosure_module_css_default.row,
@@ -42644,7 +42706,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		});
 		function compactPreview(text, limit = 120) {
 			const compact = text.replaceAll(/\s+/g, " ").trim();
-			return compact.length > limit ? compact.slice(0, limit) + "…" : compact;
+			return compact.length > limit ? headOf(compact, limit) + "…" : compact;
 		}
 		function localizedNotice(text) {
 			for (const key of [
@@ -42707,7 +42769,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return null;
 			if (!transcript.contains(selection.getRangeAt(0).commonAncestorContainer)) return null;
 			const text = selection.toString().trim();
-			return text === "" ? null : text.slice(0, 32e3);
+			return text === "" ? null : headOf(text, 32e3);
 		}
 		/**
 		* Render the independent Topic workspace on the right edge of the shell.
@@ -44245,6 +44307,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 								desc: t("settings.panel.standaloneDesc"),
 								children: toggle("standalonePanel", t("settings.panel.standalone"), false)
 							}),
+							(0, react_jsx_runtime.jsx)(Row, {
+								title: t("settings.panel.pet"),
+								desc: t("settings.panel.petDesc"),
+								children: toggle("showPet", t("settings.panel.pet"), true)
+							}),
 							host !== "tab" && (0, react_jsx_runtime.jsxs)(Row, {
 								title: t("settings.panel.width"),
 								desc: t("settings.panel.widthDesc"),
@@ -44483,7 +44550,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const name = title.trim() === "" ? t("settings.error.untitled") : title.trim();
 				const response = await call({
 					action: "document-import",
-					title: name.slice(0, 200),
+					title: headOf(name, 200),
 					format: formatFromName(name),
 					content
 				});
@@ -44836,7 +44903,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				const cached = source.documentId ?? imports.get(source);
 				if (cached !== void 0) return cached;
 				if (source.content === void 0) throw new Error(t("settings.error.snapshotUnavailable"));
-				const imported = await documents.importText(source.title.slice(0, 200), source.content);
+				const imported = await documents.importText(headOf(source.title, 200), source.content);
 				imports.set(source, imported.documentId);
 				return imported.documentId;
 			};
@@ -45321,7 +45388,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 						"aria-label": t("settings.wheel.closeAsk"),
 						children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconCloseOutlineRegular, {})
 					})] }),
-					(0, react_jsx_runtime.jsx)("blockquote", { children: actionSourceQuote$1(pending.source).slice(0, 180) }),
+					(0, react_jsx_runtime.jsx)("blockquote", { children: headOf(actionSourceQuote$1(pending.source), 180) }),
 					state.error !== null && (0, react_jsx_runtime.jsx)("p", {
 						role: "alert",
 						className: ActionWheel_module_css_default.error,
@@ -45659,18 +45726,23 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		}
 		//#endregion
 		//#region lib/types/client/components/CiteLauncher.js
+		/** How long the "pet hidden" hint stays after hiding her. */
+		const HIDDEN_HINT_MS = 6e3;
 		/**
 		* Entry back to Citer while its panel is closed. While an answer is still running it keeps
 		* the Topic refreshing, so the pet can mark the finished answer; opening Citer clears the mark.
-		* Teacher mode's offer speaks from the pet.
+		* Teacher mode's offer speaks from the pet, or from her place when the user hid her.
 		*/
 		function CiteLauncher({ useCompanion, useOverlay, companion, openPanel, teacher }) {
+			useLocale();
 			const sourceSessionId = useCompanion((value) => value.sourceSessionId);
 			const running = useCompanion((value) => value.active?.topic.running === true);
 			const waiting = useCompanion((value) => (value.active?.pendingQuestions?.length ?? (value.active?.pendingQuestion == null ? 0 : 1)) > 0);
+			const showPet = useCompanion((value) => value.settings.showPet ?? true);
 			const open = useOverlay((value) => value.panelOpen);
 			const suggestion = useOverlay((value) => value.teacher);
 			const [finished, setFinished] = (0, react.useState)(false);
+			const [hiddenHint, setHiddenHint] = (0, react.useState)(false);
 			const wasRunning = (0, react.useRef)(running);
 			(0, react.useEffect)(() => !open && running ? companion.retainVisible() : void 0, [
 				companion,
@@ -45684,15 +45756,34 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			(0, react.useEffect)(() => {
 				if (open) setFinished(false);
 			}, [open]);
+			(0, react.useEffect)(() => {
+				if (!hiddenHint) return;
+				const timer = setTimeout(() => setHiddenHint(false), HIDDEN_HINT_MS);
+				return () => clearTimeout(timer);
+			}, [hiddenHint]);
 			if (sourceSessionId === null || open) return null;
+			const notice = suggestion === null ? void 0 : (0, react_jsx_runtime.jsx)(TeacherNotice, {
+				suggestion,
+				actions: teacher,
+				variant: "bubble"
+			});
+			if (!showPet) {
+				if (notice !== void 0) return (0, react_jsx_runtime.jsx)(PetSpot, { children: notice });
+				return hiddenHint ? (0, react_jsx_runtime.jsx)(PetSpot, { children: (0, react_jsx_runtime.jsx)("p", {
+					className: TeacherNotice_module_css_default.notice,
+					"data-variant": "bubble",
+					role: "status",
+					children: t("panel.pet.hidden")
+				}) }) : null;
+			}
 			return (0, react_jsx_runtime.jsx)(CiterPet, {
 				attention: finished || waiting || suggestion !== null,
 				onOpen: openPanel,
-				...suggestion === null ? {} : { bubble: (0, react_jsx_runtime.jsx)(TeacherNotice, {
-					suggestion,
-					actions: teacher,
-					variant: "bubble"
-				}) }
+				onHide: () => {
+					setHiddenHint(true);
+					companion.setSetting("showPet", false);
+				},
+				...notice === void 0 ? {} : { bubble: notice }
 			});
 		}
 		//#endregion
@@ -46586,7 +46677,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			const range = selection.getRangeAt(0);
 			if (!element.contains(range.commonAncestorContainer)) return null;
 			const text = selection.toString().trim();
-			return text === "" ? null : text.slice(0, 32e3);
+			return text === "" ? null : headOf(text, 32e3);
 		}
 		/** The call identity and name of the tool card holding a pointer event, from DSH's own card attributes. */
 		function toolCardAt(event, context) {
@@ -46742,7 +46833,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 		/** One line of the passage, short enough for a chip. */
 		function quotePreview(text) {
 			const line = text.replace(/\s+/gu, " ").trim();
-			return line.length <= PREVIEW_LENGTH ? line : `${line.slice(0, 31)}…`;
+			return line.length <= PREVIEW_LENGTH ? line : `${headOf(line, 31)}…`;
 		}
 		/** Markdown blockquote, used when the chip is copied out of the composer. */
 		function markdownQuote(passage) {
@@ -49781,7 +49872,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					return claim === null ? null : {
 						kind: "conversation",
 						selection: claim.selection,
-						quoteText: window.getSelection()?.toString().trim().slice(0, 32e3) || claim.selection.displayText
+						quoteText: headOf(window.getSelection()?.toString().trim() ?? "", 32e3) || claim.selection.displayText
 					};
 				};
 				const toolbar = installSelectionToolbar({

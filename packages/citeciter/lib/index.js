@@ -1,5 +1,4 @@
-import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-C7Nm1EBU.js";
-import { Context, Service } from "@deepseek-ai/cordis";
+import { A as applyBoardOps, B as draftFileSchema, C as questionReplyText, D as learningCardsInputSchema, E as LEARNING_CARD_FIELD_DESCRIPTIONS, F as EMPTY_QUESTION_DRAFT_STATE, H as subtractSubmitted, I as questionDraftKeySchema, L as questionDraftRecordSchema, M as ANIMATION_MAX_DURATION_MS, N as animationSpecSchema, O as LEARNING_EXAMPLE_PARAMETER, P as compileTimeline, R as DRAFT_CHUNK_BYTES, T as DEFAULT_WHEEL_SLOTS, V as draftStateSchema, _ as readCiteCiterSettings, a as DEFAULT_CITECITER_SETTINGS, b as topicMetadataSchema, d as citeCiterRequestSchema, g as parseTopicMetadataFile, h as documentSummarySchema, i as CITECITER_SETTINGS_NAMESPACE, j as boardBatchSchema, k as EMPTY_BOARD_STATE, m as documentEvidenceClaimSchema, n as updateCheckErrorCodeSchema, o as TUTOR_SECTION_NAME, p as documentContentSchema, r as updateCheckResponseSchema, s as canonicalCitationIdentity, t as UpdateChecker, u as citationSelectionClaimSchema, v as toolEvidenceClaimSchema, w as readQuestionReply, y as topicDisplayTitle, z as EMPTY_DRAFT_STATE } from "./update-JnlIM6HF.js";
 import { z } from "zod";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import z$1 from "@deepseek-ai/schemastery";
@@ -15,6 +14,7 @@ import { chmod, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, rmd
 import { dshHomePath } from "@deepseek-ai/dsh-home-paths";
 import { setTimeout as setTimeout$1 } from "node:timers/promises";
 import AgentRegistry from "@deepseek-ai/dsh-agent";
+import { Context } from "@deepseek-ai/cordis";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isDeepStrictEqual } from "node:util";
 import { execFile } from "node:child_process";
@@ -1696,6 +1696,35 @@ function resolveReadableDocument(session, requested) {
 	return id;
 }
 //#endregion
+//#region lib/types/text-units.js
+/**
+* Truncation that never splits a character. JavaScript strings count UTF-16 code units, and a character outside
+* the Basic Multilingual Plane (emoji such as 🔹, CJK extension B, math alphanumerics) takes two. Cutting between
+* them leaves a lone surrogate, which JSON serializes as an escape such as `"\udd39"` and strict JSON parsers,
+* including model APIs, reject: once such text is in a Topic's history, every later request fails.
+*/
+const isHighSurrogate = (unit) => unit >= 55296 && unit <= 56319;
+const isLowSurrogate = (unit) => unit >= 56320 && unit <= 57343;
+/** Move an end offset back so it does not fall inside a surrogate pair. */
+function snapEnd(text, end) {
+	return end > 0 && end < text.length && isHighSurrogate(text.charCodeAt(end - 1)) && isLowSurrogate(text.charCodeAt(end)) ? end - 1 : end;
+}
+/** Move a start offset forward so it does not fall inside a surrogate pair. */
+function snapStart(text, start) {
+	return start > 0 && start < text.length && isLowSurrogate(text.charCodeAt(start)) && isHighSurrogate(text.charCodeAt(start - 1)) ? start + 1 : start;
+}
+/** The first `limit` code units of `text`, one fewer when that would split a character. */
+function headOf(text, limit) {
+	return text.length <= limit ? text : text.slice(0, snapEnd(text, Math.max(0, limit)));
+}
+/**
+* Replace any lone surrogate with U+FFFD, keeping every offset. A last guard for text that reaches a model or
+* a log, whatever cut it upstream.
+*/
+function wellFormed(text) {
+	return text.replace(/\p{Cs}/gu, "�");
+}
+//#endregion
 //#region lib/types/document-tools.js
 const DOCUMENT_TOOL_MAX_BYTES = 51200;
 const DOCUMENT_SEARCH_MAX_MATCHES = 20;
@@ -1809,7 +1838,7 @@ function createDocumentReadTool(read) {
 				hasMore,
 				nextFromOffset: hasMore ? throughOffset : null,
 				bytesUsed,
-				text
+				text: wellFormed(text)
 			};
 		},
 		presentCall: (args) => ({
@@ -3230,16 +3259,19 @@ function fence(text, info = "") {
 	const marks = "`".repeat(Math.max(3, longest + 1));
 	return `${marks}${info}\n${text}\n${marks}`;
 }
-/** Keep the head and tail of a long payload with an explicit omission marker. */
+/**
+* Keep the head and tail of a long payload with an explicit omission marker. Both cuts stay on character
+* boundaries, so an emoji at a cut point is omitted whole instead of leaving half of it in model input.
+*/
 function clip(text, limit) {
 	if (text.length <= limit) return {
 		text,
 		shortened: false
 	};
-	const head = Math.floor(limit * .7);
-	const tail = limit - head;
+	const head = snapEnd(text, Math.floor(limit * .7));
+	const start = snapStart(text, text.length - (limit - Math.floor(limit * .7)));
 	return {
-		text: `${text.slice(0, head)}\n… [${text.length - limit} characters omitted] …\n${text.slice(text.length - tail)}`,
+		text: `${text.slice(0, head)}\n… [${start - head} characters omitted] …\n${text.slice(start)}`,
 		shortened: true
 	};
 }
@@ -3497,7 +3529,7 @@ function formatSourceTranscript(source, options) {
 		records: blocks.length,
 		shortened,
 		bytesUsed,
-		markdown: `${header}\n\n---\n\n${body}\n\n---\n\n${footer.join("\n")}`
+		markdown: wellFormed(`${header}\n\n---\n\n${body}\n\n---\n\n${footer.join("\n")}`)
 	};
 }
 /**
@@ -3586,8 +3618,8 @@ function parseTeacherVerdict(text) {
 	if (typeof value !== "object" || value === null) return null;
 	const { worth, title, point } = value;
 	if (worth !== true || typeof title !== "string" || typeof point !== "string") return null;
-	const cleanTitle = title.replace(/\s+/gu, " ").trim().slice(0, 80);
-	const cleanPoint = point.replace(/\s+/gu, " ").trim().slice(0, 600);
+	const cleanTitle = wellFormed(headOf(title.replace(/\s+/gu, " ").trim(), 80));
+	const cleanPoint = wellFormed(headOf(point.replace(/\s+/gu, " ").trim(), 600));
 	return cleanTitle === "" || cleanPoint === "" ? null : {
 		title: cleanTitle,
 		point: cleanPoint
@@ -19053,11 +19085,31 @@ const ownerSchema = z.object({
 function absent$1(error) {
 	return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
+/** A path that is missing or runs through a file: nothing Citer owns is there. */
+function missing(error) {
+	return absent$1(error) || typeof error === "object" && error !== null && "code" in error && error.code === "ENOTDIR";
+}
+const SESSION_LOG = /^session(?:\.v\d+)?\.jsonl(?:\.zstd)?$/u;
+/** Directory reads in flight during discovery: enough to hide latency, few enough to leave the disk to DSH. */
+const DISCOVERY_CONCURRENCY = 16;
+/** Run `work` over `items` with at most `limit` in flight; results keep the input order. */
+async function mapLimited(items, limit, work, signal) {
+	const results = new Array(items.length);
+	let next = 0;
+	const lane = async () => {
+		while (next < items.length) {
+			signal?.throwIfAborted();
+			const index = next++;
+			results[index] = await work(items[index]);
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane));
+	return results;
+}
 /** Locate only source-owned Citer directories through the installed JSONL backend; persisted paths are never trusted. */
 var SourceStorage = class {
 	host;
 	pending = /* @__PURE__ */ new Map();
-	historicalDirectories;
 	constructor(host) {
 		this.host = host;
 	}
@@ -19076,7 +19128,8 @@ var SourceStorage = class {
 		const backend = this.host.sessionPersistence;
 		if (typeof backend.resolveCurrentLog !== "function") throw new Error("当前 DSH 存储后端不支持定位来源 Session 目录");
 		const file = await backend.resolveCurrentLog(SessionId(sourceSessionId));
-		const sourceDirectory = file === void 0 ? (await (this.historicalDirectories ??= this.findHistoricalDirectories(backend.config?.root))).get(sourceSessionId) : dirname(await realpath(file));
+		const sourceDirectory = file === void 0 ? await this.findHistoricalDirectory(backend.config?.root, sourceSessionId) : dirname(await realpath(file));
+		if (sourceDirectory === null) throw new Error("多个来源目录使用相同的 Session 标识，Citer 未选择其中任何一个");
 		if (sourceDirectory === void 0) {
 			if (create) throw new Error("来源 Session 尚未保存，请先在主对话发送消息");
 			return;
@@ -19119,36 +19172,116 @@ var SourceStorage = class {
 		if (ownerSchema.parse(JSON.parse(raw)).sourceSessionId !== sourceSessionId) throw new Error("Citer 来源目录标记与 Session 不匹配");
 		return realpath(directory);
 	}
-	/** Locate historical source containers only; DSH alone reads and migrates their logs. */
-	async findHistoricalDirectories(root) {
+	/**
+	* Locate one historical source container; DSH alone reads and migrates its log. One directory probe per project,
+	* never a listing of every Session.
+	* @returns the directory, `undefined` when none holds a log, or `null` when more than one project does.
+	*/
+	async findHistoricalDirectory(root, sourceSessionId) {
 		if (typeof root !== "string" || !isAbsolute(root)) throw new Error("当前 DSH 未提供可定位的 JSONL 存储根目录");
-		const result = /* @__PURE__ */ new Map();
-		const workspaces = await readdir(root, { withFileTypes: true }).catch((error) => {
-			if (absent$1(error)) return [];
+		if (!/^[\w.-]+$/u.test(sourceSessionId) || /^\.+$/u.test(sourceSessionId)) return void 0;
+		const directories = (await mapLimited((await readdir(root, { withFileTypes: true }).catch((error) => {
+			if (missing(error)) return [];
 			throw error;
-		});
-		for (const workspace of workspaces) {
-			if (!workspace.isDirectory() || workspace.isSymbolicLink()) continue;
-			const parent = resolve(root, workspace.name);
-			for (const session of await readdir(parent, { withFileTypes: true })) {
-				if (!session.isDirectory() || session.isSymbolicLink()) continue;
-				const directory = resolve(parent, session.name);
-				if (!(await readdir(directory, { withFileTypes: true })).some((file) => file.isFile() && /^session(?:\.v\d+)?\.jsonl(?:\.zstd)?$/u.test(file.name))) continue;
-				if (result.has(session.name)) throw new Error("多个来源目录使用相同的 Session 标识，Citer 未选择其中任何一个");
-				result.set(session.name, directory);
+		})).filter((entry) => entry.isDirectory() && !entry.isSymbolicLink()), DISCOVERY_CONCURRENCY, async (entry) => {
+			const directory = resolve(root, entry.name, sourceSessionId);
+			return (await readdir(directory, { withFileTypes: true }).catch((error) => {
+				if (missing(error)) return [];
+				throw error;
+			})).some((file) => file.isFile() && SESSION_LOG.test(file.name)) ? directory : void 0;
+		})).filter((directory) => directory !== void 0);
+		return directories.length > 1 ? null : directories[0];
+	}
+	/**
+	* Every project directory under the JSONL root with its Session directory names. Links and files are skipped,
+	* and a project that cannot be listed is skipped with a warning instead of failing the whole scan.
+	*/
+	async sessionDirectories(root, signal) {
+		return await mapLimited((await readdir(root, { withFileTypes: true }).catch((error) => {
+			if (missing(error)) return [];
+			throw error;
+		})).filter((entry) => entry.isDirectory() && !entry.isSymbolicLink()), DISCOVERY_CONCURRENCY, async (entry) => {
+			const project = resolve(root, entry.name);
+			try {
+				return {
+					project,
+					sessions: (await readdir(project, { withFileTypes: true })).filter((session) => session.isDirectory() && !session.isSymbolicLink()).map((session) => session.name)
+				};
+			} catch (error) {
+				if (!missing(error)) this.host.logger.warn(`Citer skipped unreadable session directory ${project}`, error);
+				return {
+					project,
+					sessions: []
+				};
+			}
+		}, signal);
+	}
+	/**
+	* Discover owned roots without creating directories or changing Host Session data.
+	*
+	* Startup cost must not grow with Sessions × projects. Resolving each listed Session through the backend scans
+	* every project directory per Session: with 7,000 Sessions in 1,263 projects that took about 42 minutes and held
+	* DSH at "Loading plugins". Instead the JSONL root is listed once, one `citeciter/owner.json` probe per Session
+	* directory; only the few marked sources are then checked, and a source that cannot be checked is skipped with
+	* a warning rather than failing discovery.
+	* @param signal - aborts the scan when Citer shuts down.
+	*/
+	async discover(signal) {
+		const root = this.host.sessionPersistence.config?.root;
+		if (typeof root !== "string" || !isAbsolute(root)) return this.discoverThroughBackend(signal);
+		const candidates = /* @__PURE__ */ new Map();
+		await mapLimited((await this.sessionDirectories(root, signal)).flatMap(({ project, sessions }) => sessions.map((name) => ({
+			name,
+			directory: resolve(project, name)
+		}))), DISCOVERY_CONCURRENCY, async ({ name, directory }) => {
+			if (await lstat(resolve(directory, "citeciter", "owner.json")).catch((error) => {
+				if (missing(error)) return void 0;
+				this.host.logger.warn(`Citer skipped unreadable source directory ${directory}`, error);
+			}) === void 0) return;
+			candidates.set(name, candidates.has(name) ? null : directory);
+		}, signal);
+		const roots = /* @__PURE__ */ new Map();
+		for (const [name, directory] of candidates) {
+			signal?.throwIfAborted();
+			if (directory === null) {
+				this.host.logger.warn(`Citer 未加载 ${name}：多个来源目录使用相同的 Session 标识`);
+				continue;
+			}
+			try {
+				const owner = ownerSchema.parse(JSON.parse(await readFile(resolve(directory, "citeciter", "owner.json"), "utf8")));
+				const owned = owner.sourceSessionId === name ? await this.checkedRoot(directory, name) : await this.root(owner.sourceSessionId);
+				if (owned !== void 0) roots.set(owner.sourceSessionId, owned);
+			} catch (error) {
+				signal?.throwIfAborted();
+				this.host.logger.warn(`Citer 未加载 ${name}：${error instanceof Error ? error.message : String(error)}`);
 			}
 		}
-		return result;
+		return roots;
 	}
-	/** Discover owned roots without creating directories or changing Host Session data. */
-	async discover() {
+	/** A source directory found by the scan, held to the checks `root()` applies: a real Session container. */
+	async checkedRoot(sourceDirectory, sourceSessionId) {
+		if (!(await readdir(sourceDirectory, { withFileTypes: true })).some((file) => file.isFile() && SESSION_LOG.test(file.name))) return void 0;
+		await assertSessionFormat(sourceDirectory);
+		const directory = resolve(sourceDirectory, "citeciter");
+		const info = await lstat(directory);
+		if (!info.isDirectory() || info.isSymbolicLink()) throw new Error("Citer 拒绝使用链接或非目录的来源存储路径");
+		const marker = await lstat(resolve(directory, "owner.json"));
+		if (!marker.isFile() || marker.isSymbolicLink()) throw new Error("Citer 来源标记必须是普通文件");
+		if (ownerSchema.parse(JSON.parse(await readFile(resolve(directory, "owner.json"), "utf8"))).sourceSessionId !== sourceSessionId) throw new Error("Citer 来源目录标记与 Session 不匹配");
+		return realpath(directory);
+	}
+	/** Discovery for a backend without a configured root directory: one backend lookup per listed Session. */
+	async discoverThroughBackend(signal) {
 		const roots = /* @__PURE__ */ new Map();
-		for (const record of await this.host.sessionPersistence.list()) try {
-			const root = await this.root(record.header.id);
-			if (root !== void 0) roots.set(record.header.id, root);
-		} catch (error) {
-			if (!(error instanceof NewerSessionFormatError)) throw error;
-			this.host.logger.warn(`Citer 未加载 ${record.header.id}：${error.message}`);
+		for (const record of await this.host.sessionPersistence.list()) {
+			signal?.throwIfAborted();
+			try {
+				const root = await this.root(record.header.id);
+				if (root !== void 0) roots.set(record.header.id, root);
+			} catch (error) {
+				signal?.throwIfAborted();
+				this.host.logger.warn(`Citer 未加载 ${record.header.id}：${error instanceof Error ? error.message : String(error)}`);
+			}
 		}
 		return roots;
 	}
@@ -20417,11 +20550,9 @@ var TopicRuntime = class {
 		});
 		this.native = new HostSessionAdapter(host, settings, (scope, agent, metadata) => this.setupAgent(scope, agent, metadata), (metadata) => resolve(this.index.ownedDirectory(metadata.sourceSessionId, metadata.topicId), "sessions"));
 		this.ready = this.start();
-		this.ready.catch(() => void 0);
-	}
-	/** Wait until source roots are bound and interrupted deletions and migrations have finished. */
-	initialize() {
-		return this.ready;
+		this.ready.catch((error) => {
+			if (!this.closed) host.logger.warn("CiteCiter Topic runtime failed to start; Topic requests report this error", error);
+		});
 	}
 	/** Execute one validated browser command against Topics. */
 	async request(rawRequest, callerSignal) {
@@ -20668,7 +20799,7 @@ var TopicRuntime = class {
 	}
 	async start() {
 		try {
-			for (const [id, root] of await this.sourceStorage.discover()) this.index.bindSource(id, root);
+			for (const [id, root] of await this.sourceStorage.discover(this.lifecycleAbort.signal)) this.index.bindSource(id, root);
 			await this.recoverDeletions();
 			await migrateLegacyTopics(this.host, this.index, this.sourceStorage, this.native);
 			for (const metadata of await this.index.all()) this.native.remember(metadata);
@@ -20792,7 +20923,7 @@ var TopicRuntime = class {
 				...route.stop === void 0 ? {} : { stop: [...route.stop] }
 			},
 			forkThroughSeq: null,
-			temporaryTitle: (evidence?.displayText ?? (request.question || "新 Topic")).slice(0, 80),
+			temporaryTitle: wellFormed(headOf(evidence?.displayText ?? (request.question || "新 Topic"), 80)),
 			cachedTitle: null,
 			cachedTitleSource: null,
 			cachedTitleEventSeq: null,
@@ -21612,7 +21743,6 @@ var TopicRuntime = class {
 };
 //#endregion
 //#region lib/types/index.js
-/** Host entry: native Topics, their settings and the browser Remote API. */
 var __runInitializers = function(thisArg, initializers, value) {
 	var useValue = arguments.length > 2;
 	for (var i = 0; i < initializers.length; i++) value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
@@ -21677,6 +21807,7 @@ const CITECITER_SETTINGS_SCHEMA = z$1.object({
 	includeSourceReasoning: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.includeSourceReasoning),
 	panelWidthPercent: z$1.number().step(1).min(28).max(55).default(DEFAULT_CITECITER_SETTINGS.panelWidthPercent),
 	standalonePanel: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.standalonePanel ?? false),
+	showPet: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.showPet ?? true),
 	reopenLastTopic: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.reopenLastTopic),
 	tutorPrompt: z$1.string().max(4e3).default(""),
 	followupQuestions: z$1.boolean().default(DEFAULT_CITECITER_SETTINGS.followupQuestions ?? true),
@@ -21726,7 +21857,11 @@ const CITECITER_SETTINGS_SCHEMA = z$1.object({
 		target: "current"
 	}))
 });
-/** Root-scoped Remote service owning Topic metadata and native Topic contributions. */
+/**
+* Root-scoped Remote service owning Topic metadata and native Topic contributions. It has no init step: DSH waits
+* for every plugin's init before it shows its window, and the Topic runtime reads the Session store as it starts.
+* Each request waits for the runtime instead, so an early browser call only waits longer.
+*/
 let CiteCiterHost = (() => {
 	let _classSuper = TypertRemoteService;
 	let _instanceExtraInitializers = [];
@@ -21812,10 +21947,6 @@ let CiteCiterHost = (() => {
 				else ctx.emit(name === "created" ? "citeciter/topic-created" : "citeciter/topic-updated", payload);
 			}), "citeciter: topic change events");
 			ctx.effect(() => async () => this.topics.dispose(), "citeciter: private Topic runtime");
-		}
-		/** Do not publish the Remote service until its private runtime is ready. */
-		async [Service.init]() {
-			await this.topics.initialize();
 		}
 		/** Resolve one create/ask command into a committed Topic snapshot. */
 		async topicSnapshot(request, signal) {

@@ -33,6 +33,8 @@ export declare const zh: {
     readonly 'settings.panel.title': "面板";
     readonly 'settings.panel.standalone': "不使用 DSH 右侧栏";
     readonly 'settings.panel.standaloneDesc': "改用 Citer 自己的独立面板，与 0.9.0-beta.3 及更早的版本相同。";
+    readonly 'settings.panel.pet': "显示桌宠";
+    readonly 'settings.panel.petDesc': "Citer 收起时，桌宠在窗口边缘探头。关闭后仍可从右侧栏、选文工具条或快捷键打开 Citer；教师模式的提醒会单独显示在原来的位置。";
     readonly 'settings.panel.width': "默认宽度";
     readonly 'settings.panel.widthDesc': "也可以拖动面板左边缘调整。";
     readonly 'settings.panel.widthAria': "面板默认宽度";

@@ -66,6 +66,8 @@ pnpm 的 Git 安装读取仓库根目录，并且不认 `publishConfig.directory
 - `host-agent-modules.ts` 通过 Profile 的依赖解析加载宿主的 AgentLoop、SessionStore、标题服务、首条消息标题生成器和 scope 工厂，使桌面版和通过符号链接启动的 CLI 共用同一个模块实例。每个 Topic 的会话环境按 `dsh-base` 给宿主会话的同一套配置挂载标题生成器。
 - `client/host-dock.ts` 及其 CSS 为面板预留布局空间，关闭时恢复宿主样式。
 
+启动开销不能随用户的会话数增长。宿主服务没有初始化步骤，DSH 打开前从不等待 Citer；Topic 运行时在后台启动，每个请求自己等待它就绪。`SourceStorage.discover()` 只遍历一次 JSONL 根目录，逐个会话目录检查 `citeciter/owner.json`；它从不调用后端按会话定位的 `resolveCurrentLog`，因为后者对每个 id 都要扫描所有项目目录。校验不通过的来源只跳过并记警告。
+
 其他规则：注册都是 effect（`ctx.effect()`、`ctx.on()`），随所有者一起释放；waterfall 监听器除非有意接管请求，否则必须调用 `next()`；在文件、网络和配置边界校验数据，同进程的类型化调用直接信任；模型可见的输入必须能从 Topic 日志重建；读取已保存的设置时逐字段解析，忽略其他版本的字段。
 
 ## 测试

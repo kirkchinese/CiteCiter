@@ -67,7 +67,7 @@ CiteCiter needs DSH and a working model. It declares only the oldest DSH it supp
 
 | DSH version | CiteCiter version |
 | --- | --- |
-| `0.2.0-rc.2` and every later release (the official Desktop and every later alpha, release candidate and final release) | `0.9.0-beta.11` |
+| `0.2.0-rc.2` and every later release (the official Desktop and every later alpha, release candidate and final release) | `0.9.0-beta.12` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -77,13 +77,13 @@ CiteCiter needs DSH and a working model. It declares only the oldest DSH it supp
 **CLI and Web.**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.11
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.12
 ```
 
 You can also install a release tag straight from the repository, which ships the built plugin, so nothing is built at install time:
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.11"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.12"
 ```
 
 Restart DSH and reload the page after installing or upgrading. Do not use `dsh plugin allow-version` to force a plugin that does not match your host version, and do not run two host processes on the same DSH home.
@@ -112,7 +112,7 @@ After you select text, the toolbar shows the first action (Ask Citer by default)
 
 Citer is a tab in DSH's right sidebar. Open it from the sidebar's guide page, the desktop pet or the toolbar; it sits beside files, terminals and other plugins' tabs, and can be split, floated or made fullscreen like them; closing the tab closes Citer. If you prefer a standalone panel, turn on "Don't use DSH's right sidebar" under Settings → Citer → Panel. The interface follows DSH's language (Chinese or English), and so do the names and prompts of the default actions; actions you changed stay as you wrote them. Each Topic shows its own usage under the composer: tokens, cache hit rate and context occupancy.
 
-While Citer is closed, its mascot peeks over the window edge; she stands up when the pointer comes near, and a click opens Citer. Drag her to either side at any height and the place is remembered. A small dot appears next to her when an answer finishes, a question waits for you or teacher mode has a point for you.
+While Citer is closed, its mascot peeks over the window edge; she stands up when the pointer comes near, and a click opens Citer. Drag her to either side at any height and the place is remembered. A small dot appears next to her when an answer finishes, a question waits for you or teacher mode has a point for you. To put her away, click the × above her head while she stands; turn on "Show the desktop pet" under Settings → Citer → Panel to bring her back. Teacher mode notes still appear in her place while she is hidden.
 
 </details>
 

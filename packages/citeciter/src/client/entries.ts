@@ -13,6 +13,7 @@ import { projectToolEvidence, toolExcerptMatches, type ToolEvidenceProjection } 
 import { readAssistantAnswer } from './answer.ts'
 import { claimSelectionContextMenu } from './selection.ts'
 import type { CiteSelection, ToolCiteSelection } from './types.ts'
+import { headOf } from '../text-units.ts'
 
 /** Live browser facts an entry needs to resolve one selection. */
 export interface CiteCiterEntryContext {
@@ -127,7 +128,7 @@ function selectedTextWithin(element: HTMLElement): string | null {
   const range = selection.getRangeAt(0)
   if (!element.contains(range.commonAncestorContainer)) return null
   const text = selection.toString().trim()
-  return text === '' ? null : text.slice(0, 32_000)
+  return text === '' ? null : headOf(text, 32_000)
 }
 
 /** The call identity and name of the tool card holding a pointer event, from DSH's own card attributes. */

@@ -80,6 +80,47 @@
 .pet[data-side='left'] .dot { right: 6px; }
 .pet[data-expanded] .dot { top: 8px; }
 
+/* A quiet round control above her head while she stands, like the host's ghost icon buttons. */
+.hide {
+  position: fixed;
+  z-index: 201;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  border: 0;
+  border-radius: 50%;
+  corner-shape: round;
+  box-shadow: var(--dsw-elevation-panel, 0 0 0 .5px #0000001f, 0 2px 6px #00000014);
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+
+.hide[data-side='right'] { right: 8px; }
+.hide[data-side='left'] { left: 8px; }
+.hide:hover { color: var(--dsw-alias-label-primary); }
+
+.hide:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.hide svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* Teacher mode's note where she would be, when she is hidden. */
+.bubble[data-alone] { right: 16px; }
+
 .bubble {
   position: fixed;
   z-index: 200;
@@ -91,6 +132,8 @@
 
 :global(body:has([role='dialog'][aria-modal='true'])) .pet,
 :global(body:has([role='dialog'][aria-modal='true'])) .bubble,
+:global(body:has([role='dialog'][aria-modal='true'])) .hide,
+:global([data-rightbar-fullscreen]) .hide,
 :global([data-rightbar-fullscreen]) .bubble,
 :global([data-rightbar-fullscreen]) .pet {
   visibility: hidden;

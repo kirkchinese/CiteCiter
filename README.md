@@ -77,7 +77,7 @@ CiteCiter 需要 DSH 和一个可用的模型。插件只声明最低支持的 D
 
 | DSH 版本 <sub>DSH version</sub> | 插件版本 <sub>Plugin</sub> |
 | --- | --- |
-| `0.2.0-rc.2` 及以上（含官方桌面版，以及之后的各个 alpha、rc 和正式版）<br /><sub>`0.2.0-rc.2` and every later release, including the official Desktop</sub> | `0.9.0-beta.11` |
+| `0.2.0-rc.2` 及以上（含官方桌面版，以及之后的各个 alpha、rc 和正式版）<br /><sub>`0.2.0-rc.2` and every later release, including the official Desktop</sub> | `0.9.0-beta.12` |
 | `0.1.7-rc.2` | `0.9.0-alpha.3` |
 | `0.1.5-rc.1` | `0.8.2` |
 | `0.1.2-rc.1` | `0.6.0` |
@@ -87,13 +87,13 @@ CiteCiter 需要 DSH 和一个可用的模型。插件只声明最低支持的 D
 **命令行与 Web** <sub>CLI and Web</sub>
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.11
+dsh plugin --profile web add @kirkchinese/dsh-citeciter@0.9.0-beta.12
 ```
 
 也可以从仓库安装发布标签；仓库已包含构建好的插件，安装时无需构建。<br /><sub>Or install a release tag from the repository, which ships the built plugin:</sub>
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.11"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v0.9.0-beta.12"
 ```
 
 安装或升级后重启 DSH 并刷新页面。不要用 `dsh plugin allow-version` 强行加载与宿主版本不匹配的插件；同一个 DSH 主目录不要同时运行两个宿主进程。<br /><sub>Restart DSH and reload the page after installing or upgrading. Do not force a mismatched plugin with `allow-version`, and do not run two hosts on one DSH home.</sub>
@@ -124,7 +124,7 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/CiteCiter.git#v
 
 Citer 是 DSH 右侧栏里的一个标签页，可以从侧栏的指引页、桌宠或工具条打开，和文件、终端、其他插件的标签并排、分屏、悬浮或全屏，关闭标签即收起。更喜欢独立面板的话，在设置 → Citer → 面板中打开“不使用 DSH 右侧栏”。界面语言跟随 DSH（中文或英文），默认动作的名称和提示词也随之切换，你改过的动作保持原样。Topic 在输入框下方显示自己的用量：token 数、缓存命中率和上下文占用。
 
-Citer 收起时，桌宠会扒在窗口边缘探头；鼠标靠近时她会站起来，点一下就打开 Citer。可以把她拖到左边或右边的任意高度，位置会被记住。有回答完成、有问题在等你回答，或教师模式有提醒时，她旁边会出现一个小圆点。
+Citer 收起时，桌宠会扒在窗口边缘探头；鼠标靠近时她会站起来，点一下就打开 Citer。可以把她拖到左边或右边的任意高度，位置会被记住。有回答完成、有问题在等你回答，或教师模式有提醒时，她旁边会出现一个小圆点。不想看到她时，点她站起来后头顶的「×」即可隐藏；在设置 → Citer → 面板中打开「显示桌宠」可以让她回来。隐藏后教师模式的提醒仍会在原来的位置出现。
 
 </details>
 

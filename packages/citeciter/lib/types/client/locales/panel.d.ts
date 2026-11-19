@@ -153,6 +153,8 @@ export declare const zh: {
     readonly 'panel.teacher.explain': "讲讲";
     readonly 'panel.teacher.dismiss': "忽略";
     readonly 'panel.pet.drag': "打开 Citer · 可以拖动";
+    readonly 'panel.pet.hide': "隐藏桌宠";
+    readonly 'panel.pet.hidden': "桌宠已隐藏。可以在 设置 → Citer → 面板 中重新显示。";
     readonly 'panel.notice.deletedElsewhere': "此 Topic 已在另一窗口删除。";
     readonly 'panel.notice.deleted': "Topic 已永久删除。";
     readonly 'panel.notice.cleanup': "Topic 已删除；相关资源仍在后台清理。";

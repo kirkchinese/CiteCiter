@@ -5,6 +5,7 @@ import type { CompanionFace } from './companion-controller.ts'
 import type { DocumentLibraryFace } from './document-library.ts'
 import type { DocumentClaimIntent } from './request-guard.ts'
 import { selectionReferences } from './selection-references.ts'
+import { headOf } from '../text-units.ts'
 
 /** Where a chosen action goes: the selected Topic by default, or a new Topic when the user asks for one. */
 export interface ActionRunOptions {
@@ -24,7 +25,7 @@ export function createActionExecutor(companion: CompanionFace, documents: Pick<D
     const cached = source.documentId ?? imports.get(source)
     if (cached !== undefined) return cached
     if (source.content === undefined) throw new Error(t('settings.error.snapshotUnavailable'))
-    const imported = await documents.importText(source.title.slice(0, 200), source.content)
+    const imported = await documents.importText(headOf(source.title, 200), source.content)
     imports.set(source, imported.documentId)
     return imported.documentId
   }

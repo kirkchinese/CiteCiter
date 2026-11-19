@@ -7,6 +7,7 @@ import type { CompanionSnapshot } from '../companion-controller.ts'
 import { t, useLocale } from '../i18n.ts'
 import css from './ActionWheel.module.css'
 import { actionDelivery, type CiteAction } from '../../actions.ts'
+import { headOf } from '../../text-units.ts'
 
 export type ActionCallbacks = Omit<ActionController, 'getSnapshot' | 'subscribe' | 'dispose'>
 
@@ -46,7 +47,7 @@ export function ActionWheel({ useActions, useCompanion, actions }: {
     </div>}
     {pending !== null && state.error !== null && <form className={css.prompt} data-citeciter-menu role="dialog" aria-label={t('settings.wheel.unfinished', { label: pending.action.label })} style={{ '--prompt-x': `${pending.x - 210}px`, '--prompt-y': `${pending.y - 100}px` } as CSSProperties} onSubmit={event => { event.preventDefault(); void actions.submit() }}>
       <header><strong>{pending.action.label}</strong><button type="button" onClick={actions.cancel} aria-label={t('settings.wheel.closeAsk')}><IconCloseOutlineRegular /></button></header>
-      <blockquote>{actionSourceQuote(pending.source).slice(0, 180)}</blockquote>
+      <blockquote>{headOf(actionSourceQuote(pending.source), 180)}</blockquote>
       {state.error !== null && <p role="alert" className={css.error}>{state.error}</p>}
       <footer><span>{t('settings.wheel.retained')}</span><button type="submit" disabled={state.submitting}>{t('settings.wheel.retry')}</button></footer>
     </form>}

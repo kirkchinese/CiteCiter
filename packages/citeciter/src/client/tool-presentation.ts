@@ -2,6 +2,7 @@ import type { TopicMessage } from '../topic.ts'
 import { questionReplySummary } from '../question-reply.ts'
 import { t, type CiterKey } from './i18n.ts'
 import { deriveQuestionReply, deriveToolCard, isShellTool } from './tool-cards.ts'
+import { headOf } from '../text-units.ts'
 
 type ToolMessage = Extract<TopicMessage, { role: 'tool' }>
 
@@ -50,7 +51,7 @@ function fields(value: unknown): Readonly<Record<string, unknown>> | null {
 
 function compact(text: string, limit = 80): string {
   const single = text.replaceAll(/\s+/gu, ' ').trim()
-  return single.length > limit ? `${single.slice(0, limit)}…` : single
+  return single.length > limit ? `${headOf(single, limit)}…` : single
 }
 
 function subject(args: Readonly<Record<string, unknown>> | null): string | null {

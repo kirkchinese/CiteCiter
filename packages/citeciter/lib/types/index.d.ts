@@ -1,5 +1,5 @@
 /** Host entry: native Topics, their settings and the browser Remote API. */
-import { Service, type Context } from '@deepseek-ai/cordis';
+import type { Context } from '@deepseek-ai/cordis';
 import { type SettingsReader } from './host-settings-adapter.ts';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import z from '@deepseek-ai/schemastery';
@@ -13,7 +13,11 @@ export declare const inject: readonly ["llm", "sessionQuery", "agents", "agentPr
 export declare const CITECITER_SETTINGS_NS: "citeciter";
 /** Native settings schema for new Topics and the companion panel. */
 export declare const CITECITER_SETTINGS_SCHEMA: z<object>;
-/** Root-scoped Remote service owning Topic metadata and native Topic contributions. */
+/**
+ * Root-scoped Remote service owning Topic metadata and native Topic contributions. It has no init step: DSH waits
+ * for every plugin's init before it shows its window, and the Topic runtime reads the Session store as it starts.
+ * Each request waits for the runtime instead, so an early browser call only waits longer.
+ */
 export declare class CiteCiterHost extends TypertRemoteService {
     static inject: readonly ["llm", "sessionQuery", "agents", "agentPresets", "sessionController", "systemPrompt", "tools", "sandboxPolicy", "sessions", "sessionPersistence", "sessionTitle", "attachments"];
     static Config: z<object, object, "volatile">;
@@ -22,8 +26,6 @@ export declare class CiteCiterHost extends TypertRemoteService {
     private readonly service;
     private releaseService;
     constructor(ctx: Context, config: SettingsReader);
-    /** Do not publish the Remote service until its private runtime is ready. */
-    [Service.init](): Promise<void>;
     /** Resolve one create/ask command into a committed Topic snapshot. */
     private topicSnapshot;
     /** Validate and execute one strict Topic command. */

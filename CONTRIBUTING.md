@@ -74,6 +74,8 @@ Three host adaptations are deliberate and isolated; do not spread them:
 - `host-agent-modules.ts` loads the host's AgentLoop, SessionStore, title service, first-prompt title provider and scope factory through the profile resolver, so Desktop and symlinked CLIs share one module instance. Each Topic world mounts the title provider with the same policy `dsh-base` uses for host sessions.
 - `client/host-dock.ts` and its CSS reserve layout space for the panel and restore the host's styles on close.
 
+Startup must not grow with the user's Session count. The Host service has no init step, so DSH never waits for Citer before it opens; the Topic runtime starts in the background and every request waits for it. `SourceStorage.discover()` lists the JSONL root once and probes each Session directory for `citeciter/owner.json`; it never calls the backend's per-Session `resolveCurrentLog`, which scans every project directory for each id. A source that fails its checks is skipped with a warning.
+
 Other rules: registrations are effects (`ctx.effect()`, `ctx.on()`) released with their owner; waterfall listeners call `next()` unless they deliberately claim the request; validate data at file, wire and configuration boundaries and trust typed same-process calls; model-visible input must be reconstructable from the Topic log; read persisted settings field by field so keys from other versions are ignored.
 
 ## Testing

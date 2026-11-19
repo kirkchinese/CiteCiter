@@ -33,6 +33,15 @@ export interface SourceTranscriptPage {
 }
 /** Characters kept from one tool argument, result or diff in compact detail. */
 export declare const COMPACT_PAYLOAD_CHARS = 1500;
+interface Clip {
+    readonly text: string;
+    readonly shortened: boolean;
+}
+/**
+ * Keep the head and tail of a long payload with an explicit omission marker. Both cuts stay on character
+ * boundaries, so an emoji at a cut point is omitted whole instead of leaving half of it in model input.
+ */
+export declare function clip(text: string, limit: number): Clip;
 /**
  * Format one bounded Markdown page of a source Session.
  * Records are `# User`, `# Assistant`, `## Tool call` and `### Tool result` blocks, each
@@ -56,3 +65,4 @@ export declare function sourceWindowStart(source: ObserverSourceSnapshot, option
     readonly endSeq?: number;
     readonly afterSeq?: number;
 }): number;
+export {};

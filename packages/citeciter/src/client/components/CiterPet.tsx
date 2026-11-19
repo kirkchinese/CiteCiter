@@ -20,6 +20,8 @@ const REVEAL_DISTANCE = 40
 const REVEAL_DELAY = 140
 const HIDE_DELAY = 600
 const DRAG_THRESHOLD = 6
+/** How far above her standing head the hide button sits. */
+const HIDE_BUTTON_LIFT = 24
 
 function readPlace(): PetPlace {
   try {
@@ -47,13 +49,21 @@ function restTop(y: number): number {
   return Math.round(Math.min(max, Math.max(TOP_CLEARANCE, y * window.innerHeight)))
 }
 
+/** Content shown where the pet would rest, for when she is hidden: teacher mode's note, or a short hint. */
+export function PetSpot({ children }: { readonly children: ReactNode }) {
+  const [place] = useState(readPlace)
+  return <OverlayPortal>
+    <div className={css.bubble} data-side={place.side} data-alone="" style={{ top: Math.max(8, restTop(place.y) - 40) }}>{children}</div>
+  </OverlayPortal>
+}
+
 /**
  * The collapsed Citer entry: the mascot peeking over a window edge. It stands up when the
  * pointer comes near or it receives focus, opens Citer on click, and can be dragged to
  * either side; the side and height are remembered in this browser.
  * @param attention - show a dot because an answer finished or a question waits while Citer is closed.
  */
-export function CiterPet({ attention, onOpen, bubble }: { readonly attention: boolean, readonly onOpen: () => void, readonly bubble?: ReactNode }) {
+export function CiterPet({ attention, onOpen, onHide, bubble }: { readonly attention: boolean, readonly onOpen: () => void, readonly onHide?: () => void, readonly bubble?: ReactNode }) {
   useLocale()
   const [place, setPlace] = useState(readPlace)
   const [expanded, setExpanded] = useState(false)
@@ -136,6 +146,12 @@ export function CiterPet({ attention, onOpen, bubble }: { readonly attention: bo
       <img className={css.proud} src={proudUrl} alt="" draggable={false} />
       {attention && <span className={css.dot} aria-hidden="true" />}
     </button>
+    {/* Standing up offers a way to put her away; it sits within her reveal distance, so reaching for it keeps her up. */}
+    {onHide !== undefined && shown && drag === null && <button type="button" className={css.hide} data-side={place.side} style={{ top: restTop(place.y) - 28 - HIDE_BUTTON_LIFT }}
+      aria-label={t('panel.pet.hide')} title={t('panel.pet.hide')} onClick={onHide}
+      onFocus={() => setShown(true, 0)} onBlur={() => setShown(false, HIDE_DELAY)}>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 4.5 7 7m0-7-7 7" /></svg>
+    </button>}
     {/* She speaks from beside the edge she peeks over; dragging her hides it until she lands. */}
     {bubble !== undefined && drag === null && <div className={css.bubble} data-side={place.side} style={{ top: Math.max(8, restTop(place.y) - 40) }}>{bubble}</div>}
   </OverlayPortal>

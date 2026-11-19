@@ -32,6 +32,8 @@ export const citeCiterSettingsSchema = z.object({
   panelWidthPercent: z.number().int().min(28).max(55),
   /** Use Citer's own panel instead of a tab in DSH's right sidebar. */
   standalonePanel: z.boolean().optional(),
+  /** Show the desktop pet at the window edge while Citer is closed. */
+  showPet: z.boolean().optional(),
   reopenLastTopic: z.boolean(),
   tutorPrompt: z.string().max(4000).optional(),
   followupQuestions: z.boolean().optional(),
@@ -62,6 +64,7 @@ export const DEFAULT_CITECITER_SETTINGS: CiteCiterSettings = Object.freeze({
   includeSourceReasoning: true,
   panelWidthPercent: 34,
   standalonePanel: false,
+  showPet: true,
   reopenLastTopic: true,
   followupQuestions: true,
   boardAnimations: true,

@@ -156,3 +156,28 @@ test('line diffs show changed hunks with context and stay bounded', () => {
   assert.equal(diff.split('\n').filter(line => line.startsWith('@@')).length, 2)
   assert.equal(unifiedLineDiff('x\n'.repeat(10), 'y\n'.repeat(10), { maxCells: 50 }), null)
 })
+
+const SURROGATE = '\u{1F539}' // 🔹 — non-BMP, surrogate pair D83D DD39
+
+test('compact clipping never splits a surrogate pair at the head cut', () => {
+  // head = floor(1500 * 0.7) = 1050; place the pair starting at index 1049 so the
+  // old head slice ends on the high surrogate D83D.
+  const text = 'a'.repeat(1049) + SURROGATE + 'b'.repeat(4000)
+  const source = { session: { id: sourceId }, events: [toolCall(1, 'c', 'read', { path: 'x' }), toolResult(2, 'c', text)] }
+  const result = page(source)
+  assert.equal(result.shortened, true)
+  // The cut must not leave a lone surrogate (D83D or DD39) in model-facing text;
+  // JSON.stringify would emit "\udd39" and the DSH server rejects it with 400.
+  assert.equal(result.markdown.isWellFormed(), true)
+})
+
+test('compact clipping never splits a surrogate pair at the tail cut', () => {
+  // tail = 1500 - 1050 = 450; place the pair so its low surrogate lands exactly
+  // at text.length - 450, i.e. the first code unit of the tail slice.
+  const text = 'a'.repeat(1100) + SURROGATE + 'b'.repeat(449)
+  const source = { session: { id: sourceId }, events: [toolCall(1, 'c', 'read', { path: 'x' }), toolResult(2, 'c', text)] }
+  const result = page(source)
+  assert.equal(result.shortened, true)
+  // The tail slice would begin with low surrogate DD39 without boundary snapping.
+  assert.equal(result.markdown.isWellFormed(), true)
+})
