@@ -2,7 +2,7 @@ import { t, useLocale } from '../i18n.ts'
 import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useEffect, useState } from 'react'
 import type { CiterSessionSnapshot } from '../citer-session-face.ts'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+import type { MessageId } from '@deepseek-ai/dsh-llm'
 import type { NativeComposer } from '../native-composer.ts'
 import css from './NativeQueue.module.css'
 

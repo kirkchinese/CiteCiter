@@ -46,7 +46,7 @@ import { createUpdateController, INITIAL_UPDATE_SNAPSHOT } from './update-contro
 import { createBoardCaptureController } from './board-capture-controller.ts'
 import { BoardCaptureWorker } from './components/BoardCaptureWorker.tsx'
 import { createDraftController } from './draft-controller.ts'
-import { hostSettings, hostInteractions } from './host-ui-adapter.ts'
+import { hostSettings, hostInteractions, hostSessionStatus } from './host-ui-adapter.ts'
 import { createSourceChatReader } from './host-source-chat.ts'
 import { createFileOpener } from './native-file-link.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
@@ -81,7 +81,7 @@ export async function apply(ctx: Context): Promise<void> {
   installQuoteSource(ctx)
   installQuoteRendering(ctx)
 
-  ctx.inject(['remote.citeciter'], (remoteCtx) => {
+  ctx.inject(['remote.citeciter'], remoteCtx => reportSetup(remoteCtx, () => {
     const readChat = createSourceChatReader(remoteCtx)
     const settingsBinder = hostSettings(remoteCtx)
     const interactions = hostInteractions(remoteCtx)
@@ -254,7 +254,7 @@ export async function apply(ctx: Context): Promise<void> {
     const unsubscribeSessions = currentSession.subscribe(syncSource)
 
     // Teacher mode watches the conversation on screen; DSH hosts without per-Session status have no trigger.
-    const sessionStatus = (remoteCtx.uiSession as unknown as { sessionStatus?: import('@deepseek-ai/dsh-client-store').ObservableSnapshot<RunningStatus> }).sessionStatus
+    const sessionStatus: import('@deepseek-ai/dsh-client-store').ObservableSnapshot<RunningStatus> | undefined = hostSessionStatus(remoteCtx)
     const stopTeacher = sessionStatus === undefined ? () => {} : watchTeacherTurns({
       status: sessionStatus,
       current: readSource,
@@ -447,5 +447,19 @@ export async function apply(ctx: Context): Promise<void> {
       await Promise.all([actions.dispose(), companion.dispose(), library.dispose(), settingsDocument.dispose(), updateController.dispose()])
     }, 'citeciter: browser controller')
     void updateController.start()
-  })
+  }))
+}
+
+/**
+ * Run Citer's browser setup, reporting a failure where the user can find it. Cordis records a failed inject callback
+ * without printing it, so a DSH interface change would otherwise leave Citer's UI missing with no trace.
+ */
+function reportSetup(ctx: Context, setup: () => void): void {
+  try {
+    setup()
+  } catch (error) {
+    console.error('Citer could not start in this DeepSeek Harness version; its interface is unavailable.', error)
+    ctx.logger.error('Citer browser setup failed', error)
+    throw error
+  }
 }

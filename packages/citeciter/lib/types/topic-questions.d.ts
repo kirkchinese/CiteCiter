@@ -1,6 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis';
 import type { Agent } from '@deepseek-ai/dsh-agent';
-import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand';
+import type { ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions';
 import type { PendingQuestion, QuestionAnswer } from './topic.ts';
 /** Keep late replies inside an explicitly injected contribution owned by the exact Topic Agent. */
