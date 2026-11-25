@@ -2,7 +2,9 @@
 
 All notable changes to CiteCiter. Detailed notes for each published version are on [GitHub Releases](https://github.com/kirkchinese/CiteCiter/releases). Versions are listed with the DSH host line they target.
 
-## Unreleased
+## 0.9.0-beta.13 — 2026-11-26
+
+Targets DSH `>=0.2.0-rc.2`, verified on `0.2.2-rc.5` and `0.2.3-alpha.2`.
 
 - Citer works on DSH 0.2.3 alphas. DSH 0.2.3 moved its per-conversation status table out of `uiSession` into a service of its own, and Citer's browser side stopped at that read without any message: Citer loaded but showed no pet, toolbar or panel. Citer now reads the table in both forms, and if its browser side ever fails to start it says so in the browser console. It also no longer imports a DSH type path that 0.2.3 removed.
 
