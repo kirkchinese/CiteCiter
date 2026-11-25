@@ -47283,9 +47283,26 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			if (forms === void 0) throw new Error(t("panel.error.settingsUnavailable"));
 			return forms;
 		}
+		/**
+		* DSH's per-Session UI status table. Until 0.2.2 it is the `sessionStatus` property of `uiSession`; from 0.2.3 it
+		* is the separate `uiSession.sessionStatus` service, which a property read only reaches when the plugin injects it
+		* (otherwise Cordis throws). `ctx.get` reads either form without injecting.
+		* @returns the table, or undefined when this DSH has none yet.
+		*/
+		function hostSessionStatus(ctx) {
+			const service = ctx.get("uiSession.sessionStatus");
+			if (service !== void 0) return service;
+			try {
+				return ctx.get("uiSession")?.sessionStatus;
+			} catch (error) {
+				return;
+			}
+		}
 		/** Project native UI status without creating another approval authority. */
 		function hostInteractions(ctx) {
-			const source = ctx.uiSession.sessionStatus;
+			const direct = ctx.get("uiSession")?.pendingInteractions;
+			if (direct !== void 0) return direct;
+			const source = hostSessionStatus(ctx);
 			if (source === void 0) throw new Error(t("panel.error.approvalUnavailable"));
 			let previous;
 			let current = /* @__PURE__ */ new Map();
@@ -49732,7 +49749,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 			installLocale(ctx);
 			installQuoteSource(ctx);
 			installQuoteRendering(ctx);
-			ctx.inject(["remote.citeciter"], (remoteCtx) => {
+			ctx.inject(["remote.citeciter"], (remoteCtx) => reportSetup(remoteCtx, () => {
 				const readChat = createSourceChatReader(remoteCtx);
 				const settingsBinder = hostSettings(remoteCtx);
 				const interactions = hostInteractions(remoteCtx);
@@ -49891,7 +49908,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 				};
 				syncSource();
 				const unsubscribeSessions = currentSession.subscribe(syncSource);
-				const sessionStatus = remoteCtx.uiSession.sessionStatus;
+				const sessionStatus = hostSessionStatus(remoteCtx);
 				const stopTeacher = sessionStatus === void 0 ? () => {} : watchTeacherTurns({
 					status: sessionStatus,
 					current: readSource,
@@ -50173,7 +50190,20 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
 					]);
 				}, "citeciter: browser controller");
 				updateController.start();
-			});
+			}));
+		}
+		/**
+		* Run Citer's browser setup, reporting a failure where the user can find it. Cordis records a failed inject callback
+		* without printing it, so a DSH interface change would otherwise leave Citer's UI missing with no trace.
+		*/
+		function reportSetup(ctx, setup) {
+			try {
+				setup();
+			} catch (error) {
+				console.error("Citer could not start in this DeepSeek Harness version; its interface is unavailable.", error);
+				ctx.logger.error("Citer browser setup failed", error);
+				throw error;
+			}
 		}
 		//#endregion
 		exports.apply = apply;

@@ -32,7 +32,7 @@ CI runs the same commands on Ubuntu and Windows. `pnpm --dir packages/citeciter 
 
 ## Two SDK baselines
 
-The package's `devDependencies` pin the main SDK (currently DSH `0.2.2-rc.3`). `citeciter-compat-desktop` pins the oldest supported SDK (`0.2.0-rc.2`, the first official Desktop), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
+The package's `devDependencies` pin the main SDK (currently DSH `0.2.2-rc.5`). `citeciter-compat-desktop` pins the oldest supported SDK (`0.2.0-rc.2`, the first official Desktop), and `scripts/check-desktop.mjs` compiles the same Host and Client sources against it. Host and Client are separate TypeScript programs (`tsconfig.host.json`, `tsconfig.client.json`) because both faces declare services with the same names.
 
 ## Declared DSH support
 

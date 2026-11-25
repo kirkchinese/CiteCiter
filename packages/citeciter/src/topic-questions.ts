@@ -1,6 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
+// The package root re-exports its brands in every supported release; the ./brand subpath left in 0.2.3.
+import type { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { createUserMessage, type MessageId } from '@deepseek-ai/dsh-llm'
 import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions'
 import type { PendingQuestion, QuestionAnswer } from './topic.ts'

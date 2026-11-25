@@ -1,7 +1,8 @@
 import { t } from './i18n.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
+// The package root re-exports its brands in every supported release; the ./brand subpath left in 0.2.3.
+import type { ToolCallId } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-user-questions/remote'
 import type { ComposerAttachment, ConversationController, DraftAttachmentId, DraftFileUploads } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
